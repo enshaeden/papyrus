@@ -17,11 +17,28 @@ Papyrus separates canonical content from explanatory docs and derived outputs.
 - `build/`: derived local data such as the search index.
 - `site/`: rendered site output.
 
+## User-Facing Areas
+
+The generated site separates repository content into three user-facing areas:
+
+- Knowledge Base: canonical operator-facing procedures and references sourced from `knowledge/` and `archive/knowledge/`
+- System & Design Docs: explanatory repository, schema, taxonomy, generator, and workflow documentation sourced from `docs/`
+- Governance & Decisions: policy and ADR-style structural rationale sourced from `decisions/` with supporting governance references from `docs/`
+
+This separation is a browse-layer concern only. It does not change the repository source-of-truth model.
+
+## Placement Rubric
+
+- Put content in `knowledge/` when it tells operators how to do the work.
+- Put content in `docs/` when it explains how the knowledge system or repository design works.
+- Put content in `decisions/` when it records a durable structural choice with rationale and tradeoffs.
+
 ## Discoverability Strategy
 
 - Use controlled `systems`, `services`, and `tags` vocabularies.
 - Prefer cross-links and generated indexes over duplicate summary documents.
 - Use generated start-here and by-service, by-system, and by-tag views to improve findability.
+- Cross-link between knowledge, docs, and decisions where useful without copying canonical article content into `docs/`.
 
 ## Canonical Path Rule
 

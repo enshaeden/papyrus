@@ -1,5 +1,5 @@
-site_name: Papyrus Knowledge Base
-site_description: Local-first knowledge management database for IT support and systems operations
+site_name: Papyrus
+site_description: Local-first knowledge system for IT support and systems operations
 site_url: http://127.0.0.1:8000/
 docs_dir: generated/site_docs
 site_dir: site
@@ -7,17 +7,12 @@ use_directory_urls: true
 theme:
   name: mkdocs
 extra_css:
-  - assets/site.css
+  - system-design-docs/assets/site.css
 extra_javascript:
-  - assets/knowledge-explorer.js
+  - system-design-docs/assets/knowledge-explorer.js
 nav:
   - Home: index.md
-  - Governance: architecture/governance.md
-  - Content Lifecycle: architecture/content-lifecycle.md
-  - Information Architecture: architecture/information-architecture.md
-  - Contributor Workflow: contributor-workflow.md
-  - Knowledge Discovery Plan: knowledge-discovery-improvement-plan.md
-  - Knowledge:
+  - Knowledge Base:
       - Overview: knowledge/index.md
       - Start Here: knowledge/start-here.md
       - Support: knowledge/support.md
@@ -35,4 +30,16 @@ nav:
       - Content Health: knowledge/content-health.md
       - Coverage Matrix: knowledge/coverage-matrix.md
       - Archive: archive/index.md
-  - Decisions: decisions/index.md
+  - System & Design Docs:
+      - Overview: system-design-docs/index.md
+      - Contributor Workflow: system-design-docs/contributor-workflow.md
+      - Information Architecture: system-design-docs/architecture/information-architecture.md
+      - Content Lifecycle: system-design-docs/architecture/content-lifecycle.md
+      - Knowledge Discovery Plan: system-design-docs/knowledge-discovery-improvement-plan.md
+      - Migration Rationale: system-design-docs/migration/seed-migration-rationale.md
+  - Governance & Decisions:
+      - Overview: decisions/index.md
+      - Governance Policy: system-design-docs/architecture/governance.md
+      - 0001 Source Of Truth And Anti-Drift Policy: decisions/0001-source-of-truth-and-anti-drift-policy.md
+      - 0002 Seed Migration Workspace And Sanitized Provenance: decisions/0002-seed-migration-workspace-and-provenance.md
+      - 0003 Sanitized Reports And Public Seed Artifacts: decisions/0003-sanitized-reports-and-public-seed-artifacts.md

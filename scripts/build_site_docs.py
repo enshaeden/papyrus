@@ -15,9 +15,8 @@ from kb_common import (
     DOCS_DIR,
     GENERATED_SITE_DOCS_DIR,
     GENERATED_SITE_INDEX_PATHS,
-    KNOWLEDGE_DIR,
     LEGACY_GENERATED_DOCS_DIR,
-    ROOT,
+    MARKDOWN_LINK_PATTERN,
     articles_missing_list_field,
     collect_decision_paths,
     collect_docs_source_paths,
@@ -29,13 +28,16 @@ from kb_common import (
     load_taxonomies,
     missing_owner_articles,
     navigation_statuses,
+    relative_path,
     reference_graph,
     relationless_articles,
     render_change_log,
     render_list,
     render_reference,
+    resolve_local_link,
     similarity_ratio,
     site_article_output_path,
+    site_relative_path_for_repo_path,
     stale_articles,
 )
 
@@ -160,10 +162,47 @@ MANAGER_SHORTCUTS = (
 )
 
 
+def rewrite_local_markdown_links(
+    source_path: Path,
+    destination_relative: Path,
+    text: str,
+) -> str:
+    def replace(match) -> str:
+        label, target = match.groups()
+        clean_target, _, fragment = target.partition("#")
+        resolved = resolve_local_link(source_path, clean_target)
+        if resolved is None or not resolved.exists():
+            return match.group(0)
+
+        try:
+            repo_relative = relative_path(resolved)
+        except ValueError:
+            return match.group(0)
+        site_target = site_relative_path_for_repo_path(repo_relative)
+        if site_target is None:
+            return match.group(0)
+
+        rewritten = relative_site_link(destination_relative, site_target)
+        if fragment:
+            rewritten += f"#{fragment}"
+        return f"[{label}]({rewritten})"
+
+    return MARKDOWN_LINK_PATTERN.sub(replace, text)
+
+
 def copy_source_tree(source_root: Path, destination_root: Path, paths: list[Path]) -> None:
     for path in paths:
         target = destination_root / path.relative_to(source_root)
         target.parent.mkdir(parents=True, exist_ok=True)
+        if path.suffix == ".md":
+            text = path.read_text(encoding="utf-8")
+            rewritten = rewrite_local_markdown_links(
+                path,
+                target.relative_to(GENERATED_SITE_DOCS_DIR),
+                text,
+            )
+            target.write_text(rewritten, encoding="utf-8")
+            continue
         shutil.copy2(path, target)
 
 
@@ -175,17 +214,27 @@ def relative_site_link(from_relative: Path, to_relative: Path) -> str:
     return os_path.relpath(to_relative.as_posix(), start=from_relative.parent.as_posix())
 
 
-def site_relative_path_for_repo_path(repo_relative: str) -> Path | None:
-    candidate = Path(repo_relative)
-    if repo_relative.startswith("knowledge/"):
-        return candidate
-    if repo_relative.startswith("archive/knowledge/"):
-        return candidate
-    if repo_relative.startswith("docs/"):
-        return candidate.relative_to("docs")
-    if repo_relative.startswith("decisions/"):
-        return candidate
-    return None
+def site_output_path(doc_relative: Path) -> Path:
+    if doc_relative.suffix != ".md":
+        return doc_relative
+    if doc_relative.name == "index.md":
+        if doc_relative.parent == Path("."):
+            return Path("index.html")
+        return doc_relative.parent / "index.html"
+    return doc_relative.with_suffix("") / "index.html"
+
+
+def site_href(from_relative: Path, to_relative: Path, query: str | None = None) -> str:
+    current_output = site_output_path(from_relative)
+    target_output = site_output_path(to_relative)
+    href = os_path.relpath(target_output.as_posix(), start=current_output.parent.as_posix())
+    if href.endswith("index.html"):
+        href = href[: -len("index.html")]
+    if not href:
+        href = "./"
+    if query:
+        href = f"{href}?{query}"
+    return href
 
 
 def explorer_link(from_relative: Path, **filters: str) -> str:
@@ -205,6 +254,26 @@ def repo_doc_link(from_relative: Path, repo_relative: str) -> str:
     target = site_relative_path_for_repo_path(repo_relative)
     if target is None:
         return repo_relative
+    return relative_site_link(from_relative, target)
+
+
+def explorer_href(from_relative: Path, **filters: str) -> str:
+    target = Path("knowledge/explorer.md")
+    clean_filters = {key: value for key, value in filters.items() if value}
+    query = urlencode(clean_filters) if clean_filters else None
+    return site_href(from_relative, target, query)
+
+
+def page_href(from_relative: Path, page_name: str) -> str:
+    return site_href(from_relative, Path("knowledge") / page_name)
+
+
+def repo_doc_href(from_relative: Path, repo_relative: str) -> str:
+    target = site_relative_path_for_repo_path(repo_relative)
+    if target is None:
+        return repo_relative
+    if target.suffix == ".md":
+        return site_href(from_relative, target)
     return relative_site_link(from_relative, target)
 
 
@@ -257,6 +326,60 @@ def render_metric_grid(metrics: list[tuple[str, str]]) -> str:
         lines.append("  </div>")
     lines.append("</div>")
     return "\n".join(lines)
+
+
+def render_site_home(articles: list, docs_paths: list[Path], decision_paths: list[Path]) -> str:
+    current_relative = Path("index.md")
+    doc_markdown_count = len([path for path in docs_paths if path.suffix == ".md"])
+    decision_record_count = len(
+        [
+            path
+            for path in decision_paths
+            if path.suffix == ".md" and path.name != "index.md"
+        ]
+    )
+    cards = [
+        (
+            "Knowledge Base",
+            "Canonical operator-facing procedures, references, troubleshooting guides, runbooks, and SOPs.",
+            site_href(current_relative, Path("knowledge/index.md")),
+        ),
+        (
+            "System & Design Docs",
+            "Repository architecture, schema behavior, generator design, taxonomy design, and workflow guidance.",
+            site_href(current_relative, Path("system-design-docs/index.md")),
+        ),
+        (
+            "Governance & Decisions",
+            "Repository policy, information-governance rules, and ADR-style structural decisions.",
+            site_href(current_relative, Path("decisions/index.md")),
+        ),
+    ]
+    metrics = [
+        (str(len(articles)), "canonical knowledge articles"),
+        (str(doc_markdown_count), "system and design docs"),
+        (str(decision_record_count), "decision records"),
+    ]
+    return (
+        "<!-- Generated from source content. Do not edit here. -->\n\n"
+        "# Papyrus\n\n"
+        "Papyrus separates canonical operational knowledge from repository/system documentation and structural decisions.\n\n"
+        f"{render_card_grid(cards)}\n\n"
+        f"{render_metric_grid(metrics)}\n\n"
+        "## Default Path\n\n"
+        "- Start in the [Knowledge Base](knowledge/index.md) when you need to do the work.\n"
+        "- Use [Start Here](knowledge/start-here.md), [Support Discovery](knowledge/support.md), or the [Knowledge Explorer](knowledge/explorer.md) to find operational procedures quickly.\n\n"
+        "## Area Guide\n\n"
+        "### Knowledge Base\n\n"
+        "- Canonical source for operator-facing procedures, references, troubleshooting content, runbooks, and SOPs.\n"
+        "- Source of truth: `knowledge/` and `archive/knowledge/`.\n\n"
+        "### System & Design Docs\n\n"
+        "- Use [System & Design Docs](system-design-docs/index.md) for repository architecture, schema behavior, generator design, taxonomy design, and contributor workflow guidance.\n"
+        "- Source of truth: `docs/`.\n\n"
+        "### Governance & Decisions\n\n"
+        "- Use [Governance & Decisions](decisions/index.md) for repository policy, structural rules, and durable rationale.\n"
+        "- Source of truth: `decisions/` for decision records, with supporting governance material referenced from `docs/`.\n"
+    )
 
 
 def ordered_group_names(grouped: dict[str, list], group_order: list[str] | None = None) -> list[str]:
@@ -348,7 +471,7 @@ def render_archive_index(archived_articles: list) -> str:
 
     lines.append(
         f"Explorer view: [Show archived articles]"
-        f"({relative_site_link(current_relative, Path('knowledge/explorer.md'))}?status=archived)"
+        f"({explorer_link(current_relative, status='archived')})"
     )
     lines.append("")
     for article in sorted(archived_articles, key=lambda item: item.metadata["title"]):
@@ -390,7 +513,8 @@ def render_reference_lines(article, by_id: dict[str, object]) -> str:
         elif path:
             target_relative = site_relative_path_for_repo_path(path)
             if target_relative is not None:
-                line = f"[{reference['title']}]({relative_site_link(current_relative, target_relative)})"
+                href = relative_site_link(current_relative, target_relative)
+                line = f"[{reference['title']}]({href})"
                 if reference.get("note"):
                     line += f" - {reference['note']}"
         lines.append(f"- {line}")
@@ -673,7 +797,7 @@ def render_explorer_page(articles: list, taxonomies: dict[str, dict[str, object]
                 "title": article.metadata["title"],
                 "summary": article.metadata["summary"],
                 "path": article.relative_path,
-                "site_path": relative_site_link(current_relative, site_relative_path_for_article(article)),
+                "site_path": site_href(current_relative, site_relative_path_for_article(article)),
                 "type": article.metadata["type"],
                 "status": article.metadata["status"],
                 "owner": article.metadata["owner"],
@@ -721,7 +845,7 @@ def render_explorer_page(articles: list, taxonomies: dict[str, dict[str, object]
 def render_support_page(by_id: dict[str, object]) -> str:
     current_relative = Path("knowledge/support.md")
     cards = [
-        (title, description, explorer_link(current_relative, **filters))
+        (title, description, explorer_href(current_relative, **filters))
         for title, description, filters in SUPPORT_SHORTCUTS
     ]
     lines = [
@@ -767,8 +891,8 @@ def render_authors_page(
     current_relative = Path("knowledge/authors.md")
     cards = []
     for title, description, target in AUTHOR_SHORTCUTS:
-        href = target["page"] if target else repo_doc_link(current_relative, "docs/contributor-workflow.md")
-        cards.append((title, description, href if target is None else page_link(current_relative, target["page"])))
+        href = target["page"] if target else repo_doc_href(current_relative, "docs/contributor-workflow.md")
+        cards.append((title, description, href if target is None else page_href(current_relative, target["page"])))
 
     missing_services = len(articles_missing_list_field(articles, "services"))
     missing_systems = len(articles_missing_list_field(articles, "systems"))
@@ -842,7 +966,7 @@ def render_manager_page(
 ) -> str:
     current_relative = Path("knowledge/managers.md")
     cards = [
-        (title, description, page_link(current_relative, target["page"]))
+        (title, description, page_href(current_relative, target["page"]))
         for title, description, target in MANAGER_SHORTCUTS
     ]
     status_counts = Counter(article.metadata["status"] for article in articles)
@@ -1040,11 +1164,13 @@ def render_content_health_page(
         for candidate in duplicate_candidates:
             left_path = site_relative_path_for_repo_path(candidate.left_path) or Path(candidate.left_path)
             right_path = site_relative_path_for_repo_path(candidate.right_path) or Path(candidate.right_path)
+            left_href = relative_site_link(current_relative, left_path)
+            right_href = relative_site_link(current_relative, right_path)
             lines.append(
                 f"- [Inference] `{candidate.left_title}` "
-                f"([{candidate.left_path}]({relative_site_link(current_relative, left_path)})) and "
+                f"([{candidate.left_path}]({left_href})) and "
                 f"`{candidate.right_title}` "
-                f"([{candidate.right_path}]({relative_site_link(current_relative, right_path)})) "
+                f"([{candidate.right_path}]({right_href})) "
                 f"have title similarity {candidate.similarity:.2f} without explicit linkage."
             )
         lines.append("")
@@ -1155,12 +1281,12 @@ def render_landing_page(
 ) -> str:
     current_relative = Path("knowledge/index.md")
     cards = [
-        ("Support", "Task-oriented entry points for support specialists.", page_link(current_relative, "support.md")),
-        ("Authors", "Validated authoring guidance, taxonomy usage, and discovery checks.", page_link(current_relative, "authors.md")),
-        ("Managers", "Coverage, lifecycle, and ownership audit surfaces.", page_link(current_relative, "managers.md")),
-        ("Explorer", "Faceted browsing across canonical metadata.", page_link(current_relative, "explorer.md")),
-        ("Knowledge Tree", "Repository-path view for auditing the canonical structure.", page_link(current_relative, "tree.md")),
-        ("Content Health", "Generated discovery and lifecycle gap reporting.", page_link(current_relative, "content-health.md")),
+        ("Support", "Task-oriented entry points for support specialists.", page_href(current_relative, "support.md")),
+        ("Authors", "Validated authoring guidance, taxonomy usage, and discovery checks.", page_href(current_relative, "authors.md")),
+        ("Managers", "Coverage, lifecycle, and ownership audit surfaces.", page_href(current_relative, "managers.md")),
+        ("Explorer", "Faceted browsing across canonical metadata.", page_href(current_relative, "explorer.md")),
+        ("Knowledge Tree", "Repository-path view for auditing the canonical structure.", page_href(current_relative, "tree.md")),
+        ("Content Health", "Generated discovery and lifecycle gap reporting.", page_href(current_relative, "content-health.md")),
     ]
     status_counts = Counter(article.metadata["status"] for article in articles)
     metrics = [
@@ -1177,6 +1303,11 @@ def render_landing_page(
         "# Knowledge Base",
         "",
         "This landing page prioritizes discovery, interoperability, and audit views over raw folder browsing.",
+        "",
+        "Need repository mechanics or contributor guidance? Use "
+        f"[System & Design Docs]({relative_site_link(current_relative, Path('system-design-docs/index.md'))}). "
+        "Need policy or rationale for a structural choice? Use "
+        f"[Governance & Decisions]({relative_site_link(current_relative, Path('decisions/index.md'))}).",
         "",
         render_card_grid(cards),
         "",
@@ -1213,6 +1344,8 @@ def main() -> int:
     policy = load_policy()
     taxonomies = load_taxonomies()
     articles = load_articles(policy)
+    docs_paths = collect_docs_source_paths()
+    decision_paths = collect_decision_paths()
     by_id = {article.metadata["id"]: article for article in articles}
     visible_status_list = navigation_statuses(policy)
     visible_statuses = set(visible_status_list)
@@ -1228,8 +1361,12 @@ def main() -> int:
     if LEGACY_GENERATED_DOCS_DIR.exists():
         shutil.rmtree(LEGACY_GENERATED_DOCS_DIR)
 
-    copy_source_tree(DOCS_DIR, GENERATED_SITE_DOCS_DIR, collect_docs_source_paths())
-    copy_source_tree(DECISIONS_DIR, GENERATED_SITE_DOCS_DIR / "decisions", collect_decision_paths())
+    copy_source_tree(DOCS_DIR, GENERATED_SITE_DOCS_DIR / "system-design-docs", docs_paths)
+    copy_source_tree(DECISIONS_DIR, GENERATED_SITE_DOCS_DIR / "decisions", decision_paths)
+    (GENERATED_SITE_DOCS_DIR / "index.md").write_text(
+        render_site_home(articles, docs_paths, decision_paths),
+        encoding="utf-8",
+    )
 
     for article in articles:
         destination = site_article_output_path(article)

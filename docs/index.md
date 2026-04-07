@@ -1,24 +1,38 @@
-# Documentation
+# System & Design Docs
 
-This folder contains explanatory documentation for the repository itself. Canonical operational content belongs under `knowledge/` and `archive/knowledge/`, not here.
+This area explains how the Papyrus knowledge system works. It is for repository architecture, schema behavior, generator design, taxonomy design, workflow design, and contributor guidance. It is not the source of truth for operator-facing procedures.
 
-## What This Repository Provides
+## Use The Right Area
 
-- Canonical operational content in portable Markdown files.
-- Controlled vocabularies under `taxonomies/`.
-- Schema and repository-policy validation.
-- A reproducible local knowledge index.
-- Local search and review reporting.
-- A browseable site layer rebuilt from source.
+- For operational procedures, troubleshooting, runbooks, SOPs, and support references, use the [Knowledge Base](../knowledge/home/index.md).
+- For repository, schema, taxonomy, generator, and workflow documentation, use `docs/`.
+- For durable structural rationale and tradeoffs, use [Governance & Decisions](../decisions/index.md).
 
-## Source Of Truth
+## What Belongs Here
 
-Edit `knowledge/`, `archive/knowledge/`, `docs/`, `decisions/`, `taxonomies/`, `schemas/`, or `templates/` as appropriate. Derived files under `generated/site_docs/`, `build/`, and `site/` are rebuilt from source and are never authoritative.
+- Repository architecture and directory contract
+- Schema and taxonomy behavior
+- Site-generator and indexing design
+- Contributor workflow and placement rules
+- Migration and system-level implementation notes
 
-## Next Steps
+## What Does Not Belong Here
 
-- Review [architecture/governance.md](architecture/governance.md).
-- Review [architecture/content-lifecycle.md](architecture/content-lifecycle.md).
-- Review [architecture/information-architecture.md](architecture/information-architecture.md).
-- Review [contributor-workflow.md](contributor-workflow.md).
-- Review [knowledge-discovery-improvement-plan.md](knowledge-discovery-improvement-plan.md).
+- Canonical operational procedures
+- Troubleshooting steps intended for day-to-day support execution
+- SOP content duplicated from `knowledge/`
+
+If a page in `docs/` starts reading like operator guidance, review the placement rubric in [contributor-workflow.md](contributor-workflow.md) and run:
+
+```bash
+python3 scripts/report_content_health.py --section knowledge-like-docs
+```
+
+## Start Here
+
+- [Contributor Workflow](contributor-workflow.md)
+- [Information Architecture](architecture/information-architecture.md)
+- [Content Lifecycle](architecture/content-lifecycle.md)
+- [Governance Policy](architecture/governance.md)
+- [Knowledge Discovery Improvement Plan](knowledge-discovery-improvement-plan.md)
+- [Seed Migration Rationale](migration/seed-migration-rationale.md)

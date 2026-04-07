@@ -10,8 +10,10 @@ from kb_common import (
     collect_decision_paths,
     collect_docs_source_paths,
     collect_root_markdown_paths,
+    docs_knowledge_like_warnings,
     find_possible_duplicate_articles,
     load_articles,
+    load_schema,
     load_policy,
     missing_owner_articles,
     orphaned_files,
@@ -27,6 +29,7 @@ SECTIONS = (
     "missing-systems",
     "missing-tags",
     "isolated-articles",
+    "knowledge-like-docs",
 )
 
 
@@ -109,6 +112,15 @@ def main() -> int:
         outputs["isolated-articles"] = [
             f"{article.metadata['id']} | {article.metadata['title']} | {article.relative_path}"
             for article in relationless_articles(articles)
+        ]
+
+    if "knowledge-like-docs" in selected:
+        outputs["knowledge-like-docs"] = [
+            (
+                f"{warning.score} | {warning.path} | may contain operational-knowledge signals | "
+                f"{'; '.join(warning.signals)}"
+            )
+            for warning in docs_knowledge_like_warnings(load_schema())
         ]
 
     for section in selected:

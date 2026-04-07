@@ -19,7 +19,7 @@ Papyrus is a local-first knowledge management database for IT support and system
 - `templates/`: approved article templates only.
 - `migration/`: sanitized migration inputs and manifests; never canonical article source.
 - `reports/`: sanitized migration and review reports.
-- `docs/`: explanatory repository documentation.
+- `docs/`: explanatory system, design, workflow, and repository documentation.
 - `decisions/`: ADR-style structural decisions.
 - `scripts/`: validation, indexing, search, reporting, and site helpers.
 - `generated/`: derived site-source files.
@@ -99,6 +99,12 @@ Serve the local site:
 
 ## Contributor Workflow
 
+Placement rubric:
+
+- `knowledge/` = how to do the work
+- `docs/` = how the knowledge system and repository design work
+- `decisions/` = why structural choices were made
+
 1. Create or update canonical content under `knowledge/`.
 2. Move retired content to `archive/knowledge/` instead of overwriting it.
 3. Reuse the approved templates under `templates/`.
@@ -108,6 +114,12 @@ Serve the local site:
 7. Run `python3 scripts/report_content_health.py`.
 8. Run `python3 scripts/report_stale.py`.
 9. Run `python3 -m unittest discover -s tests -v` before finalizing substantial changes.
+
+If `docs/` starts to accumulate operator-facing procedures, review:
+
+```bash
+python3 scripts/report_content_health.py --section knowledge-like-docs
+```
 
 Derived files under `generated/site_docs/`, `build/`, and `site/` are never authoritative. Rebuild them from source instead of editing them directly.
 

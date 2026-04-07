@@ -1,5 +1,24 @@
 # Contributor Workflow
 
+## Placement Rubric
+
+- `knowledge/` = how to do the work
+- `docs/` = how the knowledge system, repository, schema, taxonomy, generator, and workflow design work
+- `decisions/` = why structural choices were made
+
+Use this decision tree before creating or moving content:
+
+- Operator-facing procedure, reference, troubleshooting guide, runbook, or SOP -> `knowledge/`
+- Repository architecture, schema behavior, generator design, taxonomy design, or workflow design -> `docs/`
+- Durable decision record with rationale and tradeoffs -> `decisions/`
+
+Placement rules:
+
+- Do not move canonical operational content into `docs/`.
+- Do not duplicate article content between `knowledge/` and `docs/`.
+- Prefer cross-links and `references` over copying content across areas.
+- If a `docs/` page starts reading like a procedure, move the operational steps into `knowledge/` and leave only the explanatory system context in `docs/`.
+
 ## Add A New Article
 
 Create a scaffold from the approved template set:
@@ -107,6 +126,9 @@ Additional sections now include:
 - `missing-systems`
 - `missing-tags`
 - `isolated-articles`
+- `knowledge-like-docs`
+
+`knowledge-like-docs` is a warning-oriented section. It flags files under `docs/` that may contain operational-knowledge signals such as article-style front matter, procedural headings, or strongly operator-oriented language. Treat it as a placement review queue first, not an automatic failure.
 
 ## Serve The Local Site
 

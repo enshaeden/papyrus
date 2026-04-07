@@ -28,7 +28,9 @@ TAXONOMY_DIR = ROOT / "taxonomies"
 BUILD_DIR = ROOT / "build"
 SITE_DIR = ROOT / "site"
 DB_PATH = BUILD_DIR / "knowledge.db"
+SYSTEM_DESIGN_DOCS_SITE_ROOT = Path("system-design-docs")
 GENERATED_SITE_INDEX_PATHS = (
+    "index.md",
     "knowledge/index.md",
     "knowledge/start-here.md",
     "knowledge/support.md",
@@ -77,6 +79,27 @@ BRANDED_ADMIN_PATTERNS = [
 LIKELY_BRANDED_PRODUCT_PATTERN = re.compile(
     r"\b(?:[A-Z][a-z0-9]+(?:[ -][A-Z][a-z0-9]+){0,2})\s"
     r"(?:Platform|Suite|Portal|Cloud|Workspace|Center|Console|Directory)\b"
+)
+OPERATIONAL_HEADING_PATTERN = re.compile(
+    r"^#{1,6}\s+(Prerequisites|Steps|Verification|Rollback)\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+DOCS_OPERATOR_LANGUAGE_PATTERNS = (
+    ("standard operating procedure", re.compile(r"\b(?:standard operating procedure|SOP)\b", re.IGNORECASE)),
+    ("runbook", re.compile(r"\brunbook\b", re.IGNORECASE)),
+    ("troubleshooting", re.compile(r"\btroubleshooting\b", re.IGNORECASE)),
+    (
+        "service desk or operator language",
+        re.compile(r"\b(?:service desk|help ?desk|on-call|operator)\b", re.IGNORECASE),
+    ),
+    (
+        "procedural phrasing",
+        re.compile(
+            r"\b(?:before you begin|follow these steps|perform the following steps|to verify|"
+            r"verification steps|rollback steps|escalate to)\b",
+            re.IGNORECASE,
+        ),
+    ),
 )
 GENERIC_BRAND_ALLOWLIST = {
     "Asset",
@@ -173,6 +196,13 @@ class DuplicateCandidate:
     similarity: float
 
 
+@dataclass
+class DocsPlacementWarning:
+    path: str
+    score: int
+    signals: list[str]
+
+
 def load_yaml_file(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as handle:
         data = yaml.safe_load(handle) or {}
@@ -260,6 +290,19 @@ def collect_docs_source_paths() -> list[Path]:
             continue
         paths.append(path)
     return paths
+
+
+def site_relative_path_for_repo_path(repo_relative: str) -> Path | None:
+    candidate = Path(repo_relative)
+    if repo_relative.startswith("knowledge/"):
+        return candidate
+    if repo_relative.startswith("archive/knowledge/"):
+        return candidate
+    if repo_relative.startswith("docs/"):
+        return SYSTEM_DESIGN_DOCS_SITE_ROOT / candidate.relative_to("docs")
+    if repo_relative.startswith("decisions/"):
+        return candidate
+    return None
 
 
 def collect_decision_paths() -> list[Path]:
@@ -703,9 +746,13 @@ def expected_site_doc_paths(articles: list[Article]) -> set[str]:
     expected: set[str] = set()
 
     for path in collect_docs_source_paths():
-        expected.add(relative_path(GENERATED_SITE_DOCS_DIR / path.relative_to(DOCS_DIR)))
+        site_relative = site_relative_path_for_repo_path(relative_path(path))
+        if site_relative is not None:
+            expected.add(relative_path(GENERATED_SITE_DOCS_DIR / site_relative))
     for path in collect_decision_paths():
-        expected.add(relative_path(GENERATED_SITE_DOCS_DIR / "decisions" / path.relative_to(DECISIONS_DIR)))
+        site_relative = site_relative_path_for_repo_path(relative_path(path))
+        if site_relative is not None:
+            expected.add(relative_path(GENERATED_SITE_DOCS_DIR / site_relative))
 
     expected.update(relative_path(GENERATED_SITE_DOCS_DIR / path) for path in GENERATED_SITE_INDEX_PATHS)
 
@@ -936,6 +983,67 @@ def validate_repository() -> list[ValidationIssue]:
     issues.extend(validate_sanitization(collect_sanitization_paths(policy)))
 
     return issues
+
+
+def docs_knowledge_like_warnings(
+    schema: dict[str, Any] | None = None,
+) -> list[DocsPlacementWarning]:
+    article_fields = set((schema or load_schema()).get("fields", {}))
+    warnings: list[DocsPlacementWarning] = []
+
+    for path in collect_docs_source_paths():
+        if path.suffix != ".md":
+            continue
+
+        text = path.read_text(encoding="utf-8")
+        body = text
+        signals: list[str] = []
+        score = 0
+        has_front_matter_signal = False
+
+        match = FRONT_MATTER_PATTERN.match(text)
+        if match:
+            metadata = yaml.safe_load(match.group(1)) or {}
+            body = match.group(2)
+            if isinstance(metadata, dict):
+                overlapping_fields = sorted(set(metadata).intersection(article_fields))
+                strong_fields = [
+                    field
+                    for field in overlapping_fields
+                    if field in {"canonical_path", "last_reviewed", "prerequisites", "review_cadence", "rollback", "source_type", "steps", "verification"}
+                ]
+                if strong_fields or len(overlapping_fields) >= 5:
+                    has_front_matter_signal = True
+                    preview_fields = strong_fields or overlapping_fields[:6]
+                    preview = ", ".join(preview_fields)
+                    if len(overlapping_fields) > len(preview_fields):
+                        preview += ", ..."
+                    signals.append(f"front matter overlaps article schema: {preview}")
+                    score += 5 + len(strong_fields)
+
+        heading_hits = sorted({match.group(1).title() for match in OPERATIONAL_HEADING_PATTERN.finditer(body)})
+        if heading_hits:
+            signals.append("operational headings: " + ", ".join(heading_hits))
+            score += len(heading_hits) * 2
+
+        phrase_hits = [
+            label for label, pattern in DOCS_OPERATOR_LANGUAGE_PATTERNS if pattern.search(body)
+        ]
+        if phrase_hits:
+            signals.append("operator-oriented language: " + ", ".join(phrase_hits))
+            score += len(phrase_hits)
+
+        has_procedural_language_signal = "procedural phrasing" in phrase_hits
+        should_warn = (
+            has_front_matter_signal
+            or len(heading_hits) >= 2
+            or (len(heading_hits) >= 1 and len(phrase_hits) >= 1)
+            or (has_procedural_language_signal and len(phrase_hits) >= 2)
+        )
+        if should_warn:
+            warnings.append(DocsPlacementWarning(relative_path(path), score, signals))
+
+    return sorted(warnings, key=lambda item: (-item.score, item.path))
 
 
 def relationless_articles(articles: list[Article]) -> list[Article]:

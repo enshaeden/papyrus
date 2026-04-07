@@ -24,6 +24,7 @@ Papyrus uses a strict source-of-truth model to prevent documentation sprawl and 
 - Do not create overlapping templates for the same use case.
 - Do not create parallel taxonomy files for the same concept.
 - Prefer extending the existing schema, taxonomy, template set, or report structure over adding a fork.
+- Review `python3 scripts/report_content_health.py --section knowledge-like-docs` when `docs/` pages begin to look procedural.
 
 ## Generated Artifact Policy
 
