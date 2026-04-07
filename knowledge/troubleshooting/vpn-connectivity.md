@@ -5,56 +5,58 @@ canonical_path: knowledge/troubleshooting/vpn-connectivity.md
 summary: Diagnose common remote access failures affecting the managed VPN client and identity-based sign-in flow.
 type: troubleshooting
 status: active
-owner: Network Operations
+owner: service_owner
 source_type: native
+source_system: repository
+source_title: VPN Troubleshooting
 team: IT Operations
 systems:
-  - VPN Gateway
-  - Okta
-  - Ticketing Queue
+- <IDENTITY_PROVIDER>
+- <TICKETING_SYSTEM>
+- <VPN_SERVICE>
 services:
-  - Remote Access
-  - Identity
+- Remote Access
+- Identity
 tags:
-  - vpn
-  - authentication
-  - service-desk
+- vpn
+- authentication
+- service-desk
 created: 2026-04-07
 updated: 2026-04-07
 last_reviewed: 2026-04-07
 review_cadence: quarterly
 audience: service_desk
 prerequisites:
-  - Active ticket with user location, device type, and exact error text.
-  - Confirmed internet connectivity outside the VPN tunnel.
-  - Managed VPN client installed on the device.
+- Active ticket with user location, device type, and exact error text.
+- Confirmed internet connectivity outside the VPN tunnel.
+- Managed VPN client installed on the device.
 steps:
-  - Determine whether the failure occurs before authentication, during MFA, or after the tunnel attempts to connect.
-  - Confirm the local network is reachable by asking the user to open a public website without the VPN.
-  - Review the identity provider status and recent lockout events before changing the VPN profile.
-  - Have the user restart the VPN client and remove stale cached credentials only if the profile is managed and can be re-pushed safely.
-  - Compare the client timestamp and device clock with the VPN gateway requirement because clock drift commonly breaks certificate and SSO flows.
-  - Escalate to Network Operations if the gateway is healthy and multiple users report the same error.
+- Determine whether the failure occurs before authentication, during MFA, or after the tunnel attempts to connect.
+- Confirm the local network is reachable by asking the user to open a public website without the VPN.
+- Review the identity provider status and recent lockout events before changing the VPN profile.
+- Have the user restart the VPN client and remove stale cached credentials only if the profile is managed and can be re-pushed safely.
+- Compare the client timestamp and device clock with the VPN gateway requirement because clock drift commonly breaks certificate and SSO flows.
+- Escalate to Network Operations if the gateway is healthy and multiple users report the same error.
 verification:
-  - User can complete authentication and establish the tunnel.
-  - The user can reach an internal resource that requires VPN access.
-  - Ticket notes identify the failing stage and the corrective action taken.
+- User can complete authentication and establish the tunnel.
+- The user can reach an internal resource that requires VPN access.
+- Ticket notes identify the failing stage and the corrective action taken.
 rollback:
-  - Restore the managed VPN profile if local troubleshooting replaced or removed it.
-  - Re-enable any temporarily disabled MFA or conditional access control that was changed for testing.
+- Restore the managed VPN profile if local troubleshooting replaced or removed it.
+- Re-enable any temporarily disabled MFA or conditional access control that was changed for testing.
 related_articles:
-  - kb-access-password-reset-account-lockout
+- kb-access-password-reset-account-lockout
 replaced_by: null
 retirement_reason: null
 references:
-  - title: Password reset and account lockout response
-    article_id: kb-access-password-reset-account-lockout
-    path: knowledge/access/password-reset-account-lockout.md
-    note: Use this article when the root cause is an identity failure rather than a network failure.
+- title: Password reset and account lockout response
+  article_id: kb-access-password-reset-account-lockout
+  path: knowledge/access/password-reset-account-lockout.md
+  note: Use this article when the root cause is an identity failure rather than a network failure.
 change_log:
-  - date: 2026-04-07
-    summary: Initial seed article.
-    author: Repository bootstrap
+- date: 2026-04-07
+  summary: Initial seed article.
+  author: seed_sanitization
 ---
 
 ## Escalation Threshold

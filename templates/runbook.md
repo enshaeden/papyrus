@@ -7,6 +7,8 @@ type: {{type}}
 status: {{status}}
 owner: {{owner}}
 source_type: native
+source_system: repository
+source_title: {{title}}
 team: {{team}}
 systems: []
 services: []
@@ -17,22 +19,22 @@ last_reviewed: {{today}}
 review_cadence: quarterly
 audience: {{audience}}
 prerequisites:
-  - Document required access, tooling, or approvals.
+- Document required access, tooling, approvals, and timing dependencies.
 steps:
-  - Replace this step with the first operator action.
+- Replace this step with the first operator action.
 verification:
-  - Document how to verify the expected outcome.
+- Document how to verify the expected outcome.
 rollback:
-  - Document rollback or recovery actions.
+- Document rollback or recovery actions.
 related_articles: []
 replaced_by: null
 retirement_reason: null
 references:
-  - title: Replace with a supporting document, local path, or canonical article reference.
+- title: Replace with a supporting document, local path, or canonical article reference.
 change_log:
-  - date: {{today}}
-    summary: Initial article scaffold.
-    author: new_article.py
+- date: {{today}}
+  summary: Initial article scaffold.
+  author: new_article.py
 ---
 
 ## Purpose

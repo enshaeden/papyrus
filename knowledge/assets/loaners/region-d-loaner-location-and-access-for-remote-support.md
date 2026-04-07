@@ -1,0 +1,73 @@
+---
+id: kb-assets-loaners-region-d-loaner-location-and-access-for-remote-support
+title: <REGION_D> Loaner Location and Access for Remote Support
+canonical_path: knowledge/assets/loaners/region-d-loaner-location-and-access-for-remote-support.md
+summary: Loaner laptops designated for emergency or after hours are securely stored in a Controlled storage cupboard.
+type: asset
+status: active
+owner: service_owner
+source_type: imported
+source_system: knowledge_portal_export
+source_title: <REGION_D> Loaner Location and Access for Remote Support
+team: Workplace Engineering
+systems:
+- <ASSET_MANAGEMENT_SYSTEM>
+services:
+- Endpoint Provisioning
+- Access Management
+tags:
+- endpoint
+- account
+- access
+created: '2026-02-26'
+updated: '2026-03-02'
+last_reviewed: '2026-04-07'
+review_cadence: quarterly
+audience: systems_admins
+prerequisites:
+- Confirm the device, asset record, and office or shipping context before taking action.
+- Verify you have the required inventory, MDM, or ticketing access for the task.
+steps:
+- Review the imported procedure body below and confirm the documented scope matches the task at hand.
+- Execute the documented steps in order and record the outcome in the relevant ticket or audit trail.
+- Stop and escalate if approvals, prerequisites, or expected checkpoints do not match the live request.
+verification:
+- The expected outcome described in the procedure is confirmed in the target system or ticket record.
+- Completion notes, exceptions, and evidence are recorded in the relevant audit or support workflow.
+rollback:
+- Revert any reversible change described in the procedure if verification fails.
+- Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
+related_articles:
+- kb-assets-loaners-index
+replaced_by: null
+retirement_reason: null
+references:
+- title: <KNOWLEDGE_PORTAL> seed import manifest
+  path: migration/import-manifest.yml
+  note: Sanitized source record.
+change_log:
+- date: '2026-04-07'
+  summary: Imported from <KNOWLEDGE_PORTAL> seed content.
+  author: seed_sanitization
+---
+
+# Interview Loaners
+
+# Presentation Loaners
+
+# Repair or Emergency Loaners
+
+Loaner laptops designated for emergency or after-hours are securely stored in a **Controlled storage cupboard.**
+
+- Storage cupboard access is controlled by via a key kept in a coded lockbox.
+- Typical cupboard contents (subject to availability):
+  - Loaner/replacement laptops
+    - wireless mouse and keyboard kit
+    - USB-C chargers and dongles
+    - Headsets
+    - Loaner tablet device (subject to availability)
+
+# **Process to Get the Loaner Laptop**
+
+- An IT ticket plus explicit approval from <PERSON_NAME>.
+- Only authorised IT and the approved user should access the cupboard to pick up their loaner device and accessories.

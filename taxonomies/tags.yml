@@ -4,7 +4,7 @@ values:
   - name: endpoint
     description: Endpoint management work.
   - name: macos
-    description: Apple endpoint content.
+    description: macOS endpoint content.
   - name: windows
     description: Windows endpoint content.
   - name: account

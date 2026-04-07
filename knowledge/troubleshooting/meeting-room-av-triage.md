@@ -5,49 +5,51 @@ canonical_path: knowledge/troubleshooting/meeting-room-av-triage.md
 summary: Triage common meeting room audio, display, and conferencing issues before escalating to facilities or engineering.
 type: troubleshooting
 status: active
-owner: Collaboration Engineering
+owner: service_owner
 source_type: native
+source_system: repository
+source_title: Meeting Room AV Triage
 team: Workplace Engineering
 systems:
-  - Zoom Rooms
-  - Ticketing Queue
+- <TICKETING_SYSTEM>
+- <VIDEO_CONFERENCING_PLATFORM>
 services:
-  - Collaboration
+- Collaboration
 tags:
-  - av
-  - service-desk
+- av
+- service-desk
 created: 2026-04-07
 updated: 2026-04-07
 last_reviewed: 2026-04-07
 review_cadence: quarterly
 audience: service_desk
 prerequisites:
-  - Ticket includes room name, meeting start time, and observed failure.
-  - Access to room health status or the conferencing admin console.
+- Ticket includes room name, meeting start time, and observed failure.
+- Access to room health status or the conferencing admin portal.
 steps:
-  - Determine whether the issue is display, audio, camera, controller, or room scheduling related.
-  - Check the room status in Zoom Rooms before dispatching onsite support.
-  - Have the onsite contact confirm power, cable seating, and whether the room controller is responsive.
-  - Restart the room controller or conferencing app only if the room is between meetings or the current meeting owner approves.
-  - Escalate to Workplace Engineering when the issue repeats in the same room within seven days or involves room hardware failure.
+- Determine whether the issue is display, audio, camera, controller, or room scheduling related.
+- Check the room status in <VIDEO_CONFERENCING_PLATFORM> before dispatching onsite support.
+- Have the onsite contact confirm power, cable seating, and whether the room controller is responsive.
+- Restart the room controller or conferencing app only if the room is between meetings or the current meeting owner approves.
+- Escalate to Workplace Engineering when the issue repeats in the same room within seven days or involves room hardware failure.
 verification:
-  - Room can join a test meeting successfully.
-  - Camera, microphone, and display function in the test call.
-  - Ticket records the failing component and the exact remediation used.
+- Room can join a test meeting successfully.
+- Camera, microphone, and display function in the test call.
+- Ticket records the failing component and the exact remediation used.
 rollback:
-  - Restore the room to the prior configuration if a profile or peripheral reassignment causes additional failures.
-  - Reopen the incident ticket immediately if the room cannot be returned to a known-good state.
+- Restore the room to the prior configuration if a profile or peripheral reassignment causes additional failures.
+- Reopen the incident ticket immediately if the room cannot be returned to a known-good state.
 related_articles:
-  - kb-troubleshooting-printer-queue
+- kb-troubleshooting-printer-queue
 replaced_by: null
 retirement_reason: null
 references:
-  - title: Room support contact list
-    note: Identify the onsite contact before requesting a manual cable or power check.
+- title: Room support contact list
+  note: Identify the onsite contact before requesting a manual cable or power check.
 change_log:
-  - date: 2026-04-07
-    summary: Initial seed article.
-    author: Repository bootstrap
+- date: 2026-04-07
+  summary: Initial seed article.
+  author: seed_sanitization
 ---
 
 ## Notes

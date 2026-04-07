@@ -1,0 +1,82 @@
+# Placeholder Glossary
+
+- `<APPLICATION_CATALOG>`: Generic application inventory, routing, or record system.
+- `<APPLICATION_NAME>`: Generic application or software name used in reusable examples.
+- `<ASSET_MANAGEMENT_SYSTEM>`: Generic asset or inventory management system.
+- `<ASSET_TAG>`: Generic asset tag.
+- `<BUSINESS_APPLICATION_A>`: Generic business application placeholder used to preserve one distinct application thread.
+- `<BUSINESS_APPLICATION_B>`: Generic business application placeholder used to preserve one distinct application thread.
+- `<BUSINESS_APPLICATION_C>`: Generic business application placeholder used to preserve one distinct application thread.
+- `<BUSINESS_APPLICATION_D>`: Generic business application placeholder used to preserve one distinct application thread.
+- `<CLOUD_PLATFORM>`: Generic cloud platform placeholder.
+- `<COLLABORATION_PLATFORM>`: Generic collaboration suite placeholder.
+- `<COMPANY_NAME>`: Generic organization placeholder.
+- `<CREATIVE_PLATFORM>`: Generic creative tooling platform placeholder.
+- `<DEVELOPER_TOOL_SUITE>`: Generic developer tooling suite placeholder.
+- `<DIGITAL_ASSET_PLATFORM>`: Generic digital asset platform placeholder.
+- `<DIRECTORY_SERVICE>`: Generic directory service placeholder.
+- `<EMAIL_ADDRESS>`: Generic email address placeholder.
+- `<ENDPOINT_ENROLLMENT_PORTAL>`: Generic device enrollment portal placeholder.
+- `<ENDPOINT_MANAGEMENT_PLATFORM>`: Generic endpoint management platform placeholder.
+- `<HOSTNAME>`: Generic hostname placeholder.
+- `<HR_SYSTEM>`: Generic human resources system placeholder.
+- `<IDENTITY_PROVIDER>`: Generic identity provider placeholder.
+- `<INTERNAL_URL>`: Generic internal or private URL placeholder.
+- `<IP_ADDRESS>`: Generic IP address placeholder.
+- `<IP_SUBNET>`: Generic subnet placeholder.
+- `<KNOWLEDGE_PORTAL>`: Generic legacy knowledge portal placeholder.
+- `<KNOWLEDGE_PORTAL_RECORD_ID>`: Generic legacy source record identifier placeholder.
+- `<LOCATION_NAME>`: Generic location label used in examples.
+- `<MESSAGING_PLATFORM>`: Generic messaging platform placeholder.
+- `<MFA_APPLICATION>`: Generic multifactor authentication application placeholder.
+- `<OFFICE_ADDRESS>`: Generic office address placeholder.
+- `<OFFICE_SITE_A>`: Generic office-site placeholder used to preserve one distinct location thread.
+- `<OFFICE_SITE_B>`: Generic office-site placeholder used to preserve one distinct location thread.
+- `<OFFICE_SITE_C>`: Generic office-site placeholder used to preserve one distinct location thread.
+- `<OFFICE_SITE_D>`: Generic office-site placeholder used to preserve one distinct location thread.
+- `<ONBOARDING_WORKFLOW>`: Generic onboarding workflow placeholder.
+- `<OUTAGE_TYPE>`: Generic outage-type placeholder used in incident channel naming examples.
+- `<PASSWORD>`: Generic password placeholder.
+- `<PASSWORD_MANAGER>`: Generic password manager placeholder.
+- `<PASSWORD_MANAGER_VAULT>`: Generic restricted vault or credential container placeholder.
+- `<PERSON_NAME>`: Generic person placeholder.
+- `<PHONE_NUMBER>`: Generic phone number placeholder.
+- `<PRINTER_MANAGEMENT_PLATFORM>`: Generic printer management platform placeholder.
+- `<PRODUCTIVITY_PLATFORM>`: Generic productivity platform placeholder.
+- `<QUEUE_NAME>`: Generic queue, channel, or routing label placeholder.
+- `<REGION_A>`: Generic regional placeholder used to preserve one distinct regional workflow.
+- `<REGION_B>`: Generic regional placeholder used to preserve one distinct regional workflow.
+- `<REGION_C>`: Generic regional placeholder used to preserve one distinct regional workflow.
+- `<REGION_D>`: Generic regional placeholder used to preserve one distinct regional workflow.
+- `<REMOTE_SUPPORT_TOOL>`: Generic remote support tool placeholder.
+- `<REMOTE_WORKSPACE_PLATFORM>`: Generic remote workspace platform placeholder.
+- `<REPORTING_PLATFORM>`: Generic reporting or analytics platform placeholder.
+- `<REQUEST_FORM_URL>`: Generic request form URL placeholder.
+- `<ROLE_NAME>`: Generic role placeholder.
+- `<ROOM_NAME_A>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_B>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_C>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_D>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_E>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_F>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_G>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_H>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_I>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_J>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_K>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_L>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_M>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_N>`: Generic room placeholder used where a room-specific guide is required.
+- `<ROOM_NAME_O>`: Generic room placeholder used where a room-specific guide is required.
+- `<SERIAL_NUMBER>`: Generic serial number placeholder.
+- `<SHIPPING_ADDRESS>`: Generic shipping address placeholder.
+- `<SHIPPING_CARRIER>`: Generic shipping carrier placeholder.
+- `<SOURCE_ARCHIVE_PATH>`: Generic source archive path placeholder.
+- `<SOURCE_ARCHIVE_SHA256>`: Generic source archive checksum placeholder.
+- `<SUPPLIER_PORTAL_URL>`: Generic supplier or reseller portal URL placeholder.
+- `<SUPPORT_PORTAL_URL>`: Generic support portal URL placeholder.
+- `<TEAM_NAME>`: Generic team placeholder.
+- `<TICKETING_SYSTEM>`: Generic ticketing system placeholder.
+- `<USERNAME>`: Generic username placeholder.
+- `<VIDEO_CONFERENCING_PLATFORM>`: Generic video conferencing platform placeholder.
+- `<VPN_SERVICE>`: Generic VPN service placeholder.

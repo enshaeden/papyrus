@@ -1,68 +1,41 @@
 # Papyrus
 
-Papyrus is a local-first knowledge management database for IT support and systems operations. The canonical source of truth is portable Markdown with YAML front matter under `knowledge/`. Validation, indexing, search, stale reporting, and site generation are all derived from those source files and run locally.
+Papyrus is a local-first knowledge management database for IT support and systems operations. Canonical content lives in portable Markdown with YAML front matter under `knowledge/`. Validation, indexing, reporting, and the browseable site layer are all derived from those source files and can be rebuilt locally.
 
 ## Goals
 
-- Keep operational knowledge in human-readable files.
-- Keep the content model independent of any single renderer.
-- Rebuild the SQLite index and site layer from source at any time.
-- Keep dependencies minimal and avoid SaaS or cloud runtime requirements.
-- Prevent documentation sprawl and source-of-truth drift through policy and validation.
+- Keep operational knowledge in human-readable source files.
+- Keep the content model portable and vendor-neutral.
+- Rebuild all derived artifacts from source at any time.
+- Minimize drift through schema, taxonomy, and repository-policy validation.
+- Keep migration inputs auditable without treating them as canonical content.
 
 ## Repository Layout
 
-- `knowledge/`: active canonical Markdown knowledge articles with YAML front matter
-- `archive/knowledge/`: archived canonical knowledge articles with preserved metadata
-- `taxonomies/`: controlled vocabularies used by validation and reporting
-- `schemas/`: field definitions and repository policy
-- `templates/`: approved content templates only
-- `docs/`: explanatory repository documentation only
-- `decisions/`: ADR-style structural decisions
-- `scripts/`: bootstrap, validation, indexing, search, reporting, and site helpers
-- `generated/`: derived site-input pages generated from source
-- `build/`: generated SQLite database and other local build artifacts
-- `site/`: MkDocs output when a static site build is run
-- `tests/`: lightweight local regression checks using `unittest`
+- `knowledge/`: active canonical knowledge articles.
+- `archive/knowledge/`: archived canonical knowledge articles.
+- `taxonomies/`: controlled vocabularies used by validation and reporting.
+- `schemas/`: schema and repository-policy definitions.
+- `templates/`: approved article templates only.
+- `migration/`: sanitized migration inputs and manifests; never canonical article source.
+- `reports/`: sanitized migration and review reports.
+- `docs/`: explanatory repository documentation.
+- `decisions/`: ADR-style structural decisions.
+- `scripts/`: validation, indexing, search, reporting, and site helpers.
+- `generated/`: derived site-source files.
+- `build/`: derived local data such as the knowledge index.
+- `site/`: rendered static site output.
+- `tests/`: lightweight regression tests.
 
 ## Content Model
 
-Each article is a Markdown file with YAML front matter. Front matter holds the structured fields that drive validation, indexing, search, and stale reporting. Freeform Markdown body content remains portable and does not rely on MkDocs-specific extensions.
+Each article is a Markdown file with YAML front matter. Front matter stores the structured fields that drive validation, search, review reporting, and migration traceability. Required metadata is defined in [schemas/article.yml](schemas/article.yml).
 
-Required metadata is defined in [schemas/article.yml](schemas/article.yml) and includes:
-
-- `id`
-- `title`
-- `canonical_path`
-- `summary`
-- `type`
-- `status`
-- `owner`
-- `source_type`
-- `team`
-- `systems`
-- `services`
-- `tags`
-- `created`
-- `updated`
-- `last_reviewed`
-- `review_cadence`
-- `audience`
-- `prerequisites`
-- `steps`
-- `verification`
-- `rollback`
-- `related_articles`
-- `replaced_by`
-- `retirement_reason`
-- `references`
-- `change_log`
-
-Repository governance and directory policy are defined in [AGENTS.md](AGENTS.md), [schemas/repository_policy.yml](schemas/repository_policy.yml), and the architecture docs under [docs/architecture/](docs/architecture).
+Repository governance and directory policy are defined in [AGENTS.md](AGENTS.md), [schemas/repository_policy.yml](schemas/repository_policy.yml), and the architecture notes under [docs/architecture](docs/architecture/).
 
 ## Quick Start
 
-Bootstrap a fresh clone into a local virtual environment:
+Bootstrap a local environment:
 
 ```bash
 ./scripts/bootstrap.sh
@@ -74,7 +47,7 @@ Run validation:
 python3 scripts/validate.py
 ```
 
-Build the generated site inputs, validate, rebuild the SQLite index, and render the static site when MkDocs is installed:
+Build derived artifacts:
 
 ```bash
 ./scripts/build.sh
@@ -86,25 +59,25 @@ Search the local index:
 python3 scripts/search.py vpn
 ```
 
-Report content due for review:
+Report review due dates:
 
 ```bash
 python3 scripts/report_stale.py
 ```
 
-Report duplicate, orphaned, broken-link, and isolated-content signals:
+Report duplicate, orphaned, broken-link, and isolation signals:
 
 ```bash
 python3 scripts/report_content_health.py
 ```
 
-Create a new article scaffold from the approved template set:
+Create a new article scaffold:
 
 ```bash
 python3 scripts/new_article.py --type runbook --title "Example Procedure"
 ```
 
-Serve the site locally:
+Serve the local site:
 
 ```bash
 ./scripts/serve.sh
@@ -117,17 +90,18 @@ Serve the site locally:
 3. Reuse the approved templates under `templates/`.
 4. Keep taxonomy values aligned with `taxonomies/*.yml`.
 5. Record structural changes in `decisions/`.
-6. Run `python3 scripts/report_content_health.py`.
-7. Run `python3 scripts/report_stale.py`.
-8. Run `python3 -m unittest discover -s tests -v` before committing changes.
+6. Run `python3 scripts/validate.py`.
+7. Run `python3 scripts/report_content_health.py`.
+8. Run `python3 scripts/report_stale.py`.
+9. Run `python3 -m unittest discover -s tests -v` before finalizing substantial changes.
 
-Derived site inputs under `generated/site_docs/`, the SQLite index under `build/`, and the rendered site under `site/` are never authoritative. Rebuild them from source instead of editing them.
+Derived files under `generated/site_docs/`, `build/`, and `site/` are never authoritative. Rebuild them from source instead of editing them directly.
 
 ## Governance
 
 - Repository rules: [AGENTS.md](AGENTS.md)
 - Governance policy: [docs/architecture/governance.md](docs/architecture/governance.md)
 - Lifecycle policy: [docs/architecture/content-lifecycle.md](docs/architecture/content-lifecycle.md)
-- Directory contract and IA: [docs/architecture/information-architecture.md](docs/architecture/information-architecture.md)
+- Directory contract: [docs/architecture/information-architecture.md](docs/architecture/information-architecture.md)
 - Contributor workflow: [docs/contributor-workflow.md](docs/contributor-workflow.md)
 - Decisions: [decisions/index.md](decisions/index.md)

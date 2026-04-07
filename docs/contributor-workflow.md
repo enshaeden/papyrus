@@ -1,16 +1,14 @@
 # Contributor Workflow
 
-## Add a New Article
+## Add A New Article
 
-Create a new scaffold:
+Create a scaffold from the approved template set:
 
 ```bash
 python3 scripts/new_article.py --type runbook --title "Example Procedure"
 ```
 
-Edit the new file under `knowledge/` and replace placeholders before treating it as ready for use.
-
-The scaffold is created only from the approved templates under `templates/`.
+Edit the new file under `knowledge/` and replace all placeholders before treating it as ready.
 
 ## Validate Content
 
@@ -26,7 +24,7 @@ Validation checks:
 - field types
 - controlled taxonomy values
 - date format
-- duplicate article IDs
+- duplicate article ids
 - canonical path correctness
 - related and replacement article references
 - title similarity without explicit linkage
@@ -34,8 +32,9 @@ Validation checks:
 - directory contract and generated artifact policy
 - duplicate source content between `docs/` and `knowledge/`
 - broken local Markdown links
+- sanitization checks for URLs, credentials, emails, addresses, host details, and branded residue
 
-## Rebuild the Local Index
+## Rebuild The Local Index
 
 Run:
 
@@ -50,12 +49,10 @@ This recreates `build/knowledge.db` from source files.
 Run:
 
 ```bash
-python3 scripts/search.py "vpn"
+python3 scripts/search.py vpn
 ```
 
-If SQLite FTS5 is available, the search uses FTS. Otherwise it falls back to substring matching against denormalized text.
-
-Archived content is excluded by default. Add `--include-archived` if you need it.
+Archived content is excluded by default. Add `--include-archived` if needed.
 
 ## Review Stale Content
 
@@ -81,7 +78,7 @@ To focus on one section:
 python3 scripts/report_content_health.py --section duplicates
 ```
 
-## Serve the Local Site
+## Serve The Local Site
 
 Run:
 
@@ -89,4 +86,4 @@ Run:
 ./scripts/serve.sh
 ```
 
-`serve.sh` refreshes the generated site sources, runs validation, rebuilds the SQLite index, and then starts MkDocs. If MkDocs is not installed, run `./scripts/bootstrap.sh` first.
+`serve.sh` refreshes generated site sources, runs validation, rebuilds the local index, and starts the local site server.

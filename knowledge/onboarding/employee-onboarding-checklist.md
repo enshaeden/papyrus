@@ -5,62 +5,63 @@ canonical_path: knowledge/onboarding/employee-onboarding-checklist.md
 summary: Coordinate endpoint, identity, and communications tasks required before a new hire starts.
 type: onboarding
 status: active
-owner: IT Operations Manager
+owner: service_owner
 source_type: native
+source_system: repository
+source_title: Employee Onboarding Checklist
 team: IT Operations
 systems:
-  - HRIS Export
-  - Jamf Pro
-  - Google Workspace
-  - Microsoft 365
-  - Okta
-  - Ticketing Queue
+- <COLLABORATION_PLATFORM>
+- <ENDPOINT_MANAGEMENT_PLATFORM>
+- <HR_SYSTEM>
+- <IDENTITY_PROVIDER>
+- <TICKETING_SYSTEM>
 services:
-  - Onboarding
-  - Endpoint Provisioning
-  - Identity
-  - Access Management
+- Onboarding
+- Endpoint Provisioning
+- Identity
+- Access Management
 tags:
-  - onboarding
-  - checklist
-  - endpoint
-  - account
+- onboarding
+- checklist
+- endpoint
+- account
 created: 2026-04-07
 updated: 2026-04-07
 last_reviewed: 2026-04-07
 review_cadence: monthly
 audience: it_ops
 prerequisites:
-  - HRIS export or approved hiring ticket with start date and manager.
-  - Approved role profile or baseline application set for the new hire.
+- HRIS export or approved hiring ticket with start date and manager.
+- Approved role profile or baseline application set for the new hire.
 steps:
-  - Create or verify the ticket as soon as the HRIS export lands and confirm the manager, start date, and office location.
-  - Create the identity account and baseline groups through the approved onboarding workflow.
-  - Prepare the laptop and peripherals using the laptop provisioning runbook.
-  - Confirm mailbox, collaboration, and MFA readiness at least one business day before the start date.
-  - Record all completion details in the onboarding ticket and hand off exceptions to the manager before the start date.
+- Create or verify the ticket as soon as the HRIS export lands and confirm the manager, start date, and office location.
+- Create the identity account and baseline groups through the approved onboarding workflow.
+- Prepare the laptop and peripherals using the laptop provisioning runbook.
+- Confirm mailbox, collaboration, and MFA readiness at least one business day before the start date.
+- Record all completion details in the onboarding ticket and hand off exceptions to the manager before the start date.
 verification:
-  - Identity account can authenticate and required groups are in place.
-  - Device is ready for pickup or shipment and inventory has been updated.
-  - Ticket shows a complete record of completed and pending tasks.
+- Identity account can authenticate and required groups are in place.
+- Device is ready for pickup or shipment and inventory has been updated.
+- Ticket shows a complete record of completed and pending tasks.
 rollback:
-  - Disable or delay account activation if the start date changes or the hire is cancelled.
-  - Return prepared equipment to unassigned inventory if the onboarding request is withdrawn.
+- Disable or delay account activation if the start date changes or the hire is cancelled.
+- Return prepared equipment to unassigned inventory if the onboarding request is withdrawn.
 related_articles:
-  - kb-runbook-laptop-provisioning
-  - kb-access-software-access-request
-  - kb-offboarding-employee-offboarding-checklist
+- kb-runbooks-laptop-provisioning
+- kb-access-software-access-request
+- kb-offboarding-employee-offboarding-checklist
 replaced_by: null
 retirement_reason: null
 references:
-  - title: Laptop provisioning runbook
-    article_id: kb-runbook-laptop-provisioning
-    path: knowledge/runbooks/laptop-provisioning.md
-    note: Use this runbook to complete the hardware preparation task.
+- title: Laptop provisioning runbook
+  article_id: kb-runbooks-laptop-provisioning
+  path: knowledge/runbooks/laptop-provisioning.md
+  note: Use this runbook to complete the hardware preparation task.
 change_log:
-  - date: 2026-04-07
-    summary: Initial seed article.
-    author: Repository bootstrap
+- date: 2026-04-07
+  summary: Initial seed article.
+  author: seed_sanitization
 ---
 
 ## Notes

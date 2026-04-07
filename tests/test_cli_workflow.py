@@ -74,6 +74,11 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("[duplicates]", result.stdout)
 
+    def test_validate_migration_cli(self) -> None:
+        result = run_command("scripts/validate_migration.py")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("migration validation passed", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

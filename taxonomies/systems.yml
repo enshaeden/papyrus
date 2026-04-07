@@ -1,25 +1,53 @@
 taxonomy: systems
-description: Systems commonly referenced by starter knowledge articles.
+description: Generic systems and platforms referenced by seed knowledge articles.
 values:
-  - name: Jamf Pro
-    description: Apple device management.
-  - name: Microsoft Intune
-    description: Windows device management.
-  - name: Okta
-    description: Identity and SSO platform.
-  - name: Google Workspace
-    description: Mail and collaboration suite.
-  - name: Microsoft 365
-    description: Productivity and identity suite.
-  - name: VPN Gateway
-    description: Remote access concentrator.
-  - name: Print Server
-    description: Shared printer queue service.
-  - name: Zoom Rooms
-    description: Meeting room conferencing platform.
-  - name: Endpoint Inventory
-    description: Asset inventory source.
-  - name: HRIS Export
-    description: HR joiner and leaver feed.
-  - name: Ticketing Queue
-    description: Intake and tracking system.
+  - name: <APPLICATION_CATALOG>
+    description: Generic application catalog or routing source.
+  - name: <ASSET_MANAGEMENT_SYSTEM>
+    description: Generic asset inventory or software ownership source.
+  - name: <CLOUD_PLATFORM>
+    description: Generic cloud platform.
+  - name: <COLLABORATION_PLATFORM>
+    description: Generic collaboration suite.
+  - name: <CREATIVE_PLATFORM>
+    description: Generic creative tooling platform.
+  - name: <DEVELOPER_TOOL_SUITE>
+    description: Generic developer tooling suite.
+  - name: <DIRECTORY_SERVICE>
+    description: Generic directory or user directory service.
+  - name: <DIGITAL_ASSET_PLATFORM>
+    description: Generic digital asset management platform.
+  - name: <ENDPOINT_ENROLLMENT_PORTAL>
+    description: Generic endpoint enrollment portal.
+  - name: <ENDPOINT_MANAGEMENT_PLATFORM>
+    description: Generic endpoint management platform.
+  - name: <HR_SYSTEM>
+    description: Generic HR system or HR data feed.
+  - name: <IDENTITY_PROVIDER>
+    description: Generic identity provider or SSO platform.
+  - name: <KNOWLEDGE_PORTAL>
+    description: Generic legacy knowledge portal.
+  - name: <MESSAGING_PLATFORM>
+    description: Generic messaging platform.
+  - name: <MFA_APPLICATION>
+    description: Generic MFA application.
+  - name: <PASSWORD_MANAGER>
+    description: Generic password manager.
+  - name: <PRINTER_MANAGEMENT_PLATFORM>
+    description: Generic printer management platform.
+  - name: <PRODUCTIVITY_PLATFORM>
+    description: Generic productivity platform.
+  - name: <REMOTE_SUPPORT_TOOL>
+    description: Generic remote support tool.
+  - name: <REMOTE_WORKSPACE_PLATFORM>
+    description: Generic remote workspace platform.
+  - name: <REPORTING_PLATFORM>
+    description: Generic reporting or spreadsheet platform.
+  - name: <SHIPPING_CARRIER>
+    description: Generic shipping carrier.
+  - name: <TICKETING_SYSTEM>
+    description: Generic ticketing system.
+  - name: <VIDEO_CONFERENCING_PLATFORM>
+    description: Generic video conferencing platform.
+  - name: <VPN_SERVICE>
+    description: Generic remote access or VPN service.

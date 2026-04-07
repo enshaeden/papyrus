@@ -21,6 +21,7 @@ TEMPLATE_DIR = ROOT / "templates"
 GENERATED_DIR = ROOT / "generated"
 GENERATED_SITE_DOCS_DIR = GENERATED_DIR / "site_docs"
 LEGACY_GENERATED_DOCS_DIR = DOCS_DIR / "generated"
+REPORTS_DIR = ROOT / "reports"
 SCHEMA_PATH = ROOT / "schemas" / "article.yml"
 POLICY_PATH = ROOT / "schemas" / "repository_policy.yml"
 TAXONOMY_DIR = ROOT / "taxonomies"
@@ -30,6 +31,87 @@ DB_PATH = BUILD_DIR / "knowledge.db"
 FRONT_MATTER_PATTERN = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)$", re.DOTALL)
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+PLACEHOLDER_PATTERN = re.compile(r"^<[A-Z0-9_]+>$")
+EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+PHONE_PATTERN = re.compile(r"\b(?:\+\d{1,3}[ -]?)?(?:\(\d{3}\)|\d{3})[ -]\d{3}[ -]\d{4}\b")
+IP_PATTERN = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?\b")
+ADDRESS_PATTERN = re.compile(
+    r"\b\d{1,5}\s+[A-Za-z0-9][A-Za-z0-9 .'-]{1,40}\s"
+    r"(?:Street|St|Road|Rd|Avenue|Ave|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Court|Ct|Place|Pl)\b",
+    re.IGNORECASE,
+)
+DOMAIN_PATTERN = re.compile(
+    r"\b[a-z0-9-]+(?:\.[a-z0-9-]+)+\.(?:com|net|org|io|local|internal|corp|lan|private)\b",
+    re.IGNORECASE,
+)
+SECRET_PATTERNS = [
+    re.compile(r"-----BEGIN [A-Z ]+PRIVATE KEY-----"),
+    re.compile(
+        r"(?i)\b(?:api[_ -]?key|token|client[_ -]?secret|password|passphrase|recovery[_ -]?code)\b"
+        r"[^\n]{0,20}[:=][ \t]*['\"]?[A-Za-z0-9/_+=.-]{8,}"
+    ),
+]
+BRANDED_ADMIN_PATTERNS = [
+    re.compile(r"\badmin console\b", re.IGNORECASE),
+    re.compile(r"\badmin center\b", re.IGNORECASE),
+]
+LIKELY_BRANDED_PRODUCT_PATTERN = re.compile(
+    r"\b(?:[A-Z][a-z0-9]+(?:[ -][A-Z][a-z0-9]+){0,2})\s"
+    r"(?:Platform|Suite|Portal|Cloud|Workspace|Center|Console|Directory)\b"
+)
+GENERIC_BRAND_ALLOWLIST = {
+    "Asset",
+    "Business",
+    "Cloud",
+    "Collaboration",
+    "Conferencing",
+    "Content",
+    "Creative",
+    "Developer",
+    "Desk",
+    "Disconnect",
+    "Device",
+    "Digital",
+    "Directory",
+    "Documentation",
+    "Endpoint",
+    "Enabled",
+    "Enrollment",
+    "HR",
+    "Helpdesk",
+    "Identity",
+    "Instant",
+    "Internal",
+    "Knowledge",
+    "License",
+    "Management",
+    "Messaging",
+    "Multi-Factor",
+    "Migration",
+    "New",
+    "Password",
+    "Printer",
+    "Productivity",
+    "Remote",
+    "Reporting",
+    "Seed",
+    "Self",
+    "Service",
+    "Shipping",
+    "Support",
+    "Ticketing",
+    "Video",
+    "Workflow",
+    "Workspace",
+    "Application",
+    "Admin",
+    "And",
+    "VPN",
+    "Workplace",
+    "Label",
+    "Network",
+    "Software",
+}
 
 
 @dataclass
@@ -170,6 +252,30 @@ def collect_decision_paths() -> list[Path]:
 def collect_root_markdown_paths() -> list[Path]:
     candidates = [ROOT / "README.md", ROOT / "AGENTS.md"]
     return [path for path in candidates if path.exists()]
+
+
+def collect_sanitization_paths(policy: dict[str, Any] | None = None) -> list[Path]:
+    paths: list[Path] = []
+    scan_roots = [
+        *article_roots(policy),
+        DOCS_DIR,
+        DECISIONS_DIR,
+        GENERATED_SITE_DOCS_DIR,
+        ROOT / "migration",
+        TEMPLATE_DIR,
+        TAXONOMY_DIR,
+        REPORTS_DIR,
+    ]
+    for root in scan_roots:
+        if not root.exists():
+            continue
+        paths.extend(
+            path
+            for path in sorted(root.rglob("*"))
+            if path.is_file() and path.suffix in {".md", ".yml", ".yaml"}
+        )
+    paths.extend(collect_root_markdown_paths())
+    return sorted(set(paths))
 
 
 def normalize_whitespace(value: str) -> str:
@@ -426,6 +532,7 @@ def is_external_target(target: str) -> bool:
         or lowered.startswith("mailto:")
         or lowered.startswith("app://")
         or lowered.startswith("plugin://")
+        or bool(PLACEHOLDER_PATTERN.fullmatch(target.strip()))
     )
 
 
@@ -454,6 +561,38 @@ def collect_broken_markdown_links(paths: Iterable[Path]) -> list[BrokenLink]:
                         reason="target does not exist",
                     )
                 )
+    return issues
+
+
+def validate_sanitization(paths: Iterable[Path]) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        rel_path = relative_path(path)
+
+        if re.search(r"https?://|mailto:", text):
+            issues.append(ValidationIssue(rel_path, "contains a raw URL or mailto link; use placeholders or local links"))
+        if EMAIL_PATTERN.search(text):
+            issues.append(ValidationIssue(rel_path, "contains an email address"))
+        if PHONE_PATTERN.search(text):
+            issues.append(ValidationIssue(rel_path, "contains a phone number"))
+        if IP_PATTERN.search(text):
+            issues.append(ValidationIssue(rel_path, "contains an IP address or subnet"))
+        if ADDRESS_PATTERN.search(text):
+            issues.append(ValidationIssue(rel_path, "contains a physical address"))
+        if DOMAIN_PATTERN.search(text):
+            issues.append(ValidationIssue(rel_path, "contains a domain or hostname"))
+        if any(pattern.search(text) for pattern in SECRET_PATTERNS):
+            issues.append(ValidationIssue(rel_path, "contains a credential-like value"))
+        if any(pattern.search(text) for pattern in BRANDED_ADMIN_PATTERNS):
+            issues.append(ValidationIssue(rel_path, "contains branded admin-console terminology"))
+        for match in LIKELY_BRANDED_PRODUCT_PATTERN.finditer(text):
+            tokens = match.group(0).replace("-", " ").split()
+            if not all(token in GENERIC_BRAND_ALLOWLIST for token in tokens[:-1]):
+                issues.append(ValidationIssue(rel_path, "contains a likely branded product term"))
+                break
+
     return issues
 
 
@@ -783,6 +922,8 @@ def validate_repository() -> list[ValidationIssue]:
                 f"broken link '{broken_link.target}': {broken_link.reason}",
             )
         )
+
+    issues.extend(validate_sanitization(collect_sanitization_paths(policy)))
 
     return issues
 

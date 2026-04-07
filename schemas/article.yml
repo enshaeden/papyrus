@@ -43,6 +43,14 @@ fields:
     required: true
     taxonomy: source_types
     description: Origin of the article content.
+  source_system:
+    kind: string
+    required: true
+    description: Upstream system or repository from which the article originated.
+  source_title:
+    kind: string
+    required: true
+    description: Original title in the upstream source system at the time of import or creation.
   team:
     kind: string
     required: true

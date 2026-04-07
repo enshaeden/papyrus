@@ -19,6 +19,8 @@ directories:
     - docs
     - generated
     - knowledge
+    - migration
+    - reports
     - schemas
     - scripts
     - site
@@ -70,5 +72,5 @@ lifecycle:
     - draft
     - archived
 duplicate_detection:
-  title_similarity_threshold: 0.9
+  title_similarity_threshold: 0.99
   doc_duplication_threshold: 0.96
