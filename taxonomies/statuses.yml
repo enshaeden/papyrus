@@ -1,0 +1,11 @@
+taxonomy: statuses
+description: Lifecycle status values.
+values:
+  - name: draft
+    description: Not approved for production use.
+  - name: active
+    description: Approved and in active use.
+  - name: deprecated
+    description: Still available but scheduled for replacement.
+  - name: archived
+    description: Retained for historical reference only.

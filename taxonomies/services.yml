@@ -1,0 +1,21 @@
+taxonomy: services
+description: Service areas referenced by knowledge items.
+values:
+  - name: Endpoint Provisioning
+    description: Device preparation and handoff.
+  - name: Identity
+    description: Identity lifecycle management.
+  - name: Access Management
+    description: Permission and group management.
+  - name: Remote Access
+    description: Remote connectivity support.
+  - name: Printing
+    description: Printer service management.
+  - name: Collaboration
+    description: Meeting room and communications support.
+  - name: Onboarding
+    description: New hire preparation.
+  - name: Offboarding
+    description: Leaver controls and asset recovery.
+  - name: Incident Management
+    description: Operational incident response.

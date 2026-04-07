@@ -1,0 +1,9 @@
+taxonomy: source_types
+description: Origin of the canonical article content.
+values:
+  - name: native
+    description: Authored and maintained directly in this repository.
+  - name: imported
+    description: Migrated from another source system and now maintained here.
+  - name: derived
+    description: Canonicalized from an upstream system or external record.

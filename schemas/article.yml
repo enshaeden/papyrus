@@ -1,0 +1,141 @@
+schema: knowledge_article
+version: 2
+description: >
+  Portable Markdown article schema. Markdown plus YAML front matter is the
+  canonical source of truth. Derived artifacts must be reproducible from this
+  schema, repository policy, and the source files under knowledge/ or
+  archive/knowledge/.
+fields:
+  id:
+    kind: string
+    required: true
+    pattern: "^kb-[a-z0-9]+(?:-[a-z0-9]+)*$"
+    description: Stable article identifier.
+  title:
+    kind: string
+    required: true
+    description: Human-readable article title.
+  canonical_path:
+    kind: string
+    required: true
+    pattern: "^(knowledge|archive/knowledge)/.+\\.md$"
+    description: Canonical repository path for this article.
+  summary:
+    kind: string
+    required: true
+    description: Short operational summary.
+  type:
+    kind: string
+    required: true
+    taxonomy: article_types
+    description: Controlled article type.
+  status:
+    kind: string
+    required: true
+    taxonomy: statuses
+    description: Lifecycle status.
+  owner:
+    kind: string
+    required: true
+    description: Accountable owner for the article.
+  source_type:
+    kind: string
+    required: true
+    taxonomy: source_types
+    description: Origin of the article content.
+  team:
+    kind: string
+    required: true
+    taxonomy: teams
+    description: Team responsible for execution or upkeep.
+  systems:
+    kind: list[string]
+    required: true
+    taxonomy: systems
+    description: Systems directly involved in the procedure.
+  services:
+    kind: list[string]
+    required: true
+    taxonomy: services
+    description: Service areas affected by the procedure.
+  tags:
+    kind: list[string]
+    required: true
+    taxonomy: tags
+    description: Search and reporting tags.
+  created:
+    kind: date
+    required: true
+    description: Creation date in ISO 8601 format.
+  updated:
+    kind: date
+    required: true
+    description: Last content update date in ISO 8601 format.
+  last_reviewed:
+    kind: date
+    required: true
+    description: Last formal review date in ISO 8601 format.
+  review_cadence:
+    kind: string
+    required: true
+    taxonomy: review_cadences
+    description: Review interval.
+  audience:
+    kind: string
+    required: true
+    taxonomy: audiences
+    description: Primary operator audience.
+  prerequisites:
+    kind: list[string]
+    required: true
+    description: Preconditions for safe execution.
+  steps:
+    kind: list[string]
+    required: true
+    description: Ordered operator steps.
+  verification:
+    kind: list[string]
+    required: true
+    description: Checks that confirm the outcome.
+  rollback:
+    kind: list[string]
+    required: true
+    description: Recovery actions if the procedure must be undone.
+  related_articles:
+    kind: list[string]
+    required: true
+    description: Related article identifiers.
+  replaced_by:
+    kind: string_or_null
+    required: true
+    description: Replacement article id for deprecated or archived content.
+  retirement_reason:
+    kind: string_or_null
+    required: true
+    description: Rationale for deprecation or archival.
+  references:
+    kind: list[object]
+    required: true
+    required_keys:
+      - title
+    allowed_keys:
+      - article_id
+      - title
+      - path
+      - url
+      - note
+    description: Supporting references. Use local paths when possible.
+  change_log:
+    kind: list[object]
+    required: true
+    required_keys:
+      - date
+      - summary
+      - author
+    allowed_keys:
+      - date
+      - summary
+      - author
+    description: Minimal article maintenance history.
+body:
+  description: Optional narrative Markdown content that adds context or notes.

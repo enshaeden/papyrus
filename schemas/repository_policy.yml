@@ -1,0 +1,74 @@
+policy: repository_contract
+version: 1
+directories:
+  canonical_article_roots:
+    - knowledge
+    - archive/knowledge
+  documentation_root: docs
+  decisions_root: decisions
+  template_root: templates
+  generated_roots:
+    - generated
+    - build
+    - site
+  generated_site_docs_root: generated/site_docs
+  allowed_top_level_directories:
+    - archive
+    - build
+    - decisions
+    - docs
+    - generated
+    - knowledge
+    - schemas
+    - scripts
+    - site
+    - taxonomies
+    - templates
+    - tests
+  ignored_top_level_directories:
+    - .git
+    - .venv
+    - __pycache__
+    - .pytest_cache
+  allowed_top_level_files:
+    - .editorconfig
+    - .gitattributes
+    - .gitignore
+    - AGENTS.md
+    - README.md
+    - mkdocs.yml
+    - requirements.txt
+templates:
+  approved_files:
+    - incident-postmortem.md
+    - runbook.md
+    - sop.md
+    - troubleshooting.md
+  family_by_article_type:
+    runbook: runbook
+    SOP: sop
+    troubleshooting: troubleshooting
+    FAQ: sop
+    reference: sop
+    policy: sop
+    onboarding: sop
+    offboarding: sop
+    access: sop
+    asset: sop
+    incident: incident-postmortem
+    postmortem: incident-postmortem
+lifecycle:
+  active_navigation_statuses:
+    - active
+    - deprecated
+  searchable_statuses_default:
+    - active
+    - deprecated
+  searchable_status_order:
+    - active
+    - deprecated
+    - draft
+    - archived
+duplicate_detection:
+  title_similarity_threshold: 0.9
+  doc_duplication_threshold: 0.96

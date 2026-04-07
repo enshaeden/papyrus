@@ -1,0 +1,18 @@
+taxonomy: review_cadences
+description: Review interval values used for stale reporting.
+values:
+  - name: monthly
+    interval_days: 30
+    description: Review every month.
+  - name: quarterly
+    interval_days: 90
+    description: Review every quarter.
+  - name: semiannual
+    interval_days: 182
+    description: Review every six months.
+  - name: annual
+    interval_days: 365
+    description: Review every year.
+  - name: after_change
+    interval_days: null
+    description: Review whenever the underlying system or workflow changes.

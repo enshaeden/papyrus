@@ -1,0 +1,25 @@
+taxonomy: systems
+description: Systems commonly referenced by starter knowledge articles.
+values:
+  - name: Jamf Pro
+    description: Apple device management.
+  - name: Microsoft Intune
+    description: Windows device management.
+  - name: Okta
+    description: Identity and SSO platform.
+  - name: Google Workspace
+    description: Mail and collaboration suite.
+  - name: Microsoft 365
+    description: Productivity and identity suite.
+  - name: VPN Gateway
+    description: Remote access concentrator.
+  - name: Print Server
+    description: Shared printer queue service.
+  - name: Zoom Rooms
+    description: Meeting room conferencing platform.
+  - name: Endpoint Inventory
+    description: Asset inventory source.
+  - name: HRIS Export
+    description: HR joiner and leaver feed.
+  - name: Ticketing Queue
+    description: Intake and tracking system.

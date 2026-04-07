@@ -1,0 +1,13 @@
+taxonomy: teams
+description: Teams that own or execute knowledge items.
+values:
+  - name: Service Desk
+    description: Front-line IT support.
+  - name: IT Operations
+    description: Core systems operations team.
+  - name: Identity and Access
+    description: Account and access administration team.
+  - name: Workplace Engineering
+    description: Endpoint and collaboration engineering team.
+  - name: Security Operations
+    description: Security response and governance team.

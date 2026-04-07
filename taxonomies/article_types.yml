@@ -1,0 +1,27 @@
+taxonomy: article_types
+description: Allowed knowledge article types.
+values:
+  - name: runbook
+    description: Repeatable operational procedure.
+  - name: SOP
+    description: Standard operating procedure.
+  - name: troubleshooting
+    description: Diagnostic and recovery guide.
+  - name: FAQ
+    description: Frequently asked questions.
+  - name: reference
+    description: Stable reference information.
+  - name: policy
+    description: Policy or governance record.
+  - name: onboarding
+    description: Joiner workflow guidance.
+  - name: offboarding
+    description: Leaver workflow guidance.
+  - name: access
+    description: Access request or access recovery procedure.
+  - name: asset
+    description: Asset handling and inventory guidance.
+  - name: incident
+    description: Incident response material.
+  - name: postmortem
+    description: Post-incident review material.

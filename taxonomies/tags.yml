@@ -1,0 +1,33 @@
+taxonomy: tags
+description: Starter controlled tags for search and reporting.
+values:
+  - name: endpoint
+    description: Endpoint management work.
+  - name: macos
+    description: Apple endpoint content.
+  - name: windows
+    description: Windows endpoint content.
+  - name: account
+    description: Account lifecycle topic.
+  - name: authentication
+    description: Authentication topic.
+  - name: vpn
+    description: VPN or remote access topic.
+  - name: printer
+    description: Printing topic.
+  - name: av
+    description: Audio and video topic.
+  - name: onboarding
+    description: New hire workflow topic.
+  - name: offboarding
+    description: Leaver workflow topic.
+  - name: incident
+    description: Incident response topic.
+  - name: template
+    description: Template or starter content.
+  - name: access
+    description: Access request or remediation topic.
+  - name: service-desk
+    description: Service desk operational content.
+  - name: checklist
+    description: Checklist-style content.

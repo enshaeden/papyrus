@@ -1,0 +1,21 @@
+site_name: Papyrus Knowledge Base
+site_description: Local-first knowledge management database for IT support and systems operations
+site_url: http://127.0.0.1:8000/
+docs_dir: generated/site_docs
+site_dir: site
+use_directory_urls: true
+theme:
+  name: mkdocs
+nav:
+  - Home: index.md
+  - Governance: architecture/governance.md
+  - Content Lifecycle: architecture/content-lifecycle.md
+  - Information Architecture: architecture/information-architecture.md
+  - Contributor Workflow: contributor-workflow.md
+  - Start Here: knowledge/start-here.md
+  - Knowledge Base: knowledge/index.md
+  - By Service: knowledge/by-service.md
+  - By System: knowledge/by-system.md
+  - By Tag: knowledge/by-tag.md
+  - Archive: archive/index.md
+  - Decisions: decisions/index.md
