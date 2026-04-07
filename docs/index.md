@@ -21,3 +21,4 @@ Edit `knowledge/`, `archive/knowledge/`, `docs/`, `decisions/`, `taxonomies/`, `
 - Review [architecture/content-lifecycle.md](architecture/content-lifecycle.md).
 - Review [architecture/information-architecture.md](architecture/information-architecture.md).
 - Review [contributor-workflow.md](contributor-workflow.md).
+- Review [knowledge-discovery-improvement-plan.md](knowledge-discovery-improvement-plan.md).

@@ -28,6 +28,25 @@ TAXONOMY_DIR = ROOT / "taxonomies"
 BUILD_DIR = ROOT / "build"
 SITE_DIR = ROOT / "site"
 DB_PATH = BUILD_DIR / "knowledge.db"
+GENERATED_SITE_INDEX_PATHS = (
+    "knowledge/index.md",
+    "knowledge/start-here.md",
+    "knowledge/support.md",
+    "knowledge/authors.md",
+    "knowledge/managers.md",
+    "knowledge/explorer.md",
+    "knowledge/tree.md",
+    "knowledge/by-type.md",
+    "knowledge/by-audience.md",
+    "knowledge/by-service.md",
+    "knowledge/by-system.md",
+    "knowledge/by-tag.md",
+    "knowledge/by-team.md",
+    "knowledge/by-status.md",
+    "knowledge/content-health.md",
+    "knowledge/coverage-matrix.md",
+    "archive/index.md",
+)
 FRONT_MATTER_PATTERN = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)$", re.DOTALL)
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
@@ -688,16 +707,7 @@ def expected_site_doc_paths(articles: list[Article]) -> set[str]:
     for path in collect_decision_paths():
         expected.add(relative_path(GENERATED_SITE_DOCS_DIR / "decisions" / path.relative_to(DECISIONS_DIR)))
 
-    expected.update(
-        {
-            relative_path(GENERATED_SITE_DOCS_DIR / "knowledge" / "index.md"),
-            relative_path(GENERATED_SITE_DOCS_DIR / "knowledge" / "start-here.md"),
-            relative_path(GENERATED_SITE_DOCS_DIR / "knowledge" / "by-service.md"),
-            relative_path(GENERATED_SITE_DOCS_DIR / "knowledge" / "by-system.md"),
-            relative_path(GENERATED_SITE_DOCS_DIR / "knowledge" / "by-tag.md"),
-            relative_path(GENERATED_SITE_DOCS_DIR / "archive" / "index.md"),
-        }
-    )
+    expected.update(relative_path(GENERATED_SITE_DOCS_DIR / path) for path in GENERATED_SITE_INDEX_PATHS)
 
     for article in articles:
         if article.metadata.get("status") == "archived":
@@ -990,6 +1000,10 @@ def orphaned_files(policy: dict[str, Any], articles: list[Article]) -> list[str]
         findings.extend(sorted(actual.difference(expected)))
 
     return sorted(set(findings))
+
+
+def articles_missing_list_field(articles: list[Article], field_name: str) -> list[Article]:
+    return [article for article in articles if not article.metadata.get(field_name)]
 
 
 def searchable_statuses(policy: dict[str, Any]) -> list[str]:

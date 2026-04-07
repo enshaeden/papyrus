@@ -6,16 +6,33 @@ site_dir: site
 use_directory_urls: true
 theme:
   name: mkdocs
+extra_css:
+  - assets/site.css
+extra_javascript:
+  - assets/knowledge-explorer.js
 nav:
   - Home: index.md
   - Governance: architecture/governance.md
   - Content Lifecycle: architecture/content-lifecycle.md
   - Information Architecture: architecture/information-architecture.md
   - Contributor Workflow: contributor-workflow.md
-  - Start Here: knowledge/start-here.md
-  - Knowledge Base: knowledge/index.md
-  - By Service: knowledge/by-service.md
-  - By System: knowledge/by-system.md
-  - By Tag: knowledge/by-tag.md
-  - Archive: archive/index.md
+  - Knowledge Discovery Plan: knowledge-discovery-improvement-plan.md
+  - Knowledge:
+      - Overview: knowledge/index.md
+      - Start Here: knowledge/start-here.md
+      - Support: knowledge/support.md
+      - Authors: knowledge/authors.md
+      - Managers: knowledge/managers.md
+      - Explorer: knowledge/explorer.md
+      - Tree: knowledge/tree.md
+      - By Type: knowledge/by-type.md
+      - By Audience: knowledge/by-audience.md
+      - By Service: knowledge/by-service.md
+      - By System: knowledge/by-system.md
+      - By Tag: knowledge/by-tag.md
+      - By Team: knowledge/by-team.md
+      - By Status: knowledge/by-status.md
+      - Content Health: knowledge/content-health.md
+      - Coverage Matrix: knowledge/coverage-matrix.md
+      - Archive: archive/index.md
   - Decisions: decisions/index.md

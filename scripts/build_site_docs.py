@@ -1,36 +1,162 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import datetime as dt
+import html
+import json
 import shutil
-from collections import defaultdict
+from collections import Counter, defaultdict
 from os import path as os_path
 from pathlib import Path
+from urllib.parse import urlencode
 
 from kb_common import (
     DECISIONS_DIR,
     DOCS_DIR,
     GENERATED_SITE_DOCS_DIR,
+    GENERATED_SITE_INDEX_PATHS,
+    KNOWLEDGE_DIR,
     LEGACY_GENERATED_DOCS_DIR,
     ROOT,
+    articles_missing_list_field,
     collect_decision_paths,
     collect_docs_source_paths,
     date_to_iso,
+    find_possible_duplicate_articles,
+    inverse_reference_graph,
     load_articles,
     load_policy,
+    load_taxonomies,
+    missing_owner_articles,
     navigation_statuses,
+    reference_graph,
+    relationless_articles,
     render_change_log,
     render_list,
     render_reference,
+    similarity_ratio,
     site_article_output_path,
+    stale_articles,
 )
 
 WORKFLOW_STARTERS = (
-    ("Onboarding", ("kb-onboarding-employee-onboarding-checklist", "kb-runbook-laptop-provisioning")),
-    ("Offboarding", ("kb-offboarding-employee-offboarding-checklist",)),
-    ("Identity and Access", ("kb-access-password-reset-account-lockout", "kb-access-software-access-request")),
-    ("Remote Access", ("kb-troubleshooting-vpn-connectivity",)),
-    ("Workplace Support", ("kb-troubleshooting-printer-queue", "kb-troubleshooting-meeting-room-av-triage")),
-    ("Incidents", ("kb-incident-response-template", "kb-postmortem-template")),
+    (
+        "Onboarding",
+        (
+            "kb-onboarding-employee-onboarding-checklist",
+            "kb-runbook-laptop-provisioning",
+        ),
+    ),
+    (
+        "Offboarding",
+        (
+            "kb-offboarding-employee-offboarding-checklist",
+            "kb-user-lifecycle-offboarding-and-termination-offboarding-and-termination",
+        ),
+    ),
+    (
+        "Identity and Access",
+        (
+            "kb-access-password-reset-account-lockout",
+            "kb-access-software-access-request",
+        ),
+    ),
+    (
+        "Remote Access",
+        (
+            "kb-troubleshooting-vpn-connectivity",
+            "kb-troubleshooting-network-onsite-network-outage-troubleshooting-sop",
+        ),
+    ),
+    (
+        "Workplace Support",
+        (
+            "kb-troubleshooting-printer-queue",
+            "kb-troubleshooting-meeting-room-av-triage",
+            "kb-assets-loaners-loaner-laptops",
+        ),
+    ),
+    (
+        "Incidents",
+        (
+            "kb-incidents-incident-response-template",
+            "kb-postmortems-postmortem-template",
+        ),
+    ),
+)
+
+SUPPORT_SHORTCUTS = (
+    (
+        "Front-line troubleshooting",
+        "Open current troubleshooting content for service desk operators.",
+        {"audience": "service_desk", "type": "troubleshooting"},
+    ),
+    (
+        "Service desk SOPs",
+        "Open current SOP content filtered for the service desk audience.",
+        {"audience": "service_desk", "type": "SOP"},
+    ),
+    (
+        "Remote access procedures",
+        "Jump to remote-access knowledge without browsing the taxonomy tree first.",
+        {"audience": "service_desk", "service": "Remote Access"},
+    ),
+    (
+        "Identity and access procedures",
+        "Filter to identity and access content used during account recovery or access requests.",
+        {"service": "Identity"},
+    ),
+    (
+        "Printing and office support",
+        "Jump to printing and collaboration support content for workplace issues.",
+        {"service": "Printing"},
+    ),
+    (
+        "Meeting room and AV support",
+        "Filter to collaboration content for conference-room and AV support workflows.",
+        {"service": "Collaboration"},
+    ),
+)
+
+AUTHOR_SHORTCUTS = (
+    (
+        "Taxonomy-driven scaffold",
+        "Start a new article with validated type, audience, team, and optional discovery metadata.",
+        None,
+    ),
+    (
+        "Discovery gaps",
+        "Review articles missing service, system, tag, or relationship metadata before adding new content.",
+        {"page": "content-health.md"},
+    ),
+    (
+        "Facet explorer",
+        "Use the explorer to find nearby articles before creating a new source-of-truth document.",
+        {"page": "explorer.md"},
+    ),
+)
+
+MANAGER_SHORTCUTS = (
+    (
+        "Knowledge explorer",
+        "Filter by status, team, audience, service, system, and tag from one place.",
+        {"page": "explorer.md"},
+    ),
+    (
+        "Content health",
+        "Review discovery gaps, isolated content, stale articles, and likely duplicate titles.",
+        {"page": "content-health.md"},
+    ),
+    (
+        "Coverage matrix",
+        "Audit service-by-type coverage with links back into the explorer.",
+        {"page": "coverage-matrix.md"},
+    ),
+    (
+        "Knowledge tree",
+        "Inspect the canonical article tree grouped by repository path.",
+        {"page": "tree.md"},
+    ),
 )
 
 
@@ -53,7 +179,7 @@ def site_relative_path_for_repo_path(repo_relative: str) -> Path | None:
     candidate = Path(repo_relative)
     if repo_relative.startswith("knowledge/"):
         return candidate
-    if repo_relative.startswith("archive/"):
+    if repo_relative.startswith("archive/knowledge/"):
         return candidate
     if repo_relative.startswith("docs/"):
         return candidate.relative_to("docs")
@@ -62,122 +188,121 @@ def site_relative_path_for_repo_path(repo_relative: str) -> Path | None:
     return None
 
 
-def render_related_articles(article, by_id: dict[str, object]) -> str:
-    related_lines = []
-    current_relative = site_relative_path_for_article(article)
-    for related_id in article.metadata["related_articles"]:
-        related = by_id.get(related_id)
-        if related:
-            target_relative = site_relative_path_for_article(related)
-            related_lines.append(
-                f"- [{related.metadata['title']}]({relative_site_link(current_relative, target_relative)})"
-            )
-        else:
-            related_lines.append(f"- {related_id}")
-    if not related_lines:
-        return "- None documented.\n"
-    return "\n".join(related_lines) + "\n"
+def explorer_link(from_relative: Path, **filters: str) -> str:
+    target = Path("knowledge/explorer.md")
+    base = relative_site_link(from_relative, target)
+    clean_filters = {key: value for key, value in filters.items() if value}
+    if not clean_filters:
+        return base
+    return f"{base}?{urlencode(clean_filters)}"
 
 
-def render_reference_lines(article, by_id: dict[str, object]) -> str:
-    current_relative = site_relative_path_for_article(article)
-    lines = []
-    for reference in article.metadata["references"]:
-        article_id = reference.get("article_id")
-        path = reference.get("path")
-        line = render_reference(reference)
-        if article_id and article_id in by_id:
-            target_relative = site_relative_path_for_article(by_id[article_id])
-            line = f"[{reference['title']}]({relative_site_link(current_relative, target_relative)})"
-            if reference.get("note"):
-                line += f" - {reference['note']}"
-        elif path:
-            target_relative = site_relative_path_for_repo_path(path)
-            if target_relative is not None:
-                line = f"[{reference['title']}]({relative_site_link(current_relative, target_relative)})"
-                if reference.get("note"):
-                    line += f" - {reference['note']}"
-        lines.append(f"- {line}")
-    if not lines:
-        return "- None documented.\n"
-    return "\n".join(lines) + "\n"
+def page_link(from_relative: Path, page_name: str) -> str:
+    return relative_site_link(from_relative, Path("knowledge") / page_name)
 
 
-def render_article_page(article, by_id: dict[str, object]) -> str:
+def repo_doc_link(from_relative: Path, repo_relative: str) -> str:
+    target = site_relative_path_for_repo_path(repo_relative)
+    if target is None:
+        return repo_relative
+    return relative_site_link(from_relative, target)
+
+
+def markdown_table_cell(value: str) -> str:
+    return value.replace("|", "\\|").replace("\n", " ")
+
+
+def format_metadata_values(values: list[str], empty: str = "Not classified") -> str:
+    if not values:
+        return empty
+    return ", ".join(f"`{item}`" for item in values)
+
+
+def format_plain_values(values: list[str], empty: str = "None documented") -> str:
+    if not values:
+        return empty
+    return ", ".join(values)
+
+
+def article_link(article, current_relative: Path) -> str:
+    return f"[{article.metadata['title']}]({relative_site_link(current_relative, site_relative_path_for_article(article))})"
+
+
+def render_article_bullet(article, current_relative: Path) -> str:
     metadata = article.metadata
-    replaced_by = metadata.get("replaced_by")
-    replacement_line = "None"
-    if replaced_by and replaced_by in by_id:
-        target_relative = site_relative_path_for_article(by_id[replaced_by])
-        replacement_line = f"[{replaced_by}]({relative_site_link(site_relative_path_for_article(article), target_relative)})"
-    elif replaced_by:
-        replacement_line = replaced_by
-
-    notes_section = ""
-    if article.body:
-        notes_section = f"\n## Additional Notes\n\n{article.body}\n"
-
+    services = format_plain_values(metadata["services"], "unclassified service")
     return (
-        "<!-- Generated from canonical source content. Do not edit here. -->\n\n"
-        f"# {metadata['title']}\n\n"
-        f"Canonical source: `{article.relative_path}`\n\n"
-        "## Summary\n\n"
-        f"{metadata['summary']}\n\n"
-        "## Metadata\n\n"
-        f"- **ID:** {metadata['id']}\n"
-        f"- **Canonical Path:** {metadata['canonical_path']}\n"
-        f"- **Type:** {metadata['type']}\n"
-        f"- **Status:** {metadata['status']}\n"
-        f"- **Owner:** {metadata['owner']}\n"
-        f"- **Source Type:** {metadata['source_type']}\n"
-        f"- **Team:** {metadata['team']}\n"
-        f"- **Systems:** {', '.join(metadata['systems']) or 'None'}\n"
-        f"- **Services:** {', '.join(metadata['services']) or 'None'}\n"
-        f"- **Tags:** {', '.join(metadata['tags']) or 'None'}\n"
-        f"- **Created:** {date_to_iso(metadata['created'])}\n"
-        f"- **Updated:** {date_to_iso(metadata['updated'])}\n"
-        f"- **Last Reviewed:** {date_to_iso(metadata['last_reviewed'])}\n"
-        f"- **Review Cadence:** {metadata['review_cadence']}\n"
-        f"- **Audience:** {metadata['audience']}\n"
-        f"- **Replaced By:** {replacement_line}\n"
-        f"- **Retirement Reason:** {metadata['retirement_reason'] or 'None'}\n\n"
-        "## Prerequisites\n\n"
-        f"{render_list(metadata['prerequisites'])}\n"
-        "## Steps\n\n"
-        f"{render_list(metadata['steps'])}\n"
-        "## Verification\n\n"
-        f"{render_list(metadata['verification'])}\n"
-        "## Rollback\n\n"
-        f"{render_list(metadata['rollback'])}\n"
-        "## Related Articles\n\n"
-        f"{render_related_articles(article, by_id)}\n"
-        "## References\n\n"
-        f"{render_reference_lines(article, by_id)}\n"
-        "## Change Log\n\n"
-        f"{render_change_log(metadata['change_log'])}"
-        f"{notes_section}"
+        f"- {article_link(article, current_relative)} - {metadata['summary']} "
+        f"(`{metadata['type']}` | `{metadata['audience']}` | `{metadata['status']}` | {services})"
     )
 
 
-def render_index_page(title: str, grouped: dict[str, list], current_path: str) -> str:
-    sections = [
+def render_card_grid(cards: list[tuple[str, str, str]]) -> str:
+    lines = ['<div class="kb-card-grid">']
+    for title, description, href in cards:
+        lines.append(f'  <a class="kb-card" href="{html.escape(href, quote=True)}">')
+        lines.append(f"    <strong>{html.escape(title)}</strong>")
+        lines.append(f"    <span>{html.escape(description)}</span>")
+        lines.append("  </a>")
+    lines.append("</div>")
+    return "\n".join(lines)
+
+
+def render_metric_grid(metrics: list[tuple[str, str]]) -> str:
+    lines = ['<div class="kb-metric-grid">']
+    for value, label in metrics:
+        lines.append('  <div class="kb-metric">')
+        lines.append(f"    <strong>{html.escape(value)}</strong>")
+        lines.append(f"    <span>{html.escape(label)}</span>")
+        lines.append("  </div>")
+    lines.append("</div>")
+    return "\n".join(lines)
+
+
+def ordered_group_names(grouped: dict[str, list], group_order: list[str] | None = None) -> list[str]:
+    names = list(grouped)
+    if not group_order:
+        return sorted(names)
+    order_index = {name: index for index, name in enumerate(group_order)}
+    return sorted(names, key=lambda item: (order_index.get(item, len(order_index)), item))
+
+
+def render_grouped_index_page(
+    title: str,
+    intro: str,
+    grouped: dict[str, list],
+    current_path: str,
+    facet_name: str | None = None,
+    group_order: list[str] | None = None,
+) -> str:
+    lines = [
         "<!-- Generated from canonical source content. Do not edit here. -->",
         "",
         f"# {title}",
         "",
+        intro,
+        "",
     ]
     current_relative = Path(current_path)
-    for group_name in sorted(grouped):
-        sections.append(f"## {group_name}")
-        sections.append("")
-        for article in sorted(grouped[group_name], key=lambda item: item.metadata["title"]):
-            target_relative = site_relative_path_for_article(article)
-            sections.append(
-                f"- [{article.metadata['title']}]({relative_site_link(current_relative, target_relative)}) "
-                f"({article.metadata['status']}) - {article.metadata['summary']}"
+    if not grouped:
+        lines.append("No matching articles are currently available.")
+        lines.append("")
+        return "\n".join(lines)
+
+    for group_name in ordered_group_names(grouped, group_order):
+        lines.append(f"## {group_name} ({len(grouped[group_name])})")
+        lines.append("")
+        if facet_name:
+            filter_value = "__none__" if group_name == "Unclassified" else group_name
+            lines.append(
+                f"Explorer view: [Open filtered view]"
+                f"({explorer_link(current_relative, **{facet_name: filter_value})})"
             )
-        sections.append("")
-    return "\n".join(sections).strip() + "\n"
+            lines.append("")
+        for article in sorted(grouped[group_name], key=lambda item: item.metadata["title"]):
+            lines.append(render_article_bullet(article, current_relative))
+        lines.append("")
+    return "\n".join(lines).strip() + "\n"
 
 
 def render_start_here(by_id: dict[str, object]) -> str:
@@ -186,22 +311,22 @@ def render_start_here(by_id: dict[str, object]) -> str:
         "",
         "# Start Here",
         "",
-        "Use these workflow entry points before creating new summary documents.",
+        "Use these task-oriented entry points before creating new summary documents or browsing the taxonomy tree.",
         "",
     ]
     current_relative = Path("knowledge/start-here.md")
     for title, article_ids in WORKFLOW_STARTERS:
         lines.append(f"## {title}")
         lines.append("")
+        lines.append(
+            f"Explorer view: [Open related content]({explorer_link(current_relative, query=title.lower())})"
+        )
+        lines.append("")
         for article_id in article_ids:
             article = by_id.get(article_id)
-            if not article or article.metadata["status"] == "archived":
+            if not article:
                 continue
-            target_relative = site_relative_path_for_article(article)
-            lines.append(
-                f"- [{article.metadata['title']}]({relative_site_link(current_relative, target_relative)}) - "
-                f"{article.metadata['summary']}"
-            )
+            lines.append(render_article_bullet(article, current_relative))
         lines.append("")
     return "\n".join(lines).strip() + "\n"
 
@@ -221,23 +346,880 @@ def render_archive_index(archived_articles: list) -> str:
         lines.append("")
         return "\n".join(lines)
 
+    lines.append(
+        f"Explorer view: [Show archived articles]"
+        f"({relative_site_link(current_relative, Path('knowledge/explorer.md'))}?status=archived)"
+    )
+    lines.append("")
     for article in sorted(archived_articles, key=lambda item: item.metadata["title"]):
-        target_relative = site_relative_path_for_article(article)
         lines.append(
-            f"- [{article.metadata['title']}]({relative_site_link(current_relative, target_relative)}) - "
+            f"- {article_link(article, current_relative)} - "
             f"{article.metadata['retirement_reason'] or article.metadata['summary']}"
         )
     lines.append("")
     return "\n".join(lines)
 
 
+def render_related_articles(article, by_id: dict[str, object]) -> str:
+    current_relative = site_relative_path_for_article(article)
+    related_lines = []
+    for related_id in article.metadata["related_articles"]:
+        related = by_id.get(related_id)
+        if not related:
+            related_lines.append(f"- `{related_id}`")
+            continue
+        related_lines.append(
+            f"- {article_link(related, current_relative)} - {related.metadata['summary']}"
+        )
+    if not related_lines:
+        return "- None documented.\n"
+    return "\n".join(related_lines) + "\n"
+
+
+def render_reference_lines(article, by_id: dict[str, object]) -> str:
+    current_relative = site_relative_path_for_article(article)
+    lines = []
+    for reference in article.metadata["references"]:
+        article_id = reference.get("article_id")
+        path = reference.get("path")
+        line = render_reference(reference)
+        if article_id and article_id in by_id:
+            line = article_link(by_id[article_id], current_relative)
+            if reference.get("note"):
+                line += f" - {reference['note']}"
+        elif path:
+            target_relative = site_relative_path_for_repo_path(path)
+            if target_relative is not None:
+                line = f"[{reference['title']}]({relative_site_link(current_relative, target_relative)})"
+                if reference.get("note"):
+                    line += f" - {reference['note']}"
+        lines.append(f"- {line}")
+    if not lines:
+        return "- None documented.\n"
+    return "\n".join(lines) + "\n"
+
+
+def render_referenced_by(article, by_id: dict[str, object], inbound_graph: dict[str, set[str]]) -> str:
+    current_relative = site_relative_path_for_article(article)
+    lines = []
+    for article_id in sorted(inbound_graph.get(article.metadata["id"], set())):
+        inbound = by_id.get(article_id)
+        if not inbound:
+            continue
+        lines.append(f"- {article_link(inbound, current_relative)} - {inbound.metadata['summary']}")
+    if not lines:
+        return "- No inbound article links documented.\n"
+    return "\n".join(lines) + "\n"
+
+
+def related_inference_candidates(article, articles: list) -> list[tuple[int, object, list[str]]]:
+    results = []
+    current_id = article.metadata["id"]
+    current_path = Path(article.relative_path)
+    for candidate in articles:
+        candidate_id = candidate.metadata["id"]
+        if candidate_id == current_id:
+            continue
+        reasons = []
+        score = 0
+
+        shared_services = sorted(set(article.metadata["services"]).intersection(candidate.metadata["services"]))
+        if shared_services:
+            score += len(shared_services) * 4
+            reasons.append(f"shared service: {', '.join(shared_services)}")
+
+        shared_systems = sorted(set(article.metadata["systems"]).intersection(candidate.metadata["systems"]))
+        if shared_systems:
+            score += len(shared_systems) * 3
+            reasons.append(f"shared system: {', '.join(shared_systems)}")
+
+        shared_tags = sorted(set(article.metadata["tags"]).intersection(candidate.metadata["tags"]))
+        if shared_tags:
+            score += len(shared_tags) * 2
+            reasons.append(f"shared tag: {', '.join(shared_tags)}")
+
+        if article.metadata["audience"] == candidate.metadata["audience"]:
+            score += 2
+            reasons.append(f"shared audience: {article.metadata['audience']}")
+
+        if article.metadata["team"] == candidate.metadata["team"]:
+            score += 1
+            reasons.append(f"shared team: {article.metadata['team']}")
+
+        if article.metadata["type"] == candidate.metadata["type"]:
+            score += 1
+            reasons.append(f"shared type: {article.metadata['type']}")
+
+        if current_path.parent == Path(candidate.relative_path).parent:
+            score += 2
+            reasons.append("same knowledge-tree section")
+
+        title_similarity = similarity_ratio(article.metadata["title"], candidate.metadata["title"])
+        if title_similarity >= 0.62:
+            score += 3
+            reasons.append(f"similar title ({title_similarity:.2f})")
+
+        if score >= 3:
+            results.append((score, candidate, reasons))
+    return sorted(results, key=lambda item: (-item[0], item[1].metadata["title"]))
+
+
+def render_inferred_related(article, articles: list, by_id: dict[str, object]) -> str:
+    current_relative = site_relative_path_for_article(article)
+    explicit_ids = {article.metadata["id"], *article.metadata["related_articles"]}
+    explicit_ids.update(
+        reference["article_id"]
+        for reference in article.metadata["references"]
+        if reference.get("article_id")
+    )
+    if article.metadata.get("replaced_by"):
+        explicit_ids.add(article.metadata["replaced_by"])
+
+    lines = []
+    for score, candidate, reasons in related_inference_candidates(article, articles):
+        if candidate.metadata["id"] in explicit_ids:
+            continue
+        lines.append(
+            f"- {article_link(candidate, current_relative)} - [Inference] "
+            f"{'; '.join(reasons)} (score {score})"
+        )
+        if len(lines) == 5:
+            break
+    if not lines:
+        return "- [Inference] No strong metadata-based nearby articles were identified.\n"
+    return "\n".join(lines) + "\n"
+
+
+def render_same_section_articles(article, articles: list) -> str:
+    current_relative = site_relative_path_for_article(article)
+    siblings = [
+        candidate
+        for candidate in articles
+        if candidate.metadata["id"] != article.metadata["id"]
+        and Path(candidate.relative_path).parent == Path(article.relative_path).parent
+    ]
+    if not siblings:
+        return "- No other articles share this knowledge-tree section.\n"
+    lines = []
+    for sibling in sorted(siblings, key=lambda item: item.metadata["title"])[:5]:
+        lines.append(f"- {article_link(sibling, current_relative)} - {sibling.metadata['summary']}")
+    return "\n".join(lines) + "\n"
+
+
+def render_lifecycle_links(article, articles: list, by_id: dict[str, object]) -> str:
+    current_relative = site_relative_path_for_article(article)
+    lines = []
+    replaced_by = article.metadata.get("replaced_by")
+    if replaced_by and replaced_by in by_id:
+        lines.append(f"- Replaced by: {article_link(by_id[replaced_by], current_relative)}")
+    elif replaced_by:
+        lines.append(f"- Replaced by: `{replaced_by}`")
+
+    replaced_articles = [
+        candidate for candidate in articles if candidate.metadata.get("replaced_by") == article.metadata["id"]
+    ]
+    for candidate in sorted(replaced_articles, key=lambda item: item.metadata["title"]):
+        lines.append(f"- Replaces: {article_link(candidate, current_relative)}")
+
+    if not lines:
+        return "- No replacement chain is currently documented.\n"
+    return "\n".join(lines) + "\n"
+
+
+def render_browse_more_links(article) -> str:
+    current_relative = site_relative_path_for_article(article)
+    lines = [
+        f"- [Browse more `{article.metadata['type']}` articles]"
+        f"({explorer_link(current_relative, type=article.metadata['type'])})",
+        f"- [Browse more `{article.metadata['audience']}` content]"
+        f"({explorer_link(current_relative, audience=article.metadata['audience'])})",
+        f"- [Browse more `{article.metadata['team']}` content]"
+        f"({explorer_link(current_relative, team=article.metadata['team'])})",
+    ]
+    for service in article.metadata["services"][:2]:
+        lines.append(
+            f"- [Browse more `{service}` content]"
+            f"({explorer_link(current_relative, service=service)})"
+        )
+    for tag in article.metadata["tags"][:2]:
+        lines.append(
+            f"- [Browse more `{tag}` content]"
+            f"({explorer_link(current_relative, tag=tag)})"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def render_article_page(article, by_id: dict[str, object], articles: list, inbound_graph: dict[str, set[str]]) -> str:
+    metadata = article.metadata
+    notes_section = ""
+    if article.body:
+        notes_section = f"\n## Additional Notes\n\n{article.body}\n"
+
+    classification_gaps = []
+    if not metadata["services"]:
+        classification_gaps.append("services")
+    if not metadata["systems"]:
+        classification_gaps.append("systems")
+    if not metadata["tags"]:
+        classification_gaps.append("tags")
+
+    classification_line = "Fully classified for discovery."
+    if classification_gaps:
+        classification_line = "Missing discovery metadata for: " + ", ".join(classification_gaps)
+
+    owner_team = f"{metadata['owner']} / {metadata['team']}"
+    lifecycle_summary = (
+        f"{metadata['status']} | last reviewed {date_to_iso(metadata['last_reviewed'])} "
+        f"| cadence {metadata['review_cadence']}"
+    )
+    source_summary = f"{metadata['source_type']} from {metadata['source_system']}"
+
+    summary_row = (
+        "| Field | Value |\n"
+        "| --- | --- |\n"
+        f"| Summary | {markdown_table_cell(metadata['summary'])} |\n"
+        f"| Audience | {markdown_table_cell(metadata['audience'])} |\n"
+        f"| Services | {markdown_table_cell(format_plain_values(metadata['services'], 'Not classified'))} |\n"
+        f"| Systems | {markdown_table_cell(format_plain_values(metadata['systems'], 'Not classified'))} |\n"
+        f"| Owner / Team | {markdown_table_cell(owner_team)} |\n"
+        f"| Lifecycle | {markdown_table_cell(lifecycle_summary)} |\n"
+        f"| Source | {markdown_table_cell(source_summary)} |\n"
+        f"| Discovery Classification | {markdown_table_cell(classification_line)} |\n"
+    )
+
+    return (
+        "<!-- Generated from canonical source content. Do not edit here. -->\n\n"
+        f"# {metadata['title']}\n\n"
+        f"Canonical source: `{article.relative_path}`\n\n"
+        "## Operational Snapshot\n\n"
+        f"{summary_row}\n"
+        "## Applicability\n\n"
+        f"- Primary audience: `{metadata['audience']}`\n"
+        f"- Service areas: {format_metadata_values(metadata['services'])}\n"
+        f"- Systems in scope: {format_metadata_values(metadata['systems'])}\n"
+        f"- Tags: {format_metadata_values(metadata['tags'])}\n"
+        f"- Status: `{metadata['status']}`\n"
+        f"- Review cadence: `{metadata['review_cadence']}`\n\n"
+        "## Operational Procedure\n\n"
+        "### Prerequisites\n\n"
+        f"{render_list(metadata['prerequisites'])}\n"
+        "### Steps\n\n"
+        f"{render_list(metadata['steps'])}\n"
+        "### Verification\n\n"
+        f"{render_list(metadata['verification'])}\n"
+        "### Rollback\n\n"
+        f"{render_list(metadata['rollback'])}\n"
+        "## Connected Knowledge\n\n"
+        "### Explicitly Related Articles\n\n"
+        f"{render_related_articles(article, by_id)}\n"
+        "### Referenced By\n\n"
+        f"{render_referenced_by(article, by_id, inbound_graph)}\n"
+        "### Nearby In The Same Knowledge-Tree Section\n\n"
+        f"{render_same_section_articles(article, articles)}\n"
+        "### Suggested Nearby Articles [Inference]\n\n"
+        f"{render_inferred_related(article, articles, by_id)}\n"
+        "### Lifecycle And Replacement\n\n"
+        f"{render_lifecycle_links(article, articles, by_id)}\n"
+        "### Browse More Like This\n\n"
+        f"{render_browse_more_links(article)}\n"
+        "## References\n\n"
+        f"{render_reference_lines(article, by_id)}\n"
+        "## Change Log\n\n"
+        f"{render_change_log(metadata['change_log'])}"
+        f"{notes_section}"
+    )
+
+
+def taxonomy_usage_count(articles: list, field_name: str, value: str) -> int:
+    sample = articles[0].metadata[field_name] if articles else None
+    if isinstance(sample, list):
+        return sum(1 for article in articles if value in article.metadata[field_name])
+    return sum(1 for article in articles if article.metadata[field_name] == value)
+
+
+def render_taxonomy_table(
+    title: str,
+    taxonomy_name: str,
+    field_name: str,
+    taxonomies: dict[str, dict[str, object]],
+    articles: list,
+    current_relative: Path,
+) -> str:
+    lines = [f"## {title}", "", "| Value | Description | Current Usage |", "| --- | --- | --- |"]
+    for entry in taxonomies[taxonomy_name]["values"]:
+        value = entry["name"] if isinstance(entry, dict) else str(entry)
+        description = entry.get("description", "") if isinstance(entry, dict) else ""
+        usage = taxonomy_usage_count(articles, field_name, value)
+        if usage:
+            usage_value = f"[{usage}]({explorer_link(current_relative, **{field_name.rstrip('s'): value if field_name.endswith('s') else value})})"
+            if field_name in {"services", "systems", "tags"}:
+                usage_value = f"[{usage}]({explorer_link(current_relative, **{field_name[:-1]: value})})"
+        else:
+            usage_value = "0"
+        lines.append(
+            f"| `{markdown_table_cell(value)}` | {markdown_table_cell(description)} | {usage_value} |"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_explorer_page(articles: list, taxonomies: dict[str, dict[str, object]], default_statuses: list[str]) -> str:
+    article_records = []
+    current_relative = Path("knowledge/explorer.md")
+    for article in sorted(articles, key=lambda item: item.metadata["title"]):
+        article_records.append(
+            {
+                "id": article.metadata["id"],
+                "title": article.metadata["title"],
+                "summary": article.metadata["summary"],
+                "path": article.relative_path,
+                "site_path": relative_site_link(current_relative, site_relative_path_for_article(article)),
+                "type": article.metadata["type"],
+                "status": article.metadata["status"],
+                "owner": article.metadata["owner"],
+                "team": article.metadata["team"],
+                "audience": article.metadata["audience"],
+                "services": article.metadata["services"],
+                "systems": article.metadata["systems"],
+                "tags": article.metadata["tags"],
+                "source_type": article.metadata["source_type"],
+                "last_reviewed": date_to_iso(article.metadata["last_reviewed"]),
+                "updated": date_to_iso(article.metadata["updated"]),
+                "related_count": len(article.metadata["related_articles"]),
+            }
+        )
+
+    explorer_taxonomies = {
+        "type": [entry["name"] for entry in taxonomies["article_types"]["values"]],
+        "audience": [entry["name"] for entry in taxonomies["audiences"]["values"]],
+        "service": [entry["name"] for entry in taxonomies["services"]["values"]],
+        "system": [entry["name"] for entry in taxonomies["systems"]["values"]],
+        "tag": [entry["name"] for entry in taxonomies["tags"]["values"]],
+        "status": [entry["name"] for entry in taxonomies["statuses"]["values"]],
+        "team": [entry["name"] for entry in taxonomies["teams"]["values"]],
+        "owner": sorted({article.metadata["owner"] for article in articles}),
+        "default_statuses": default_statuses,
+    }
+    data_json = json.dumps(article_records, sort_keys=True, ensure_ascii=True).replace("</", "<\\/")
+    taxonomy_json = json.dumps(explorer_taxonomies, sort_keys=True, ensure_ascii=True).replace("</", "<\\/")
+
+    return (
+        "<!-- Generated from canonical source content. Do not edit here. -->\n\n"
+        "# Knowledge Explorer\n\n"
+        "Use the filters below to browse canonical knowledge by audience, type, service, system, tag, "
+        "team, owner, and lifecycle status without relying on the repository tree alone.\n\n"
+        '<div class="kb-explorer" id="kb-explorer">\n'
+        '  <div class="kb-explorer-controls" id="kb-explorer-controls"></div>\n'
+        '  <div class="kb-explorer-summary" id="kb-explorer-summary"></div>\n'
+        '  <div class="kb-explorer-results" id="kb-explorer-results"></div>\n'
+        "</div>\n\n"
+        f'<script type="application/json" id="kb-explorer-data">{data_json}</script>\n'
+        f'<script type="application/json" id="kb-explorer-taxonomies">{taxonomy_json}</script>\n'
+    )
+
+
+def render_support_page(by_id: dict[str, object]) -> str:
+    current_relative = Path("knowledge/support.md")
+    cards = [
+        (title, description, explorer_link(current_relative, **filters))
+        for title, description, filters in SUPPORT_SHORTCUTS
+    ]
+    lines = [
+        "<!-- Generated from canonical source content. Do not edit here. -->",
+        "",
+        "# Support Discovery",
+        "",
+        "Use these role-based entry points to find active operational guidance quickly.",
+        "",
+        render_card_grid(cards),
+        "",
+        "## Common Operational Journeys",
+        "",
+    ]
+    for title, article_ids in WORKFLOW_STARTERS:
+        lines.append(f"### {title}")
+        lines.append("")
+        for article_id in article_ids:
+            article = by_id.get(article_id)
+            if not article:
+                continue
+            lines.append(render_article_bullet(article, current_relative))
+        lines.append("")
+    lines.extend(
+        [
+            "## Broader Browse Views",
+            "",
+            f"- [Open the faceted explorer]({page_link(current_relative, 'explorer.md')})",
+            f"- [Browse by service]({page_link(current_relative, 'by-service.md')})",
+            f"- [Browse by system]({page_link(current_relative, 'by-system.md')})",
+            f"- [Browse by tag]({page_link(current_relative, 'by-tag.md')})",
+            "",
+        ]
+    )
+    return "\n".join(lines).strip() + "\n"
+
+
+def render_authors_page(
+    articles: list,
+    taxonomies: dict[str, dict[str, object]],
+    duplicate_candidates: list,
+) -> str:
+    current_relative = Path("knowledge/authors.md")
+    cards = []
+    for title, description, target in AUTHOR_SHORTCUTS:
+        href = target["page"] if target else repo_doc_link(current_relative, "docs/contributor-workflow.md")
+        cards.append((title, description, href if target is None else page_link(current_relative, target["page"])))
+
+    missing_services = len(articles_missing_list_field(articles, "services"))
+    missing_systems = len(articles_missing_list_field(articles, "systems"))
+    missing_tags = len(articles_missing_list_field(articles, "tags"))
+    isolated = len(relationless_articles(articles))
+
+    lines = [
+        "<!-- Generated from canonical source content. Do not edit here. -->",
+        "",
+        "# Authoring Discovery",
+        "",
+        "Use this page before creating or revising a canonical article so new content lands with valid metadata and usable relationships.",
+        "",
+        render_card_grid(cards),
+        "",
+        "## Scaffold Workflow",
+        "",
+        "```bash",
+        'python3 scripts/new_article.py --type SOP --title "Example Procedure" \\',
+        '  --team "Service Desk" --audience service_desk \\',
+        '  --service "Remote Access" --system "<VPN_SERVICE>" --tag vpn',
+        "```",
+        "",
+        "List valid taxonomy values without opening individual files:",
+        "",
+        "```bash",
+        "python3 scripts/new_article.py --list-taxonomy article_types",
+        "python3 scripts/new_article.py --list-taxonomy services",
+        "python3 scripts/new_article.py --list-taxonomy systems",
+        "python3 scripts/new_article.py --list-taxonomy tags",
+        "```",
+        "",
+        "## Interoperability Checklist",
+        "",
+        "- Choose the narrowest valid `type`, `audience`, `team`, `service`, `system`, and `tag` values that make the article discoverable.",
+        "- Add `related_articles` for prerequisite, follow-on, escalation, or sibling procedures before merge.",
+        "- Use `references` for canonical local paths or supporting article links instead of duplicating content in `docs/`.",
+        "- Review the faceted explorer and the content-health page to avoid creating duplicate or isolated articles.",
+        "",
+        render_metric_grid(
+            [
+                (str(missing_services), "articles missing service classification"),
+                (str(missing_systems), "articles missing system classification"),
+                (str(missing_tags), "articles missing tag classification"),
+                (str(isolated), "isolated articles"),
+                (str(len(duplicate_candidates)), "likely duplicate title pairs"),
+            ]
+        ),
+        "",
+        f"Discovery gaps: [content-health.md]({page_link(current_relative, 'content-health.md')})",
+        "",
+        render_taxonomy_table("Article Types", "article_types", "type", taxonomies, articles, current_relative),
+        render_taxonomy_table("Audiences", "audiences", "audience", taxonomies, articles, current_relative),
+        render_taxonomy_table("Services", "services", "services", taxonomies, articles, current_relative),
+        render_taxonomy_table("Systems", "systems", "systems", taxonomies, articles, current_relative),
+        render_taxonomy_table("Tags", "tags", "tags", taxonomies, articles, current_relative),
+        render_taxonomy_table("Teams", "teams", "team", taxonomies, articles, current_relative),
+        "## Workflow References",
+        "",
+        f"- [Contributor workflow]({repo_doc_link(current_relative, 'docs/contributor-workflow.md')})",
+        f"- [Knowledge discovery implementation plan]({repo_doc_link(current_relative, 'docs/knowledge-discovery-improvement-plan.md')})",
+        "",
+    ]
+    return "\n".join(lines).strip() + "\n"
+
+
+def render_manager_page(
+    articles: list,
+    visible_articles: list,
+    taxonomies: dict[str, dict[str, object]],
+) -> str:
+    current_relative = Path("knowledge/managers.md")
+    cards = [
+        (title, description, page_link(current_relative, target["page"]))
+        for title, description, target in MANAGER_SHORTCUTS
+    ]
+    status_counts = Counter(article.metadata["status"] for article in articles)
+    team_counts = Counter(article.metadata["team"] for article in articles)
+    stale_rows = stale_articles(
+        articles,
+        taxonomies,
+        dt.date.today(),
+        {"active", "deprecated"},
+    )
+    lines = [
+        "<!-- Generated from canonical source content. Do not edit here. -->",
+        "",
+        "# Manager Audit",
+        "",
+        "This page is for coverage review, lifecycle visibility, and ownership audit across the canonical knowledge base.",
+        "",
+        render_card_grid(cards),
+        "",
+        render_metric_grid(
+            [
+                (str(len(visible_articles)), "current navigation articles"),
+                (str(len(articles)), "total canonical articles"),
+                (str(status_counts.get("deprecated", 0)), "deprecated articles"),
+                (str(status_counts.get("archived", 0)), "archived articles"),
+                (str(len(stale_rows)), "stale current articles"),
+            ]
+        ),
+        "",
+        "## Lifecycle Summary",
+        "",
+        "| Status | Count | Explorer |",
+        "| --- | --- | --- |",
+    ]
+    for entry in taxonomies["statuses"]["values"]:
+        status = entry["name"]
+        lines.append(
+            f"| `{status}` | {status_counts.get(status, 0)} | "
+            f"[open]({explorer_link(current_relative, status=status)}) |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Team Ownership Summary",
+            "",
+            "| Team | Count | Explorer |",
+            "| --- | --- | --- |",
+        ]
+    )
+    for team in sorted(team_counts):
+        lines.append(
+            f"| `{markdown_table_cell(team)}` | {team_counts[team]} | "
+            f"[open]({explorer_link(current_relative, team=team)}) |"
+        )
+
+    replacement_pairs = [article for article in articles if article.metadata.get("replaced_by")]
+    lines.extend(
+        [
+            "",
+            "## Replacement Chains",
+            "",
+        ]
+    )
+    if not replacement_pairs:
+        lines.append("No replacement chains are currently documented.")
+        lines.append("")
+    else:
+        for article in sorted(replacement_pairs, key=lambda item: item.metadata["title"]):
+            lines.append(
+                f"- {article_link(article, current_relative)} -> `{article.metadata['replaced_by']}`"
+            )
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Audit Shortcuts",
+            "",
+            f"- [Content health view]({page_link(current_relative, 'content-health.md')})",
+            f"- [Coverage matrix]({page_link(current_relative, 'coverage-matrix.md')})",
+            f"- [Knowledge tree]({page_link(current_relative, 'tree.md')})",
+            "",
+        ]
+    )
+    return "\n".join(lines).strip() + "\n"
+
+
+def render_tree_page(articles: list) -> str:
+    current_relative = Path("knowledge/tree.md")
+    grouped = defaultdict(list)
+    for article in articles:
+        key = Path(article.relative_path).parent.as_posix()
+        grouped[key].append(article)
+
+    lines = [
+        "<!-- Generated from canonical source content. Do not edit here. -->",
+        "",
+        "# Knowledge Tree",
+        "",
+        "This view mirrors the canonical repository path layout so managers can audit coverage by section.",
+        "",
+    ]
+    for directory in sorted(grouped):
+        lines.append(f"## `{directory}` ({len(grouped[directory])})")
+        lines.append("")
+        lines.append(
+            f"Explorer view: [Search this section]"
+            f"({explorer_link(current_relative, query=directory.replace('knowledge/', ''))})"
+        )
+        lines.append("")
+        for article in sorted(grouped[directory], key=lambda item: item.metadata["title"]):
+            lines.append(render_article_bullet(article, current_relative))
+        lines.append("")
+    return "\n".join(lines).strip() + "\n"
+
+
+def render_articles_section(
+    title: str,
+    articles: list,
+    current_relative: Path,
+    filter_link: str | None = None,
+    empty_message: str = "None.",
+) -> list[str]:
+    lines = [f"## {title}", ""]
+    if filter_link:
+        lines.append(filter_link)
+        lines.append("")
+    if not articles:
+        lines.append(empty_message)
+        lines.append("")
+        return lines
+    for article in sorted(articles, key=lambda item: item.metadata["title"]):
+        lines.append(render_article_bullet(article, current_relative))
+    lines.append("")
+    return lines
+
+
+def render_content_health_page(
+    articles: list,
+    taxonomies: dict[str, dict[str, object]],
+    policy: dict[str, object],
+) -> str:
+    current_relative = Path("knowledge/content-health.md")
+    duplicate_candidates = find_possible_duplicate_articles(
+        articles,
+        float(policy["duplicate_detection"]["title_similarity_threshold"]),
+    )
+    missing_services = articles_missing_list_field(articles, "services")
+    missing_systems = articles_missing_list_field(articles, "systems")
+    missing_tags = articles_missing_list_field(articles, "tags")
+    missing_owners = missing_owner_articles(articles)
+    isolated = relationless_articles(articles)
+    stale_rows = stale_articles(articles, taxonomies, dt.date.today(), {"active", "deprecated"})
+    status_counts = Counter(article.metadata["status"] for article in articles)
+
+    lines = [
+        "<!-- Generated from canonical source content. Do not edit here. -->",
+        "",
+        "# Content Health",
+        "",
+        "This page exposes discovery and lifecycle gaps as generated browse surfaces rather than CLI-only output.",
+        "",
+        render_metric_grid(
+            [
+                (str(len(duplicate_candidates)), "likely duplicate title pairs"),
+                (str(len(isolated)), "isolated articles"),
+                (str(len(missing_services)), "articles missing services"),
+                (str(len(missing_systems)), "articles missing systems"),
+                (str(len(missing_tags)), "articles missing tags"),
+                (str(len(stale_rows)), "stale active or deprecated articles"),
+            ]
+        ),
+        "",
+        "## Lifecycle Visibility",
+        "",
+        "| Status | Count | Explorer |",
+        "| --- | --- | --- |",
+    ]
+    for entry in taxonomies["statuses"]["values"]:
+        status = entry["name"]
+        lines.append(
+            f"| `{status}` | {status_counts.get(status, 0)} | "
+            f"[open]({explorer_link(current_relative, status=status)}) |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Likely Duplicate Candidates [Inference]",
+            "",
+        ]
+    )
+    if not duplicate_candidates:
+        lines.append("No likely duplicate title pairs were detected.")
+        lines.append("")
+    else:
+        for candidate in duplicate_candidates:
+            left_path = site_relative_path_for_repo_path(candidate.left_path) or Path(candidate.left_path)
+            right_path = site_relative_path_for_repo_path(candidate.right_path) or Path(candidate.right_path)
+            lines.append(
+                f"- [Inference] `{candidate.left_title}` "
+                f"([{candidate.left_path}]({relative_site_link(current_relative, left_path)})) and "
+                f"`{candidate.right_title}` "
+                f"([{candidate.right_path}]({relative_site_link(current_relative, right_path)})) "
+                f"have title similarity {candidate.similarity:.2f} without explicit linkage."
+            )
+        lines.append("")
+
+    lines.extend(
+        render_articles_section(
+            "Missing Owner Assignments",
+            missing_owners,
+            current_relative,
+            f"Explorer view: [owner=unassigned]({explorer_link(current_relative, owner='__none__')})",
+            "No owner gaps were detected.",
+        )
+    )
+    lines.extend(
+        render_articles_section(
+            "Missing Service Classification",
+            missing_services,
+            current_relative,
+            f"Explorer view: [service=unclassified]({explorer_link(current_relative, service='__none__')})",
+            "No service-classification gaps were detected.",
+        )
+    )
+    lines.extend(
+        render_articles_section(
+            "Missing System Classification",
+            missing_systems,
+            current_relative,
+            f"Explorer view: [system=unclassified]({explorer_link(current_relative, system='__none__')})",
+            "No system-classification gaps were detected.",
+        )
+    )
+    lines.extend(
+        render_articles_section(
+            "Missing Tag Classification",
+            missing_tags,
+            current_relative,
+            f"Explorer view: [tag=unclassified]({explorer_link(current_relative, tag='__none__')})",
+            "No tag-classification gaps were detected.",
+        )
+    )
+    lines.extend(
+        render_articles_section(
+            "Isolated Articles",
+            isolated,
+            current_relative,
+            empty_message="No isolated articles were detected.",
+        )
+    )
+
+    lines.extend(["## Stale Current Content", ""])
+    if not stale_rows:
+        lines.append("No active or deprecated articles are currently overdue for review.")
+        lines.append("")
+    else:
+        for days_overdue, article, due_date in stale_rows:
+            lines.append(
+                f"- {article_link(article, current_relative)} - due {due_date.isoformat()} "
+                f"({days_overdue} days overdue)"
+            )
+        lines.append("")
+    return "\n".join(lines).strip() + "\n"
+
+
+def render_coverage_matrix_page(articles: list, taxonomies: dict[str, dict[str, object]]) -> str:
+    current_relative = Path("knowledge/coverage-matrix.md")
+    type_order = [entry["name"] for entry in taxonomies["article_types"]["values"]]
+    service_order = [entry["name"] for entry in taxonomies["services"]["values"]]
+    articles_by_service_type = defaultdict(int)
+    unclassified_label = "Unclassified"
+
+    for article in articles:
+        services = article.metadata["services"] or [unclassified_label]
+        for service in services:
+            articles_by_service_type[(service, article.metadata["type"])] += 1
+
+    lines = [
+        "<!-- Generated from canonical source content. Do not edit here. -->",
+        "",
+        "# Coverage Matrix",
+        "",
+        "Counts below show canonical article coverage by service and article type. Each count links back into the explorer for follow-up review.",
+        "",
+        "| Service | " + " | ".join(type_order) + " | Total |",
+        "| --- | " + " | ".join("---" for _ in type_order) + " | --- |",
+    ]
+    for service in [*service_order, unclassified_label]:
+        row_total = 0
+        cells = []
+        for article_type in type_order:
+            count = articles_by_service_type[(service, article_type)]
+            row_total += count
+            if count:
+                service_filter = "__none__" if service == unclassified_label else service
+                cells.append(
+                    f"[{count}]({explorer_link(current_relative, service=service_filter, type=article_type)})"
+                )
+            else:
+                cells.append("0")
+        lines.append(f"| `{service}` | " + " | ".join(cells) + f" | {row_total} |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_landing_page(
+    articles: list,
+    visible_articles: list,
+    taxonomies: dict[str, dict[str, object]],
+) -> str:
+    current_relative = Path("knowledge/index.md")
+    cards = [
+        ("Support", "Task-oriented entry points for support specialists.", page_link(current_relative, "support.md")),
+        ("Authors", "Validated authoring guidance, taxonomy usage, and discovery checks.", page_link(current_relative, "authors.md")),
+        ("Managers", "Coverage, lifecycle, and ownership audit surfaces.", page_link(current_relative, "managers.md")),
+        ("Explorer", "Faceted browsing across canonical metadata.", page_link(current_relative, "explorer.md")),
+        ("Knowledge Tree", "Repository-path view for auditing the canonical structure.", page_link(current_relative, "tree.md")),
+        ("Content Health", "Generated discovery and lifecycle gap reporting.", page_link(current_relative, "content-health.md")),
+    ]
+    status_counts = Counter(article.metadata["status"] for article in articles)
+    metrics = [
+        (str(len(visible_articles)), "current navigation articles"),
+        (str(len(articles)), "total canonical articles"),
+        (str(len(taxonomies["services"]["values"])), "service taxonomy values"),
+        (str(len(taxonomies["systems"]["values"])), "system taxonomy values"),
+        (str(status_counts.get("deprecated", 0)), "deprecated articles"),
+        (str(status_counts.get("archived", 0)), "archived articles"),
+    ]
+    lines = [
+        "<!-- Generated from canonical source content. Do not edit here. -->",
+        "",
+        "# Knowledge Base",
+        "",
+        "This landing page prioritizes discovery, interoperability, and audit views over raw folder browsing.",
+        "",
+        render_card_grid(cards),
+        "",
+        render_metric_grid(metrics),
+        "",
+        "## Faceted Browse Views",
+        "",
+        f"- [By type]({page_link(current_relative, 'by-type.md')})",
+        f"- [By audience]({page_link(current_relative, 'by-audience.md')})",
+        f"- [By service]({page_link(current_relative, 'by-service.md')})",
+        f"- [By system]({page_link(current_relative, 'by-system.md')})",
+        f"- [By tag]({page_link(current_relative, 'by-tag.md')})",
+        f"- [By team]({page_link(current_relative, 'by-team.md')})",
+        f"- [By status]({page_link(current_relative, 'by-status.md')})",
+        "",
+        "## Workflow Entry Points",
+        "",
+    ]
+    for title, article_ids in WORKFLOW_STARTERS:
+        lines.append(f"### {title}")
+        lines.append("")
+        lines.append(f"Explorer view: [Open related content]({explorer_link(current_relative, query=title.lower())})")
+        lines.append("")
+        for article_id in article_ids:
+            article = next((item for item in articles if item.metadata["id"] == article_id), None)
+            if not article:
+                continue
+            lines.append(render_article_bullet(article, current_relative))
+        lines.append("")
+    return "\n".join(lines).strip() + "\n"
+
+
 def main() -> int:
     policy = load_policy()
+    taxonomies = load_taxonomies()
     articles = load_articles(policy)
     by_id = {article.metadata["id"]: article for article in articles}
-    visible_statuses = set(navigation_statuses(policy))
+    visible_status_list = navigation_statuses(policy)
+    visible_statuses = set(visible_status_list)
     visible_articles = [article for article in articles if article.metadata["status"] in visible_statuses]
     archived_articles = [article for article in articles if article.metadata["status"] == "archived"]
+    outbound_graph = reference_graph(articles)
+    inbound_graph = inverse_reference_graph(outbound_graph)
 
     if GENERATED_SITE_DOCS_DIR.exists():
         shutil.rmtree(GENERATED_SITE_DOCS_DIR)
@@ -252,38 +1234,141 @@ def main() -> int:
     for article in articles:
         destination = site_article_output_path(article)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(render_article_page(article, by_id), encoding="utf-8")
+        destination.write_text(render_article_page(article, by_id, articles, inbound_graph), encoding="utf-8")
 
     by_type = defaultdict(list)
+    by_audience = defaultdict(list)
     by_service = defaultdict(list)
     by_system = defaultdict(list)
     by_tag = defaultdict(list)
+    by_team = defaultdict(list)
+    by_status = defaultdict(list)
+
     for article in visible_articles:
         by_type[article.metadata["type"]].append(article)
-        for service in article.metadata["services"]:
+        by_audience[article.metadata["audience"]].append(article)
+        by_team[article.metadata["team"]].append(article)
+        for service in article.metadata["services"] or ["Unclassified"]:
             by_service[service].append(article)
-        for system in article.metadata["systems"]:
+        for system in article.metadata["systems"] or ["Unclassified"]:
             by_system[system].append(article)
-        for tag in article.metadata["tags"]:
+        for tag in article.metadata["tags"] or ["Unclassified"]:
             by_tag[tag].append(article)
+
+    for article in articles:
+        by_status[article.metadata["status"]].append(article)
 
     knowledge_root = GENERATED_SITE_DOCS_DIR / "knowledge"
     knowledge_root.mkdir(parents=True, exist_ok=True)
     (knowledge_root / "index.md").write_text(
-        render_index_page("Knowledge Base", by_type, "knowledge/index.md"),
+        render_landing_page(articles, visible_articles, taxonomies),
         encoding="utf-8",
     )
     (knowledge_root / "start-here.md").write_text(render_start_here(by_id), encoding="utf-8")
+    (knowledge_root / "support.md").write_text(render_support_page(by_id), encoding="utf-8")
+    (knowledge_root / "authors.md").write_text(
+        render_authors_page(
+            articles,
+            taxonomies,
+            find_possible_duplicate_articles(
+                articles,
+                float(policy["duplicate_detection"]["title_similarity_threshold"]),
+            ),
+        ),
+        encoding="utf-8",
+    )
+    (knowledge_root / "managers.md").write_text(
+        render_manager_page(articles, visible_articles, taxonomies),
+        encoding="utf-8",
+    )
+    (knowledge_root / "explorer.md").write_text(
+        render_explorer_page(articles, taxonomies, visible_status_list),
+        encoding="utf-8",
+    )
+    (knowledge_root / "tree.md").write_text(render_tree_page(articles), encoding="utf-8")
+    (knowledge_root / "by-type.md").write_text(
+        render_grouped_index_page(
+            "Knowledge By Type",
+            "Browse current knowledge grouped by article type.",
+            by_type,
+            "knowledge/by-type.md",
+            "type",
+            [entry["name"] for entry in taxonomies["article_types"]["values"]],
+        ),
+        encoding="utf-8",
+    )
+    (knowledge_root / "by-audience.md").write_text(
+        render_grouped_index_page(
+            "Knowledge By Audience",
+            "Browse current knowledge grouped by primary audience.",
+            by_audience,
+            "knowledge/by-audience.md",
+            "audience",
+            [entry["name"] for entry in taxonomies["audiences"]["values"]],
+        ),
+        encoding="utf-8",
+    )
     (knowledge_root / "by-service.md").write_text(
-        render_index_page("Knowledge By Service", by_service, "knowledge/by-service.md"),
+        render_grouped_index_page(
+            "Knowledge By Service",
+            "Browse current knowledge grouped by service area.",
+            by_service,
+            "knowledge/by-service.md",
+            "service",
+            [entry["name"] for entry in taxonomies["services"]["values"]] + ["Unclassified"],
+        ),
         encoding="utf-8",
     )
     (knowledge_root / "by-system.md").write_text(
-        render_index_page("Knowledge By System", by_system, "knowledge/by-system.md"),
+        render_grouped_index_page(
+            "Knowledge By System",
+            "Browse current knowledge grouped by system.",
+            by_system,
+            "knowledge/by-system.md",
+            "system",
+            [entry["name"] for entry in taxonomies["systems"]["values"]] + ["Unclassified"],
+        ),
         encoding="utf-8",
     )
     (knowledge_root / "by-tag.md").write_text(
-        render_index_page("Knowledge By Tag", by_tag, "knowledge/by-tag.md"),
+        render_grouped_index_page(
+            "Knowledge By Tag",
+            "Browse current knowledge grouped by tag.",
+            by_tag,
+            "knowledge/by-tag.md",
+            "tag",
+            [entry["name"] for entry in taxonomies["tags"]["values"]] + ["Unclassified"],
+        ),
+        encoding="utf-8",
+    )
+    (knowledge_root / "by-team.md").write_text(
+        render_grouped_index_page(
+            "Knowledge By Team",
+            "Browse current knowledge grouped by owning team.",
+            by_team,
+            "knowledge/by-team.md",
+            "team",
+            [entry["name"] for entry in taxonomies["teams"]["values"]],
+        ),
+        encoding="utf-8",
+    )
+    (knowledge_root / "by-status.md").write_text(
+        render_grouped_index_page(
+            "Knowledge By Status",
+            "Browse canonical knowledge grouped by lifecycle status.",
+            by_status,
+            "knowledge/by-status.md",
+            "status",
+            [entry["name"] for entry in taxonomies["statuses"]["values"]],
+        ),
+        encoding="utf-8",
+    )
+    (knowledge_root / "content-health.md").write_text(
+        render_content_health_page(articles, taxonomies, policy),
+        encoding="utf-8",
+    )
+    (knowledge_root / "coverage-matrix.md").write_text(
+        render_coverage_matrix_page(articles, taxonomies),
         encoding="utf-8",
     )
 
@@ -291,7 +1376,8 @@ def main() -> int:
     archive_root.mkdir(parents=True, exist_ok=True)
     (archive_root / "index.md").write_text(render_archive_index(archived_articles), encoding="utf-8")
 
-    print(f"generated site docs for {len(articles)} article(s)")
+    expected_pages = {relative_path for relative_path in GENERATED_SITE_INDEX_PATHS}
+    print(f"generated site docs for {len(articles)} article(s) across {len(expected_pages)} generated indexes")
     return 0
 
 

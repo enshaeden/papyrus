@@ -1,0 +1,149 @@
+.kb-card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin: 1rem 0 1.5rem;
+}
+
+.kb-card {
+  background: #f7f8fb;
+  border: 1px solid #d8dce6;
+  border-radius: 0.75rem;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 8rem;
+  padding: 1rem;
+  text-decoration: none;
+}
+
+.kb-card:hover,
+.kb-card:focus {
+  background: #eef4ff;
+  border-color: #7aa2ff;
+  text-decoration: none;
+}
+
+.kb-card strong {
+  font-size: 1rem;
+}
+
+.kb-card span {
+  color: #44506a;
+  line-height: 1.45;
+}
+
+.kb-metric-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 1rem 0 1.5rem;
+}
+
+.kb-metric {
+  background: #fffdf7;
+  border: 1px solid #ead9a8;
+  border-radius: 0.75rem;
+  padding: 0.9rem 1rem;
+}
+
+.kb-metric strong {
+  display: block;
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+
+.kb-metric span {
+  color: #5e4d19;
+  display: block;
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}
+
+.kb-explorer-controls {
+  background: #f7f8fb;
+  border: 1px solid #d8dce6;
+  border-radius: 0.75rem;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 1rem 0;
+  padding: 1rem;
+}
+
+.kb-explorer-controls label {
+  color: #44506a;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+  gap: 0.35rem;
+}
+
+.kb-explorer-controls input,
+.kb-explorer-controls select,
+.kb-explorer-controls button {
+  border: 1px solid #c4ccda;
+  border-radius: 0.45rem;
+  font: inherit;
+  padding: 0.55rem 0.7rem;
+}
+
+.kb-explorer-controls button {
+  align-self: end;
+  background: #1e4dd8;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.kb-explorer-controls button:hover,
+.kb-explorer-controls button:focus {
+  background: #1639a1;
+}
+
+.kb-explorer-summary {
+  color: #44506a;
+  margin: 0.25rem 0 1rem;
+}
+
+.kb-explorer-results {
+  display: grid;
+  gap: 1rem;
+}
+
+.kb-result-card {
+  border: 1px solid #d8dce6;
+  border-radius: 0.8rem;
+  padding: 1rem;
+}
+
+.kb-result-card h3 {
+  margin: 0 0 0.4rem;
+}
+
+.kb-result-card p {
+  margin: 0.35rem 0;
+}
+
+.kb-result-meta {
+  color: #44506a;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+}
+
+.kb-chip {
+  background: #eef2f8;
+  border-radius: 999px;
+  color: #31405f;
+  display: inline-block;
+  font-size: 0.84rem;
+  padding: 0.2rem 0.55rem;
+}
+
+.kb-result-path {
+  color: #667085;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+}
