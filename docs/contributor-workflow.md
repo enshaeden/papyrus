@@ -8,7 +8,30 @@ Create a scaffold from the approved template set:
 python3 scripts/new_article.py --type runbook --title "Example Procedure"
 ```
 
+To prefill discovery metadata and inspect valid taxonomy values first:
+
+```bash
+python3 scripts/new_article.py --list-taxonomy article_types
+python3 scripts/new_article.py --list-taxonomy services
+python3 scripts/new_article.py --list-taxonomy systems
+python3 scripts/new_article.py --list-taxonomy tags
+python3 scripts/new_article.py --type SOP --title "Example Procedure" \
+  --team "Service Desk" --audience service_desk \
+  --service "Remote Access" --system "<VPN_SERVICE>" --tag vpn
+```
+
+`new_article.py` now emits scaffold-time warnings when discovery metadata is still empty and emits [Inference] candidate related articles based on title and metadata overlap.
+
 Edit the new file under `knowledge/` and replace all placeholders before treating it as ready.
+
+## Discovery-Focused Authoring Checks
+
+Before merging a new or substantially revised article:
+
+- confirm `type`, `audience`, `team`, `services`, `systems`, and `tags` are populated with valid taxonomy values
+- add `related_articles` for prerequisite, follow-on, escalation, or sibling procedures where they exist
+- prefer local `references` or canonical article links instead of copying article content into `docs/`
+- review the generated `knowledge/explorer.md`, `knowledge/content-health.md`, and `knowledge/authors.md` surfaces after rebuilding the site
 
 ## Validate Content
 
@@ -78,6 +101,13 @@ To focus on one section:
 python3 scripts/report_content_health.py --section duplicates
 ```
 
+Additional sections now include:
+
+- `missing-services`
+- `missing-systems`
+- `missing-tags`
+- `isolated-articles`
+
 ## Serve The Local Site
 
 Run:
@@ -87,3 +117,13 @@ Run:
 ```
 
 `serve.sh` refreshes generated site sources, runs validation, rebuilds the local index, and starts the local site server.
+
+Generated discovery and audit views now include:
+
+- `knowledge/explorer.md`
+- `knowledge/support.md`
+- `knowledge/authors.md`
+- `knowledge/managers.md`
+- `knowledge/content-health.md`
+- `knowledge/coverage-matrix.md`
+- `knowledge/tree.md`

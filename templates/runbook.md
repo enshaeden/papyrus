@@ -10,9 +10,9 @@ source_type: native
 source_system: repository
 source_title: {{title}}
 team: {{team}}
-systems: []
-services: []
-tags: []
+{{systems_field}}
+{{services_field}}
+{{tags_field}}
 created: {{today}}
 updated: {{today}}
 last_reviewed: {{today}}
@@ -26,7 +26,7 @@ verification:
 - Document how to verify the expected outcome.
 rollback:
 - Document rollback or recovery actions.
-related_articles: []
+{{related_articles_field}}
 replaced_by: null
 retirement_reason: null
 references:
@@ -37,14 +37,14 @@ change_log:
   author: new_article.py
 ---
 
-## Purpose
+## Use When
 
-Explain when this runbook should be used and what outcome it should produce.
+Explain the trigger condition, expected operator outcome, and which environments or requests this runbook covers.
 
-## Scope
+## Boundaries And Escalation
 
-State any exclusions, escalation boundaries, or approval thresholds.
+State exclusions, escalation boundaries, approval thresholds, or handoff points.
 
-## Notes
+## Related Knowledge Notes
 
-- Add operator context, exceptions, and follow-up guidance here.
+- Note the prerequisite, follow-on, fallback, or sibling procedures that should also be linked in `related_articles` or `references`.

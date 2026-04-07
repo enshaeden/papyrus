@@ -10,9 +10,9 @@ source_type: native
 source_system: repository
 source_title: {{title}}
 team: {{team}}
-systems: []
-services: []
-tags: []
+{{systems_field}}
+{{services_field}}
+{{tags_field}}
 created: {{today}}
 updated: {{today}}
 last_reviewed: {{today}}
@@ -26,7 +26,7 @@ verification:
 - Document how to confirm the issue is resolved.
 rollback:
 - Document how to undo any change or revert temporary mitigation.
-related_articles: []
+{{related_articles_field}}
 replaced_by: null
 retirement_reason: null
 references:
@@ -37,14 +37,14 @@ change_log:
   author: new_article.py
 ---
 
-## Symptom Pattern
+## Use When
 
-Describe the common failure modes, triggers, and visible symptoms.
+Describe the symptom pattern, scope, and the first signals that should lead an operator to this article.
 
 ## Escalation Threshold
 
 Describe when to stop local troubleshooting and escalate.
 
-## Notes
+## Related Knowledge Notes
 
-- Add diagnostic observations, known pitfalls, or environment-specific exceptions here.
+- Note the prerequisite, follow-on, fallback, or sibling procedures that should also be linked in `related_articles` or `references`.

@@ -10,9 +10,9 @@ source_type: native
 source_system: repository
 source_title: {{title}}
 team: {{team}}
-systems: []
-services: []
-tags: []
+{{systems_field}}
+{{services_field}}
+{{tags_field}}
 created: {{today}}
 updated: {{today}}
 last_reviewed: {{today}}
@@ -26,7 +26,7 @@ verification:
 - Document how to confirm the procedure completed successfully.
 rollback:
 - Document the fallback path if the procedure cannot be completed as planned.
-related_articles: []
+{{related_articles_field}}
 replaced_by: null
 retirement_reason: null
 references:
@@ -37,10 +37,14 @@ change_log:
   author: new_article.py
 ---
 
-## Purpose
+## Use When
 
-Explain the purpose of this standard operating procedure.
+Explain the trigger condition, intended outcome, and when this SOP should be chosen over nearby procedures.
 
-## Procedure Notes
+## Boundaries And Escalation
 
-- Add constraints, handoff rules, and audit notes here.
+- State constraints, approval thresholds, escalation boundaries, and audit requirements.
+
+## Related Knowledge Notes
+
+- Note the prerequisite, follow-on, fallback, or sibling procedures that should also be linked in `related_articles` or `references`.

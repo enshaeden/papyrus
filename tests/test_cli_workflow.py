@@ -26,7 +26,12 @@ class CliWorkflowTests(unittest.TestCase):
         result = run_command("scripts/build_site_docs.py")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         generated_index = ROOT / "generated" / "site_docs" / "knowledge" / "index.md"
+        generated_explorer = ROOT / "generated" / "site_docs" / "knowledge" / "explorer.md"
+        generated_health = ROOT / "generated" / "site_docs" / "knowledge" / "content-health.md"
         self.assertTrue(generated_index.exists())
+        self.assertTrue(generated_explorer.exists())
+        self.assertTrue(generated_health.exists())
+        self.assertIn("Knowledge Explorer", generated_explorer.read_text(encoding="utf-8"))
 
     def test_new_article_cli(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -43,12 +48,28 @@ class CliWorkflowTests(unittest.TestCase):
                 "runbook",
                 "--title",
                 "Temporary Example Procedure",
+                "--service",
+                "Remote Access",
+                "--system",
+                "<VPN_SERVICE>",
+                "--tag",
+                "vpn",
             )
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             created_path = temp_root / result.stdout.strip()
             self.assertTrue(created_path.exists())
-            self.assertIn("Temporary Example Procedure", created_path.read_text(encoding="utf-8"))
-            self.assertIn("canonical_path:", created_path.read_text(encoding="utf-8"))
+            created_text = created_path.read_text(encoding="utf-8")
+            self.assertIn("Temporary Example Procedure", created_text)
+            self.assertIn("canonical_path:", created_text)
+            self.assertIn("services:\n- Remote Access", created_text)
+            self.assertIn("systems:\n- <VPN_SERVICE>", created_text)
+            self.assertIn("tags:\n- vpn", created_text)
+
+    def test_list_taxonomy_cli(self) -> None:
+        result = run_command("scripts/new_article.py", "--list-taxonomy", "services")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("[services]", result.stdout)
+        self.assertIn("Remote Access", result.stdout)
 
     def test_validate_cli(self) -> None:
         result = run_command("scripts/validate.py")

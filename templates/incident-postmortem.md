@@ -10,9 +10,9 @@ source_type: native
 source_system: repository
 source_title: {{title}}
 team: {{team}}
-systems: []
-services: []
-tags: []
+{{systems_field}}
+{{services_field}}
+{{tags_field}}
 created: {{today}}
 updated: {{today}}
 last_reviewed: {{today}}
@@ -26,7 +26,7 @@ verification:
 - Document how to confirm the record is complete and usable.
 rollback:
 - Document what to do if the template is used prematurely or incorrect data is captured.
-related_articles: []
+{{related_articles_field}}
 replaced_by: null
 retirement_reason: null
 references:
@@ -37,7 +37,7 @@ change_log:
   author: new_article.py
 ---
 
-## Purpose
+## Use When
 
 Explain whether this record is for active incident coordination or post-incident review.
 
@@ -48,6 +48,6 @@ Explain whether this record is for active incident coordination or post-incident
 - Timeline
 - Actions and owners
 
-## Notes
+## Related Knowledge Notes
 
-- Add incident-specific or review-specific guidance here.
+- Note the prerequisite, follow-on, fallback, or sibling procedures that should also be linked in `related_articles` or `references`.

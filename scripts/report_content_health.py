@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 
 from kb_common import (
+    articles_missing_list_field,
     collect_article_paths,
     collect_broken_markdown_links,
     collect_decision_paths,
@@ -22,6 +23,9 @@ SECTIONS = (
     "orphaned-files",
     "broken-links",
     "missing-owners",
+    "missing-services",
+    "missing-systems",
+    "missing-tags",
     "isolated-articles",
 )
 
@@ -81,6 +85,24 @@ def main() -> int:
     if "missing-owners" in selected:
         outputs["missing-owners"] = [
             f"{article.metadata['id']} | {article.relative_path}" for article in missing_owner_articles(articles)
+        ]
+
+    if "missing-services" in selected:
+        outputs["missing-services"] = [
+            f"{article.metadata['id']} | {article.metadata['title']} | {article.relative_path}"
+            for article in articles_missing_list_field(articles, "services")
+        ]
+
+    if "missing-systems" in selected:
+        outputs["missing-systems"] = [
+            f"{article.metadata['id']} | {article.metadata['title']} | {article.relative_path}"
+            for article in articles_missing_list_field(articles, "systems")
+        ]
+
+    if "missing-tags" in selected:
+        outputs["missing-tags"] = [
+            f"{article.metadata['id']} | {article.metadata['title']} | {article.relative_path}"
+            for article in articles_missing_list_field(articles, "tags")
         ]
 
     if "isolated-articles" in selected:

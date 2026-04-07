@@ -71,10 +71,24 @@ Report duplicate, orphaned, broken-link, and isolation signals:
 python3 scripts/report_content_health.py
 ```
 
+Report discovery metadata gaps:
+
+```bash
+python3 scripts/report_content_health.py --section missing-services --section missing-systems --section missing-tags
+```
+
 Create a new article scaffold:
 
 ```bash
 python3 scripts/new_article.py --type runbook --title "Example Procedure"
+```
+
+List valid taxonomy values before scaffolding:
+
+```bash
+python3 scripts/new_article.py --list-taxonomy services
+python3 scripts/new_article.py --list-taxonomy systems
+python3 scripts/new_article.py --list-taxonomy tags
 ```
 
 Serve the local site:
@@ -96,6 +110,8 @@ Serve the local site:
 9. Run `python3 -m unittest discover -s tests -v` before finalizing substantial changes.
 
 Derived files under `generated/site_docs/`, `build/`, and `site/` are never authoritative. Rebuild them from source instead of editing them directly.
+
+The generated site includes role-based entry points for support, authors, and managers, plus a faceted explorer, content-health view, coverage matrix, and knowledge-tree audit surface rebuilt entirely from canonical metadata.
 
 ## Governance
 
