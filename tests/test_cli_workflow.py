@@ -6,10 +6,14 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from shutil import copytree
+from shutil import copytree, which
 
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def mkdocs_available() -> bool:
+    return (ROOT / ".venv" / "bin" / "mkdocs").exists() or which("mkdocs") is not None
 
 
 def run_command(*args: str) -> subprocess.CompletedProcess[str]:
@@ -31,13 +35,35 @@ class CliWorkflowTests(unittest.TestCase):
         generated_docs_index = ROOT / "generated" / "site_docs" / "system-design-docs" / "index.md"
         generated_explorer = ROOT / "generated" / "site_docs" / "knowledge" / "explorer.md"
         generated_health = ROOT / "generated" / "site_docs" / "knowledge" / "content-health.md"
+        generated_ticket_guide = (
+            ROOT
+            / "generated"
+            / "site_docs"
+            / "knowledge"
+            / "user-lifecycle"
+            / "job-and-org-change"
+            / "job-and-org-change-ticket-review-guide.md"
+        )
+        generated_license_guide = (
+            ROOT
+            / "generated"
+            / "site_docs"
+            / "knowledge"
+            / "applications"
+            / "access-and-license-management"
+            / "add-productivity-platform-licenses.md"
+        )
         self.assertTrue(generated_home.exists())
         self.assertTrue(generated_index.exists())
         self.assertTrue(generated_docs_index.exists())
         self.assertTrue(generated_explorer.exists())
         self.assertTrue(generated_health.exists())
+        self.assertTrue(generated_ticket_guide.exists())
+        self.assertTrue(generated_license_guide.exists())
         generated_home_text = generated_home.read_text(encoding="utf-8")
         generated_explorer_text = generated_explorer.read_text(encoding="utf-8")
+        generated_ticket_guide_text = generated_ticket_guide.read_text(encoding="utf-8")
+        generated_license_guide_text = generated_license_guide.read_text(encoding="utf-8")
         self.assertIn("Knowledge Base", generated_home_text)
         self.assertIn('href="knowledge/"', generated_home_text)
         self.assertNotIn('href="knowledge/index.md"', generated_home_text)
@@ -46,6 +72,10 @@ class CliWorkflowTests(unittest.TestCase):
         site_paths = re.findall(r'"site_path": "([^"]+)"', generated_explorer_text)
         self.assertTrue(site_paths)
         self.assertTrue(all(not path.endswith(".md") for path in site_paths))
+        self.assertNotIn("](<INTERNAL_URL>)", generated_ticket_guide_text)
+        self.assertIn("Job and Org Change", generated_ticket_guide_text)
+        self.assertNotIn("](<INTERNAL_URL>)", generated_license_guide_text)
+        self.assertNotIn("](<SUPPLIER_PORTAL_URL>)", generated_license_guide_text)
 
     def test_new_article_cli(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -87,6 +117,18 @@ class CliWorkflowTests(unittest.TestCase):
 
     def test_validate_cli(self) -> None:
         result = run_command("scripts/validate.py")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("validated", result.stdout)
+
+    @unittest.skipUnless(mkdocs_available(), "mkdocs not installed")
+    def test_build_sh_runs_rendered_site_validation(self) -> None:
+        result = subprocess.run(
+            ["bash", "scripts/build.sh"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("validated", result.stdout)
 

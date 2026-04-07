@@ -4,6 +4,7 @@ from __future__ import annotations
 import datetime as dt
 import html
 import json
+import re
 import shutil
 from collections import Counter, defaultdict
 from os import path as os_path
@@ -23,6 +24,7 @@ from kb_common import (
     date_to_iso,
     find_possible_duplicate_articles,
     inverse_reference_graph,
+    is_placeholder_target,
     load_articles,
     load_policy,
     load_taxonomies,
@@ -161,6 +163,17 @@ MANAGER_SHORTCUTS = (
     ),
 )
 
+ORPHAN_PLACEHOLDER_LINK_PATTERN = re.compile(r"\]\((<?[A-Z0-9_]+>?)\)")
+
+
+def render_placeholder_label(label: str) -> str:
+    rendered = label.strip()
+    if not rendered:
+        return ""
+    if "<" in rendered or ">" in rendered:
+        return f"`{rendered}`"
+    return rendered
+
 
 def rewrite_local_markdown_links(
     source_path: Path,
@@ -170,6 +183,9 @@ def rewrite_local_markdown_links(
     def replace(match) -> str:
         label, target = match.groups()
         clean_target, _, fragment = target.partition("#")
+        clean_target = clean_target.strip()
+        if is_placeholder_target(clean_target):
+            return render_placeholder_label(label)
         resolved = resolve_local_link(source_path, clean_target)
         if resolved is None or not resolved.exists():
             return match.group(0)
@@ -187,7 +203,20 @@ def rewrite_local_markdown_links(
             rewritten += f"#{fragment}"
         return f"[{label}]({rewritten})"
 
-    return MARKDOWN_LINK_PATTERN.sub(replace, text)
+    rewritten = MARKDOWN_LINK_PATTERN.sub(replace, text)
+    return ORPHAN_PLACEHOLDER_LINK_PATTERN.sub("", rewritten)
+
+
+def normalize_placeholder_links(text: str) -> str:
+    def replace(match) -> str:
+        label, target = match.groups()
+        clean_target = target.split("#", 1)[0].strip()
+        if not is_placeholder_target(clean_target):
+            return match.group(0)
+        return render_placeholder_label(label)
+
+    normalized = MARKDOWN_LINK_PATTERN.sub(replace, text)
+    return ORPHAN_PLACEHOLDER_LINK_PATTERN.sub("", normalized)
 
 
 def copy_source_tree(source_root: Path, destination_root: Path, paths: list[Path]) -> None:
@@ -677,7 +706,7 @@ def render_article_page(article, by_id: dict[str, object], articles: list, inbou
     metadata = article.metadata
     notes_section = ""
     if article.body:
-        notes_section = f"\n## Additional Notes\n\n{article.body}\n"
+        notes_section = f"\n## Additional Notes\n\n{normalize_placeholder_links(article.body)}\n"
 
     classification_gaps = []
     if not metadata["services"]:

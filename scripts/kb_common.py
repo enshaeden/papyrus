@@ -53,6 +53,8 @@ FRONT_MATTER_PATTERN = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)$", re.DOTALL)
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 PLACEHOLDER_PATTERN = re.compile(r"^<[A-Z0-9_]+>$")
+BARE_PLACEHOLDER_PATTERN = re.compile(r"^[A-Z0-9_]+$")
+HTML_HREF_PATTERN = re.compile(r"""href=["']([^"']+)["']""", re.IGNORECASE)
 EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 PHONE_PATTERN = re.compile(r"\b(?:\+\d{1,3}[ -]?)?(?:\(\d{3}\)|\d{3})[ -]\d{3}[ -]\d{4}\b")
 IP_PATTERN = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?\b")
@@ -586,15 +588,29 @@ def extract_markdown_title(path: Path) -> str:
     return path.stem.replace("-", " ").strip()
 
 
+def is_placeholder_target(target: str) -> bool:
+    normalized = target.strip()
+    if not normalized:
+        return False
+    if PLACEHOLDER_PATTERN.fullmatch(normalized):
+        return True
+    if normalized.startswith("<") and normalized.endswith(">"):
+        normalized = normalized[1:-1].strip()
+    return bool(BARE_PLACEHOLDER_PATTERN.fullmatch(normalized))
+
+
 def is_external_target(target: str) -> bool:
     lowered = target.lower()
     return (
         lowered.startswith("http://")
         or lowered.startswith("https://")
         or lowered.startswith("mailto:")
+        or lowered.startswith("tel:")
+        or lowered.startswith("javascript:")
+        or lowered.startswith("//")
         or lowered.startswith("app://")
         or lowered.startswith("plugin://")
-        or bool(PLACEHOLDER_PATTERN.fullmatch(target.strip()))
+        or is_placeholder_target(target)
     )
 
 
@@ -621,6 +637,57 @@ def collect_broken_markdown_links(paths: Iterable[Path]) -> list[BrokenLink]:
                         source_path=relative_path(path),
                         target=target,
                         reason="target does not exist",
+                    )
+                )
+    return issues
+
+
+def resolve_rendered_site_link(base_path: Path, target: str, site_root: Path) -> tuple[Path | None, str | None]:
+    clean_target = target.split("#", 1)[0].split("?", 1)[0].strip()
+    if not clean_target or is_external_target(clean_target):
+        return None, None
+
+    if clean_target.startswith("/"):
+        resolved = (site_root / clean_target.lstrip("/")).resolve()
+    else:
+        resolved = (base_path.parent / clean_target).resolve()
+
+    try:
+        resolved.relative_to(site_root)
+    except ValueError:
+        return None, "target escapes site root"
+    return resolved, None
+
+
+def collect_broken_rendered_site_links(site_dir: Path = SITE_DIR) -> list[BrokenLink]:
+    if not site_dir.exists():
+        return []
+
+    issues: list[BrokenLink] = []
+    site_root = site_dir.resolve()
+    html_paths = sorted(path for path in site_dir.rglob("*.html") if path.is_file())
+
+    for path in html_paths:
+        text = path.read_text(encoding="utf-8")
+        for target in HTML_HREF_PATTERN.findall(text):
+            resolved, resolution_issue = resolve_rendered_site_link(path.resolve(), target, site_root)
+            if resolution_issue:
+                issues.append(
+                    BrokenLink(
+                        source_path=relative_path(path),
+                        target=target,
+                        reason=resolution_issue,
+                    )
+                )
+                continue
+            if resolved is None:
+                continue
+            if not resolved.exists():
+                issues.append(
+                    BrokenLink(
+                        source_path=relative_path(path),
+                        target=target,
+                        reason="target does not exist in rendered site",
                     )
                 )
     return issues
@@ -955,7 +1022,7 @@ def validate_articles(
     return issues
 
 
-def validate_repository() -> list[ValidationIssue]:
+def validate_repository(include_rendered_site: bool = False) -> list[ValidationIssue]:
     policy = load_policy()
     schema = load_schema()
     taxonomies = load_taxonomies()
@@ -979,6 +1046,23 @@ def validate_repository() -> list[ValidationIssue]:
                 f"broken link '{broken_link.target}': {broken_link.reason}",
             )
         )
+
+    if include_rendered_site:
+        if not SITE_DIR.exists():
+            issues.append(
+                ValidationIssue(
+                    relative_path(SITE_DIR),
+                    "rendered site validation requested but site/ does not exist; run mkdocs build first",
+                )
+            )
+        else:
+            for broken_link in collect_broken_rendered_site_links():
+                issues.append(
+                    ValidationIssue(
+                        broken_link.source_path,
+                        f"broken rendered link '{broken_link.target}': {broken_link.reason}",
+                    )
+                )
 
     issues.extend(validate_sanitization(collect_sanitization_paths(policy)))
 

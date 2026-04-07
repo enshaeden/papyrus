@@ -15,8 +15,10 @@ fi
 
 if [[ -x "$ROOT_DIR/.venv/bin/mkdocs" ]]; then
   "$ROOT_DIR/.venv/bin/mkdocs" build --strict
+  "$PYTHON_BIN" scripts/validate.py --include-rendered-site
 elif command -v mkdocs >/dev/null 2>&1; then
   mkdocs build --strict
+  "$PYTHON_BIN" scripts/validate.py --include-rendered-site
 else
   echo "mkdocs not installed; skipping static site build" >&2
 fi
