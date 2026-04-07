@@ -8,3 +8,6 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 
 "$ROOT_DIR/scripts/build.sh"
+
+echo "bootstrap complete"
+echo "run ./scripts/serve.sh to start the local site server"

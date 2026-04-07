@@ -58,12 +58,12 @@ This collection page was created during the <KNOWLEDGE_PORTAL> seed migration to
 
 ## Articles
 - [<QUEUE_NAME> (<TICKETING_SYSTEM>) Automations](ticketing-ticketing-system-automations.md)
-- [<QUEUE_NAME>]-prevent-reopen-after-30-days](hsd-prevent-reopen-after-30-days.md)
+- [<QUEUE_NAME>]-prevent-reopen-after-30-days](ticketing-prevent-reopen-after-30-days.md)
 - [SLA Policy and Definitions](sla-policy-and-definitions.md)
-- [[<QUEUE_NAME>]-component-add-on-creation](hsd-component-add-on-creation.md)
-- [[<QUEUE_NAME>]-creation-source-labelling](hsd-creation-source-labelling.md)
-- [[<QUEUE_NAME>]-inbound-on-offboard-adjustments](hsd-inbound-on-offboard-adjustments.md)
-- [[<QUEUE_NAME>]-summary-adjustment](hsd-summary-adjustment.md)
+- [[<QUEUE_NAME>]-component-add-on-creation](ticketing-component-add-on-creation.md)
+- [[<QUEUE_NAME>]-creation-source-labelling](ticketing-creation-source-labelling.md)
+- [[<QUEUE_NAME>]-inbound-on-offboard-adjustments](ticketing-inbound-on-offboard-adjustments.md)
+- [[<QUEUE_NAME>]-summary-adjustment](ticketing-summary-adjustment.md)
 
 ## Migration Notes
 - This page is a collection index. Use the linked child articles for actionable procedures.

@@ -2,7 +2,7 @@
 id: kb-helpdesk-configuration-and-automation-ticketing-ticketing-system-automations
 title: <QUEUE_NAME> (<TICKETING_SYSTEM>) Automations
 canonical_path: knowledge/helpdesk/configuration-and-automation/ticketing-ticketing-system-automations.md
-summary: '[[<QUEUE_NAME>] inbound on offboard adjustments [<QUEUE_NAME>] inbound on offboard adjustments](hsd inbound on offboard adjustments.md)'
+summary: This article documents the <QUEUE_NAME> automation workflows maintained in <TICKETING_SYSTEM>.
 type: SOP
 status: active
 owner: service_owner
@@ -47,4 +47,4 @@ change_log:
   author: seed_sanitization
 ---
 
-[[<QUEUE_NAME>]-inbound-on-offboard-adjustments [<QUEUE_NAME>]-inbound-on-offboard-adjustments](hsd-inbound-on-offboard-adjustments.md)
+[[<QUEUE_NAME>]-inbound-on-offboard-adjustments [<QUEUE_NAME>]-inbound-on-offboard-adjustments](ticketing-inbound-on-offboard-adjustments.md)
