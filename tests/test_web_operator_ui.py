@@ -644,6 +644,7 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertIn('href="/write/objects/new"', operator_body)
             self.assertNotIn("Corpus Oversight", operator_body)
             self.assertNotIn("Switch View", operator_body)
+            self.assertIn("You have unsaved changes on this page. Switch views and discard them?", operator_body)
 
             status, _, reviewer_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.reviewer"})
             self.assertEqual(status, "200 OK")

@@ -31,6 +31,21 @@
     if ([...select.options].some((option) => option.value === value)) {
       select.value = value;
     }
+    const trackedForms = [...document.querySelectorAll("form.governed-form")];
+    const formSignature = (trackedForm) => {
+      const formData = new FormData(trackedForm);
+      return JSON.stringify(
+        [...formData.entries()].map(([name, fieldValue]) => [
+          name,
+          fieldValue instanceof File ? fieldValue.name : String(fieldValue),
+        ]),
+      );
+    };
+    const initialSignatures = new Map(
+      trackedForms.map((trackedForm) => [trackedForm, formSignature(trackedForm)]),
+    );
+    const hasUnsavedChanges = () =>
+      trackedForms.some((trackedForm) => formSignature(trackedForm) !== initialSignatures.get(trackedForm));
     const syncNextPath = () => {
       const selected = select.options[select.selectedIndex];
       if (!selected) {
@@ -44,6 +59,11 @@
     syncNextPath();
     select.addEventListener("change", () => {
       syncNextPath();
+      if (hasUnsavedChanges() && !window.confirm("You have unsaved changes on this page. Switch views and discard them?")) {
+        select.value = value;
+        syncNextPath();
+        return;
+      }
       if (typeof form.requestSubmit === "function") {
         form.requestSubmit();
         return;
