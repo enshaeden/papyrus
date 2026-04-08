@@ -35,6 +35,7 @@ For terminal-first work:
 python3 scripts/operator_view.py queue --db build/knowledge.db
 python3 scripts/operator_view.py dashboard --db build/knowledge.db
 python3 scripts/operator_view.py object kb-troubleshooting-vpn-connectivity --db build/knowledge.db
+python3 scripts/operator_view.py events --db build/knowledge.db --format json
 ```
 
 For a fast demo/runtime review path:
@@ -51,6 +52,11 @@ For advanced surface-specific startup:
 python3 scripts/serve_web.py --db build/knowledge.db --source-root .
 python3 scripts/serve_api.py --db build/knowledge.db --source-root .
 ```
+
+Guardrail:
+- `python3 scripts/run.py --operator` only permits the canonical repository source root for writeback. Use `--demo` for sandboxed writable source roots.
+- `python3 scripts/serve_web.py` and `python3 scripts/serve_api.py` also reject non-canonical source roots unless you pass `--allow-noncanonical-source-root`.
+- If you embed the WSGI apps directly in tests or local tooling, `papyrus.interfaces.web.app(...)` and `papyrus.interfaces.api.app(...)` enforce the same rule. Use `allow_noncanonical_source_root=True` only for sandboxed demo/test roots.
 
 ## 3. Pick The Right Playbook
 

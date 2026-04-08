@@ -12,7 +12,7 @@ from papyrus.application.commands import (
     reject_revision_command,
     supersede_object_command,
 )
-from papyrus.application.queries import audit_view, knowledge_object_detail, manage_queue, review_detail, validation_run_history
+from papyrus.application.queries import audit_view, event_history, knowledge_object_detail, manage_queue, review_detail, validation_run_history
 from papyrus.interfaces.web.forms.review_forms import (
     validate_assignment_form,
     validate_decision_form,
@@ -475,6 +475,11 @@ def register(router, runtime) -> None:
     def audit_page(request: Request):
         object_id = request.query_value("object_id") or None
         events = audit_view(object_id=object_id, database_path=runtime.database_path)
+        structured_events = event_history(
+            entity_id=object_id,
+            limit=20,
+            database_path=runtime.database_path,
+        )
         validation_runs = validation_run_history(database_path=runtime.database_path)
         components = ComponentPresenter(runtime.template_renderer)
         audit_html = components.section_card(
@@ -495,6 +500,32 @@ def register(router, runtime) -> None:
                 ],
                 table_id="audit-history",
             ),
+        )
+        event_html = components.section_card(
+            title="Structured events",
+            eyebrow="Events",
+            body_html=components.queue_table(
+                headers=["Time", "Type", "Entity", "Actor", "Source", "Summary"],
+                rows=[
+                    [
+                        escape(format_timestamp(event["occurred_at"])),
+                        escape(event["event_type"]),
+                        escape(f"{event['entity_type']}:{event['entity_id']}"),
+                        escape(event["actor"]),
+                        escape(event["source"]),
+                        escape(
+                            str(
+                                event["payload"].get("summary")
+                                or event["payload"].get("reason")
+                                or event["payload"].get("trust_state")
+                                or ""
+                            )
+                        ),
+                    ]
+                    for event in structured_events
+                ],
+                table_id="structured-events",
+            ) if structured_events else '<p class="empty-state-copy">No structured events recorded.</p>',
         )
         validation_html = components.section_card(
             title="Validation runs",
@@ -524,7 +555,7 @@ def register(router, runtime) -> None:
                 active_nav="manage",
                 flash_html=flash_html_for_request(runtime, request),
                 aside_html="",
-                page_context={"audit_html": audit_html, "validation_html": validation_html},
+                page_context={"audit_html": audit_html, "event_html": event_html, "validation_html": validation_html},
             )
         )
 

@@ -226,6 +226,105 @@ class OperatorReadinessTests(unittest.TestCase):
             payload = json.loads(body)
             self.assertEqual(payload["run_id"], "api-validation-run")
 
+    def test_event_history_cli_matches_api_and_operator_run_rejects_noncanonical_source_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            build_search_projection(database_path)
+            application = api_app(database_path)
+
+            status, _, body = call_wsgi(
+                application,
+                "/events",
+                method="POST",
+                json_payload={
+                    "actor": "tests",
+                    "event_type": "service_change",
+                    "entity_type": "service",
+                    "entity_id": "Remote Access",
+                    "payload": {"summary": "CLI/API parity event"},
+                },
+            )
+            self.assertEqual(status, "201 Created")
+            created_payload = json.loads(body)
+
+            status, _, body = call_wsgi(application, "/events?entity_type=service&entity_id=Remote%20Access")
+            self.assertEqual(status, "200 OK")
+            api_payload = json.loads(body)
+
+            cli_result = run_script(
+                "scripts/operator_view.py",
+                "events",
+                "--db",
+                str(database_path),
+                "--format",
+                "json",
+                "--entity-type",
+                "service",
+                "--entity-id",
+                "Remote Access",
+            )
+            self.assertEqual(cli_result.returncode, 0, msg=cli_result.stderr)
+            cli_payload = json.loads(cli_result.stdout)
+            self.assertEqual(api_payload["events"][0]["event_id"], cli_payload["events"][0]["event_id"])
+            self.assertEqual(api_payload["events"][0]["event_id"], created_payload["event_id"])
+
+            invalid_root = Path(temp_dir) / "other-root"
+            invalid_root.mkdir()
+            run_result = run_script(
+                "scripts/run.py",
+                "--operator",
+                "--source-root",
+                str(invalid_root),
+            )
+            self.assertEqual(run_result.returncode, 1)
+            self.assertIn("operator mode requires the canonical source root", run_result.stderr)
+
+            web_result = run_script(
+                "scripts/serve_web.py",
+                "--source-root",
+                str(invalid_root),
+            )
+            self.assertEqual(web_result.returncode, 1)
+            self.assertIn("operator mode requires the canonical source root", web_result.stderr)
+
+            api_result = run_script(
+                "scripts/serve_api.py",
+                "--source-root",
+                str(invalid_root),
+            )
+            self.assertEqual(api_result.returncode, 1)
+            self.assertIn("operator mode requires the canonical source root", api_result.stderr)
+
+    def test_programmatic_surfaces_reject_noncanonical_source_root_without_explicit_opt_in(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            build_search_projection(database_path)
+            sandbox_root = Path(temp_dir) / "sandbox-root"
+            sandbox_root.mkdir()
+
+            with self.assertRaisesRegex(ValueError, "operator mode requires the canonical source root"):
+                api_app(database_path, source_root=sandbox_root)
+
+            with self.assertRaisesRegex(ValueError, "operator mode requires the canonical source root"):
+                web_app(database_path, source_root=sandbox_root)
+
+            api_application = api_app(
+                database_path,
+                source_root=sandbox_root,
+                allow_noncanonical_source_root=True,
+            )
+            web_application = web_app(
+                database_path,
+                source_root=sandbox_root,
+                allow_noncanonical_source_root=True,
+            )
+
+            api_status, _, _ = call_wsgi(api_application, "/health")
+            self.assertEqual(api_status, "200 OK")
+            web_status, _, body = call_wsgi(web_application, "/queue")
+            self.assertEqual(web_status, "200 OK")
+            self.assertIn("Knowledge Queue", body)
+
     def test_degraded_surfaces_return_actionable_runtime_unavailable_responses(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             missing_database_path = Path(temp_dir) / "missing-runtime.db"

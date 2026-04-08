@@ -1509,6 +1509,56 @@ def validation_run_history(
         connection.close()
 
 
+def event_history(
+    *,
+    limit: int = 100,
+    entity_type: str | None = None,
+    entity_id: str | None = None,
+    event_type: str | None = None,
+    database_path: str | Path = DB_PATH,
+) -> list[dict[str, Any]]:
+    connection = require_runtime_connection(database_path)
+    try:
+        clauses: list[str] = []
+        parameters: list[str | int] = []
+        if entity_type:
+            clauses.append("entity_type = ?")
+            parameters.append(entity_type)
+        if entity_id:
+            clauses.append("entity_id = ?")
+            parameters.append(entity_id)
+        if event_type:
+            clauses.append("event_type = ?")
+            parameters.append(event_type)
+        where_sql = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        parameters.append(limit)
+        rows = connection.execute(
+            f"""
+            SELECT event_id, event_type, source, entity_type, entity_id, occurred_at, actor, payload_json
+            FROM events
+            {where_sql}
+            ORDER BY occurred_at DESC, event_id DESC
+            LIMIT ?
+            """,
+            tuple(parameters),
+        ).fetchall()
+        return [
+            {
+                "event_id": str(row["event_id"]),
+                "event_type": str(row["event_type"]),
+                "source": str(row["source"]),
+                "entity_type": str(row["entity_type"]),
+                "entity_id": str(row["entity_id"]),
+                "occurred_at": str(row["occurred_at"]),
+                "actor": str(row["actor"]),
+                "payload": _json_dict(row["payload_json"]),
+            }
+            for row in rows
+        ]
+    finally:
+        connection.close()
+
+
 def _recent_events(
     connection: sqlite3.Connection,
     *,

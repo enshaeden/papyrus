@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import sys
 from pathlib import Path
 from typing import Callable
 from urllib.parse import parse_qs, unquote
@@ -25,6 +26,7 @@ from papyrus.application.queries import (
     RuntimeUnavailableError,
     ServiceNotFoundError,
     audit_view,
+    event_history,
     impact_view_for_object,
     impact_view_for_service,
     knowledge_object_detail,
@@ -39,6 +41,7 @@ from papyrus.application.queries import (
 )
 from papyrus.domain.actor import require_actor_id
 from papyrus.infrastructure.paths import DB_PATH, ROOT
+from papyrus.interfaces.startup_guard import resolve_operator_source_root
 
 
 def _json_response(start_response, status: str, payload: object) -> list[bytes]:
@@ -108,9 +111,17 @@ def _object_result_payload(
     return payload
 
 
-def app(database_path: str | Path = DB_PATH, source_root: str | Path = ROOT) -> Callable:
+def app(
+    database_path: str | Path = DB_PATH,
+    source_root: str | Path = ROOT,
+    *,
+    allow_noncanonical_source_root: bool = False,
+) -> Callable:
     resolved_database_path = Path(database_path)
-    resolved_source_root = Path(source_root).resolve()
+    resolved_source_root = resolve_operator_source_root(
+        source_root,
+        allow_noncanonical=allow_noncanonical_source_root,
+    )
 
     def application(environ, start_response):
         method = environ.get("REQUEST_METHOD", "GET")
@@ -199,6 +210,25 @@ def app(database_path: str | Path = DB_PATH, source_root: str | Path = ROOT) -> 
                     start_response,
                     "200 OK",
                     {"validation_runs": validation_run_history(database_path=resolved_database_path)},
+                )
+
+            if method == "GET" and path == "/events":
+                limit = int(query.get("limit", ["100"])[0])
+                entity_type = query.get("entity_type", [None])[0]
+                entity_id = query.get("entity_id", [None])[0]
+                event_type = query.get("event_type", [None])[0]
+                return _json_response(
+                    start_response,
+                    "200 OK",
+                    {
+                        "events": event_history(
+                            limit=limit,
+                            entity_type=entity_type,
+                            entity_id=entity_id,
+                            event_type=event_type,
+                            database_path=resolved_database_path,
+                        )
+                    },
                 )
 
             if method == "POST" and path == "/events":
@@ -572,9 +602,24 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=8081, help="Bind port. Defaults to 8081.")
     parser.add_argument("--db", default=str(DB_PATH), help="Runtime SQLite database path.")
     parser.add_argument("--source-root", default=str(ROOT), help="Canonical source root for governed writeback.")
+    parser.add_argument(
+        "--allow-noncanonical-source-root",
+        action="store_true",
+        help="Allow a non-repository source root for advanced sandbox or demo use.",
+    )
     args = parser.parse_args()
 
-    with make_server(args.host, args.port, app(args.db, args.source_root)) as server:
+    try:
+        application = app(
+            args.db,
+            args.source_root,
+            allow_noncanonical_source_root=args.allow_noncanonical_source_root,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    with make_server(args.host, args.port, application) as server:
         print(f"Papyrus JSON API listening on http://{args.host}:{args.port}")
         server.serve_forever()
     return 0

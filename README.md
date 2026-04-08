@@ -44,9 +44,14 @@ Advanced local commands remain available:
 python3 scripts/source_sync.py writeback --object kb-troubleshooting-vpn-connectivity
 python3 scripts/source_sync.py writeback-all
 python3 scripts/ingest_event.py --type service_change --entity Remote\\ Access --payload payload.json
+python3 scripts/operator_view.py events --db build/knowledge.db --format json
 python3 scripts/serve_web.py --db build/knowledge.db --source-root .
 python3 scripts/serve_api.py --db build/knowledge.db --source-root .
 ```
+
+Guardrail:
+- `scripts/run.py --operator`, `scripts/serve_web.py`, and `scripts/serve_api.py` now reject non-canonical source roots unless you explicitly opt in with `--allow-noncanonical-source-root` on the direct web/API scripts.
+- The same source-root check now runs inside `papyrus.interfaces.web.app(...)` and `papyrus.interfaces.api.app(...)`. Test or demo embeddings must opt in explicitly with `allow_noncanonical_source_root=True`.
 
 ## Operator Docs
 

@@ -10,6 +10,7 @@ from papyrus.application.commands import build_projection_command, validate_repo
 from papyrus.application.queries import (
     CONTENT_HEALTH_SECTIONS,
     collect_content_health_sections,
+    event_history,
     knowledge_object_detail,
     knowledge_queue,
     manage_queue,
@@ -190,6 +191,12 @@ def operator_main() -> int:
     review_parser.add_argument("object_id", help="Knowledge object ID.")
     review_parser.add_argument("revision_id", help="Revision ID.")
 
+    events_parser = subparsers.add_parser("events", help="Show structured change, validation, and evidence events.", parents=[common])
+    events_parser.add_argument("--limit", type=int, default=25, help="Maximum events to return.")
+    events_parser.add_argument("--entity-type", default=None, help="Optional entity type filter.")
+    events_parser.add_argument("--entity-id", default=None, help="Optional entity ID filter.")
+    events_parser.add_argument("--event-type", default=None, help="Optional event type filter.")
+
     subparsers.add_parser("manage-queue", help="Show the manage queue.", parents=[common])
     subparsers.add_parser("validation-runs", help="Show validation run history.", parents=[common])
 
@@ -251,6 +258,22 @@ def operator_main() -> int:
             for assignment in payload["assignments"]
         )
         return _emit_payload(lines, output_format="text")
+
+    if args.command == "events":
+        payload = event_history(
+            limit=args.limit,
+            entity_type=args.entity_type,
+            entity_id=args.entity_id,
+            event_type=args.event_type,
+            database_path=database_path,
+        )
+        if output_format == "json":
+            return _emit_payload({"events": payload}, output_format=output_format)
+        lines = [
+            f"{item['occurred_at']} | {item['event_type']} | {item['entity_type']}={item['entity_id']} | actor={item['actor']} | source={item['source']}"
+            for item in payload
+        ]
+        return _emit_payload(lines or ["no events found"], output_format="text")
 
     if args.command == "manage-queue":
         payload = manage_queue(database_path=database_path)

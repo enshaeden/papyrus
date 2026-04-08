@@ -73,7 +73,11 @@ class WebOperatorUiTests(unittest.TestCase):
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
             source_root = Path(temp_dir) / "repo"
-            application = web_app(database_path, source_root=source_root)
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+            )
 
             status, headers, _ = call_wsgi(
                 application,
@@ -201,7 +205,11 @@ class WebOperatorUiTests(unittest.TestCase):
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
             source_root = Path(temp_dir) / "repo"
-            application = web_app(database_path, source_root=source_root)
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+            )
 
             status, _, body = call_wsgi(
                 application,
@@ -353,7 +361,11 @@ class WebOperatorUiTests(unittest.TestCase):
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
             source_root = Path(temp_dir) / "repo"
-            application = web_app(database_path, source_root=source_root)
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+            )
 
             status, headers, _ = call_wsgi(
                 application,
@@ -473,7 +485,11 @@ class WebOperatorUiTests(unittest.TestCase):
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
             source_root = Path(temp_dir) / "repo"
-            application = web_app(database_path, source_root=source_root)
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+            )
             actor_cookie = {"papyrus_actor": "local.manager"}
 
             status, headers, _ = call_wsgi(

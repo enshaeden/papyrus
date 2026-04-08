@@ -44,7 +44,7 @@ The normative operator-ready v1 boundary now lives in [Operator Governance And D
 - Security:
   Governed API actions now require an explicit actor, internal error responses are sanitized, and operator-facing errors avoid leaking stack traces or raw exception internals.
 - Observability:
-  Governance actions surface as audit events with details, object detail pages expose recent audit metadata, and validation-run history remains inspectable through web, API, and CLI surfaces.
+  Governance actions surface as audit events with details, object detail pages expose recent audit metadata, structured events are queryable through `GET /events`, and validation-run history remains inspectable through web, API, and CLI surfaces.
 - Performance:
   This pass kept the existing SQLite projection model and reused shared query helpers rather than adding new infrastructure. Ranking work stays in SQL plus lightweight Python ordering over bounded result sets.
 
@@ -70,6 +70,8 @@ python3 scripts/operator_view.py queue --db build/demo-knowledge.db
 
 - Runtime unavailable:
   Run `python3 scripts/build_index.py` or rebuild the demo DB with `python3 scripts/demo_runtime.py`.
+- Operator startup pointed at a non-canonical source root:
+  `scripts/run.py --operator`, `scripts/serve_web.py`, and `scripts/serve_api.py` now reject that configuration by default. The same guardrail is enforced when the web or API WSGI app is constructed directly. Use the canonical repository root, switch to `--demo`, or explicitly opt in only for sandboxed demo/test roots.
 - Invalid governed action:
   Fix the request payload or workflow state; Papyrus now returns explicit 400 responses and web error pages.
 - Demo/runtime rollback:

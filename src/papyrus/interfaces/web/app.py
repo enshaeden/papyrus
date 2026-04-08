@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -15,6 +16,7 @@ from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.rendering import PageRenderer
 from papyrus.interfaces.web.runtime import WebRuntime
 from papyrus.interfaces.web.routes import dashboard, impact, manage, objects, queue, services, write
+from papyrus.interfaces.startup_guard import resolve_operator_source_root
 
 
 @dataclass(frozen=True)
@@ -88,9 +90,17 @@ def _error_page(
     )
 
 
-def app(database_path: str | Path = DB_PATH, source_root: str | Path = ROOT) -> Callable:
+def app(
+    database_path: str | Path = DB_PATH,
+    source_root: str | Path = ROOT,
+    *,
+    allow_noncanonical_source_root: bool = False,
+) -> Callable:
     resolved_database_path = Path(database_path)
-    resolved_source_root = Path(source_root).resolve()
+    resolved_source_root = resolve_operator_source_root(
+        source_root,
+        allow_noncanonical=allow_noncanonical_source_root,
+    )
     runtime = WebRuntime(
         database_path=resolved_database_path,
         source_root=resolved_source_root,
@@ -172,9 +182,24 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=8080, help="Bind port. Defaults to 8080.")
     parser.add_argument("--db", default=str(DB_PATH), help="Runtime SQLite database path.")
     parser.add_argument("--source-root", default=str(ROOT), help="Canonical source root for governed writeback.")
+    parser.add_argument(
+        "--allow-noncanonical-source-root",
+        action="store_true",
+        help="Allow a non-repository source root for advanced sandbox or demo use.",
+    )
     args = parser.parse_args()
 
-    with make_server(args.host, args.port, app(args.db, args.source_root)) as server:
+    try:
+        application = app(
+            args.db,
+            args.source_root,
+            allow_noncanonical_source_root=args.allow_noncanonical_source_root,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    with make_server(args.host, args.port, application) as server:
         print(f"Papyrus web interface listening on http://{args.host}:{args.port}")
         server.serve_forever()
     return 0

@@ -39,6 +39,7 @@ python3 scripts/report_content_health.py --section citation-health --section sus
 python3 scripts/run.py --operator
 python3 scripts/source_sync.py writeback-all
 python3 scripts/ingest_event.py --type service_change --entity Remote\\ Access --payload payload.json
+python3 scripts/operator_view.py events --db build/knowledge.db --format json
 ./scripts/build_static_export.sh
 ```
 

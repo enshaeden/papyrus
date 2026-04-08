@@ -115,6 +115,26 @@ class InterfaceSurfaceTests(unittest.TestCase):
         self.assertIn("object_count", dashboard_payload)
         self.assertIn("queue", dashboard_payload)
 
+        status, _, body = call_wsgi(
+            application,
+            "/events",
+            method="POST",
+            json_payload={
+                "actor": "tests",
+                "event_type": "service_change",
+                "entity_type": "service",
+                "entity_id": "Remote Access",
+                "payload": {"summary": "API event coverage."},
+            },
+        )
+        self.assertEqual(status, "201 Created")
+
+        status, _, body = call_wsgi(application, "/events?entity_type=service&entity_id=Remote%20Access")
+        self.assertEqual(status, "200 OK")
+        events_payload = json.loads(body)
+        self.assertTrue(events_payload["events"])
+        self.assertEqual(events_payload["events"][0]["event_type"], "service_change")
+
         status, _, body = call_wsgi(application, "/services")
         self.assertEqual(status, "200 OK")
         services_payload = json.loads(body)
@@ -168,6 +188,7 @@ class InterfaceSurfaceTests(unittest.TestCase):
         status, _, body = call_wsgi(application, "/manage/audit")
         self.assertEqual(status, "200 OK")
         self.assertIn("Audit And Governance", body)
+        self.assertIn("Structured events", body)
 
         status, _, body = call_wsgi(application, "/impact/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")

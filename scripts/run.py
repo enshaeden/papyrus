@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import sys
 import threading
 from pathlib import Path
 from wsgiref.simple_server import make_server
@@ -14,6 +15,7 @@ ensure_src_path()
 from papyrus.application.commands import build_projection_command
 from papyrus.application.demo_flow import DEMO_SOURCE_ROOT, build_operator_demo_runtime
 from papyrus.infrastructure.paths import DB_PATH, ROOT
+from papyrus.interfaces.startup_guard import resolve_operator_source_root
 from papyrus.interfaces.api import app as api_app
 from papyrus.interfaces.web import app as web_app
 
@@ -54,12 +56,32 @@ def main() -> int:
         _reset_runtime_artifacts(database_path, source_root)
         build_operator_demo_runtime(database_path=database_path, source_root=source_root)
     else:
-        database_path = Path(args.db or DB_PATH)
-        source_root = Path(args.source_root or ROOT)
-        build_projection_command(database_path=database_path)
+        try:
+            database_path = Path(args.db or DB_PATH)
+            source_root = resolve_operator_source_root(args.source_root)
+            build_projection_command(database_path=database_path)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
 
-    web_server = make_server(args.host, args.web_port, web_app(database_path, source_root))
-    api_server = make_server(args.host, args.api_port, api_app(database_path, source_root))
+    web_server = make_server(
+        args.host,
+        args.web_port,
+        web_app(
+            database_path,
+            source_root,
+            allow_noncanonical_source_root=args.demo,
+        ),
+    )
+    api_server = make_server(
+        args.host,
+        args.api_port,
+        api_app(
+            database_path,
+            source_root,
+            allow_noncanonical_source_root=args.demo,
+        ),
+    )
     web_thread = _serve_in_thread(web_server, "web")
     api_thread = _serve_in_thread(api_server, "api")
 
