@@ -4,7 +4,7 @@ Papyrus is being refactored from an article-centric Markdown repository into a g
 
 ## Current State
 
-Phase 1 through Phase 7 establish the current control-plane spine.
+Phase 1 through Phase 8 establish the current control-plane spine.
 
 - Canonical authored source remains Markdown with YAML front matter under `knowledge/` and `archive/knowledge/`.
 - Core runtime logic moves into `src/papyrus/`.
@@ -14,6 +14,7 @@ Phase 1 through Phase 7 establish the current control-plane spine.
 - Deterministic governance workflows now create objects, create revisions, submit revisions for review, assign reviewers, approve or reject revisions, supersede objects, record validation runs, and mark objects suspect due to change.
 - Citation scans now resolve runtime evidence posture from canonical source plus local runtime context instead of treating front matter references as passively trusted.
 - Search and reporting now read from the relational runtime for freshness, approval state, citation health, ownership clarity, and suspect-object views.
+- Thin JSON and server-rendered web interfaces now consume the same application query layer instead of re-implementing runtime logic in routes.
 - The flat article schema remains only as a migration compatibility structure.
 
 ## Domain Focus
@@ -108,6 +109,12 @@ The target runtime is organized under `src/papyrus/`:
 - `jobs/`: scheduled or operator-invoked scans
 
 This separation exists to keep validation, search, reporting, and future governance workflows reusable across multiple interfaces.
+
+The current operator surfaces are intentionally thin:
+
+- CLI remains the local-first operator entrypoint for validation, build, search, and report commands
+- the JSON API exposes the runtime queue, object detail, revision history, service detail, trust dashboard, and impact queries
+- the server-rendered web interface renders those same queries without adding duplicate business logic
 
 ## Reporting And Search
 

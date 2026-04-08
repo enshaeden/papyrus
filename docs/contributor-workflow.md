@@ -117,6 +117,22 @@ python3 scripts/report_content_health.py --section citation-health
 python3 scripts/report_content_health.py --section suspect-objects
 ```
 
+## Operator Surfaces
+
+Serve the server-rendered web interface:
+
+```bash
+python3 scripts/serve_web.py
+```
+
+Serve the JSON API:
+
+```bash
+python3 scripts/serve_api.py
+```
+
+The web and API surfaces are thin wrappers over the same application query layer. If the runtime has not been built yet, they will return a runtime-unavailable error until `python3 scripts/build_index.py` completes.
+
 ## Static Export
 
 Run:

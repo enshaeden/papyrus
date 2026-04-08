@@ -70,6 +70,7 @@ The refactor proceeds in phases:
 5. add explicit governance workflows
 6. harden citations into runtime evidence with degradable trust posture
 7. rebuild search and reporting over runtime governance signals
+8. expose thin operator web and API surfaces over the shared application layer
 
 Later-phase clarification added during implementation:
 
