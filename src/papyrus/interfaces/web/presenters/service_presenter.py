@@ -18,7 +18,7 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
         badges=[
             components.badge(label="Criticality", value=service["service_criticality"], tone="warning" if service["service_criticality"] in {"high", "critical"} else "approved"),
             components.badge(label="Status", value=service["status"], tone="approved" if service["status"] == "active" else "muted"),
-            components.badge(label="Linked objects", value=len(detail["linked_objects"]), tone="pending"),
+            components.badge(label="Linked objects", value=len(detail["linked_objects"]), tone="brand"),
         ],
         actions_html=link("Impact view", f"/impact/service/{quoted_path(service['service_id'])}", css_class="button button-secondary"),
     )

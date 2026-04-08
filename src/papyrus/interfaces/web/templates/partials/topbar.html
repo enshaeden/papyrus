@@ -6,7 +6,7 @@
   <form class="search-form" action="/queue" method="get">
     <label class="sr-only" for="global-search">Search Papyrus</label>
     <input id="global-search" name="query" type="search" placeholder="Search operational knowledge" value="{{ search_value }}" />
-    <button type="submit">Search</button>
+    <button class="button button-secondary" type="submit">Search</button>
   </form>
   <form class="search-form" action="/actor/select" method="post">
     <label class="sr-only" for="actor-select">Current actor</label>
@@ -14,11 +14,8 @@
     <select id="actor-select" name="actor" data-actor-select>
       {{ actor_options_html }}
     </select>
-    <button type="submit">Switch View</button>
+    <button class="button button-secondary" type="submit">Switch View</button>
   </form>
-  <nav class="quick-links">
-    {{ quick_links_html }}
-  </nav>
 </header>
 <script>
   (function () {

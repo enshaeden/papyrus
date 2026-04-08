@@ -32,7 +32,7 @@ def present_queue_page(
     summary_html = components.trust_summary(
         title="Queue posture",
         badges=[
-            components.badge(label="Items", value=len(normalized_items), tone="approved"),
+            components.badge(label="Items", value=len(normalized_items), tone="brand"),
             components.badge(label="Approval pending", value=sum(1 for item in normalized_items if item["approval_state"] != "approved"), tone="pending"),
             components.badge(label="Weak evidence", value=sum(1 for item in normalized_items if item["citation_health_rank"] > 0), tone="warning"),
             components.badge(label="Stale", value=sum(1 for item in normalized_items if item["freshness_rank"] > 0), tone="danger"),

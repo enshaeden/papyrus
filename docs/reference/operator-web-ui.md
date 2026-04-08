@@ -24,13 +24,22 @@ This change does not rework repository schemas, canonical source layout, or the 
 - The shared shell renderer now consumes actor-scoped role configuration for:
   - role landing route
   - sidebar sections
-  - topbar quick links
-  - current-role summary text
+  - compact role indicator
+  - role switch target path
 - Templates live under `src/papyrus/interfaces/web/templates/` and are organized into:
   - shared shell layout
   - reusable partial components
   - page templates
 - CSS is split into tokens, layout, components, and page-level rules under `src/papyrus/interfaces/web/static/css/`.
+- The operator UI color system is governed through semantic tokens rather than component-level hex values:
+  - `7659 C` (`--color-brand-hero`) carries identity and intent. It drives primary actions, active navigation, object identity, focus rings, and command-highlight tokens.
+  - `7658 C` (`--color-brand-depth`) is reserved for authority and depth. It is used for stronger hover and pressed states, denser emphasis surfaces, and stronger labels inside governance-heavy panels.
+  - `7660 C` (`--color-brand-context`) carries context and grouping. It is used through contextual tint tokens for selected fills, secondary hover states, governance panel backgrounds, filter chips, and timeline rails.
+  - Status colors remain separate from the brand family so success, warning, error, and informational states do not read as product-brand signals.
+- Component mapping follows the semantic layer:
+  - primary buttons, active navigation, object identity strips, and key count chips use hero tokens
+  - hero hover and pressed states use depth tokens
+  - secondary buttons, selected rows, metadata and citation panels, and grouped picker states use contextual tokens while keeping most surfaces neutral
 - Minimal progressive enhancement lives in `src/papyrus/interfaces/web/static/js/` for search filtering, disclosure hooks, and path/id suggestions in forms.
 
 ## Dependencies Introduced Or Modified

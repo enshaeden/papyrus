@@ -54,16 +54,9 @@ class PageRenderer:
     ) -> str:
         role_config = actor_shell_for_id(actor_id)
         content_html = self.template_renderer.render(page_template, page_context or {})
-        quick_links_html = join_html(
-            [
-                link(item.label, item.href, css_class="quick-link")
-                for item in role_config.quick_links
-            ]
-        )
         topbar_html = self.template_renderer.render(
             "partials/topbar.html",
             {
-                "quick_links_html": quick_links_html,
                 "search_value": escape(search_value),
                 "actor_options_html": "\n".join(
                     f'<option value="{escape(actor.actor_id)}" data-home="{escape(actor_home_path(actor.actor_id))}">{escape(actor.display_name)}</option>'

@@ -194,6 +194,18 @@ class InterfaceSurfaceTests(unittest.TestCase):
         self.assertEqual(status, "200 OK")
         self.assertIn("Impact", body)
 
+    def test_static_theme_assets_expose_governed_brand_tokens(self) -> None:
+        application = web_app(self.database_path)
+
+        status, headers, body = call_wsgi(application, "/static/css/tokens.css")
+        self.assertEqual(status, "200 OK")
+        self.assertEqual(headers["Content-Type"], "text/css")
+        self.assertIn("--color-brand-hero: #5D3754;", body)
+        self.assertIn("--color-brand-depth: #6A3460;", body)
+        self.assertIn("--color-brand-context: #9991A4;", body)
+        self.assertIn("--color-accent-primary: var(--color-brand-hero);", body)
+        self.assertIn("--color-panel-governance-bg: var(--color-brand-context-panel);", body)
+
     def test_web_errors_and_method_guards_render_explicit_pages(self) -> None:
         application = web_app(self.database_path)
 
