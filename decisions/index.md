@@ -22,3 +22,4 @@ This area records the structural rules and durable rationale behind the Papyrus 
 - [0002 Seed Migration Workspace And Sanitized Provenance](0002-seed-migration-workspace-and-provenance.md)
 - [0003 Sanitized Reports And Public Seed Artifacts](0003-sanitized-reports-and-public-seed-artifacts.md)
 - [0004 Knowledge-Object Control Plane Refactor](0004-knowledge-object-control-plane-refactor.md)
+- [0005 Operator-Ready V1 Cut Line](0005-operator-ready-v1-cut-line.md)

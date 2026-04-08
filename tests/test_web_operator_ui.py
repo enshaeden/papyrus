@@ -336,6 +336,105 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertIsNotNone(revision_row)
             self.assertEqual(revision_row["revision_state"], "rejected")
 
+    def test_manage_forms_capture_suspect_and_validation_actions(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            build_search_projection(database_path)
+            application = web_app(database_path)
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/write/objects/new",
+                method="POST",
+                form={
+                    "object_id": "kb-operator-ui-manage",
+                    "object_type": "runbook",
+                    "title": "Operator UI Manage Flow",
+                    "summary": "Manage-side workflow coverage.",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "canonical_path": "knowledge/runbooks/operator-ui-manage-flow.md",
+                    "review_cadence": "quarterly",
+                    "status": "draft",
+                    "systems": "<VPN_SERVICE>",
+                    "tags": "vpn",
+                },
+            )
+            revision_form_path = headers["Location"]
+            status, headers, _ = call_wsgi(
+                application,
+                revision_form_path,
+                method="POST",
+                form={
+                    "title": "Operator UI Manage Flow",
+                    "summary": "Manage-side workflow coverage.",
+                    "status": "draft",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "review_cadence": "quarterly",
+                    "audience": "service_desk",
+                    "systems": "<VPN_SERVICE>",
+                    "tags": "vpn",
+                    "related_services": "Remote Access",
+                    "related_object_ids": "kb-troubleshooting-vpn-connectivity",
+                    "change_summary": "Initial draft through web UI.",
+                    "prerequisites": "Open the ticket.",
+                    "steps": "Run the first step.",
+                    "verification": "Confirm the operator outcome.",
+                    "rollback": "Undo the step.",
+                    "use_when": "Use this when the governed workflow needs validation.",
+                    "boundaries_and_escalation": "Escalate when the workflow fails twice.",
+                    "related_knowledge_notes": "Pair with the VPN troubleshooting article.",
+                    "citation_1_source_title": "Seed import manifest",
+                    "citation_1_source_type": "document",
+                    "citation_1_source_ref": "migration/import-manifest.yml",
+                    "citation_1_note": "Internal provenance placeholder.",
+                    "citation_2_source_type": "document",
+                    "citation_3_source_type": "document",
+                },
+            )
+            submit_path = headers["Location"]
+            status, headers, _ = call_wsgi(application, submit_path, method="POST", form={"notes": "Ready for review."})
+            decision_path = headers["Location"].replace("/assign", "")
+            object_id = "kb-operator-ui-manage"
+
+            status, _, body = call_wsgi(
+                application,
+                f"/manage/objects/{object_id}/suspect",
+                method="POST",
+                form={"changed_entity_type": "", "changed_entity_id": "", "reason": ""},
+            )
+            self.assertEqual(status, "200 OK")
+            self.assertIn("A suspect rationale is required.", body)
+
+            status, headers, _ = call_wsgi(
+                application,
+                f"/manage/objects/{object_id}/suspect",
+                method="POST",
+                form={
+                    "changed_entity_type": "service",
+                    "changed_entity_id": "Remote Access",
+                    "reason": "Dependency changed during test execution.",
+                },
+            )
+            self.assertEqual(status, "303 See Other")
+            self.assertIn("/objects/kb-operator-ui-manage", headers["Location"])
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/manage/validation-runs/new",
+                method="POST",
+                form={
+                    "run_id": "web-ui-validation-run",
+                    "run_type": "manual_check",
+                    "status": "warning",
+                    "finding_count": "2",
+                    "details": "Smoke-test findings",
+                },
+            )
+            self.assertEqual(status, "303 See Other")
+            self.assertIn("/manage/validation-runs", headers["Location"])
+
 
 if __name__ == "__main__":
     unittest.main()

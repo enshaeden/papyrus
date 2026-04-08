@@ -13,8 +13,11 @@ from papyrus.application.commands import (
     assign_reviewer_command,
     create_object_command,
     create_revision_command,
+    mark_object_suspect_due_to_change_command,
+    record_validation_run_command,
     reject_revision_command,
     submit_for_review_command,
+    supersede_object_command,
 )
 from papyrus.application.queries import (
     KnowledgeObjectNotFoundError,
@@ -47,6 +50,62 @@ def _json_response(start_response, status: str, payload: object) -> list[bytes]:
     return [body]
 
 
+def _error_payload(*, error: str, title: str, detail: str, action: str, category: str) -> dict[str, str]:
+    return {
+        "error": error,
+        "title": title,
+        "detail": detail,
+        "action": action,
+        "category": category,
+    }
+
+
+def _links_for_object(object_id: str, revision_id: str | None = None) -> dict[str, str]:
+    links = {
+        "object": f"/objects/{object_id}",
+        "revision_history": f"/objects/{object_id}/revisions",
+        "manage_queue": "/manage/queue",
+        "queue": "/queue",
+    }
+    if revision_id:
+        links["review"] = f"/reviews/{object_id}/{revision_id}"
+        links["review_assignment"] = f"/manage/reviews/{object_id}/{revision_id}/assign"
+        links["review_decision"] = f"/manage/reviews/{object_id}/{revision_id}"
+    return links
+
+
+def _actor_from_payload(request_payload: dict[str, object], *, require_explicit: bool) -> str:
+    actor = str(request_payload.get("actor") or "").strip()
+    if require_explicit and not actor:
+        raise ValueError("actor is required for governed API actions")
+    return actor or "papyrus-api"
+
+
+def _object_result_payload(
+    *,
+    object_id: str,
+    database_path: Path,
+    message: str,
+    actor: str,
+    revision_id: str | None = None,
+) -> dict[str, object]:
+    detail = knowledge_object_detail(object_id, database_path=database_path)
+    payload: dict[str, object] = {
+        "message": message,
+        "actor": actor,
+        "object": detail["object"],
+        "object_id": detail["object"]["object_id"],
+        "object_type": detail["object"]["object_type"],
+        "title": detail["object"]["title"],
+        "posture": detail["posture"],
+        "links": _links_for_object(object_id, revision_id),
+    }
+    if revision_id:
+        payload["revision_id"] = revision_id
+        payload["review"] = review_detail(object_id, revision_id, database_path=database_path)
+    return payload
+
+
 def app(database_path: str | Path = DB_PATH) -> Callable:
     resolved_database_path = Path(database_path)
 
@@ -56,9 +115,32 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
         query = parse_qs(environ.get("QUERY_STRING", ""))
         content_length = int(environ.get("CONTENT_LENGTH") or 0)
         raw_body = environ["wsgi.input"].read(content_length) if content_length else b""
-        request_payload = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+        try:
+            request_payload = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+        except json.JSONDecodeError:
+            return _json_response(
+                start_response,
+                "400 Bad Request",
+                _error_payload(
+                    error="invalid_request_body",
+                    title="Invalid JSON body",
+                    detail="The API received malformed JSON and could not parse the request body.",
+                    action="Send a valid JSON object payload.",
+                    category="user_action_needed",
+                ),
+            )
         if raw_body and not isinstance(request_payload, dict):
-            return _json_response(start_response, "400 Bad Request", {"error": "invalid_request_body"})
+            return _json_response(
+                start_response,
+                "400 Bad Request",
+                _error_payload(
+                    error="invalid_request_body",
+                    title="Invalid JSON body",
+                    detail="The API expects a top-level JSON object payload for operator actions.",
+                    action="Wrap request properties in a JSON object.",
+                    category="user_action_needed",
+                ),
+            )
 
         try:
             if path == "/" or path == "/health":
@@ -117,11 +199,21 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
                 )
 
             if method == "POST" and path == "/objects":
-                created = create_object_command(database_path=resolved_database_path, **request_payload)
+                actor = _actor_from_payload(request_payload, require_explicit=False)
+                created = create_object_command(
+                    database_path=resolved_database_path,
+                    actor=actor,
+                    **{key: value for key, value in request_payload.items() if key != "actor"},
+                )
                 return _json_response(
                     start_response,
                     "201 Created",
-                    {"object_id": created.object_id, "object_type": created.object_type, "title": created.title},
+                    _object_result_payload(
+                        object_id=created.object_id,
+                        database_path=resolved_database_path,
+                        message="Knowledge object shell created.",
+                        actor=actor,
+                    ),
                 )
 
             if path.startswith("/objects/"):
@@ -139,25 +231,68 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
                         revision_history(parts[1], database_path=resolved_database_path),
                     )
                 if method == "POST" and len(parts) == 3 and parts[2] == "revisions":
+                    actor = _actor_from_payload(request_payload, require_explicit=False)
                     created = create_revision_command(
                         database_path=resolved_database_path,
                         object_id=parts[1],
                         normalized_payload=request_payload["normalized_payload"],
                         body_markdown=request_payload["body_markdown"],
-                        actor=str(request_payload.get("actor") or "papyrus-api"),
+                        actor=actor,
                         legacy_metadata=request_payload.get("legacy_metadata") or {},
                         change_summary=request_payload.get("change_summary"),
                     )
                     return _json_response(
                         start_response,
                         "201 Created",
-                        {
-                            "revision_id": created.revision_id,
-                            "object_id": created.object_id,
-                            "revision_number": created.revision_number,
-                            "state": created.state,
-                        },
+                        _object_result_payload(
+                            object_id=created.object_id,
+                            revision_id=created.revision_id,
+                            database_path=resolved_database_path,
+                            message="Draft revision created.",
+                            actor=actor,
+                        ),
                     )
+                if method == "POST" and len(parts) == 3 and parts[2] == "supersede":
+                    actor = _actor_from_payload(request_payload, require_explicit=True)
+                    supersede_object_command(
+                        database_path=resolved_database_path,
+                        object_id=parts[1],
+                        replacement_object_id=str(request_payload["replacement_object_id"]),
+                        actor=actor,
+                        notes=str(request_payload["notes"]),
+                    )
+                    return _json_response(
+                        start_response,
+                        "200 OK",
+                        _object_result_payload(
+                            object_id=parts[1],
+                            database_path=resolved_database_path,
+                            message="Object superseded and replacement captured in audit history.",
+                            actor=actor,
+                        ),
+                    )
+                if method == "POST" and len(parts) == 3 and parts[2] == "mark-suspect":
+                    actor = _actor_from_payload(request_payload, require_explicit=True)
+                    result = mark_object_suspect_due_to_change_command(
+                        database_path=resolved_database_path,
+                        object_id=parts[1],
+                        actor=actor,
+                        reason=str(request_payload["reason"]),
+                        changed_entity_type=str(request_payload["changed_entity_type"]),
+                        changed_entity_id=str(request_payload.get("changed_entity_id") or "") or None,
+                    )
+                    payload = _object_result_payload(
+                        object_id=parts[1],
+                        database_path=resolved_database_path,
+                        message="Object marked suspect with explicit change rationale.",
+                        actor=actor,
+                    )
+                    payload["audit_event"] = {
+                        "event_type": result.event.event_type,
+                        "occurred_at": result.event.occurred_at.isoformat(),
+                        "details": result.event.details,
+                    }
+                    return _json_response(start_response, "200 OK", payload)
 
             if method == "GET" and path.startswith("/services/"):
                 parts = [unquote(part) for part in path.strip("/").split("/")]
@@ -194,16 +329,26 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
                     )
 
             if method == "POST" and path == "/reviews/submit":
+                actor = _actor_from_payload(request_payload, require_explicit=True)
                 result = submit_for_review_command(
                     database_path=resolved_database_path,
                     object_id=str(request_payload["object_id"]),
                     revision_id=str(request_payload["revision_id"]),
-                    actor=str(request_payload.get("actor") or "papyrus-api"),
+                    actor=actor,
                     notes=request_payload.get("notes"),
                 )
-                return _json_response(start_response, "200 OK", {"event_type": result.event.event_type})
+                payload = _object_result_payload(
+                    object_id=str(request_payload["object_id"]),
+                    revision_id=str(request_payload["revision_id"]),
+                    database_path=resolved_database_path,
+                    message="Revision submitted for review.",
+                    actor=actor,
+                )
+                payload["audit_event"] = {"event_type": result.event.event_type}
+                return _json_response(start_response, "200 OK", payload)
 
             if method == "POST" and path == "/reviews/assign":
+                actor = _actor_from_payload(request_payload, require_explicit=True)
                 due_at_raw = request_payload.get("due_at")
                 due_at = None
                 if isinstance(due_at_raw, str) and due_at_raw:
@@ -213,58 +358,169 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
                     object_id=str(request_payload["object_id"]),
                     revision_id=str(request_payload["revision_id"]),
                     reviewer=str(request_payload["reviewer"]),
-                    actor=str(request_payload.get("actor") or "papyrus-api"),
+                    actor=actor,
                     due_at=due_at,
                     notes=request_payload.get("notes"),
                 )
+                payload = _object_result_payload(
+                    object_id=str(request_payload["object_id"]),
+                    revision_id=str(request_payload["revision_id"]),
+                    database_path=resolved_database_path,
+                    message="Reviewer assigned.",
+                    actor=actor,
+                )
+                payload["assignment"] = {
+                    "assignment_id": assignment.assignment_id,
+                    "reviewer": assignment.reviewer,
+                    "state": assignment.state,
+                }
                 return _json_response(
                     start_response,
                     "200 OK",
-                    {"assignment_id": assignment.assignment_id, "reviewer": assignment.reviewer, "state": assignment.state},
+                    payload,
                 )
 
             if method == "POST" and path == "/reviews/approve":
+                actor = _actor_from_payload(request_payload, require_explicit=True)
                 approved = approve_revision_command(
                     database_path=resolved_database_path,
                     object_id=str(request_payload["object_id"]),
                     revision_id=str(request_payload["revision_id"]),
                     reviewer=str(request_payload["reviewer"]),
-                    actor=str(request_payload.get("actor") or "papyrus-api"),
+                    actor=actor,
                     notes=request_payload.get("notes"),
                 )
                 return _json_response(
                     start_response,
                     "200 OK",
-                    {"revision_id": approved.revision_id, "state": approved.state},
+                    _object_result_payload(
+                        object_id=approved.object_id,
+                        revision_id=approved.revision_id,
+                        database_path=resolved_database_path,
+                        message="Revision approved.",
+                        actor=actor,
+                    ),
                 )
 
             if method == "POST" and path == "/reviews/reject":
+                actor = _actor_from_payload(request_payload, require_explicit=True)
                 rejected = reject_revision_command(
                     database_path=resolved_database_path,
                     object_id=str(request_payload["object_id"]),
                     revision_id=str(request_payload["revision_id"]),
                     reviewer=str(request_payload["reviewer"]),
-                    actor=str(request_payload.get("actor") or "papyrus-api"),
+                    actor=actor,
                     notes=str(request_payload["notes"]),
                 )
                 return _json_response(
                     start_response,
                     "200 OK",
-                    {"revision_id": rejected.revision_id, "state": rejected.state},
+                    _object_result_payload(
+                        object_id=rejected.object_id,
+                        revision_id=rejected.revision_id,
+                        database_path=resolved_database_path,
+                        message="Revision rejected.",
+                        actor=actor,
+                    ),
+                )
+
+            if method == "POST" and path == "/validation-runs":
+                actor = _actor_from_payload(request_payload, require_explicit=True)
+                run_id = record_validation_run_command(
+                    database_path=resolved_database_path,
+                    run_id=str(request_payload["run_id"]),
+                    run_type=str(request_payload["run_type"]),
+                    status=str(request_payload["status"]),
+                    finding_count=int(request_payload.get("finding_count") or 0),
+                    details=request_payload.get("details") or {},
+                    actor=actor,
+                )
+                return _json_response(
+                    start_response,
+                    "201 Created",
+                    {
+                        "message": "Validation run recorded.",
+                        "actor": actor,
+                        "run_id": run_id,
+                        "links": {
+                            "validation_runs": "/manage/validation-runs",
+                            "audit": "/manage/audit",
+                        },
+                    },
                 )
 
             if method not in {"GET", "POST"}:
-                return _json_response(start_response, "405 Method Not Allowed", {"error": "method_not_allowed"})
+                return _json_response(
+                    start_response,
+                    "405 Method Not Allowed",
+                    _error_payload(
+                        error="method_not_allowed",
+                        title="Method not allowed",
+                        detail="This endpoint only supports the documented GET or POST operator flow.",
+                        action="Retry with GET for reads or POST for governed mutations.",
+                        category="user_action_needed",
+                    ),
+                )
 
-            return _json_response(start_response, "404 Not Found", {"error": "not_found", "path": path})
+            return _json_response(
+                start_response,
+                "404 Not Found",
+                _error_payload(
+                    error="not_found",
+                    title="Route not found",
+                    detail=f"No API route matches {path}.",
+                    action="Check the operator API path and try again.",
+                    category="user_action_needed",
+                ),
+            )
         except RuntimeUnavailableError as exc:
-            return _json_response(start_response, "503 Service Unavailable", {"error": "runtime_unavailable", "detail": str(exc)})
+            return _json_response(
+                start_response,
+                "503 Service Unavailable",
+                _error_payload(
+                    error="runtime_unavailable",
+                    title="Runtime unavailable",
+                    detail=str(exc),
+                    action="Run `python3 scripts/build_index.py` to rebuild the runtime projection.",
+                    category="runtime_rebuild_needed",
+                ),
+            )
         except (KnowledgeObjectNotFoundError, ServiceNotFoundError) as exc:
-            return _json_response(start_response, "404 Not Found", {"error": "not_found", "detail": str(exc)})
+            return _json_response(
+                start_response,
+                "404 Not Found",
+                _error_payload(
+                    error="not_found",
+                    title="Record not found",
+                    detail=str(exc),
+                    action="Verify the object, revision, or service identifier and try again.",
+                    category="user_action_needed",
+                ),
+            )
         except ValueError as exc:
-            return _json_response(start_response, "400 Bad Request", {"error": "bad_request", "detail": str(exc)})
-        except Exception as exc:  # pragma: no cover - exercised through interface integration tests
-            return _json_response(start_response, "500 Internal Server Error", {"error": "internal_error", "detail": str(exc)})
+            return _json_response(
+                start_response,
+                "400 Bad Request",
+                _error_payload(
+                    error="bad_request",
+                    title="Request rejected",
+                    detail=str(exc),
+                    action="Correct the request payload and retry the governed action.",
+                    category="user_action_needed",
+                ),
+            )
+        except Exception:  # pragma: no cover - exercised through interface integration tests
+            return _json_response(
+                start_response,
+                "500 Internal Server Error",
+                _error_payload(
+                    error="internal_error",
+                    title="Internal error",
+                    detail="Papyrus could not complete the request safely.",
+                    action="Retry the action. If the failure persists, inspect the local server logs and audit trail.",
+                    category="admin_action_needed",
+                ),
+            )
 
     return application
 

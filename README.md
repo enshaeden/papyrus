@@ -20,17 +20,23 @@ Papyrus is a local-first governed operational knowledge control plane for IT sup
 
 ```bash
 ./scripts/bootstrap.sh
-python3 scripts/validate.py
-python3 scripts/build_index.py
 python3 scripts/serve_web.py
 ```
 
-For terminal-first work:
+For terminal-first operator checks:
 
 ```bash
-python3 scripts/search.py vpn
-python3 scripts/report_stale.py
-python3 scripts/report_content_health.py
+python3 scripts/operator_view.py queue --db build/knowledge.db
+python3 scripts/operator_view.py dashboard --db build/knowledge.db
+python3 scripts/operator_view.py object kb-troubleshooting-vpn-connectivity --db build/knowledge.db
+```
+
+For a review/demo runtime with realistic workflow tension:
+
+```bash
+python3 scripts/demo_runtime.py
+python3 scripts/serve_web.py --db build/demo-knowledge.db
+python3 scripts/serve_api.py --db build/demo-knowledge.db
 ```
 
 ## Operator Docs
@@ -40,4 +46,5 @@ python3 scripts/report_content_health.py
 - Write playbook: [docs/playbooks/write.md](docs/playbooks/write.md)
 - Manage playbook: [docs/playbooks/manage.md](docs/playbooks/manage.md)
 - System model: [docs/reference/system-model.md](docs/reference/system-model.md)
+- Operator readiness: [docs/reference/operator-readiness.md](docs/reference/operator-readiness.md)
 - Decisions and rationale: [decisions/index.md](decisions/index.md)

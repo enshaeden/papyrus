@@ -12,6 +12,7 @@ from papyrus.application.impact_flow import (
     missing_owner_documents,
     relationless_documents,
 )
+from papyrus.application.posture import build_posture_summary
 from papyrus.application.validation_flow import orphaned_files
 from papyrus.domain.entities import SearchHit
 from papyrus.domain.policies import citation_health_label, searchable_statuses, status_rank_map
@@ -87,8 +88,19 @@ def search_projection(
             f"WHEN d.status = '{status}' THEN {rank}" for status, rank in status_rank.items()
         ) + " ELSE 999 END"
         governance_sql = (
-            "d.freshness_rank, d.citation_health_rank, d.ownership_rank, "
-            "CASE WHEN d.approval_state = 'approved' THEN 0 ELSE 1 END"
+            "CASE d.approval_state "
+            "WHEN 'approved' THEN 0 "
+            "WHEN 'in_review' THEN 1 "
+            "WHEN 'draft' THEN 2 "
+            "WHEN 'rejected' THEN 3 "
+            "ELSE 4 END, "
+            "CASE d.trust_state "
+            "WHEN 'trusted' THEN 0 "
+            "WHEN 'weak_evidence' THEN 1 "
+            "WHEN 'suspect' THEN 2 "
+            "WHEN 'stale' THEN 3 "
+            "ELSE 4 END, "
+            "d.citation_health_rank, d.freshness_rank, d.ownership_rank"
         )
         if has_fts:
             rows = connection.execute(
@@ -184,12 +196,44 @@ def _json_dict(value: object) -> dict[str, Any]:
 
 def _trust_priority(trust_state: str) -> int:
     order = {
+        "trusted": 0,
+        "weak_evidence": 1,
+        "suspect": 2,
+        "stale": 3,
+    }
+    return order.get(trust_state, 9)
+
+
+def _triage_trust_priority(trust_state: str) -> int:
+    order = {
         "stale": 0,
         "weak_evidence": 1,
         "suspect": 2,
         "trusted": 3,
     }
     return order.get(trust_state, 9)
+
+
+def _approval_priority(approval_state: str | None) -> int:
+    order = {
+        "approved": 0,
+        "in_review": 1,
+        "draft": 2,
+        "rejected": 3,
+        "superseded": 4,
+    }
+    return order.get(str(approval_state or ""), 9)
+
+
+def _triage_approval_priority(approval_state: str | None) -> int:
+    order = {
+        "in_review": 0,
+        "rejected": 1,
+        "draft": 2,
+        "approved": 3,
+        "superseded": 4,
+    }
+    return order.get(str(approval_state or ""), 9)
 
 
 def _queue_reasons(row: sqlite3.Row) -> list[str]:
@@ -208,14 +252,287 @@ def _queue_reasons(row: sqlite3.Row) -> list[str]:
     return reasons
 
 
+def _load_service_links(
+    connection: sqlite3.Connection,
+    object_ids: list[str],
+) -> dict[str, list[dict[str, str]]]:
+    if not object_ids:
+        return {}
+    placeholders = ", ".join("?" for _ in object_ids)
+    rows = connection.execute(
+        f"""
+        SELECT r.source_entity_id AS object_id, s.service_id, s.service_name
+        FROM relationships AS r
+        JOIN services AS s ON s.service_id = r.target_entity_id
+        WHERE r.source_entity_type = 'knowledge_object'
+          AND r.target_entity_type = 'service'
+          AND r.source_entity_id IN ({placeholders})
+        ORDER BY s.service_name
+        """,
+        tuple(object_ids),
+    ).fetchall()
+    mapping: dict[str, list[dict[str, str]]] = {}
+    for row in rows:
+        mapping.setdefault(str(row["object_id"]), []).append(
+            {
+                "service_id": str(row["service_id"]),
+                "service_name": str(row["service_name"]),
+            }
+        )
+    return mapping
+
+
+def _load_relationship_counts(
+    connection: sqlite3.Connection,
+    object_ids: list[str],
+) -> dict[str, int]:
+    if not object_ids:
+        return {}
+    placeholders = ", ".join("?" for _ in object_ids)
+    rows = connection.execute(
+        f"""
+        SELECT object_id, COUNT(*) AS item_count
+        FROM (
+            SELECT source_entity_id AS object_id
+            FROM relationships
+            WHERE source_entity_type = 'knowledge_object'
+              AND source_entity_id IN ({placeholders})
+            UNION ALL
+            SELECT target_entity_id AS object_id
+            FROM relationships
+            WHERE target_entity_type = 'knowledge_object'
+              AND target_entity_id IN ({placeholders})
+        )
+        GROUP BY object_id
+        """,
+        tuple(object_ids) + tuple(object_ids),
+    ).fetchall()
+    return {str(row["object_id"]): int(row["item_count"] or 0) for row in rows}
+
+
+def _load_latest_object_audit_events(
+    connection: sqlite3.Connection,
+    object_ids: list[str],
+) -> dict[str, dict[str, dict[str, Any]]]:
+    if not object_ids:
+        return {}
+    placeholders = ", ".join("?" for _ in object_ids)
+    rows = connection.execute(
+        f"""
+        SELECT object_id, event_type, occurred_at, actor, revision_id, details_json
+        FROM audit_events
+        WHERE object_id IN ({placeholders})
+        ORDER BY occurred_at DESC
+        """,
+        tuple(object_ids),
+    ).fetchall()
+    mapping: dict[str, dict[str, dict[str, Any]]] = {}
+    for row in rows:
+        object_id = str(row["object_id"])
+        event_type = str(row["event_type"])
+        object_events = mapping.setdefault(object_id, {})
+        if event_type in object_events:
+            continue
+        object_events[event_type] = {
+            "event_type": event_type,
+            "occurred_at": str(row["occurred_at"]),
+            "actor": str(row["actor"]),
+            "revision_id": str(row["revision_id"]) if row["revision_id"] is not None else None,
+            "details": _json_dict(row["details_json"]),
+        }
+    return mapping
+
+
+def _build_item_posture(
+    *,
+    object_id: str,
+    trust_state: str,
+    approval_state: str | None,
+    freshness_rank: int,
+    citation_health_rank: int,
+    ownership_rank: int,
+    owner: str,
+    current_revision_id: str | None,
+    audit_events: dict[str, dict[str, dict[str, Any]]],
+) -> dict[str, Any]:
+    object_events = audit_events.get(object_id, {})
+    return build_posture_summary(
+        trust_state=trust_state,
+        approval_state=approval_state,
+        freshness_rank=freshness_rank,
+        citation_health_rank=citation_health_rank,
+        ownership_rank=ownership_rank,
+        owner=owner,
+        current_revision_id=current_revision_id,
+        latest_suspect_event=object_events.get("object_marked_suspect_due_to_change"),
+    )
+
+
+def _augment_queue_items(connection: sqlite3.Connection, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    object_ids = [str(item["object_id"]) for item in items]
+    service_links = _load_service_links(connection, object_ids)
+    relationship_counts = _load_relationship_counts(connection, object_ids)
+    audit_events = _load_latest_object_audit_events(connection, object_ids)
+    for item in items:
+        object_id = str(item["object_id"])
+        item["linked_services"] = service_links.get(object_id, [])
+        item["relationship_count"] = relationship_counts.get(object_id, 0)
+        item["posture"] = _build_item_posture(
+            object_id=object_id,
+            trust_state=str(item["trust_state"]),
+            approval_state=item.get("approval_state"),
+            freshness_rank=int(item.get("freshness_rank") or 0),
+            citation_health_rank=int(item.get("citation_health_rank") or 0),
+            ownership_rank=int(item.get("ownership_rank") or 0),
+            owner=str(item.get("owner") or ""),
+            current_revision_id=str(item["current_revision_id"]) if item.get("current_revision_id") else None,
+            audit_events=audit_events,
+        )
+    return items
+
+
 def knowledge_queue(
     *,
     limit: int = 200,
     database_path: str | Path = DB_PATH,
+    ranking: str = "operator",
 ) -> list[dict[str, Any]]:
     connection = require_runtime_connection(database_path)
     try:
         rows = connection.execute(
+            """
+            SELECT
+                object_id,
+                revision_id,
+                title,
+                object_type,
+                status,
+                owner,
+                team,
+                path,
+                trust_state,
+                approval_state,
+                freshness_rank,
+                citation_health_rank,
+                ownership_rank
+            FROM search_documents
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        items = [
+            {
+                "object_id": str(row["object_id"]),
+                "title": str(row["title"]),
+                "object_type": str(row["object_type"]),
+                "status": str(row["status"]),
+                "owner": str(row["owner"]),
+                "team": str(row["team"]),
+                "path": str(row["path"]),
+                "trust_state": str(row["trust_state"]),
+                "approval_state": str(row["approval_state"]),
+                "freshness_rank": int(row["freshness_rank"]),
+                "citation_health_rank": int(row["citation_health_rank"]),
+                "ownership_rank": int(row["ownership_rank"]),
+                "current_revision_id": str(row["revision_id"]),
+                "reasons": _queue_reasons(row),
+            }
+            for row in rows
+        ]
+        _augment_queue_items(connection, items)
+        if ranking == "triage":
+            items.sort(
+                key=lambda item: (
+                    _triage_approval_priority(item["approval_state"]),
+                    _triage_trust_priority(item["trust_state"]),
+                    -int(item["citation_health_rank"]),
+                    -int(item["freshness_rank"]),
+                    -int(item["ownership_rank"]),
+                    item["title"],
+                )
+            )
+        else:
+            items.sort(
+                key=lambda item: (
+                    _approval_priority(item["approval_state"]),
+                    _trust_priority(item["trust_state"]),
+                    int(item["citation_health_rank"]),
+                    int(item["freshness_rank"]),
+                    int(item["ownership_rank"]),
+                    0 if item["linked_services"] else 1,
+                    0 if int(item["relationship_count"]) > 0 else 1,
+                    item["title"],
+                )
+            )
+        return items
+    finally:
+        connection.close()
+
+
+def search_knowledge_objects(
+    query: str,
+    *,
+    limit: int = 50,
+    database_path: str | Path = DB_PATH,
+) -> list[dict[str, Any]]:
+    connection = require_runtime_connection(database_path)
+    try:
+        candidate_limit = max(limit * 5, 100)
+        has_fts = connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='knowledge_search'"
+        ).fetchone()
+        rows_by_object_id: dict[str, sqlite3.Row] = {}
+        if has_fts:
+            try:
+                fts_rows = connection.execute(
+                    """
+                    SELECT
+                        d.object_id,
+                        d.title,
+                        d.object_type,
+                        d.status,
+                        d.owner,
+                        d.team,
+                        d.path,
+                        d.trust_state,
+                        d.approval_state,
+                        d.freshness_rank,
+                        d.citation_health_rank,
+                        d.ownership_rank
+                    FROM knowledge_search AS s
+                    JOIN search_documents AS d ON d.object_id = s.object_id
+                    WHERE knowledge_search MATCH ?
+                    ORDER BY
+                        CASE d.approval_state
+                            WHEN 'approved' THEN 0
+                            WHEN 'in_review' THEN 1
+                            WHEN 'draft' THEN 2
+                            WHEN 'rejected' THEN 3
+                            ELSE 4
+                        END,
+                        CASE d.trust_state
+                            WHEN 'trusted' THEN 0
+                            WHEN 'weak_evidence' THEN 1
+                            WHEN 'suspect' THEN 2
+                            WHEN 'stale' THEN 3
+                            ELSE 4
+                        END,
+                        d.citation_health_rank,
+                        d.freshness_rank,
+                        d.ownership_rank,
+                        bm25(knowledge_search),
+                        d.title
+                    LIMIT ?
+                    """,
+                    (query, candidate_limit),
+                ).fetchall()
+            except sqlite3.OperationalError:
+                fts_rows = []
+            for row in fts_rows:
+                rows_by_object_id[str(row["object_id"])] = row
+
+        like_query = f"%{query}%"
+        like_rows = connection.execute(
             """
             SELECT
                 object_id,
@@ -231,23 +548,36 @@ def knowledge_queue(
                 citation_health_rank,
                 ownership_rank
             FROM search_documents
+            WHERE search_text LIKE ?
+               OR object_id LIKE ?
+               OR title LIKE ?
             ORDER BY
-                CASE WHEN approval_state = 'approved' THEN 1 ELSE 0 END,
+                CASE approval_state
+                    WHEN 'approved' THEN 0
+                    WHEN 'in_review' THEN 1
+                    WHEN 'draft' THEN 2
+                    WHEN 'rejected' THEN 3
+                    ELSE 4
+                END,
                 CASE trust_state
-                    WHEN 'stale' THEN 0
+                    WHEN 'trusted' THEN 0
                     WHEN 'weak_evidence' THEN 1
                     WHEN 'suspect' THEN 2
-                    ELSE 3
+                    WHEN 'stale' THEN 3
+                    ELSE 4
                 END,
-                citation_health_rank DESC,
-                freshness_rank DESC,
-                ownership_rank DESC,
+                citation_health_rank,
+                freshness_rank,
+                ownership_rank,
                 title
             LIMIT ?
             """,
-            (limit,),
+            (like_query, like_query, like_query, candidate_limit),
         ).fetchall()
-        return [
+        for row in like_rows:
+            rows_by_object_id.setdefault(str(row["object_id"]), row)
+        rows = list(rows_by_object_id.values())
+        items = [
             {
                 "object_id": str(row["object_id"]),
                 "title": str(row["title"]),
@@ -261,110 +591,25 @@ def knowledge_queue(
                 "freshness_rank": int(row["freshness_rank"]),
                 "citation_health_rank": int(row["citation_health_rank"]),
                 "ownership_rank": int(row["ownership_rank"]),
+                "current_revision_id": None,
                 "reasons": _queue_reasons(row),
             }
             for row in rows
         ]
-    finally:
-        connection.close()
-
-
-def search_knowledge_objects(
-    query: str,
-    *,
-    limit: int = 50,
-    database_path: str | Path = DB_PATH,
-) -> list[dict[str, Any]]:
-    connection = require_runtime_connection(database_path)
-    try:
-        has_fts = connection.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='knowledge_search'"
-        ).fetchone()
-        if has_fts:
-            rows = connection.execute(
-                """
-                SELECT
-                    d.object_id,
-                    d.title,
-                    d.object_type,
-                    d.status,
-                    d.owner,
-                    d.team,
-                    d.path,
-                    d.trust_state,
-                    d.approval_state,
-                    d.freshness_rank,
-                    d.citation_health_rank,
-                    d.ownership_rank
-                FROM knowledge_search AS s
-                JOIN search_documents AS d ON d.object_id = s.object_id
-                WHERE knowledge_search MATCH ?
-                ORDER BY
-                    CASE d.trust_state
-                        WHEN 'stale' THEN 0
-                        WHEN 'weak_evidence' THEN 1
-                        WHEN 'suspect' THEN 2
-                        ELSE 3
-                    END,
-                    d.citation_health_rank DESC,
-                    d.freshness_rank DESC,
-                    bm25(knowledge_search),
-                    d.title
-                LIMIT ?
-                """,
-                (query, limit),
-            ).fetchall()
-        else:
-            like_query = f"%{query}%"
-            rows = connection.execute(
-                """
-                SELECT
-                    object_id,
-                    title,
-                    object_type,
-                    status,
-                    owner,
-                    team,
-                    path,
-                    trust_state,
-                    approval_state,
-                    freshness_rank,
-                    citation_health_rank,
-                    ownership_rank
-                FROM search_documents
-                WHERE search_text LIKE ?
-                ORDER BY
-                    CASE trust_state
-                        WHEN 'stale' THEN 0
-                        WHEN 'weak_evidence' THEN 1
-                        WHEN 'suspect' THEN 2
-                        ELSE 3
-                    END,
-                    citation_health_rank DESC,
-                    freshness_rank DESC,
-                    title
-                LIMIT ?
-                """,
-                (like_query, limit),
-            ).fetchall()
-        return [
-            {
-                "object_id": str(row["object_id"]),
-                "title": str(row["title"]),
-                "object_type": str(row["object_type"]),
-                "status": str(row["status"]),
-                "owner": str(row["owner"]),
-                "team": str(row["team"]),
-                "path": str(row["path"]),
-                "trust_state": str(row["trust_state"]),
-                "approval_state": str(row["approval_state"]),
-                "freshness_rank": int(row["freshness_rank"]),
-                "citation_health_rank": int(row["citation_health_rank"]),
-                "ownership_rank": int(row["ownership_rank"]),
-                "reasons": _queue_reasons(row),
-            }
-            for row in rows
-        ]
+        _augment_queue_items(connection, items)
+        items.sort(
+            key=lambda item: (
+                _approval_priority(item["approval_state"]),
+                _trust_priority(item["trust_state"]),
+                int(item["citation_health_rank"]),
+                int(item["freshness_rank"]),
+                int(item["ownership_rank"]),
+                0 if item["linked_services"] else 1,
+                0 if int(item["relationship_count"]) > 0 else 1,
+                item["title"],
+            )
+        )
+        return items[:limit]
     finally:
         connection.close()
 
@@ -493,6 +738,33 @@ def knowledge_object_detail(
                 (object_id,),
             ).fetchall()
         ]
+        unresolved_relationships = [
+            {
+                "relationship_type": str(row["relationship_type"]),
+                "target_entity_type": str(row["target_entity_type"]),
+                "target_entity_id": str(row["target_entity_id"]),
+            }
+            for row in connection.execute(
+                """
+                SELECT r.relationship_type, r.target_entity_type, r.target_entity_id
+                FROM relationships AS r
+                LEFT JOIN knowledge_objects AS o
+                  ON r.target_entity_type = 'knowledge_object'
+                 AND o.object_id = r.target_entity_id
+                LEFT JOIN services AS s
+                  ON r.target_entity_type = 'service'
+                 AND s.service_id = r.target_entity_id
+                WHERE r.source_entity_type = 'knowledge_object'
+                  AND r.source_entity_id = ?
+                  AND (
+                    (r.target_entity_type = 'knowledge_object' AND o.object_id IS NULL)
+                    OR (r.target_entity_type = 'service' AND s.service_id IS NULL)
+                  )
+                ORDER BY r.relationship_type, r.target_entity_id
+                """,
+                (object_id,),
+            ).fetchall()
+        ]
         audit_events = [
             {
                 "event_type": str(row["event_type"]),
@@ -511,6 +783,19 @@ def knowledge_object_detail(
                 (object_id,),
             ).fetchall()
         ]
+        posture = build_posture_summary(
+            trust_state=str(object_row["trust_state"]),
+            approval_state=str(object_row["approval_state"]) if object_row["approval_state"] is not None else None,
+            freshness_rank=int(object_row["freshness_rank"] or 0),
+            citation_health_rank=int(object_row["citation_health_rank"] or 0),
+            ownership_rank=int(object_row["ownership_rank"] or 0),
+            owner=str(object_row["owner"]),
+            current_revision_id=str(object_row["current_revision_id"]) if object_row["current_revision_id"] is not None else None,
+            latest_suspect_event=next(
+                (event for event in audit_events if event["event_type"] == "object_marked_suspect_due_to_change"),
+                None,
+            ),
+        )
 
         return {
             "object": {
@@ -539,6 +824,7 @@ def knowledge_object_detail(
                 "systems": [str(item) for item in _json_list(object_row["systems_json"])],
                 "path": str(object_row["path"]) if object_row["path"] is not None else str(object_row["canonical_path"]),
             },
+            "posture": posture,
             "current_revision": (
                 {
                     "revision_id": str(current_revision["revision_id"]),
@@ -556,6 +842,7 @@ def knowledge_object_detail(
             "related_services": related_services,
             "outbound_relationships": outbound_relationships,
             "inbound_relationships": inbound_relationships,
+            "unresolved_relationships": unresolved_relationships,
             "audit_events": audit_events,
         }
     finally:
@@ -701,6 +988,9 @@ def service_detail(
                 "path": str(row["canonical_path"]),
                 "status": str(row["status"]),
                 "trust_state": str(row["trust_state"]),
+                "approval_state": str(row["approval_state"]) if row["approval_state"] is not None else None,
+                "citation_health_rank": int(row["citation_health_rank"] or 0),
+                "freshness_rank": int(row["freshness_rank"] or 0),
                 "relationship_type": str(row["relationship_type"]),
             }
             for row in connection.execute(
@@ -711,9 +1001,13 @@ def service_detail(
                     o.canonical_path,
                     o.status,
                     o.trust_state,
+                    d.approval_state,
+                    d.citation_health_rank,
+                    d.freshness_rank,
                     r.relationship_type
                 FROM relationships AS r
                 JOIN knowledge_objects AS o ON o.object_id = r.source_entity_id
+                LEFT JOIN search_documents AS d ON d.object_id = o.object_id
                 WHERE r.target_entity_type = 'service'
                   AND r.target_entity_id = ?
                 ORDER BY o.title
@@ -751,6 +1045,11 @@ def service_detail(
             },
             "canonical_object": canonical_object,
             "linked_objects": linked_objects,
+            "service_posture": {
+                "linked_object_count": len(linked_objects),
+                "non_approved_count": sum(1 for item in linked_objects if item["approval_state"] != "approved"),
+                "degraded_count": sum(1 for item in linked_objects if item["trust_state"] != "trusted"),
+            },
         }
     finally:
         connection.close()
@@ -846,10 +1145,11 @@ def trust_dashboard(
                 "status": str(row["status"]),
                 "finding_count": int(row["finding_count"]),
                 "completed_at": str(row["completed_at"]),
+                "details": _json_dict(row["details_json"]),
             }
             for row in connection.execute(
                 """
-                SELECT run_type, status, finding_count, completed_at
+                SELECT run_type, status, finding_count, completed_at, details_json
                 FROM validation_runs
                 ORDER BY completed_at DESC
                 LIMIT 20
@@ -862,14 +1162,32 @@ def trust_dashboard(
                 "SELECT validity_status, COUNT(*) AS item_count FROM citations GROUP BY validity_status"
             ).fetchall()
         }
+        latest_validation = validation_runs[0] if validation_runs else None
+        validation_posture = {
+            "summary": "No validation runs recorded",
+            "detail": "Papyrus cannot prove the runtime was recently validated.",
+            "action": "Rebuild the runtime or record a validation run before using the manage surface for governance decisions.",
+            "severity": "serious",
+        }
+        if latest_validation is not None:
+            validation_posture = {
+                "summary": f"Latest validation: {latest_validation['run_type']}",
+                "detail": (
+                    f"Most recent validation finished with status '{latest_validation['status']}' "
+                    f"and {latest_validation['finding_count']} finding(s)."
+                ),
+                "action": "Inspect validation run history for the exact findings before approving risky changes.",
+                "severity": "informational" if latest_validation["status"] == "passed" else "serious",
+            }
         return {
             "object_count": object_count,
             "trust_counts": trust_counts,
             "approval_counts": approval_counts,
             "citation_health_counts": citation_health_counts,
             "evidence_counts": evidence_counts,
-            "queue": knowledge_queue(limit=25, database_path=database_path),
+            "queue": knowledge_queue(limit=25, database_path=database_path, ranking="triage"),
             "validation_runs": validation_runs,
+            "validation_posture": validation_posture,
         }
     finally:
         connection.close()
@@ -996,6 +1314,7 @@ def manage_queue(
             if item["trust_state"] != "trusted":
                 item["reasons"].append(f"trust:{item['trust_state']}")
             items.append(item)
+        _augment_queue_items(connection, items)
 
         return {
             "items": items,

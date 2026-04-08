@@ -6,8 +6,6 @@ Use this path when you need a working Papyrus runtime quickly.
 
 ```bash
 ./scripts/bootstrap.sh
-python3 scripts/validate.py
-python3 scripts/build_index.py
 ```
 
 Outcome:
@@ -34,9 +32,17 @@ python3 scripts/serve_api.py
 For terminal-first work:
 
 ```bash
-python3 scripts/search.py vpn
-python3 scripts/report_stale.py
-python3 scripts/report_content_health.py
+python3 scripts/operator_view.py queue --db build/knowledge.db
+python3 scripts/operator_view.py dashboard --db build/knowledge.db
+python3 scripts/operator_view.py object kb-troubleshooting-vpn-connectivity --db build/knowledge.db
+```
+
+For a fast demo/runtime review path:
+
+```bash
+python3 scripts/demo_runtime.py
+python3 scripts/serve_web.py --db build/demo-knowledge.db
+python3 scripts/serve_api.py --db build/demo-knowledge.db
 ```
 
 ## 3. Pick The Right Playbook

@@ -255,6 +255,9 @@ def validate_directory_contract(policy: dict[str, Any]) -> list[ValidationIssue]
         "build/knowledge.db",
         "build/knowledge.db-shm",
         "build/knowledge.db-wal",
+        "build/demo-knowledge.db",
+        "build/demo-knowledge.db-shm",
+        "build/demo-knowledge.db-wal",
     }
     for item in build_files:
         if item not in allowed_build_files:

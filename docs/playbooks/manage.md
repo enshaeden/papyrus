@@ -22,6 +22,8 @@ Open the runtime-backed queue:
 ```bash
 python3 scripts/serve_web.py
 python3 scripts/serve_api.py
+python3 scripts/operator_view.py manage-queue --db build/knowledge.db
+python3 scripts/operator_view.py dashboard --db build/knowledge.db
 ```
 
 - Web queue route: `/queue`
@@ -49,8 +51,8 @@ Approval should mean the current revision is operationally usable and adequately
 
 Current repository boundary:
 
-- the repository exposes review inspection through the runtime-backed web and API surfaces
-- approval and rejection remain governance workflow actions, not standalone top-level reviewer scripts in this repository
+- the repository exposes governed operator actions through the shared application layer and thin CLI, API, and web surfaces
+- reviewer assignment, approval, rejection, supersession, suspect marking, and validation-run recording all leave audit evidence
 
 ## Inspect Audit And Revision History
 
@@ -95,6 +97,13 @@ Use the trust dashboard for trend and queue visibility:
 
 - Web trust dashboard route: `/dashboard/trust`
 - API trust dashboard route: `/dashboard/trust`
+- CLI trust dashboard: `python3 scripts/operator_view.py dashboard --db build/knowledge.db`
+
+Additional governed manage routes:
+
+- `/manage/objects/{object_id}/suspect`
+- `/manage/objects/{object_id}/supersede`
+- `/manage/validation-runs/new`
 
 ## Use Papyrus As A Governance Surface
 

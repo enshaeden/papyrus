@@ -7,7 +7,7 @@ This document describes the current Papyrus operator web interface after the ser
 - Provide a stable operator shell for three modes of use: read, write, and manage.
 - Preserve the application service layer as the source of workflow behavior.
 - Keep trust posture, approval state, evidence health, and audit signals visible across the interface.
-- Support governed POST workflows for object creation, revision authoring, review submission, reviewer assignment, approval, and rejection.
+- Support governed POST workflows for object creation, revision authoring, review submission, reviewer assignment, approval, rejection, supersession, suspect marking, and validation-run recording.
 
 This change does not rework repository schemas, canonical source layout, or the underlying governance workflow model.
 
@@ -32,6 +32,7 @@ This change does not rework repository schemas, canonical source layout, or the 
 - No new third-party Python dependencies were introduced.
 - The refactor continues to use the existing standard-library WSGI stack and repository taxonomies.
 - The JSON API was extended to expose thin write/manage endpoints aligned to existing application commands.
+- Queue, dashboard, object detail, and review detail now share explicit posture summaries so approval and trust do not blur together.
 
 ## Tradeoffs And Known Limitations
 
@@ -46,3 +47,4 @@ This change does not rework repository schemas, canonical source layout, or the 
 - The compatibility import path remains the same: `papyrus.interfaces.web`.
 - Read surfaces preserve queue, object detail, revision history, service detail, dashboard, and impact coverage while improving trust visibility.
 - Write and manage flows now use redirect-after-post patterns so operator actions are explicit and inspectable.
+- Governed manage routes now capture rationale for rejection, supersession, and suspect posture rather than silently mutating runtime state.

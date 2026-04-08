@@ -89,8 +89,8 @@ Use the runtime-backed queue and revision history surfaces during review so the 
 
 Current repository boundary:
 
-- inspection happens through the runtime-backed queue and revision views
-- approval-state changes are tracked in the governance workflow layer rather than through a standalone top-level author CLI
+- inspection happens through the runtime-backed queue, revision, CLI parity, and object detail views
+- approval-state changes are tracked in the governance workflow layer rather than through ad-hoc file or database edits
 
 ## Handle Rejection Or Follow-Up Revision
 

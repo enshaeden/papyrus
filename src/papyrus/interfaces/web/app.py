@@ -60,12 +60,20 @@ def match_pattern(pattern: str, path: str) -> dict[str, str] | None:
     return params
 
 
-def _error_page(runtime: WebRuntime, *, title: str, detail: str, status: str, active_nav: str = "manage") -> str:
+def _error_page(
+    runtime: WebRuntime,
+    *,
+    title: str,
+    detail: str,
+    status: str,
+    action: str,
+    active_nav: str = "manage",
+) -> str:
     components = ComponentPresenter(runtime.template_renderer)
     error_html = components.section_card(
         title=title,
         eyebrow="System",
-        body_html=f"<p>{detail}</p><p class=\"section-footer\">HTTP status: {status}</p>",
+        body_html=f"<p>{detail}</p><p><strong>Next action:</strong> {action}</p><p class=\"section-footer\">HTTP status: {status}</p>",
         tone="danger" if status.startswith("5") else "default",
     )
     return runtime.page_renderer.render_page(
@@ -106,7 +114,7 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
                 asset = runtime.page_renderer.load_static_asset(relative_path)
                 if asset is None:
                     return html_response(
-                        _error_page(runtime, title="Asset not found", detail=f"No static asset for {request.path}", status="404", active_nav="manage"),
+                        _error_page(runtime, title="Asset not found", detail=f"No static asset for {request.path}", status="404", action="Refresh the page or verify the static asset path.", active_nav="manage"),
                         status="404 Not Found",
                     ).as_wsgi(start_response)
                 return static_response(asset[0], asset[1]).as_wsgi(start_response)
@@ -114,29 +122,34 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
             route = router.match(request)
             if route is None:
                 return html_response(
-                    _error_page(runtime, title="Not found", detail=f"No route for {request.path}", status="404", active_nav="manage"),
+                    _error_page(runtime, title="Not found", detail=f"No route for {request.path}", status="404", action="Check the Papyrus route and try again.", active_nav="manage"),
                     status="404 Not Found",
                 ).as_wsgi(start_response)
             if route.methods == ("__method_not_allowed__",):
                 return html_response(
-                    _error_page(runtime, title="Method not allowed", detail="Use the supported GET or POST workflow for this route.", status="405", active_nav="manage"),
+                    _error_page(runtime, title="Method not allowed", detail="Use the supported GET or POST workflow for this route.", status="405", action="Retry with the documented method for this screen.", active_nav="manage"),
                     status="405 Method Not Allowed",
                 ).as_wsgi(start_response)
             response = route.handler(request)
             return response.as_wsgi(start_response)
         except RuntimeUnavailableError as exc:
             return html_response(
-                _error_page(runtime, title="Runtime unavailable", detail=str(exc), status="503", active_nav="manage"),
+                _error_page(runtime, title="Runtime unavailable", detail=str(exc), status="503", action="Run `python3 scripts/build_index.py` and reload the page.", active_nav="manage"),
                 status="503 Service Unavailable",
             ).as_wsgi(start_response)
-        except (KnowledgeObjectNotFoundError, ServiceNotFoundError, ValueError) as exc:
+        except (KnowledgeObjectNotFoundError, ServiceNotFoundError) as exc:
             return html_response(
-                _error_page(runtime, title="Not found", detail=str(exc), status="404", active_nav="manage"),
+                _error_page(runtime, title="Not found", detail=str(exc), status="404", action="Verify the object, revision, or service identifier.", active_nav="manage"),
                 status="404 Not Found",
             ).as_wsgi(start_response)
-        except Exception as exc:  # pragma: no cover
+        except ValueError as exc:
             return html_response(
-                _error_page(runtime, title="Internal error", detail=str(exc), status="500", active_nav="manage"),
+                _error_page(runtime, title="Request rejected", detail=str(exc), status="400", action="Correct the form input or workflow state and try again.", active_nav="manage"),
+                status="400 Bad Request",
+            ).as_wsgi(start_response)
+        except Exception:  # pragma: no cover
+            return html_response(
+                _error_page(runtime, title="Internal error", detail="Papyrus could not complete the request safely.", status="500", action="Retry the action. If it persists, inspect local server logs and the audit trail.", active_nav="manage"),
                 status="500 Internal Server Error",
             ).as_wsgi(start_response)
 

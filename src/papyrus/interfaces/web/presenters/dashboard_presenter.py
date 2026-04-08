@@ -27,7 +27,7 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
                     link(item["title"], f"/objects/{quoted_path(item['object_id'])}"),
                     escape(item["trust_state"]),
                     escape(item["approval_state"]),
-                    escape(", ".join(item["reasons"])),
+                    escape(item["posture"]["trust_summary"]),
                 ]
                 for item in dashboard["queue"]
             ],
@@ -54,9 +54,9 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
     aside_html = components.validation_summary(
         title="Actionability",
         findings=[
-            "Every top queue item links straight to the object detail.",
-            "Validation runs stay adjacent to trust posture so governance owners can move from metric to evidence.",
-            "Dashboard cards remain inspectable and deterministic.",
+            dashboard["validation_posture"]["summary"] + ": " + dashboard["validation_posture"]["detail"],
+            "Every priority item links straight to the object detail and audit trail.",
+            "Approval state and trust posture are shown separately so review status does not hide evidence or freshness risk.",
         ],
     )
     return {

@@ -2,11 +2,23 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import sqlite3
 import sys
 
 from papyrus.application.commands import build_projection_command, validate_repository_command
-from papyrus.application.queries import CONTENT_HEALTH_SECTIONS, collect_content_health_sections, search_projection, stale_projection
+from papyrus.application.queries import (
+    CONTENT_HEALTH_SECTIONS,
+    collect_content_health_sections,
+    knowledge_object_detail,
+    knowledge_queue,
+    manage_queue,
+    review_detail,
+    search_projection,
+    stale_projection,
+    trust_dashboard,
+    validation_run_history,
+)
 from papyrus.domain.policies import searchable_statuses
 from papyrus.infrastructure.markdown.serializer import parse_iso_date
 from papyrus.infrastructure.paths import DB_PATH
@@ -142,3 +154,125 @@ def build_index_main() -> int:
         return 1
     print(f"built {result.database_path} with {result.document_count} knowledge object(s) using {result.mode}")
     return 0
+
+
+def _emit_payload(payload: object, *, output_format: str) -> int:
+    if output_format == "json":
+        print(json.dumps(payload, sort_keys=True, ensure_ascii=True, indent=2))
+        return 0
+    if isinstance(payload, list):
+        for item in payload:
+            print(item)
+        return 0
+    print(payload)
+    return 0
+
+
+def operator_main() -> int:
+    parser = argparse.ArgumentParser(description="Inspect Papyrus operator surfaces from the terminal.")
+    parser.add_argument("--db", default=str(DB_PATH), help="Path to the runtime SQLite database.")
+    parser.add_argument("--format", choices=("text", "json"), default="text", help="Output format.")
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--db", default=None, help=argparse.SUPPRESS)
+    common.add_argument("--format", choices=("text", "json"), default=None, help=argparse.SUPPRESS)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    queue_parser = subparsers.add_parser("queue", help="Show the read queue.", parents=[common])
+    queue_parser.add_argument("--limit", type=int, default=25, help="Maximum queue items.")
+
+    dashboard_parser = subparsers.add_parser("dashboard", help="Show the trust dashboard.", parents=[common])
+    dashboard_parser.add_argument("--limit", type=int, default=25, help="Maximum queue items in text mode.")
+
+    object_parser = subparsers.add_parser("object", help="Show a knowledge object detail.", parents=[common])
+    object_parser.add_argument("object_id", help="Knowledge object ID.")
+
+    review_parser = subparsers.add_parser("review", help="Show review detail for a revision.", parents=[common])
+    review_parser.add_argument("object_id", help="Knowledge object ID.")
+    review_parser.add_argument("revision_id", help="Revision ID.")
+
+    subparsers.add_parser("manage-queue", help="Show the manage queue.", parents=[common])
+    subparsers.add_parser("validation-runs", help="Show validation run history.", parents=[common])
+
+    args = parser.parse_args()
+    database_path = args.db or str(DB_PATH)
+    output_format = args.format or "text"
+
+    if args.command == "queue":
+        payload = knowledge_queue(limit=args.limit, database_path=database_path)
+        if output_format == "json":
+            return _emit_payload({"queue": payload}, output_format=output_format)
+        lines = [
+            f"{item['object_id']} | {item['title']} | trust={item['trust_state']} | approval={item['approval_state']} | why={item['posture']['trust_summary']}"
+            for item in payload
+        ]
+        return _emit_payload(lines, output_format="text")
+
+    if args.command == "dashboard":
+        payload = trust_dashboard(database_path=database_path)
+        if output_format == "json":
+            return _emit_payload(payload, output_format=output_format)
+        lines = [
+            f"objects={payload['object_count']}",
+            "trust=" + ", ".join(f"{key}={value}" for key, value in sorted(payload["trust_counts"].items())),
+            "approval=" + ", ".join(f"{key}={value}" for key, value in sorted(payload["approval_counts"].items())),
+            "validation=" + payload["validation_posture"]["summary"],
+        ]
+        lines.extend(
+            f"queue | {item['object_id']} | trust={item['trust_state']} | approval={item['approval_state']} | why={item['posture']['trust_summary']}"
+            for item in payload["queue"][: args.limit]
+        )
+        return _emit_payload(lines, output_format="text")
+
+    if args.command == "object":
+        payload = knowledge_object_detail(args.object_id, database_path=database_path)
+        if output_format == "json":
+            return _emit_payload(payload, output_format=output_format)
+        lines = [
+            f"{payload['object']['object_id']} | {payload['object']['title']}",
+            f"trust={payload['object']['trust_state']} | approval={payload['object']['approval_state']}",
+            payload["posture"]["trust_summary"] + " | " + payload["posture"]["trust_detail"],
+        ]
+        lines.extend(
+            f"service | {service['service_name']} | {service['status']}"
+            for service in payload["related_services"]
+        )
+        return _emit_payload(lines, output_format="text")
+
+    if args.command == "review":
+        payload = review_detail(args.object_id, args.revision_id, database_path=database_path)
+        if output_format == "json":
+            return _emit_payload(payload, output_format=output_format)
+        lines = [
+            f"{payload['object']['object_id']} | revision={payload['revision']['revision_id']} | state={payload['revision']['revision_state']}",
+            f"approval={payload['object']['approval_state']} | trust={payload['object']['trust_state']}",
+        ]
+        lines.extend(
+            f"assignment | reviewer={assignment['reviewer']} | state={assignment['state']}"
+            for assignment in payload["assignments"]
+        )
+        return _emit_payload(lines, output_format="text")
+
+    if args.command == "manage-queue":
+        payload = manage_queue(database_path=database_path)
+        if output_format == "json":
+            return _emit_payload(payload, output_format=output_format)
+        lines = [
+            f"review_required={len(payload['review_required'])}",
+            f"stale={len(payload['stale_items'])}",
+            f"weak_evidence={len(payload['weak_evidence_items'])}",
+            f"ownership_gaps={len(payload['ownership_items'])}",
+        ]
+        lines.extend(
+            f"review | {item['object_id']} | revision={item['revision_id']} | why={item['posture']['trust_summary']}"
+            for item in payload["review_required"]
+        )
+        return _emit_payload(lines, output_format="text")
+
+    payload = validation_run_history(database_path=database_path)
+    if output_format == "json":
+        return _emit_payload({"validation_runs": payload}, output_format=output_format)
+    lines = [
+        f"{run['run_id']} | {run['run_type']} | status={run['status']} | findings={run['finding_count']}"
+        for run in payload
+    ]
+    return _emit_payload(lines, output_format="text")

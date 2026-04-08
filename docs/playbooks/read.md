@@ -21,7 +21,8 @@ Terminal:
 
 ```bash
 python3 scripts/search.py vpn
-python3 scripts/search.py --limit 20 "job change"
+python3 scripts/operator_view.py queue --db build/knowledge.db
+python3 scripts/operator_view.py object kb-troubleshooting-vpn-connectivity --db build/knowledge.db
 ```
 
 Browser or API:
@@ -36,6 +37,12 @@ python3 scripts/serve_api.py
 - API queue route: `/queue`
 
 Use search when you know the topic. Use the queue, trust dashboard, or service detail views when you need to browse by operational posture.
+
+Use the operator CLI when you need parity checks without opening the browser:
+
+- `python3 scripts/operator_view.py queue --db build/knowledge.db`
+- `python3 scripts/operator_view.py dashboard --db build/knowledge.db`
+- `python3 scripts/operator_view.py object <object_id> --db build/knowledge.db`
 
 ## Check Trust Posture Before Acting
 

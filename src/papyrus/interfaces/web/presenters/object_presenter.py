@@ -11,6 +11,17 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
     components = ComponentPresenter(renderer)
     item = detail["object"]
     revision = detail["current_revision"]
+    posture = detail.get("posture") or {
+        "trust_detail": "Object trust, approval, and evidence health stay visible while the operator reads the content.",
+        "blocking_failures": [],
+        "serious_warnings": [],
+        "informational_warnings": [],
+        "approval": {
+            "summary": str(item.get("approval_state") or "unknown"),
+            "detail": "Approval detail is not available in this presenter payload.",
+            "action": "Inspect the object detail query payload for approval guidance.",
+        },
+    }
     header_html = components.object_header(
         object_type=item["object_type"],
         object_id=item["object_id"],
@@ -27,6 +38,8 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                 link("Revision history", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
                 link("New revision", f"/write/objects/{quoted_path(item['object_id'])}/revisions/new", css_class="button button-primary"),
                 link("Impact view", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
+                link("Mark suspect", f"/manage/objects/{quoted_path(item['object_id'])}/suspect", css_class="button button-secondary"),
+                link("Supersede", f"/manage/objects/{quoted_path(item['object_id'])}/supersede", css_class="button button-secondary"),
             ],
             " ",
         ),
@@ -94,6 +107,14 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                 ],
                 empty_label="No inbound relationships linked.",
             ),
+            components.relationships_panel(
+                title="Missing linked targets",
+                items=[
+                    f"{escape(relationship['relationship_type'])}: {escape(relationship['target_entity_type'])} {escape(relationship['target_entity_id'])}"
+                    for relationship in detail.get("unresolved_relationships", [])
+                ],
+                empty_label="No broken linked services or knowledge objects were detected.",
+            ),
         ]
     )
     aside_html = join_html(
@@ -105,7 +126,25 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                     components.badge(label="Approval", value=item["approval_state"] or "unknown", tone=tone_for_approval(item["approval_state"])),
                     components.badge(label="Current revision", value=revision["revision_state"] if revision else "none", tone=tone_for_approval(revision["revision_state"] if revision else "draft")),
                 ],
-                summary="Object trust, approval, and evidence health stay visible while the operator reads the content.",
+                summary=posture["trust_detail"],
+            ),
+            components.validation_summary(
+                title="Trust reasons",
+                findings=[
+                    *[reason["summary"] + ": " + reason["detail"] for reason in posture["blocking_failures"]],
+                    *[reason["summary"] + ": " + reason["detail"] for reason in posture["serious_warnings"]],
+                    *[reason["summary"] + ": " + reason["detail"] for reason in posture["informational_warnings"]],
+                ],
+                empty_label="No active trust warnings.",
+            ),
+            components.section_card(
+                title="Approval posture",
+                eyebrow="Governance",
+                body_html=(
+                    f"<p><strong>{escape(posture['approval']['summary'])}</strong></p>"
+                    f"<p>{escape(posture['approval']['detail'])}</p>"
+                    f"<p class=\"section-footer\">Next action: {escape(posture['approval']['action'])}</p>"
+                ),
             ),
             components.metadata_list(
                 title="Object metadata",
@@ -123,7 +162,14 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
             components.audit_panel(
                 title="Recent audit",
                 items=[
-                    f"{escape(format_timestamp(event['occurred_at']))} · {escape(event['event_type'])} · {escape(event['actor'])}"
+                    (
+                        f"{escape(format_timestamp(event['occurred_at']))} · {escape(event['event_type'])} · {escape(event['actor'])}"
+                        + (
+                            f'<span class="list-meta"> · {escape(", ".join(f"{key}={value}" for key, value in event["details"].items() if value))}</span>'
+                            if event["details"]
+                            else ""
+                        )
+                    )
                     for event in detail["audit_events"]
                 ],
                 empty_label="No audit events recorded.",

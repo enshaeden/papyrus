@@ -178,12 +178,11 @@ def trust_state(
     citation_health_rank_value: int,
     ownership_rank_value: int,
 ) -> str:
+    del ownership_rank_value
     if freshness_rank_value > 0:
         return TrustState.STALE.value
     if citation_health_rank_value > 0:
         return TrustState.WEAK_EVIDENCE.value
-    if ownership_rank_value > 0:
-        return TrustState.SUSPECT.value
     return TrustState.TRUSTED.value if status != "draft" else TrustState.SUSPECT.value
 
 

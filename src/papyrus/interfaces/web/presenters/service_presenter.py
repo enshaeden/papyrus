@@ -34,6 +34,7 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
                         f"<p><strong>Support entrypoints:</strong> {escape(', '.join(service['support_entrypoints']) or 'None')}</p>",
                         f"<p><strong>Dependencies:</strong> {escape(', '.join(service['dependencies']) or 'None')}</p>",
                         f"<p><strong>Common failure modes:</strong> {escape(', '.join(service['common_failure_modes']) or 'None')}</p>",
+                        f"<p><strong>Linked objects requiring attention:</strong> {escape(detail['service_posture']['degraded_count'])}</p>",
                     ]
                 ),
             ),
@@ -53,7 +54,7 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
         eyebrow="Read",
         body_html=join_html(
             [
-                f'<div class="linked-object-row">{link(item["title"], f"/objects/{quoted_path(item["object_id"])}")}<span class="list-meta">{escape(item["relationship_type"])} · {escape(item["trust_state"])}</span></div>'
+                f'<div class="linked-object-row">{link(item["title"], f"/objects/{quoted_path(item["object_id"])}")}<span class="list-meta">{escape(item["relationship_type"])} · trust {escape(item["trust_state"])} · approval {escape(item["approval_state"] or "unknown")}</span></div>'
                 for item in detail["linked_objects"]
             ]
         ) or '<p class="empty-state-copy">No knowledge objects are linked to this service.</p>',

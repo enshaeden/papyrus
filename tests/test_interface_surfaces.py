@@ -137,7 +137,7 @@ class InterfaceSurfaceTests(unittest.TestCase):
         self.assertEqual(status, "200 OK")
         self.assertIn("Knowledge Queue", body)
         self.assertIn("/objects/", body)
-        self.assertIn("citation:", body)
+        self.assertIn("Evidence is weak or unverified", body)
 
         status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")

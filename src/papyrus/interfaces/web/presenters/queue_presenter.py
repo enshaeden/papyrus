@@ -17,13 +17,19 @@ def present_queue_page(
     selected_approval: str,
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
+    normalized_items = []
+    for item in items:
+        normalized = dict(item)
+        normalized.setdefault("posture", {"trust_summary": ", ".join(item.get("reasons", [])) or str(item.get("trust_state") or "")})
+        normalized.setdefault("linked_services", [])
+        normalized_items.append(normalized)
     summary_html = components.trust_summary(
         title="Queue posture",
         badges=[
-            components.badge(label="Items", value=len(items), tone="approved"),
-            components.badge(label="Approval pending", value=sum(1 for item in items if item["approval_state"] != "approved"), tone="pending"),
-            components.badge(label="Weak evidence", value=sum(1 for item in items if item["citation_health_rank"] > 0), tone="warning"),
-            components.badge(label="Stale", value=sum(1 for item in items if item["freshness_rank"] > 0), tone="danger"),
+            components.badge(label="Items", value=len(normalized_items), tone="approved"),
+            components.badge(label="Approval pending", value=sum(1 for item in normalized_items if item["approval_state"] != "approved"), tone="pending"),
+            components.badge(label="Weak evidence", value=sum(1 for item in normalized_items if item["citation_health_rank"] > 0), tone="warning"),
+            components.badge(label="Stale", value=sum(1 for item in normalized_items if item["freshness_rank"] > 0), tone="danger"),
         ],
         summary="Trust metadata stays visible in queue triage so operators can judge fitness before opening an article.",
     )
@@ -56,26 +62,33 @@ def present_queue_page(
     rows = [
         [
             f"{link(item['title'], f'/objects/{quoted_path(item['object_id'])}')}"
-            f'<p class="cell-meta">{escape(item["object_id"])}</p>',
+            f'<p class="cell-meta">{escape(item["object_id"])} · {escape(item["path"])}</p>',
             escape(item["object_type"]),
             components.badge(label="Trust", value=item["trust_state"], tone="approved" if item["trust_state"] == "trusted" else "warning"),
             components.badge(label="Approval", value=item["approval_state"], tone="approved" if item["approval_state"] == "approved" else "pending"),
-            escape(", ".join(item["reasons"])),
+            escape(item["posture"]["trust_summary"]),
+            (
+                ", ".join(
+                    link(service["service_name"], f"/services/{quoted_path(service['service_id'])}")
+                    for service in item["linked_services"]
+                )
+                if item["linked_services"]
+                else '<span class="cell-meta">isolated</span>'
+            ),
             escape(item["owner"]),
-            escape(item["path"]),
         ]
-        for item in items
+        for item in normalized_items
     ]
     queue_html = (
         components.section_card(
             title="Knowledge queue",
             eyebrow="Read",
             body_html=components.queue_table(
-                headers=["Title", "Type", "Trust", "Approval", "Reasons", "Owner", "Path"],
+                headers=["Title", "Type", "Trust", "Approval", "Why", "Services", "Owner"],
                 rows=rows,
                 table_id="knowledge-queue",
             ),
-            footer_html='<p class="section-footer">Ordered for approval risk, trust posture, evidence quality, and ownership clarity.</p>',
+            footer_html='<p class="section-footer">Ordered to surface the most trustworthy and best-connected operational answer before weaker or isolated content.</p>',
         )
         if rows
         else components.empty_state(
@@ -96,9 +109,9 @@ def present_queue_page(
             components.validation_summary(
                 title="What to look for",
                 findings=[
-                    "Non-approved revisions before active use.",
-                    "Weak citations before escalation-heavy work.",
-                    "Review-due items before following stale runbooks.",
+                    "Prefer approved and service-linked content before isolated drafts.",
+                    "Read the explicit trust reason, not just the headline trust badge.",
+                    "Treat stale or weak-evidence items as prompts to verify, not silent soft-failures.",
                 ],
             ),
         ]
