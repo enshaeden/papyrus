@@ -4,7 +4,7 @@ Papyrus is being refactored from an article-centric Markdown repository into a g
 
 ## Current State
 
-Phase 1 through Phase 8 establish the current control-plane spine.
+Phase 1 through Phase 9 establish the current control-plane spine.
 
 - Canonical authored source remains Markdown with YAML front matter under `knowledge/` and `archive/knowledge/`.
 - Core runtime logic moves into `src/papyrus/`.
@@ -137,6 +137,7 @@ Derived artifacts are useful but secondary:
 - `build/` can continue to hold local runtime artifacts
 
 None of those areas are authoritative. The control plane must function even if static-site navigation is absent.
+The retained static export is now an explicit approved-content publication path. It depends on runtime approval state and is no longer the default build or serve surface.
 
 ## Migration Boundary
 
@@ -154,4 +155,4 @@ What changes is the operating focus:
 
 - from article-centric to knowledge-object centric
 - from script-centric to application-package centric
-- from static-site-led browsing to governance-aware runtime services
+- from static-site-led browsing to governance-aware runtime services, with static export retained only as an optional approved-content publication layer

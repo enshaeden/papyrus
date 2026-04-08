@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import datetime as dt
 import html
 import json
 import re
 import shutil
+import sys
 from collections import Counter, defaultdict
 from os import path as os_path
 from pathlib import Path
 from urllib.parse import urlencode
 
 from kb_common import (
+    DB_PATH,
     DECISIONS_DIR,
     DOCS_DIR,
     GENERATED_SITE_DOCS_DIR,
@@ -42,6 +45,7 @@ from kb_common import (
     site_relative_path_for_repo_path,
     stale_articles,
 )
+from papyrus.application.export_flow import ExportRuntimeUnavailableError, approved_export_object_ids
 
 WORKFLOW_STARTERS = (
     (
@@ -175,10 +179,20 @@ def render_placeholder_label(label: str) -> str:
     return rendered
 
 
+def exportable_site_target(
+    repo_relative: str,
+    allowed_repo_paths: set[str] | None = None,
+) -> Path | None:
+    if allowed_repo_paths is not None and repo_relative not in allowed_repo_paths:
+        return None
+    return site_relative_path_for_repo_path(repo_relative)
+
+
 def rewrite_local_markdown_links(
     source_path: Path,
     destination_relative: Path,
     text: str,
+    allowed_repo_paths: set[str] | None = None,
 ) -> str:
     def replace(match) -> str:
         label, target = match.groups()
@@ -194,9 +208,9 @@ def rewrite_local_markdown_links(
             repo_relative = relative_path(resolved)
         except ValueError:
             return match.group(0)
-        site_target = site_relative_path_for_repo_path(repo_relative)
+        site_target = exportable_site_target(repo_relative, allowed_repo_paths)
         if site_target is None:
-            return match.group(0)
+            return render_placeholder_label(label)
 
         rewritten = relative_site_link(destination_relative, site_target)
         if fragment:
@@ -219,7 +233,13 @@ def normalize_placeholder_links(text: str) -> str:
     return ORPHAN_PLACEHOLDER_LINK_PATTERN.sub("", normalized)
 
 
-def copy_source_tree(source_root: Path, destination_root: Path, paths: list[Path]) -> None:
+def copy_source_tree(
+    source_root: Path,
+    destination_root: Path,
+    paths: list[Path],
+    *,
+    allowed_repo_paths: set[str] | None = None,
+) -> None:
     for path in paths:
         target = destination_root / path.relative_to(source_root)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -229,6 +249,7 @@ def copy_source_tree(source_root: Path, destination_root: Path, paths: list[Path
                 path,
                 target.relative_to(GENERATED_SITE_DOCS_DIR),
                 text,
+                allowed_repo_paths,
             )
             target.write_text(rewritten, encoding="utf-8")
             continue
@@ -362,7 +383,12 @@ def render_metric_grid(metrics: list[tuple[str, str]]) -> str:
     return "\n".join(lines)
 
 
-def render_site_home(articles: list, docs_paths: list[Path], decision_paths: list[Path]) -> str:
+def render_site_home(
+    export_articles: list,
+    docs_paths: list[Path],
+    decision_paths: list[Path],
+    excluded_count: int,
+) -> str:
     current_relative = Path("index.md")
     doc_markdown_count = len([path for path in docs_paths if path.suffix == ".md"])
     decision_record_count = len(
@@ -374,8 +400,8 @@ def render_site_home(articles: list, docs_paths: list[Path], decision_paths: lis
     )
     cards = [
         (
-            "Knowledge Base",
-            "Canonical operator-facing procedures, references, troubleshooting guides, runbooks, and SOPs.",
+            "Approved Knowledge Export",
+            "Browse the approved static export of knowledge objects without exposing draft or unreviewed runtime state.",
             site_href(current_relative, Path("knowledge/index.md")),
         ),
         (
@@ -390,23 +416,27 @@ def render_site_home(articles: list, docs_paths: list[Path], decision_paths: lis
         ),
     ]
     metrics = [
-        (str(len(articles)), "canonical knowledge articles"),
+        (str(len(export_articles)), "approved knowledge exports"),
+        (str(excluded_count), "source knowledge objects excluded from export"),
         (str(doc_markdown_count), "system and design docs"),
         (str(decision_record_count), "decision records"),
     ]
     return (
         "<!-- Generated from source content. Do not edit here. -->\n\n"
         "# Papyrus\n\n"
-        "Papyrus separates canonical operational knowledge from repository/system documentation and structural decisions.\n\n"
+        "This site is an optional approved-content export from Papyrus.\n\n"
+        "The primary operator surfaces are the CLI, the local runtime database, the JSON API, and the server-rendered operator web interface.\n\n"
+        "Use this export for browseable approved knowledge and supporting repository documentation. Do not treat it as the operational control plane or source of truth.\n\n"
         f"{render_card_grid(cards)}\n\n"
         f"{render_metric_grid(metrics)}\n\n"
-        "## Default Path\n\n"
-        "- Start in the [Knowledge Base](knowledge/index.md) when you need to do the work.\n"
-        "- Use [Start Here](knowledge/start-here.md), [Support Discovery](knowledge/support.md), or the [Knowledge Explorer](knowledge/explorer.md) to find operational procedures quickly.\n\n"
+        "## Export Scope\n\n"
+        "- Knowledge pages appear here only when the current runtime revision is approved.\n"
+        "- Draft, unreviewed, or rejected runtime state is intentionally excluded from this export.\n"
+        "- Use [Start Here](knowledge/start-here.md), [Support Discovery](knowledge/support.md), or the [Knowledge Explorer](knowledge/explorer.md) for browse-only discovery of approved knowledge.\n\n"
         "## Area Guide\n\n"
-        "### Knowledge Base\n\n"
-        "- Canonical source for operator-facing procedures, references, troubleshooting content, runbooks, and SOPs.\n"
-        "- Source of truth: `knowledge/` and `archive/knowledge/`.\n\n"
+        "### Approved Knowledge Export\n\n"
+        "- Approved export of operator-facing procedures, references, troubleshooting content, runbooks, and service records.\n"
+        "- Source of truth remains `knowledge/` and `archive/knowledge/`, not this site.\n\n"
         "### System & Design Docs\n\n"
         "- Use [System & Design Docs](system-design-docs/index.md) for repository architecture, schema behavior, generator design, taxonomy design, and contributor workflow guidance.\n"
         "- Source of truth: `docs/`.\n\n"
@@ -533,7 +563,11 @@ def render_related_articles(article, by_id: dict[str, object]) -> str:
     return "\n".join(related_lines) + "\n"
 
 
-def render_reference_lines(article, by_id: dict[str, object]) -> str:
+def render_reference_lines(
+    article,
+    by_id: dict[str, object],
+    allowed_repo_paths: set[str],
+) -> str:
     current_relative = site_relative_path_for_article(article)
     lines = []
     for reference in article.metadata["references"]:
@@ -545,7 +579,7 @@ def render_reference_lines(article, by_id: dict[str, object]) -> str:
             if reference.get("note"):
                 line += f" - {reference['note']}"
         elif path:
-            target_relative = site_relative_path_for_repo_path(path)
+            target_relative = exportable_site_target(path, allowed_repo_paths)
             if target_relative is not None:
                 href = relative_site_link(current_relative, target_relative)
                 line = f"[{reference['title']}]({href})"
@@ -707,11 +741,23 @@ def render_browse_more_links(article) -> str:
     return "\n".join(lines) + "\n"
 
 
-def render_article_page(article, by_id: dict[str, object], articles: list, inbound_graph: dict[str, set[str]]) -> str:
+def render_article_page(
+    article,
+    by_id: dict[str, object],
+    articles: list,
+    inbound_graph: dict[str, set[str]],
+    allowed_repo_paths: set[str],
+) -> str:
     metadata = article.metadata
     notes_section = ""
     if article.body:
-        notes_section = f"\n## Additional Notes\n\n{normalize_placeholder_links(article.body)}\n"
+        rewritten_body = rewrite_local_markdown_links(
+            article.source_path,
+            site_relative_path_for_article(article),
+            article.body,
+            allowed_repo_paths,
+        )
+        notes_section = f"\n## Additional Notes\n\n{normalize_placeholder_links(rewritten_body)}\n"
 
     classification_gaps = []
     if not metadata["services"]:
@@ -781,7 +827,7 @@ def render_article_page(article, by_id: dict[str, object], articles: list, inbou
         "### Browse More Like This\n\n"
         f"{render_browse_more_links(article)}\n"
         "## References\n\n"
-        f"{render_reference_lines(article, by_id)}\n"
+        f"{render_reference_lines(article, by_id, allowed_repo_paths)}\n"
         "## Change Log\n\n"
         f"{render_change_log(metadata['change_log'])}"
         f"{notes_section}"
@@ -866,7 +912,7 @@ def render_explorer_page(articles: list, taxonomies: dict[str, dict[str, object]
     return (
         "<!-- Generated from canonical source content. Do not edit here. -->\n\n"
         "# Knowledge Explorer\n\n"
-        "Use the filters below to browse canonical knowledge by audience, type, service, system, tag, "
+        "Use the filters below to browse approved export knowledge by audience, type, service, system, tag, "
         "team, owner, and lifecycle status without relying on the repository tree alone.\n\n"
         '<div class="kb-explorer" id="kb-explorer">\n'
         '  <div class="kb-explorer-controls" id="kb-explorer-controls"></div>\n'
@@ -889,7 +935,7 @@ def render_support_page(by_id: dict[str, object]) -> str:
         "",
         "# Support Discovery",
         "",
-        "Use these role-based entry points to find active operational guidance quickly.",
+        "Use these role-based entry points to find approved operational guidance quickly.",
         "",
         render_card_grid(cards),
         "",
@@ -1318,32 +1364,28 @@ def render_landing_page(
     current_relative = Path("knowledge/index.md")
     cards = [
         ("Support", "Task-oriented entry points for support specialists.", page_href(current_relative, "support.md")),
-        ("Authors", "Validated authoring guidance, taxonomy usage, and discovery checks.", page_href(current_relative, "authors.md")),
-        ("Managers", "Coverage, lifecycle, and ownership audit surfaces.", page_href(current_relative, "managers.md")),
         ("Explorer", "Faceted browsing across canonical metadata.", page_href(current_relative, "explorer.md")),
         ("Knowledge Tree", "Repository-path view for auditing the canonical structure.", page_href(current_relative, "tree.md")),
-        ("Content Health", "Generated discovery and lifecycle gap reporting.", page_href(current_relative, "content-health.md")),
+        ("By Service", "Browse approved export content grouped by service area.", page_href(current_relative, "by-service.md")),
+        ("By Type", "Browse approved export content grouped by knowledge object type.", page_href(current_relative, "by-type.md")),
     ]
     status_counts = Counter(article.metadata["status"] for article in articles)
     metrics = [
-        (str(len(visible_articles)), "current navigation articles"),
-        (str(len(articles)), "total canonical knowledge objects"),
+        (str(len(visible_articles)), "approved navigation articles"),
+        (str(len(articles)), "approved export knowledge objects"),
         (str(len(taxonomies["services"]["values"])), "service taxonomy values"),
         (str(len(taxonomies["systems"]["values"])), "system taxonomy values"),
-        (str(status_counts.get("deprecated", 0)), "deprecated articles"),
-        (str(status_counts.get("archived", 0)), "archived articles"),
+        (str(status_counts.get("deprecated", 0)), "deprecated approved exports"),
+        (str(status_counts.get("archived", 0)), "archived approved exports"),
     ]
     lines = [
         "<!-- Generated from canonical source content. Do not edit here. -->",
         "",
         "# Knowledge Base",
         "",
-        "This landing page prioritizes discovery, interoperability, and audit views over raw folder browsing.",
+        "This landing page exposes the approved static export of Papyrus knowledge objects.",
         "",
-        "Need repository mechanics or contributor guidance? Use "
-        f"[System & Design Docs]({relative_site_link(current_relative, Path('system-design-docs/index.md'))}). "
-        "Need policy or rationale for a structural choice? Use "
-        f"[Governance & Decisions]({relative_site_link(current_relative, Path('decisions/index.md'))}).",
+        "The interactive operator queue, trust dashboard, and impact views live in the runtime-backed web and API surfaces, not in this export.",
         "",
         render_card_grid(cards),
         "",
@@ -1377,11 +1419,29 @@ def render_landing_page(
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Build the optional approved-only Papyrus static export."
+    )
+    parser.add_argument(
+        "--db",
+        default=str(DB_PATH),
+        help="Path to the runtime SQLite database used for approval gating.",
+    )
+    args = parser.parse_args()
+
     policy = load_policy()
     taxonomies = load_taxonomies()
-    articles = load_articles(policy)
+    source_articles = load_articles(policy)
     docs_paths = collect_docs_source_paths()
     decision_paths = collect_decision_paths()
+    try:
+        approved_ids = approved_export_object_ids(args.db)
+    except ExportRuntimeUnavailableError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    articles = [article for article in source_articles if article.metadata["id"] in approved_ids]
+    excluded_count = len(source_articles) - len(articles)
     by_id = {article.metadata["id"]: article for article in articles}
     visible_status_list = navigation_statuses(policy)
     visible_statuses = set(visible_status_list)
@@ -1389,6 +1449,11 @@ def main() -> int:
     archived_articles = [article for article in articles if article.metadata["status"] == "archived"]
     outbound_graph = reference_graph(articles)
     inbound_graph = inverse_reference_graph(outbound_graph)
+    allowed_repo_paths = {
+        *(article.relative_path for article in articles),
+        *(relative_path(path) for path in docs_paths),
+        *(relative_path(path) for path in decision_paths),
+    }
 
     if GENERATED_SITE_DOCS_DIR.exists():
         shutil.rmtree(GENERATED_SITE_DOCS_DIR)
@@ -1397,17 +1462,30 @@ def main() -> int:
     if LEGACY_GENERATED_DOCS_DIR.exists():
         shutil.rmtree(LEGACY_GENERATED_DOCS_DIR)
 
-    copy_source_tree(DOCS_DIR, GENERATED_SITE_DOCS_DIR / "system-design-docs", docs_paths)
-    copy_source_tree(DECISIONS_DIR, GENERATED_SITE_DOCS_DIR / "decisions", decision_paths)
+    copy_source_tree(
+        DOCS_DIR,
+        GENERATED_SITE_DOCS_DIR / "system-design-docs",
+        docs_paths,
+        allowed_repo_paths=allowed_repo_paths,
+    )
+    copy_source_tree(
+        DECISIONS_DIR,
+        GENERATED_SITE_DOCS_DIR / "decisions",
+        decision_paths,
+        allowed_repo_paths=allowed_repo_paths,
+    )
     (GENERATED_SITE_DOCS_DIR / "index.md").write_text(
-        render_site_home(articles, docs_paths, decision_paths),
+        render_site_home(articles, docs_paths, decision_paths, excluded_count),
         encoding="utf-8",
     )
 
     for article in articles:
         destination = site_article_output_path(article)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(render_article_page(article, by_id, articles, inbound_graph), encoding="utf-8")
+        destination.write_text(
+            render_article_page(article, by_id, articles, inbound_graph, allowed_repo_paths),
+            encoding="utf-8",
+        )
 
     by_type = defaultdict(list)
     by_audience = defaultdict(list)
@@ -1439,21 +1517,6 @@ def main() -> int:
     )
     (knowledge_root / "start-here.md").write_text(render_start_here(by_id), encoding="utf-8")
     (knowledge_root / "support.md").write_text(render_support_page(by_id), encoding="utf-8")
-    (knowledge_root / "authors.md").write_text(
-        render_authors_page(
-            articles,
-            taxonomies,
-            find_possible_duplicate_articles(
-                articles,
-                float(policy["duplicate_detection"]["title_similarity_threshold"]),
-            ),
-        ),
-        encoding="utf-8",
-    )
-    (knowledge_root / "managers.md").write_text(
-        render_manager_page(articles, visible_articles, taxonomies),
-        encoding="utf-8",
-    )
     (knowledge_root / "explorer.md").write_text(
         render_explorer_page(articles, taxonomies, visible_status_list),
         encoding="utf-8",
@@ -1528,20 +1591,12 @@ def main() -> int:
     (knowledge_root / "by-status.md").write_text(
         render_grouped_index_page(
             "Knowledge By Status",
-            "Browse canonical knowledge grouped by lifecycle status.",
+            "Browse approved export knowledge grouped by lifecycle status.",
             by_status,
             "knowledge/by-status.md",
             "status",
             [entry["name"] for entry in taxonomies["statuses"]["values"]],
         ),
-        encoding="utf-8",
-    )
-    (knowledge_root / "content-health.md").write_text(
-        render_content_health_page(articles, taxonomies, policy),
-        encoding="utf-8",
-    )
-    (knowledge_root / "coverage-matrix.md").write_text(
-        render_coverage_matrix_page(articles, taxonomies),
         encoding="utf-8",
     )
 
@@ -1550,7 +1605,10 @@ def main() -> int:
     (archive_root / "index.md").write_text(render_archive_index(archived_articles), encoding="utf-8")
 
     expected_pages = {relative_path for relative_path in GENERATED_SITE_INDEX_PATHS}
-    print(f"generated site docs for {len(articles)} knowledge object(s) across {len(expected_pages)} generated indexes")
+    print(
+        f"generated approved static export for {len(articles)} knowledge object(s) "
+        f"and excluded {excluded_count} source object(s) across {len(expected_pages)} generated indexes"
+    )
     return 0
 
 

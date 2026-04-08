@@ -27,8 +27,6 @@ GENERATED_SITE_INDEX_PATHS = (
     "knowledge/index.md",
     "knowledge/start-here.md",
     "knowledge/support.md",
-    "knowledge/authors.md",
-    "knowledge/managers.md",
     "knowledge/explorer.md",
     "knowledge/tree.md",
     "knowledge/by-type.md",
@@ -38,9 +36,11 @@ GENERATED_SITE_INDEX_PATHS = (
     "knowledge/by-tag.md",
     "knowledge/by-team.md",
     "knowledge/by-status.md",
-    "knowledge/content-health.md",
-    "knowledge/coverage-matrix.md",
     "archive/index.md",
+)
+GENERATED_SITE_ASSET_PATHS = (
+    "system-design-docs/assets/site.css",
+    "system-design-docs/assets/knowledge-explorer.js",
 )
 FRONT_MATTER_PATTERN = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)$", re.DOTALL)
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")

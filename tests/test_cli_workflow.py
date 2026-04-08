@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import re
 import sqlite3
 import subprocess
@@ -11,6 +12,11 @@ from shutil import copytree, which
 
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+
+from papyrus.application.review_flow import GovernanceWorkflow
+from papyrus.application.sync_flow import build_search_projection
+from papyrus.infrastructure.markdown.parser import parse_knowledge_document
 
 
 def mkdocs_available() -> bool:
@@ -29,13 +35,14 @@ def run_command(*args: str) -> subprocess.CompletedProcess[str]:
 
 class CliWorkflowTests(unittest.TestCase):
     def test_build_site_docs_cli(self) -> None:
+        build_index = run_command("scripts/build_index.py")
+        self.assertEqual(build_index.returncode, 0, msg=build_index.stderr)
         result = run_command("scripts/build_site_docs.py")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         generated_home = ROOT / "generated" / "site_docs" / "index.md"
         generated_index = ROOT / "generated" / "site_docs" / "knowledge" / "index.md"
         generated_docs_index = ROOT / "generated" / "site_docs" / "system-design-docs" / "index.md"
         generated_explorer = ROOT / "generated" / "site_docs" / "knowledge" / "explorer.md"
-        generated_health = ROOT / "generated" / "site_docs" / "knowledge" / "content-health.md"
         generated_ticket_guide = (
             ROOT
             / "generated"
@@ -58,14 +65,13 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertTrue(generated_index.exists())
         self.assertTrue(generated_docs_index.exists())
         self.assertTrue(generated_explorer.exists())
-        self.assertTrue(generated_health.exists())
         self.assertTrue(generated_ticket_guide.exists())
         self.assertTrue(generated_license_guide.exists())
         generated_home_text = generated_home.read_text(encoding="utf-8")
         generated_explorer_text = generated_explorer.read_text(encoding="utf-8")
         generated_ticket_guide_text = generated_ticket_guide.read_text(encoding="utf-8")
         generated_license_guide_text = generated_license_guide.read_text(encoding="utf-8")
-        self.assertIn("Knowledge Base", generated_home_text)
+        self.assertIn("approved-content export", generated_home_text)
         self.assertIn('href="knowledge/"', generated_home_text)
         self.assertNotIn('href="knowledge/index.md"', generated_home_text)
         self.assertIn("System & Design Docs", generated_docs_index.read_text(encoding="utf-8"))
@@ -77,6 +83,48 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertIn("Job and Org Change", generated_ticket_guide_text)
         self.assertNotIn("](<INTERNAL_URL>)", generated_license_guide_text)
         self.assertNotIn("](<SUPPLIER_PORTAL_URL>)", generated_license_guide_text)
+
+    def test_build_site_docs_cli_exports_only_runtime_approved_objects(self) -> None:
+        generated_vpn_guide = (
+            ROOT
+            / "generated"
+            / "site_docs"
+            / "knowledge"
+            / "troubleshooting"
+            / "vpn-connectivity.md"
+        )
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                database_path = Path(temp_dir) / "workflow.db"
+                build_search_projection(database_path)
+                workflow = GovernanceWorkflow(database_path)
+
+                document = parse_knowledge_document(
+                    ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
+                )
+                payload = copy.deepcopy(document.metadata)
+                payload["summary"] = "Draft export suppression test for VPN troubleshooting."
+                payload["change_log"] = [
+                    *payload["change_log"],
+                    {"date": "2026-04-07", "summary": "Draft export suppression test.", "author": "tests"},
+                ]
+                workflow.create_revision(
+                    object_id=payload["id"],
+                    normalized_payload=payload,
+                    body_markdown=f"{document.body}\n\nDraft export suppression test note.",
+                    actor="tests",
+                    legacy_metadata=document.metadata,
+                    change_summary="Draft export suppression test.",
+                )
+
+                result = run_command("scripts/build_site_docs.py", "--db", str(database_path))
+                self.assertEqual(result.returncode, 0, msg=result.stderr)
+                self.assertFalse(generated_vpn_guide.exists())
+        finally:
+            rebuild_index = run_command("scripts/build_index.py")
+            self.assertEqual(rebuild_index.returncode, 0, msg=rebuild_index.stderr)
+            restore = run_command("scripts/build_site_docs.py")
+            self.assertEqual(restore.returncode, 0, msg=restore.stderr)
 
     def test_new_article_cli(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -123,10 +171,22 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("validated", result.stdout)
 
-    @unittest.skipUnless(mkdocs_available(), "mkdocs not installed")
-    def test_build_sh_runs_rendered_site_validation(self) -> None:
+    def test_build_sh_builds_runtime_without_static_export(self) -> None:
         result = subprocess.run(
             ["bash", "scripts/build.sh"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("validated", result.stdout)
+        self.assertIn("knowledge.db", result.stdout)
+
+    @unittest.skipUnless(mkdocs_available(), "mkdocs not installed")
+    def test_build_static_export_sh_runs_rendered_site_validation(self) -> None:
+        result = subprocess.run(
+            ["bash", "scripts/build_static_export.sh"],
             cwd=ROOT,
             text=True,
             capture_output=True,

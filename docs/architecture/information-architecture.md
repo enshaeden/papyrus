@@ -39,4 +39,5 @@ The repository previously centered the runtime around Markdown articles plus scr
 
 - Generated pages under `generated/`, SQLite files under `build/`, and rendered output under `site/` are derived artifacts.
 - Derived artifacts must remain reproducible from source and the application package.
+- The static export is an optional approved-content publication path, not the default operator surface.
 - Generated artifacts are inspectable and useful, but they are never authoritative.

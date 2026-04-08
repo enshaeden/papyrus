@@ -135,10 +135,23 @@ The web and API surfaces are thin wrappers over the same application query layer
 
 ## Static Export
 
-Run:
+Build the optional approved-content export:
+
+```bash
+./scripts/build_static_export.sh
+```
+
+Serve the optional approved-content export preview:
+
+```bash
+./scripts/serve_static_export.sh
+```
+
+Use the default convenience wrapper for the primary operator web surface:
 
 ```bash
 ./scripts/serve.sh
 ```
 
+The static export is gated by runtime approval state. Knowledge objects whose current runtime revision is not approved are excluded from `generated/site_docs/` and `site/`.
 The static export remains useful for publishing and browseability, but it is not the primary operating model of Papyrus.

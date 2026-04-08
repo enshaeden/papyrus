@@ -1,5 +1,5 @@
-site_name: Papyrus
-site_description: Local-first governed operational knowledge control plane for IT support and systems operations
+site_name: Papyrus Approved Export
+site_description: Approved-content static export for Papyrus
 site_url: http://127.0.0.1:8000/
 docs_dir: generated/site_docs
 site_dir: site
@@ -12,12 +12,10 @@ extra_javascript:
   - system-design-docs/assets/knowledge-explorer.js
 nav:
   - Home: index.md
-  - Knowledge Base:
+  - Approved Knowledge:
       - Overview: knowledge/index.md
       - Start Here: knowledge/start-here.md
       - Support: knowledge/support.md
-      - Authors: knowledge/authors.md
-      - Managers: knowledge/managers.md
       - Explorer: knowledge/explorer.md
       - Tree: knowledge/tree.md
       - By Type: knowledge/by-type.md
@@ -27,8 +25,6 @@ nav:
       - By Tag: knowledge/by-tag.md
       - By Team: knowledge/by-team.md
       - By Status: knowledge/by-status.md
-      - Content Health: knowledge/content-health.md
-      - Coverage Matrix: knowledge/coverage-matrix.md
       - Archive: archive/index.md
   - System & Design Docs:
       - Overview: system-design-docs/index.md

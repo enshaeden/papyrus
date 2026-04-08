@@ -4,6 +4,7 @@ import datetime as dt
 import re
 from typing import Any, Iterable
 
+from papyrus.application.export_flow import ExportRuntimeUnavailableError, filter_approved_export_documents
 from papyrus.application.impact_flow import find_possible_duplicate_documents
 from papyrus.domain.entities import KnowledgeDocument, ValidationIssue
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
@@ -24,6 +25,7 @@ from papyrus.infrastructure.paths import (
     DOMAIN_PATTERN,
     EMAIL_PATTERN,
     GENERATED_DIR,
+    GENERATED_SITE_ASSET_PATHS,
     GENERATED_SITE_DOCS_DIR,
     GENERIC_BRAND_ALLOWLIST,
     IP_PATTERN,
@@ -267,7 +269,10 @@ def validate_directory_contract(policy: dict[str, Any]) -> list[ValidationIssue]
     return issues
 
 
-def expected_site_doc_paths(documents: list[KnowledgeDocument]) -> set[str]:
+def expected_site_doc_paths(
+    documents: list[KnowledgeDocument],
+    database_path=DB_PATH,
+) -> set[str]:
     expected: set[str] = set()
 
     for path in collect_docs_source_paths():
@@ -282,18 +287,25 @@ def expected_site_doc_paths(documents: list[KnowledgeDocument]) -> set[str]:
     from papyrus.infrastructure.paths import GENERATED_SITE_INDEX_PATHS
 
     expected.update(relative_path(GENERATED_SITE_DOCS_DIR / path) for path in GENERATED_SITE_INDEX_PATHS)
+    expected.update(relative_path(GENERATED_SITE_DOCS_DIR / path) for path in GENERATED_SITE_ASSET_PATHS)
 
-    for document in documents:
+    for document in filter_approved_export_documents(documents, database_path):
         expected.add(relative_path(site_knowledge_output_path(document)))
 
     return expected
 
 
-def validate_generated_site_docs(documents: list[KnowledgeDocument]) -> list[ValidationIssue]:
+def validate_generated_site_docs(
+    documents: list[KnowledgeDocument],
+    database_path=DB_PATH,
+) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     if not GENERATED_SITE_DOCS_DIR.exists():
         return issues
-    expected = expected_site_doc_paths(documents)
+    try:
+        expected = expected_site_doc_paths(documents, database_path)
+    except ExportRuntimeUnavailableError as exc:
+        return [ValidationIssue(relative_path(GENERATED_SITE_DOCS_DIR), str(exc))]
     actual = {
         relative_path(path)
         for path in GENERATED_SITE_DOCS_DIR.rglob("*")
@@ -607,7 +619,10 @@ def orphaned_files(policy: dict[str, Any], documents: list[KnowledgeDocument]) -
             findings.append(document.relative_path)
 
     if GENERATED_SITE_DOCS_DIR.exists():
-        expected = expected_site_doc_paths(documents)
+        try:
+            expected = expected_site_doc_paths(documents)
+        except ExportRuntimeUnavailableError:
+            expected = set()
         actual = {
             relative_path(path)
             for path in GENERATED_SITE_DOCS_DIR.rglob("*")

@@ -35,5 +35,6 @@ Papyrus uses a strict source-of-truth model so the control plane stays auditable
 ## Static Export Policy
 
 - MkDocs and generated site content are optional export surfaces.
+- Static export is gated by runtime approval state and is limited to approved knowledge content plus supporting repository material.
 - Export content may help with publishing and browsing, but it is secondary to authored source and application runtime behavior.
 - If export output is stale or incorrect, rebuild it. Do not patch generated files by hand.

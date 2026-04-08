@@ -9,16 +9,7 @@ if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
   PYTHON_BIN="$ROOT_DIR/.venv/bin/python"
 fi
 
-"$PYTHON_BIN" scripts/build_site_docs.py
+rm -rf "$ROOT_DIR/generated/site_docs" "$ROOT_DIR/site"
+
 "$PYTHON_BIN" scripts/validate.py
 "$PYTHON_BIN" scripts/build_index.py
-
-if [[ -x "$ROOT_DIR/.venv/bin/mkdocs" ]]; then
-  "$ROOT_DIR/.venv/bin/mkdocs" build --strict
-  "$PYTHON_BIN" scripts/validate.py --include-rendered-site
-elif command -v mkdocs >/dev/null 2>&1; then
-  mkdocs build --strict
-  "$PYTHON_BIN" scripts/validate.py --include-rendered-site
-else
-  echo "mkdocs not installed; skipping static site build" >&2
-fi

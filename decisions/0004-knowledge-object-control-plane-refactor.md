@@ -71,12 +71,14 @@ The refactor proceeds in phases:
 6. harden citations into runtime evidence with degradable trust posture
 7. rebuild search and reporting over runtime governance signals
 8. expose thin operator web and API surfaces over the shared application layer
+9. demote static export to an optional approved-content publication path
 
 Later-phase clarification added during implementation:
 
 - citation validity must remain conservative; missing capture metadata or integrity data cannot be treated as verified evidence
 - runtime reporting should move to the relational model where that model is now the operating source for trust, approval, freshness, and evidence posture
 - source-oriented checks such as broken Markdown links and orphaned generated files remain source-tree validations because the runtime does not replace the canonical filesystem
+- the default build and serve paths should favor runtime-backed operator surfaces, while static export remains explicit and approval-gated
 
 ## Rejected Alternatives
 

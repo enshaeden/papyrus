@@ -14,7 +14,7 @@ Canonical authored knowledge remains in portable Markdown with YAML front matter
 
 ## Current Refactor Boundary
 
-Phases 1-8 are implemented.
+Phases 1-9 are implemented.
 
 - The repository framing is now knowledge-object centric instead of article centric.
 - Canonical authored source is still Markdown under `knowledge/` and `archive/knowledge/`.
@@ -28,6 +28,7 @@ Phases 1-8 are implemented.
 - A thin JSON API and a thin server-rendered operator web interface now expose the same runtime-backed queue, detail, revision, service, trust, and impact queries.
 - CLI scripts remain first-class operator entrypoints, but they are wrappers over application services.
 - MkDocs, `generated/`, and `site/` remain derived export concerns, not the primary product surface.
+- Static export now requires runtime approval state and emits approved knowledge content only.
 - The legacy universal article schema remains only as a migration compatibility shim.
 
 ## Repository Layout
@@ -123,10 +124,22 @@ Create a new canonical source scaffold:
 python3 scripts/new_article.py --type runbook --title "Example Procedure"
 ```
 
-Serve the derived static export:
+Use the convenience wrapper for the primary operator surface:
 
 ```bash
 ./scripts/serve.sh
+```
+
+Build the optional approved-content static export:
+
+```bash
+./scripts/build_static_export.sh
+```
+
+Serve the optional approved-content static export:
+
+```bash
+./scripts/serve_static_export.sh
 ```
 
 ## Source Of Truth Rules
@@ -136,6 +149,7 @@ Serve the derived static export:
 - Validation is the completion gate.
 - Structural changes to schemas, taxonomies, or top-level directories require a decision record.
 - Static site output is secondary to the authored source and application runtime.
+- The static export is an approved-content publication surface, not a replacement for the runtime queue, trust dashboard, or impact views.
 
 ## Key Documents
 
