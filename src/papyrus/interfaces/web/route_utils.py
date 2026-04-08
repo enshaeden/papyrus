@@ -93,24 +93,6 @@ WEB_ACTOR_SHELLS = (
         ),
         quick_links=(TRUST_LINK, REVIEW_LINK, AUDIT_LINK),
     ),
-    ActorShellConfig(
-        actor=Actor(actor_id="papyrus-demo", display_name="Papyrus Demo", role_hint="demo"),
-        home_path="/dashboard/trust",
-        summary="Walk the strongest demo paths first: trust posture, queue signals, and governed review flow.",
-        nav_sections=(
-            ShellSection(
-                title="Demo Tour",
-                description="Use the highest-signal screens for a fast product walkthrough.",
-                items=(TRUST_LINK, READ_LINK, SERVICES_LINK),
-            ),
-            ShellSection(
-                title="Governance Tour",
-                description="Show how review and audit evidence stay attached to operational knowledge.",
-                items=(REVIEW_LINK, AUDIT_LINK),
-            ),
-        ),
-        quick_links=(TRUST_LINK, READ_LINK, REVIEW_LINK),
-    ),
 )
 WEB_ACTOR_OPTIONS = tuple(config.actor for config in WEB_ACTOR_SHELLS)
 _WEB_ACTOR_SHELLS_BY_ID = {config.actor.actor_id: config for config in WEB_ACTOR_SHELLS}

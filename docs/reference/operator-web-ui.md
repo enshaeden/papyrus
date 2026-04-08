@@ -5,7 +5,7 @@ This document describes the current Papyrus operator web interface after the ser
 ## Purpose And Scope
 
 - Provide a stable operator shell for three modes of use: read, write, and manage.
-- Make the shared shell role-aware so Local Operator, Local Reviewer, Local Manager, and Papyrus Demo each land on a different primary workflow and see different navigation emphasis.
+- Make the shared shell role-aware so Local Operator, Local Reviewer, and Local Manager each land on a different primary workflow and see different navigation emphasis.
 - Preserve the application service layer as the source of workflow behavior.
 - Keep trust posture, approval state, evidence health, and audit signals visible across the interface.
 - Support governed POST workflows for object creation, revision authoring, review submission, reviewer assignment, approval, rejection, supersession, suspect marking, and validation-run recording.
@@ -54,11 +54,11 @@ This change does not rework repository schemas, canonical source layout, or the 
 - The old inline-rendering `src/papyrus/interfaces/web.py` implementation was removed.
 - The compatibility import path remains the same: `papyrus.interfaces.web`.
 - Switching actor from the topbar now redirects to the selected role's primary page instead of keeping every role on the same queue view.
+- Demo runtime is implicit in the seeded runtime and no longer appears as a separate selectable role in the shell.
 - The shared shell keeps the underlying routes intact, but the visible navigation differs by role:
   - Local Operator: queue, services, and authoring entry points
   - Local Reviewer: review queue, trust dashboard, validation, and audit
   - Local Manager: trust dashboard, review oversight, audit, and validation
-  - Papyrus Demo: trust-first walkthrough links for queue, services, review, and audit
 - Read surfaces preserve queue, object detail, revision history, service detail, dashboard, and impact coverage while improving trust visibility.
 - Shell-only objects created through the write flow remain discoverable in `/queue` before their first revision exists. Queue hits for those shells route back into `/write/objects/{object_id}/revisions/new#revision-form`, and write screens now render a top-of-page step timeline so the current workflow stage is visible during object creation, revision drafting, and review submission.
 - Invalid object-shell creation attempts now render a warning flash and blocking validation summary at the top of the page so missing or malformed required fields are visible without hunting through the full form.

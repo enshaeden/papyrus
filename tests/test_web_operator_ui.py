@@ -658,12 +658,9 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertIn("Corpus Oversight", manager_body)
             self.assertIn('href="/manage/audit"', manager_body)
             self.assertNotIn("Write Draft", manager_body)
-
-            status, _, demo_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "papyrus-demo"})
-            self.assertEqual(status, "200 OK")
-            self.assertIn("Papyrus Demo", demo_body)
-            self.assertIn("Demo Tour", demo_body)
-            self.assertIn("Governance Tour", demo_body)
+            self.assertNotIn("Papyrus Demo", operator_body)
+            self.assertNotIn("Papyrus Demo", reviewer_body)
+            self.assertNotIn("Papyrus Demo", manager_body)
 
     def test_shell_only_object_is_searchable_and_routes_back_to_revision_draft(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
