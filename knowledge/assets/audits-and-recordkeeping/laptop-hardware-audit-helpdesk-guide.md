@@ -2,8 +2,10 @@
 id: kb-assets-audits-and-recordkeeping-laptop-hardware-audit-helpdesk-guide
 title: "Laptop Hardware Audit \u2013 Helpdesk Guide"
 canonical_path: knowledge/assets/audits-and-recordkeeping/laptop-hardware-audit-helpdesk-guide.md
-summary: "This guide explains how to use the Laptop Hardware Audit \u2013 FY26 <ASSET_MANAGEMENT_SYSTEM> base to:"
-type: asset
+summary: "This guide explains how to use the Laptop Hardware Audit \u2013 FY26 <ASSET_MANAGEMENT_SYSTEM>\
+  \ base to:"
+knowledge_object_type: runbook
+legacy_article_type: asset
 status: active
 owner: service_owner
 source_type: imported
@@ -13,8 +15,6 @@ team: Workplace Engineering
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 - <TICKETING_SYSTEM>
-services:
-- Endpoint Provisioning
 tags:
 - endpoint
 - service-desk
@@ -23,6 +23,8 @@ updated: '2026-02-25'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: systems_admins
+related_services:
+- Endpoint Provisioning
 prerequisites:
 - Confirm the device, asset record, and office or shipping context before taking action.
 - Verify you have the required inventory, MDM, or ticketing access for the task.
@@ -36,10 +38,25 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-assets-audits-and-recordkeeping-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Endpoint Provisioning
+related_articles:
+- kb-assets-audits-and-recordkeeping-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

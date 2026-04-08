@@ -2,8 +2,10 @@
 id: kb-user-lifecycle-offboarding-and-termination-obtaining-assets-from-terminated-users
 title: Obtaining Assets from Terminated Users
 canonical_path: knowledge/user-lifecycle/offboarding-and-termination/obtaining-assets-from-terminated-users.md
-summary: To ensure best practices, security, and compliance, it is essential to retrieve assets from terminated employees. Please follow this procedure to facilitate the return of these assets.
-type: offboarding
+summary: To ensure best practices, security, and compliance, it is essential to retrieve assets from terminated
+  employees. Please follow this procedure to facilitate the return of these assets.
+knowledge_object_type: runbook
+legacy_article_type: offboarding
 status: active
 owner: service_owner
 source_type: imported
@@ -13,9 +15,6 @@ team: Identity and Access
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 - <HR_SYSTEM>
-services:
-- Endpoint Provisioning
-- Offboarding
 tags:
 - endpoint
 - offboarding
@@ -24,6 +23,9 @@ updated: '2026-02-26'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: identity_admins
+related_services:
+- Endpoint Provisioning
+- Offboarding
 prerequisites:
 - Verify the request, identity details, and required approvals before changing access or account state.
 - Confirm the target system and business context match the scope of this article.
@@ -37,10 +39,26 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-user-lifecycle-offboarding-and-termination-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Endpoint Provisioning
+- Offboarding
+related_articles:
+- kb-user-lifecycle-offboarding-and-termination-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

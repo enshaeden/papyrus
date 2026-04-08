@@ -3,7 +3,8 @@ id: kb-user-lifecycle-job-and-org-change-it-team-workflow-for-ticket-management-
 title: IT Team Workflow for Ticket Management and Access Review
 canonical_path: knowledge/user-lifecycle/job-and-org-change/it-team-workflow-for-ticket-management-and-access-review.md
 summary: 'Choose one category:'
-type: access
+knowledge_object_type: runbook
+legacy_article_type: access
 status: active
 owner: service_owner
 source_type: imported
@@ -12,8 +13,6 @@ source_title: IT Team Workflow for Ticket Management and Access Review
 team: Identity and Access
 systems:
 - <TICKETING_SYSTEM>
-services:
-- Access Management
 tags:
 - account
 - access
@@ -22,6 +21,8 @@ updated: '2025-12-18'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: identity_admins
+related_services:
+- Access Management
 prerequisites:
 - Verify the request, identity details, and required approvals before changing access or account state.
 - Confirm the target system and business context match the scope of this article.
@@ -35,10 +36,25 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-user-lifecycle-job-and-org-change-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Access Management
+related_articles:
+- kb-user-lifecycle-job-and-org-change-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

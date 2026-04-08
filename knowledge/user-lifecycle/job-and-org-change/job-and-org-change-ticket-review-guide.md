@@ -3,7 +3,8 @@ id: kb-user-lifecycle-job-and-org-change-job-and-org-change-ticket-review-guide
 title: Job and Org Change Ticket Review Guide
 canonical_path: knowledge/user-lifecycle/job-and-org-change/job-and-org-change-ticket-review-guide.md
 summary: 'Purpose:'
-type: runbook
+knowledge_object_type: runbook
+legacy_article_type: runbook
 status: active
 owner: service_owner
 source_type: imported
@@ -12,13 +13,13 @@ source_title: Job and Org Change Ticket Review Guide
 team: Identity and Access
 systems:
 - <TICKETING_SYSTEM>
-services: []
 tags: []
 created: '2025-11-27'
 updated: '2025-12-18'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: identity_admins
+related_services: []
 prerequisites:
 - Review the scope, approvals, and dependencies described in this article before starting.
 - Confirm you have the required systems access and escalation path before proceeding.
@@ -32,10 +33,24 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-user-lifecycle-job-and-org-change-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services: []
+related_articles:
+- kb-user-lifecycle-job-and-org-change-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

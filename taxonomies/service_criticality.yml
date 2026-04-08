@@ -1,0 +1,13 @@
+taxonomy: service_criticality
+description: Criticality values for service records.
+values:
+  - name: not_classified
+    description: Criticality has not yet been classified in structured source.
+  - name: low
+    description: Low operational impact.
+  - name: moderate
+    description: Moderate operational impact.
+  - name: high
+    description: High operational impact.
+  - name: critical
+    description: Critical operational impact.

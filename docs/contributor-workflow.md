@@ -20,7 +20,8 @@ Papyrus is in a controlled refactor from an article-centric repository to a know
 
 - Canonical source is still Markdown under `knowledge/` and `archive/knowledge/`.
 - Existing scaffold tooling still uses `scripts/new_article.py` as a compatibility entrypoint.
-- The current universal article schema remains in use until typed source schemas are introduced in a later phase.
+- Typed source schemas under `schemas/knowledge_objects/` are now the primary source model for `runbook`, `known_error`, and `service_record`.
+- `schemas/article.yml` remains only as a legacy compatibility fallback for migration-era content handling.
 
 Do not create parallel schemas or ad hoc runtime helpers while the refactor is in progress.
 
@@ -35,7 +36,7 @@ python3 scripts/new_article.py --type runbook --title "Example Procedure"
 To inspect valid taxonomy values first:
 
 ```bash
-python3 scripts/new_article.py --list-taxonomy article_types
+python3 scripts/new_article.py --list-taxonomy knowledge_object_types
 python3 scripts/new_article.py --list-taxonomy services
 python3 scripts/new_article.py --list-taxonomy systems
 python3 scripts/new_article.py --list-taxonomy tags
@@ -71,7 +72,7 @@ Run:
 python3 scripts/build_index.py
 ```
 
-This currently rebuilds the local SQLite projection used by search and reporting. It remains a compatibility projection until the relational runtime model is introduced.
+This rebuilds the local relational SQLite runtime used by search and reporting. The runtime is derived and rebuildable; the Markdown source remains authoritative.
 
 ## Search Locally
 

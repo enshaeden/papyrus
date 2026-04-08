@@ -3,7 +3,8 @@ id: kb-helpdesk-configuration-and-automation-sla-policy-and-definitions
 title: SLA Policy and Definitions
 canonical_path: knowledge/helpdesk/configuration-and-automation/sla-policy-and-definitions.md
 summary: 'Timezone: <TICKETING_SYSTEM> default (GMT 08:00) Los Angeles.'
-type: policy
+knowledge_object_type: service_record
+legacy_article_type: policy
 status: active
 owner: service_owner
 source_type: imported
@@ -12,7 +13,6 @@ source_title: SLA Policy and Definitions
 team: Service Desk
 systems:
 - <TICKETING_SYSTEM>
-services: []
 tags:
 - service-desk
 created: '2026-02-19'
@@ -20,6 +20,28 @@ updated: '2026-03-04'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: service_desk
+service_name: SLA Policy and Definitions
+service_criticality: not_classified
+dependencies:
+- <TICKETING_SYSTEM>
+support_entrypoints:
+- Legacy source does not declare structured support entrypoints.
+common_failure_modes:
+- Legacy source does not declare structured common failure modes.
+related_runbooks: []
+related_known_errors: []
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
+- kb-helpdesk-configuration-and-automation-index
 prerequisites:
 - Review the scope, approvals, and dependencies described in this article before starting.
 - Confirm you have the required systems access and escalation path before proceeding.
@@ -33,10 +55,12 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
-- kb-helpdesk-configuration-and-automation-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services: []
+related_articles:
+- kb-helpdesk-configuration-and-automation-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

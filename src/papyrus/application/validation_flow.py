@@ -9,6 +9,7 @@ from papyrus.infrastructure.markdown.parser import (
     collect_broken_markdown_links,
     collect_broken_rendered_site_links,
     extract_markdown_title,
+    normalize_object_metadata,
 )
 from papyrus.infrastructure.markdown.serializer import ensure_iso_date, parse_iso_date, similarity_ratio
 from papyrus.infrastructure.paths import (
@@ -39,6 +40,7 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     collect_root_markdown_paths,
     collect_sanitization_paths,
     load_knowledge_documents,
+    load_object_schemas,
     load_policy,
     load_schema,
     load_taxonomies,
@@ -290,18 +292,25 @@ def validate_docs_duplication(
 
 def validate_knowledge_documents(
     documents: list[KnowledgeDocument],
-    schema: dict[str, Any],
+    object_schemas: dict[str, dict[str, Any]],
+    legacy_schema: dict[str, Any],
     taxonomies: dict[str, dict[str, Any]],
     policy: dict[str, Any],
 ) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
-    fields = schema.get("fields", {})
     seen_ids: dict[str, str] = {}
     known_ids = {document.knowledge_object_id for document in documents if document.knowledge_object_id}
 
     for document in documents:
-        metadata = document.metadata
         path = document.relative_path
+        try:
+            normalized = normalize_object_metadata(document)
+            metadata = normalized.metadata
+            schema = object_schemas[normalized.object_type]
+        except Exception:
+            metadata = document.metadata
+            schema = legacy_schema
+        fields = schema.get("fields", {})
 
         if not document.body:
             issues.append(ValidationIssue(path, "body content is empty"))
@@ -347,15 +356,15 @@ def validate_knowledge_documents(
                 issues.append(ValidationIssue(path, "last_reviewed cannot be earlier than created", "last_reviewed"))
 
         if metadata.get("canonical_path") != path:
-            issues.append(ValidationIssue(path, "canonical_path must match the article path", "canonical_path"))
+            issues.append(ValidationIssue(path, "canonical_path must match the source file path", "canonical_path"))
 
         if path.startswith("archive/knowledge/") and metadata.get("status") != "archived":
             issues.append(ValidationIssue(path, "archived paths must use status 'archived'", "status"))
 
         if path.startswith("knowledge/") and metadata.get("status") == "archived":
-            issues.append(ValidationIssue(path, "archived articles must live under archive/knowledge/", "status"))
+            issues.append(ValidationIssue(path, "archived knowledge objects must live under archive/knowledge/", "status"))
 
-        replaced_by = metadata.get("replaced_by")
+        replaced_by = metadata.get("superseded_by") or metadata.get("replaced_by")
         retirement_reason = metadata.get("retirement_reason")
         status = metadata.get("status")
         if status == "deprecated" and not (replaced_by or retirement_reason):
@@ -378,29 +387,34 @@ def validate_knowledge_documents(
             if replaced_by == object_id:
                 issues.append(ValidationIssue(path, "replaced_by cannot reference itself", "replaced_by"))
             elif replaced_by not in known_ids:
-                issues.append(ValidationIssue(path, f"replacement article not found: {replaced_by}", "replaced_by"))
+                issues.append(ValidationIssue(path, f"replacement knowledge object not found: {replaced_by}", "replaced_by"))
 
-        for related in metadata.get("related_articles", []):
+        related_object_ids = metadata.get("related_object_ids") or metadata.get("related_articles", [])
+        for related in related_object_ids:
             if related not in known_ids:
                 issues.append(
                     ValidationIssue(
                         path,
-                        f"related article id not found: {related}",
-                        "related_articles",
+                        f"related knowledge object id not found: {related}",
+                        "related_object_ids",
                     )
                 )
 
-        for reference in metadata.get("references", []):
-            article_ref = reference.get("article_id")
+        citations = metadata.get("citations") or []
+        if not citations:
+            citations = metadata.get("references", [])
+
+        for citation in citations:
+            article_ref = citation.get("article_id")
             if article_ref and article_ref not in known_ids:
                 issues.append(
                     ValidationIssue(
                         path,
-                        f"reference article id not found: {article_ref}",
-                        "references",
+                        f"referenced knowledge object id not found: {article_ref}",
+                        "citations",
                     )
                 )
-            reference_path = reference.get("path")
+            reference_path = citation.get("path")
             if reference_path:
                 repo_target = ROOT / reference_path
                 if not repo_target.exists():
@@ -408,7 +422,18 @@ def validate_knowledge_documents(
                         ValidationIssue(
                             path,
                             f"reference path does not exist: {reference_path}",
-                            "references",
+                            "citations",
+                        )
+                    )
+            source_ref = citation.get("source_ref")
+            if source_ref and str(source_ref).startswith(("knowledge/", "archive/knowledge/", "docs/", "decisions/", "migration/")):
+                repo_target = ROOT / str(source_ref)
+                if not repo_target.exists():
+                    issues.append(
+                        ValidationIssue(
+                            path,
+                            f"citation source_ref does not exist: {source_ref}",
+                            "citations",
                         )
                     )
 
@@ -433,12 +458,13 @@ def validate_knowledge_documents(
 
 def validate_repository(include_rendered_site: bool = False) -> list[ValidationIssue]:
     policy = load_policy()
-    schema = load_schema()
+    object_schemas = load_object_schemas()
+    legacy_schema = load_schema()
     taxonomies = load_taxonomies()
     documents = load_knowledge_documents(policy)
     issues: list[ValidationIssue] = []
     issues.extend(validate_directory_contract(policy))
-    issues.extend(validate_knowledge_documents(documents, schema, taxonomies, policy))
+    issues.extend(validate_knowledge_documents(documents, object_schemas, legacy_schema, taxonomies, policy))
     issues.extend(validate_docs_duplication(documents, policy))
     issues.extend(validate_generated_site_docs(documents))
 
@@ -500,4 +526,3 @@ def orphaned_files(policy: dict[str, Any], documents: list[KnowledgeDocument]) -
         findings.extend(sorted(actual.difference(expected)))
 
     return sorted(set(findings))
-

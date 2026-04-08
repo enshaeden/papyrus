@@ -198,13 +198,13 @@
       summary.textContent =
         "Showing " +
         filtered.length +
-        " article(s) out of " +
+        " knowledge object(s) out of " +
         data.length +
         (state.status ? "" : " across default current statuses: " + (taxonomies.default_statuses || []).join(", "));
 
       resultsNode.innerHTML = filtered.length
         ? filtered.map(renderCard).join("")
-        : '<article class="kb-result-card"><p>No articles matched the current filters.</p></article>';
+        : '<article class="kb-result-card"><p>No knowledge objects matched the current filters.</p></article>';
 
       Array.prototype.forEach.call(controls.querySelectorAll("[data-field]"), function (node) {
         node.addEventListener("input", function (event) {

@@ -10,17 +10,26 @@ from papyrus.infrastructure.paths import GENERATED_SITE_DOCS_DIR, KNOWLEDGE_DIR,
 
 def summarize_for_search(document: KnowledgeDocument) -> str:
     metadata = document.metadata
+    object_type = metadata.get("knowledge_object_type") or metadata.get("type") or ""
+    related_services = metadata.get("related_services") or metadata.get("services") or []
     values: list[str] = [
         metadata.get("title", ""),
         metadata.get("summary", ""),
-        metadata.get("type", ""),
+        object_type,
+        metadata.get("legacy_article_type", ""),
         metadata.get("status", ""),
         metadata.get("owner", ""),
         metadata.get("team", ""),
         metadata.get("source_type", ""),
         " ".join(metadata.get("systems", [])),
-        " ".join(metadata.get("services", [])),
+        " ".join(related_services),
         " ".join(metadata.get("tags", [])),
+        metadata.get("service_name", ""),
+        " ".join(metadata.get("support_entrypoints", [])),
+        " ".join(metadata.get("common_failure_modes", [])),
+        " ".join(metadata.get("symptoms", [])),
+        metadata.get("scope", ""),
+        metadata.get("cause", ""),
         document.body,
     ]
     return normalize_whitespace(" ".join(str(value) for value in values if value))
@@ -54,4 +63,3 @@ def fts5_available(connection: sqlite3.Connection) -> bool:
     except sqlite3.OperationalError:
         return False
     return True
-

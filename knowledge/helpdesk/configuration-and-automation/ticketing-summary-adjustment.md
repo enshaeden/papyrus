@@ -3,7 +3,8 @@ id: kb-helpdesk-configuration-and-automation-ticketing-summary-adjustment
 title: '[<QUEUE_NAME>]-summary-adjustment'
 canonical_path: knowledge/helpdesk/configuration-and-automation/ticketing-summary-adjustment.md
 summary: Standardize a request summary on ticket creation for a specific service request type.
-type: SOP
+knowledge_object_type: runbook
+legacy_article_type: SOP
 status: active
 owner: service_owner
 source_type: imported
@@ -12,8 +13,6 @@ source_title: '[<QUEUE_NAME>]-summary-adjustment'
 team: Service Desk
 systems:
 - <TICKETING_SYSTEM>
-services:
-- Access Management
 tags:
 - service-desk
 created: '2026-02-25'
@@ -21,6 +20,8 @@ updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: service_desk
+related_services:
+- Access Management
 prerequisites:
 - Review the scope, approvals, and dependencies described in this article before starting.
 - Confirm you have the required systems access and escalation path before proceeding.
@@ -34,10 +35,25 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-helpdesk-configuration-and-automation-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Access Management
+related_articles:
+- kb-helpdesk-configuration-and-automation-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

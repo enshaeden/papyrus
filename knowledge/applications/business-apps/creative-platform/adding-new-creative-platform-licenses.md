@@ -2,8 +2,10 @@
 id: kb-applications-business-apps-creative-platform-adding-new-creative-platform-licenses
 title: Adding new <CREATIVE_PLATFORM> licenses
 canonical_path: knowledge/applications/business-apps/creative-platform/adding-new-creative-platform-licenses.md
-summary: We have moved to purchasing new <CREATIVE_PLATFORM> licenses from CDW. This will be a quick walkthrough on how to do that.
-type: access
+summary: We have moved to purchasing new <CREATIVE_PLATFORM> licenses from CDW. This will be a quick walkthrough
+  on how to do that.
+knowledge_object_type: runbook
+legacy_article_type: access
 status: active
 owner: service_owner
 source_type: imported
@@ -11,8 +13,6 @@ source_system: knowledge_portal_export
 source_title: Adding new <CREATIVE_PLATFORM> licenses
 team: Identity and Access
 systems: []
-services:
-- Access Management
 tags:
 - access
 created: '2025-10-27'
@@ -20,6 +20,8 @@ updated: '2025-10-27'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: identity_admins
+related_services:
+- Access Management
 prerequisites:
 - Verify the request, identity details, and required approvals before changing access or account state.
 - Confirm the target system and business context match the scope of this article.
@@ -33,10 +35,25 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-applications-business-apps-creative-platform-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Access Management
+related_articles:
+- kb-applications-business-apps-creative-platform-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

@@ -3,7 +3,8 @@ id: kb-onboarding-employee-onboarding-checklist
 title: Employee Onboarding Checklist
 canonical_path: knowledge/onboarding/employee-onboarding-checklist.md
 summary: Coordinate endpoint, identity, and communications tasks required before a new hire starts.
-type: onboarding
+knowledge_object_type: runbook
+legacy_article_type: onboarding
 status: active
 owner: service_owner
 source_type: native
@@ -16,11 +17,6 @@ systems:
 - <HR_SYSTEM>
 - <IDENTITY_PROVIDER>
 - <TICKETING_SYSTEM>
-services:
-- Onboarding
-- Endpoint Provisioning
-- Identity
-- Access Management
 tags:
 - onboarding
 - checklist
@@ -31,15 +27,22 @@ updated: 2026-04-07
 last_reviewed: 2026-04-07
 review_cadence: monthly
 audience: it_ops
+related_services:
+- Onboarding
+- Endpoint Provisioning
+- Identity
+- Access Management
 prerequisites:
 - HRIS export or approved hiring ticket with start date and manager.
 - Approved role profile or baseline application set for the new hire.
 steps:
-- Create or verify the ticket as soon as the HRIS export lands and confirm the manager, start date, and office location.
+- Create or verify the ticket as soon as the HRIS export lands and confirm the manager, start date, and
+  office location.
 - Create the identity account and baseline groups through the approved onboarding workflow.
 - Prepare the laptop and peripherals using the laptop provisioning runbook.
 - Confirm mailbox, collaboration, and MFA readiness at least one business day before the start date.
-- Record all completion details in the onboarding ticket and hand off exceptions to the manager before the start date.
+- Record all completion details in the onboarding ticket and hand off exceptions to the manager before
+  the start date.
 verification:
 - Identity account can authenticate and required groups are in place.
 - Device is ready for pickup or shipment and inventory has been updated.
@@ -47,12 +50,32 @@ verification:
 rollback:
 - Disable or delay account activation if the start date changes or the hire is cancelled.
 - Return prepared equipment to unassigned inventory if the onboarding request is withdrawn.
+citations:
+- article_id: kb-runbooks-laptop-provisioning
+  source_title: Laptop provisioning runbook
+  source_type: document
+  source_ref: knowledge/runbooks/laptop-provisioning.md
+  note: Use this runbook to complete the hardware preparation task.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
+- kb-runbooks-laptop-provisioning
+- kb-access-software-access-request
+- kb-offboarding-employee-offboarding-checklist
+superseded_by: null
+replaced_by: null
+retirement_reason: null
+services:
+- Onboarding
+- Endpoint Provisioning
+- Identity
+- Access Management
 related_articles:
 - kb-runbooks-laptop-provisioning
 - kb-access-software-access-request
 - kb-offboarding-employee-offboarding-checklist
-replaced_by: null
-retirement_reason: null
 references:
 - title: Laptop provisioning runbook
   article_id: kb-runbooks-laptop-provisioning

@@ -2,8 +2,11 @@
 id: kb-troubleshooting-audio-video-overview-and-maintenance-ticketing-system-workflow-av-automation-workflow
 title: <TICKETING_SYSTEM> Workflow AV Automation Workflow
 canonical_path: knowledge/troubleshooting/audio-video/overview-and-maintenance/ticketing-system-workflow-av-automation-workflow.md
-summary: The following automations power the Global AV Maintenance SOP . They ensure all regional AV sweep activity (<OFFICE_SITE_C>, <OFFICE_SITE_B>, <OFFICE_SITE_A>) rolls up into a single global issue for consistent tracking, visibility, and...
-type: troubleshooting
+summary: The following automations power the Global AV Maintenance SOP . They ensure all regional AV sweep
+  activity (<OFFICE_SITE_C>, <OFFICE_SITE_B>, <OFFICE_SITE_A>) rolls up into a single global issue for
+  consistent tracking, visibility, and...
+knowledge_object_type: known_error
+legacy_article_type: troubleshooting
 status: active
 owner: service_owner
 source_type: imported
@@ -13,8 +16,6 @@ team: Workplace Engineering
 systems:
 - <TICKETING_SYSTEM>
 - <VIDEO_CONFERENCING_PLATFORM>
-services:
-- Collaboration
 tags:
 - av
 - service-desk
@@ -23,6 +24,36 @@ updated: '2025-11-24'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: systems_admins
+related_services:
+- Collaboration
+symptoms:
+- The following automations power the Global AV Maintenance SOP . They ensure all regional AV sweep activity
+  (<OFFICE_SITE_C>, <OFFICE_SITE_B>, <OFFICE_SITE_A>) rolls up into a single global issue for consistent
+  tracking, visibility, and...
+scope: 'Legacy source does not declare structured scope. Summary: The following automations power the
+  Global AV Maintenance SOP . They ensure all regional AV sweep activity (<OFFICE_SITE_C>, <OFFICE_SITE_B>,
+  <OFFICE_SITE_A>) rolls up into a single global issue for consistent tracking, visibility, and...'
+cause: Legacy source does not declare a structured cause field.
+diagnostic_checks:
+- Review the imported procedure body below and confirm the documented symptoms match the live issue.
+- Work through the diagnostic and remediation steps in order, recording any deviations in the ticket.
+- Escalate when the documented checks fail or the issue exceeds the article scope.
+mitigations:
+- Undo any reversible change documented in the procedure if validation fails.
+- Escalate to the owning team with the captured symptom and actions already taken.
+permanent_fix_status: unknown
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
+- kb-troubleshooting-audio-video-overview-and-maintenance-index
 prerequisites:
 - Capture the exact symptom, affected scope, and recent changes before troubleshooting.
 - Confirm you have the required system access or escalation path before making changes.
@@ -36,10 +67,13 @@ verification:
 rollback:
 - Undo any reversible change documented in the procedure if validation fails.
 - Escalate to the owning team with the captured symptom and actions already taken.
-related_articles:
-- kb-troubleshooting-audio-video-overview-and-maintenance-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Collaboration
+related_articles:
+- kb-troubleshooting-audio-video-overview-and-maintenance-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

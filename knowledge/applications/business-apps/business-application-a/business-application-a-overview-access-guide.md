@@ -2,8 +2,11 @@
 id: kb-applications-business-apps-business-application-a-business-application-a-overview-access-guide
 title: <BUSINESS_APPLICATION_A> - Overview & Access Guide
 canonical_path: knowledge/applications/business-apps/business-application-a/business-application-a-overview-access-guide.md
-summary: <BUSINESS_APPLICATION_A> is an AI powered deal management platform that helps revenue teams map stakeholders, visualize complex deals, and surface real time account intelligence. It integrates data from CRM, communication tools,...
-type: reference
+summary: <BUSINESS_APPLICATION_A> is an AI powered deal management platform that helps revenue teams map
+  stakeholders, visualize complex deals, and surface real time account intelligence. It integrates data
+  from CRM, communication tools,...
+knowledge_object_type: service_record
+legacy_article_type: reference
 status: active
 owner: service_owner
 source_type: imported
@@ -11,8 +14,6 @@ source_system: knowledge_portal_export
 source_title: <BUSINESS_APPLICATION_A> - Overview & Access Guide
 team: Identity and Access
 systems: []
-services:
-- Access Management
 tags:
 - account
 - access
@@ -21,6 +22,27 @@ updated: '2025-08-20'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: identity_admins
+service_name: Access Management
+service_criticality: not_classified
+dependencies: []
+support_entrypoints:
+- Legacy source does not declare structured support entrypoints.
+common_failure_modes:
+- Legacy source does not declare structured common failure modes.
+related_runbooks: []
+related_known_errors: []
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
+- kb-applications-business-apps-business-application-a-index
 prerequisites:
 - Review the scope, approvals, and dependencies described in this article before starting.
 - Confirm you have the required systems access and escalation path before proceeding.
@@ -34,10 +56,13 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
-- kb-applications-business-apps-business-application-a-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Access Management
+related_articles:
+- kb-applications-business-apps-business-application-a-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

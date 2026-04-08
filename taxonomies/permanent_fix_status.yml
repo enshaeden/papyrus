@@ -1,0 +1,13 @@
+taxonomy: permanent_fix_status
+description: Permanent fix status values for known errors.
+values:
+  - name: unknown
+    description: Legacy source does not declare a permanent-fix state.
+  - name: workaround_only
+    description: Only mitigations or workarounds are currently documented.
+  - name: in_progress
+    description: A permanent fix is being worked.
+  - name: resolved
+    description: A permanent fix has been implemented.
+  - name: not_applicable
+    description: A permanent fix status is not applicable for this record.

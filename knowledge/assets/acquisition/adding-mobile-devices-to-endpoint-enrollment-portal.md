@@ -2,8 +2,10 @@
 id: kb-assets-acquisition-adding-mobile-devices-to-endpoint-enrollment-portal
 title: Adding tablet devices/mobile devices to <ENDPOINT_ENROLLMENT_PORTAL>
 canonical_path: knowledge/assets/acquisition/adding-mobile-devices-to-endpoint-enrollment-portal.md
-summary: If we have standalone, or separately purchased, tablet devices or mobile devices, this is the manual way to add them into our <ENDPOINT_ENROLLMENT_PORTAL> so they get picked up by <ENDPOINT_MANAGEMENT_PLATFORM>
-type: asset
+summary: If we have standalone, or separately purchased, tablet devices or mobile devices, this is the
+  manual way to add them into our <ENDPOINT_ENROLLMENT_PORTAL> so they get picked up by <ENDPOINT_MANAGEMENT_PLATFORM>
+knowledge_object_type: runbook
+legacy_article_type: asset
 status: active
 owner: service_owner
 source_type: imported
@@ -13,8 +15,6 @@ team: Workplace Engineering
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 - <ENDPOINT_MANAGEMENT_PLATFORM>
-services:
-- Endpoint Provisioning
 tags:
 - endpoint
 created: '2025-10-22'
@@ -22,6 +22,8 @@ updated: '2025-10-22'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: systems_admins
+related_services:
+- Endpoint Provisioning
 prerequisites:
 - Confirm the device, asset record, and office or shipping context before taking action.
 - Verify you have the required inventory, MDM, or ticketing access for the task.
@@ -35,10 +37,25 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-assets-acquisition-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Endpoint Provisioning
+related_articles:
+- kb-assets-acquisition-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

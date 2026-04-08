@@ -2,8 +2,11 @@
 id: kb-helpdesk-configuration-and-automation-ticketing-prevent-reopen-after-30-days
 title: <QUEUE_NAME>]-prevent-reopen-after-30-days
 canonical_path: knowledge/helpdesk/configuration-and-automation/ticketing-prevent-reopen-after-30-days.md
-summary: "This <TICKETING_SYSTEM> automation rule prevents customers from \u201Cre opening\u201D or continuing work on older, already resolved tickets by posting guidance when the reporter comments on a ticket that was resolved 30+ days ago . It then..."
-type: SOP
+summary: "This <TICKETING_SYSTEM> automation rule prevents customers from \u201Cre opening\u201D or continuing\
+  \ work on older, already resolved tickets by posting guidance when the reporter comments on a ticket\
+  \ that was resolved 30+ days ago . It then..."
+knowledge_object_type: runbook
+legacy_article_type: SOP
 status: active
 owner: service_owner
 source_type: imported
@@ -13,7 +16,6 @@ team: Service Desk
 systems:
 - <HR_SYSTEM>
 - <TICKETING_SYSTEM>
-services: []
 tags:
 - account
 - service-desk
@@ -22,6 +24,7 @@ updated: '2026-02-25'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: service_desk
+related_services: []
 prerequisites:
 - Review the scope, approvals, and dependencies described in this article before starting.
 - Confirm you have the required systems access and escalation path before proceeding.
@@ -35,10 +38,24 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-helpdesk-configuration-and-automation-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services: []
+related_articles:
+- kb-helpdesk-configuration-and-automation-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

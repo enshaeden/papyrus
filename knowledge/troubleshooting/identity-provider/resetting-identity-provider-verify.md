@@ -2,8 +2,11 @@
 id: kb-troubleshooting-identity-provider-resetting-identity-provider-verify
 title: Resetting <MFA_APPLICATION>
 canonical_path: knowledge/troubleshooting/identity-provider/resetting-identity-provider-verify.md
-summary: "If a user breaks or loses their phone (or cannot otherwise access it), we will need to reset their <MFA_APPLICATION> token so they may set it up on a new phone. Before we do we will need to confirm it\u2019s necessary we take..."
-type: troubleshooting
+summary: "If a user breaks or loses their phone (or cannot otherwise access it), we will need to reset\
+  \ their <MFA_APPLICATION> token so they may set it up on a new phone. Before we do we will need to confirm\
+  \ it\u2019s necessary we take..."
+knowledge_object_type: known_error
+legacy_article_type: troubleshooting
 status: active
 owner: service_owner
 source_type: imported
@@ -12,8 +15,6 @@ source_title: Resetting <MFA_APPLICATION>
 team: Identity and Access
 systems:
 - <IDENTITY_PROVIDER>
-services:
-- Identity
 tags:
 - account
 - authentication
@@ -23,6 +24,36 @@ updated: '2025-10-22'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: identity_admins
+related_services:
+- Identity
+symptoms:
+- "If a user breaks or loses their phone (or cannot otherwise access it), we will need to reset their\
+  \ <MFA_APPLICATION> token so they may set it up on a new phone. Before we do we will need to confirm\
+  \ it\u2019s necessary we take..."
+scope: "Legacy source does not declare structured scope. Summary: If a user breaks or loses their phone\
+  \ (or cannot otherwise access it), we will need to reset their <MFA_APPLICATION> token so they may set\
+  \ it up on a new phone. Before we do we will need to confirm it\u2019s necessary we take..."
+cause: Legacy source does not declare a structured cause field.
+diagnostic_checks:
+- Review the imported procedure body below and confirm the documented symptoms match the live issue.
+- Work through the diagnostic and remediation steps in order, recording any deviations in the ticket.
+- Escalate when the documented checks fail or the issue exceeds the article scope.
+mitigations:
+- Undo any reversible change documented in the procedure if validation fails.
+- Escalate to the owning team with the captured symptom and actions already taken.
+permanent_fix_status: unknown
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
+- kb-troubleshooting-identity-provider-index
 prerequisites:
 - Capture the exact symptom, affected scope, and recent changes before troubleshooting.
 - Confirm you have the required system access or escalation path before making changes.
@@ -36,10 +67,13 @@ verification:
 rollback:
 - Undo any reversible change documented in the procedure if validation fails.
 - Escalate to the owning team with the captured symptom and actions already taken.
-related_articles:
-- kb-troubleshooting-identity-provider-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Identity
+related_articles:
+- kb-troubleshooting-identity-provider-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

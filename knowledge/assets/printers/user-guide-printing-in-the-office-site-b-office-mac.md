@@ -3,7 +3,8 @@ id: kb-assets-printers-user-guide-printing-in-the-office-site-b-office-mac
 title: User Guide - Printing in the <OFFICE_SITE_B> Office (Mac)
 canonical_path: knowledge/assets/printers/user-guide-printing-in-the-office-site-b-office-mac.md
 summary: Additional questions or concerns, please create a ticket with <EMAIL_ADDRESS> .
-type: asset
+knowledge_object_type: runbook
+legacy_article_type: asset
 status: active
 owner: service_owner
 source_type: imported
@@ -14,9 +15,6 @@ systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 - <ENDPOINT_MANAGEMENT_PLATFORM>
 - <PRINTER_MANAGEMENT_PLATFORM>
-services:
-- Endpoint Provisioning
-- Printing
 tags:
 - endpoint
 - printer
@@ -25,6 +23,9 @@ updated: '2025-12-04'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: systems_admins
+related_services:
+- Endpoint Provisioning
+- Printing
 prerequisites:
 - Confirm the device, asset record, and office or shipping context before taking action.
 - Verify you have the required inventory, MDM, or ticketing access for the task.
@@ -38,10 +39,26 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-assets-printers-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Endpoint Provisioning
+- Printing
+related_articles:
+- kb-assets-printers-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

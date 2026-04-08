@@ -3,7 +3,8 @@ id: kb-applications-business-apps-cloud-platform-cloud-platform-access-requests
 title: <CLOUD_PLATFORM> access requests
 canonical_path: knowledge/applications/business-apps/cloud-platform/cloud-platform-access-requests.md
 summary: Route cloud platform access through approved eligibility, role, and production-access controls.
-type: access
+knowledge_object_type: runbook
+legacy_article_type: access
 status: active
 owner: service_owner
 source_type: imported
@@ -13,8 +14,6 @@ team: Identity and Access
 systems:
 - <CLOUD_PLATFORM>
 - <IDENTITY_PROVIDER>
-services:
-- Access Management
 tags:
 - account
 - access
@@ -23,6 +22,8 @@ updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: identity_admins
+related_services:
+- Access Management
 prerequisites:
 - Verify the requestor, business need, and approval path before assigning access.
 - Confirm whether the request is for tile visibility, role eligibility, or privileged access.
@@ -36,10 +37,25 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-applications-business-apps-cloud-platform-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Access Management
+related_articles:
+- kb-applications-business-apps-cloud-platform-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

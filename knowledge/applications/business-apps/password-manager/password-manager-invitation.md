@@ -2,8 +2,10 @@
 id: kb-applications-business-apps-password-manager-password-manager-invitation
 title: <PASSWORD_MANAGER> Invitation
 canonical_path: knowledge/applications/business-apps/password-manager/password-manager-invitation.md
-summary: "This SOP outlines the steps IT should follow to send a <PASSWORD_MANAGER> invitation to users. The following steps work for both FTE\u2019s and Contractors."
-type: access
+summary: "This SOP outlines the steps IT should follow to send a <PASSWORD_MANAGER> invitation to users.\
+  \ The following steps work for both FTE\u2019s and Contractors."
+knowledge_object_type: runbook
+legacy_article_type: access
 status: active
 owner: service_owner
 source_type: imported
@@ -12,8 +14,6 @@ source_title: <PASSWORD_MANAGER> Invitation
 team: Identity and Access
 systems:
 - <IDENTITY_PROVIDER>
-services:
-- Identity
 tags:
 - account
 - authentication
@@ -23,6 +23,8 @@ updated: '2026-03-05'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: identity_admins
+related_services:
+- Identity
 prerequisites:
 - Verify the request, identity details, and required approvals before changing access or account state.
 - Confirm the target system and business context match the scope of this article.
@@ -36,10 +38,25 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-applications-business-apps-password-manager-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Identity
+related_articles:
+- kb-applications-business-apps-password-manager-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

@@ -2,11 +2,11 @@
 id: kb-applications-access-and-license-management-managing-identity-provider-access-requests-general-app-requests
 title: Managing <IDENTITY_PROVIDER> Access Requests & General App Requests
 canonical_path: knowledge/applications/access-and-license-management/managing-identity-provider-access-requests-general-app-requests.md
-summary: 'Summary: This simplified guide explains how the <COMPANY_NAME> IT Helpdesk
-  team supports access requests made through <IDENTITY_PROVIDER>. It covers automated
-  requests, general requests routed via <TICKETING_SYSTEM>, and how to manage approval
-  updates...'
-type: access
+summary: 'Summary: This simplified guide explains how the <COMPANY_NAME> IT Helpdesk team supports access
+  requests made through <IDENTITY_PROVIDER>. It covers automated requests, general requests routed via
+  <TICKETING_SYSTEM>, and how to manage approval updates...'
+knowledge_object_type: runbook
+legacy_article_type: access
 status: active
 owner: service_owner
 source_type: imported
@@ -15,9 +15,6 @@ source_title: Managing <IDENTITY_PROVIDER> Access Requests & General App Request
 team: Identity and Access
 systems:
 - <IDENTITY_PROVIDER>
-services:
-- Identity
-- Access Management
 tags:
 - account
 - authentication
@@ -27,30 +24,42 @@ updated: '2025-10-27'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: identity_admins
+related_services:
+- Identity
+- Access Management
 prerequisites:
-- Verify the request, identity details, and required approvals before changing access
-  or account state.
+- Verify the request, identity details, and required approvals before changing access or account state.
 - Confirm the target system and business context match the scope of this article.
 steps:
-- Review the imported procedure body below and confirm the documented scope matches
-  the task at hand.
-- Execute the documented steps in order and record the outcome in the relevant ticket
-  or audit trail.
-- Stop and escalate if approvals, prerequisites, or expected checkpoints do not match
-  the live request.
+- Review the imported procedure body below and confirm the documented scope matches the task at hand.
+- Execute the documented steps in order and record the outcome in the relevant ticket or audit trail.
+- Stop and escalate if approvals, prerequisites, or expected checkpoints do not match the live request.
 verification:
-- The expected outcome described in the procedure is confirmed in the target system
-  or ticket record.
-- Completion notes, exceptions, and evidence are recorded in the relevant audit or
-  support workflow.
+- The expected outcome described in the procedure is confirmed in the target system or ticket record.
+- Completion notes, exceptions, and evidence are recorded in the relevant audit or support workflow.
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
-- Pause the workflow and escalate when the documented rollback path is unclear or
-  incomplete.
-related_articles:
+- Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-applications-access-and-license-management-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Identity
+- Access Management
+related_articles:
+- kb-applications-access-and-license-management-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

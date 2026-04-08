@@ -1,5 +1,5 @@
 taxonomy: source_types
-description: Origin of the canonical article content.
+description: Origin of the canonical knowledge-object source content.
 values:
   - name: native
     description: Authored and maintained directly in this repository.

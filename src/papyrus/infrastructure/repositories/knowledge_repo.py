@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ from papyrus.infrastructure.paths import (
     DECISIONS_DIR,
     DOCS_DIR,
     GENERATED_SITE_DOCS_DIR,
+    OBJECT_SCHEMA_DIR,
     POLICY_PATH,
     REPORTS_DIR,
     ROOT,
@@ -30,6 +32,13 @@ def load_yaml_file(path: Path) -> dict[str, Any]:
 
 def load_schema(schema_path: Path = ARTICLE_SCHEMA_PATH) -> dict[str, Any]:
     return load_yaml_file(schema_path)
+
+
+def load_object_schemas(schema_dir: Path = OBJECT_SCHEMA_DIR) -> dict[str, dict[str, Any]]:
+    results: dict[str, dict[str, Any]] = {}
+    for path in sorted(schema_dir.glob("*.yml")):
+        results[path.stem] = load_yaml_file(path)
+    return results
 
 
 def load_policy(policy_path: Path = POLICY_PATH) -> dict[str, Any]:
@@ -130,3 +139,123 @@ def collect_article_paths(policy: dict[str, Any] | None = None) -> list[Path]:
 def load_articles(policy: dict[str, Any] | None = None) -> list[KnowledgeDocument]:
     return load_knowledge_documents(policy)
 
+
+def insert_knowledge_object(
+    connection: sqlite3.Connection,
+    *,
+    object_id: str,
+    object_type: str,
+    legacy_type: str | None,
+    title: str,
+    summary: str,
+    status: str,
+    owner: str,
+    team: str,
+    canonical_path: str,
+    source_type: str,
+    source_system: str,
+    source_title: str,
+    created_date: str,
+    updated_date: str,
+    last_reviewed: str,
+    review_cadence: str,
+    trust_state: str,
+    current_revision_id: str,
+    tags_json: str,
+    systems_json: str,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO knowledge_objects (
+            object_id,
+            object_type,
+            legacy_type,
+            title,
+            summary,
+            status,
+            owner,
+            team,
+            canonical_path,
+            source_type,
+            source_system,
+            source_title,
+            created_date,
+            updated_date,
+            last_reviewed,
+            review_cadence,
+            trust_state,
+            current_revision_id,
+            tags_json,
+            systems_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            object_id,
+            object_type,
+            legacy_type,
+            title,
+            summary,
+            status,
+            owner,
+            team,
+            canonical_path,
+            source_type,
+            source_system,
+            source_title,
+            created_date,
+            updated_date,
+            last_reviewed,
+            review_cadence,
+            trust_state,
+            current_revision_id,
+            tags_json,
+            systems_json,
+        ),
+    )
+
+
+def insert_knowledge_revision(
+    connection: sqlite3.Connection,
+    *,
+    revision_id: str,
+    object_id: str,
+    revision_number: int,
+    revision_state: str,
+    source_path: str,
+    content_hash: str,
+    body_markdown: str,
+    normalized_payload_json: str,
+    legacy_metadata_json: str,
+    imported_at: str,
+    change_summary: str | None,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO knowledge_revisions (
+            revision_id,
+            object_id,
+            revision_number,
+            revision_state,
+            source_path,
+            content_hash,
+            body_markdown,
+            normalized_payload_json,
+            legacy_metadata_json,
+            imported_at,
+            change_summary
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            revision_id,
+            object_id,
+            revision_number,
+            revision_state,
+            source_path,
+            content_hash,
+            body_markdown,
+            normalized_payload_json,
+            legacy_metadata_json,
+            imported_at,
+            change_summary,
+        ),
+    )

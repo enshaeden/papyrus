@@ -35,7 +35,7 @@ def validate_main() -> int:
         print(f"validation failed with {len(result.issues)} issue(s)", file=sys.stderr)
         return 1
 
-    print(f"validated {result.document_count} article(s)")
+    print(f"validated {result.document_count} knowledge object source file(s)")
     return 0
 
 
@@ -104,7 +104,7 @@ def report_stale_main() -> int:
 
     rows = stale_documents(documents, taxonomies, parse_iso_date(args.as_of), statuses)
     if not rows:
-        print("no stale articles found")
+        print("no stale knowledge objects found")
         return 0
 
     for days_overdue, document, due_date in rows:
@@ -141,8 +141,8 @@ def report_content_health_main() -> int:
 def build_index_main() -> int:
     try:
         result = build_projection_command()
-    except ValueError:
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
         return 1
-    print(f"built {result.database_path} with {result.document_count} article(s) using {result.mode}")
+    print(f"built {result.database_path} with {result.document_count} knowledge object(s) using {result.mode}")
     return 0
-

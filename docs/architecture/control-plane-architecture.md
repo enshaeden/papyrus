@@ -2,14 +2,16 @@
 
 Papyrus is being refactored from an article-centric Markdown repository into a governed operational knowledge control plane.
 
-## Scope Of This Phase
+## Current State
 
-Phase 1 and Phase 2 establish the architectural spine only.
+Phase 1 through Phase 4 establish the current control-plane spine.
 
 - Canonical authored source remains Markdown with YAML front matter under `knowledge/` and `archive/knowledge/`.
 - Core runtime logic moves into `src/papyrus/`.
 - Existing CLI entrypoints remain in place, but become wrappers over application services.
-- The current flat article schema and SQLite projection remain compatibility structures until later phases replace them.
+- Typed source schemas now live under `schemas/knowledge_objects/`.
+- The local SQLite runtime now models knowledge objects, revisions, citations, services, relationships, validation runs, review assignments, and audit events.
+- The flat article schema remains only as a migration compatibility structure.
 
 ## Domain Focus
 
@@ -52,7 +54,7 @@ Papyrus separates:
 - revision review lifecycle
 - trust posture
 
-During the transition, source files still carry the legacy status field required by the current validation flow. Later phases will add explicit review assignment, approval, rejection, supersession, and suspect-state handling in the runtime model.
+During the transition, source files still carry compatibility fields such as `services`, `related_articles`, and `references` so legacy tooling can be bridged safely. Later phases will deepen workflow behavior around review assignment, approval, rejection, supersession, and suspect-state handling.
 
 ## Sync Model
 
@@ -69,7 +71,7 @@ The sync boundary is one-way with respect to authority:
 - runtime state is derived and rebuildable
 - exports are derived from source plus runtime logic
 
-[Unverified] Later phases will replace the current flat SQLite projection with a relational runtime model that preserves object identity separately from revision identity.
+The current sync flow ingests canonical Markdown source into a relational runtime that preserves object identity separately from revision identity.
 
 ## Layered Runtime Design
 

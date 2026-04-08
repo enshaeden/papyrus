@@ -13,15 +13,19 @@ from papyrus.infrastructure.paths import (
     OPERATIONAL_HEADING_PATTERN,
     ROOT,
 )
-from papyrus.infrastructure.repositories.knowledge_repo import collect_docs_source_paths, load_schema
+from papyrus.infrastructure.repositories.knowledge_repo import (
+    collect_docs_source_paths,
+    load_object_schemas,
+    load_schema,
+)
 
 
 def explicitly_linked(left: KnowledgeDocument, right: KnowledgeDocument) -> bool:
-    left_related = set(left.metadata.get("related_articles", []))
-    right_related = set(right.metadata.get("related_articles", []))
+    left_related = set(left.metadata.get("related_object_ids", []) or left.metadata.get("related_articles", []))
+    right_related = set(right.metadata.get("related_object_ids", []) or right.metadata.get("related_articles", []))
     replacements = {
-        left.metadata.get("replaced_by"),
-        right.metadata.get("replaced_by"),
+        left.metadata.get("superseded_by") or left.metadata.get("replaced_by"),
+        right.metadata.get("superseded_by") or right.metadata.get("replaced_by"),
     }
     return (
         right.knowledge_object_id in left_related
@@ -57,11 +61,12 @@ def find_possible_duplicate_documents(
 def reference_graph(documents: list[KnowledgeDocument]) -> dict[str, set[str]]:
     graph: dict[str, set[str]] = {}
     for document in documents:
-        links = set(document.metadata.get("related_articles", []))
-        replaced_by = document.metadata.get("replaced_by")
+        links = set(document.metadata.get("related_object_ids", []) or document.metadata.get("related_articles", []))
+        replaced_by = document.metadata.get("superseded_by") or document.metadata.get("replaced_by")
         if replaced_by:
             links.add(replaced_by)
-        for reference in document.metadata.get("references", []):
+        references = document.metadata.get("citations") or document.metadata.get("references", [])
+        for reference in references:
             article_id = reference.get("article_id")
             if article_id:
                 links.add(article_id)
@@ -80,7 +85,12 @@ def inverse_reference_graph(graph: dict[str, set[str]]) -> dict[str, set[str]]:
 def docs_knowledge_like_warnings(
     schema: dict[str, Any] | None = None,
 ) -> list[DocsPlacementWarning]:
-    article_fields = set((schema or load_schema()).get("fields", {}))
+    if schema is None:
+        article_fields = set(load_schema().get("fields", {}))
+        for object_schema in load_object_schemas().values():
+            article_fields.update(object_schema.get("fields", {}))
+    else:
+        article_fields = set(schema.get("fields", {}))
     warnings: list[DocsPlacementWarning] = []
 
     for path in collect_docs_source_paths():
@@ -120,7 +130,7 @@ def docs_knowledge_like_warnings(
                     preview = ", ".join(preview_fields)
                     if len(overlapping_fields) > len(preview_fields):
                         preview += ", ..."
-                    signals.append(f"front matter overlaps article schema: {preview}")
+                    signals.append(f"front matter overlaps knowledge-object schemas: {preview}")
                     score += 5 + len(strong_fields)
 
         heading_hits = sorted({item.group(1).title() for item in OPERATIONAL_HEADING_PATTERN.finditer(body)})
@@ -170,4 +180,3 @@ def missing_owner_documents(documents: list[KnowledgeDocument]) -> list[Knowledg
 
 def documents_missing_list_field(documents: list[KnowledgeDocument], field_name: str) -> list[KnowledgeDocument]:
     return [document for document in documents if not document.metadata.get(field_name)]
-

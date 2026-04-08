@@ -1,10 +1,10 @@
 schema: knowledge_article
 version: 2
 description: >
-  Portable Markdown article schema. Markdown plus YAML front matter is the
-  canonical source of truth. Derived artifacts must be reproducible from this
-  schema, repository policy, and the source files under knowledge/ or
-  archive/knowledge/.
+  Legacy compatibility schema for article-era content. Papyrus now validates
+  canonical source primarily through typed knowledge-object schemas under
+  schemas/knowledge_objects/. This file remains only for migration fallback and
+  legacy tooling bridges.
 fields:
   id:
     kind: string
@@ -28,7 +28,7 @@ fields:
     kind: string
     required: true
     taxonomy: article_types
-    description: Controlled article type.
+    description: Controlled legacy article type.
   status:
     kind: string
     required: true

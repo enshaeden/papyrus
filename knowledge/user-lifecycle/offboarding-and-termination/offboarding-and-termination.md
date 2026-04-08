@@ -2,8 +2,11 @@
 id: kb-user-lifecycle-offboarding-and-termination-offboarding-and-termination
 title: Offboarding and Termination
 canonical_path: knowledge/user-lifecycle/offboarding-and-termination/offboarding-and-termination.md
-summary: This SOP defines how IT handles user access removal and asset retrieval when someone leaves the company, distinguishing between Immediate and Scheduled terminations and outlining SLAs and checklist items.
-type: offboarding
+summary: This SOP defines how IT handles user access removal and asset retrieval when someone leaves the
+  company, distinguishing between Immediate and Scheduled terminations and outlining SLAs and checklist
+  items.
+knowledge_object_type: runbook
+legacy_article_type: offboarding
 status: active
 owner: service_owner
 source_type: imported
@@ -12,8 +15,6 @@ source_title: Offboarding and Termination
 team: Identity and Access
 systems:
 - <HR_SYSTEM>
-services:
-- Offboarding
 tags:
 - offboarding
 created: '2025-10-15'
@@ -21,6 +22,8 @@ updated: '2026-03-04'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: identity_admins
+related_services:
+- Offboarding
 prerequisites:
 - Verify the request, identity details, and required approvals before changing access or account state.
 - Confirm the target system and business context match the scope of this article.
@@ -34,10 +37,25 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-user-lifecycle-offboarding-and-termination-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Offboarding
+related_articles:
+- kb-user-lifecycle-offboarding-and-termination-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

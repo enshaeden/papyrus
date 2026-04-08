@@ -2,8 +2,10 @@
 id: kb-incidents-incident-response-template
 title: Incident Response Template
 canonical_path: knowledge/incidents/incident-response-template.md
-summary: Template for coordinating the initial response to an IT service incident with clear ownership and verification checkpoints.
-type: incident
+summary: Template for coordinating the initial response to an IT service incident with clear ownership
+  and verification checkpoints.
+knowledge_object_type: runbook
+legacy_article_type: incident
 status: active
 owner: service_owner
 source_type: native
@@ -12,8 +14,6 @@ source_title: Incident Response Template
 team: IT Operations
 systems:
 - <TICKETING_SYSTEM>
-services:
-- Incident Management
 tags:
 - incident
 - template
@@ -22,6 +22,8 @@ updated: 2026-04-07
 last_reviewed: 2026-04-07
 review_cadence: after_change
 audience: it_ops
+related_services:
+- Incident Management
 prerequisites:
 - Confirmed incident ticket or bridge room.
 - Named incident commander.
@@ -39,10 +41,25 @@ verification:
 rollback:
 - Document rollback criteria before introducing emergency changes whenever time allows.
 - Revert emergency changes that worsen impact or fail verification.
-related_articles:
+citations:
+- article_id: kb-postmortems-postmortem-template
+  source_title: Postmortem template
+  source_type: document
+  source_ref: knowledge/postmortems/postmortem-template.md
+  note: Use this after the incident is stabilized and ownership is assigned.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-postmortems-postmortem-template
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Incident Management
+related_articles:
+- kb-postmortems-postmortem-template
 references:
 - title: Postmortem template
   article_id: kb-postmortems-postmortem-template

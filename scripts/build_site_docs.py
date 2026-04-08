@@ -125,17 +125,17 @@ SUPPORT_SHORTCUTS = (
 AUTHOR_SHORTCUTS = (
     (
         "Taxonomy-driven scaffold",
-        "Start a new article with validated type, audience, team, and optional discovery metadata.",
+        "Start a new knowledge object with validated type, audience, team, and optional discovery metadata.",
         None,
     ),
     (
         "Discovery gaps",
-        "Review articles missing service, system, tag, or relationship metadata before adding new content.",
+        "Review knowledge objects missing service, system, tag, or relationship metadata before adding new content.",
         {"page": "content-health.md"},
     ),
     (
         "Facet explorer",
-        "Use the explorer to find nearby articles before creating a new source-of-truth document.",
+        "Use the explorer to find nearby knowledge objects before creating a new source-of-truth document.",
         {"page": "explorer.md"},
     ),
 )
@@ -148,7 +148,7 @@ MANAGER_SHORTCUTS = (
     ),
     (
         "Content health",
-        "Review discovery gaps, isolated content, stale articles, and likely duplicate titles.",
+        "Review discovery gaps, isolated content, stale knowledge objects, and likely duplicate titles.",
         {"page": "content-health.md"},
     ),
     (
@@ -158,7 +158,7 @@ MANAGER_SHORTCUTS = (
     ),
     (
         "Knowledge tree",
-        "Inspect the canonical article tree grouped by repository path.",
+        "Inspect the canonical knowledge tree grouped by repository path.",
         {"page": "tree.md"},
     ),
 )
@@ -322,6 +322,11 @@ def format_plain_values(values: list[str], empty: str = "None documented") -> st
     return ", ".join(values)
 
 
+def primary_object_type(article) -> str:
+    metadata = article.metadata
+    return metadata.get("knowledge_object_type") or metadata.get("type") or "unknown"
+
+
 def article_link(article, current_relative: Path) -> str:
     return f"[{article.metadata['title']}]({relative_site_link(current_relative, site_relative_path_for_article(article))})"
 
@@ -331,7 +336,7 @@ def render_article_bullet(article, current_relative: Path) -> str:
     services = format_plain_values(metadata["services"], "unclassified service")
     return (
         f"- {article_link(article, current_relative)} - {metadata['summary']} "
-        f"(`{metadata['type']}` | `{metadata['audience']}` | `{metadata['status']}` | {services})"
+        f"(`{primary_object_type(article)}` | `{metadata['audience']}` | `{metadata['status']}` | {services})"
     )
 
 
@@ -599,9 +604,9 @@ def related_inference_candidates(article, articles: list) -> list[tuple[int, obj
             score += 1
             reasons.append(f"shared team: {article.metadata['team']}")
 
-        if article.metadata["type"] == candidate.metadata["type"]:
+        if primary_object_type(article) == primary_object_type(candidate):
             score += 1
-            reasons.append(f"shared type: {article.metadata['type']}")
+            reasons.append(f"shared type: {primary_object_type(article)}")
 
         if current_path.parent == Path(candidate.relative_path).parent:
             score += 2
@@ -682,8 +687,8 @@ def render_lifecycle_links(article, articles: list, by_id: dict[str, object]) ->
 def render_browse_more_links(article) -> str:
     current_relative = site_relative_path_for_article(article)
     lines = [
-        f"- [Browse more `{article.metadata['type']}` articles]"
-        f"({explorer_link(current_relative, type=article.metadata['type'])})",
+        f"- [Browse more `{primary_object_type(article)}` articles]"
+        f"({explorer_link(current_relative, type=primary_object_type(article))})",
         f"- [Browse more `{article.metadata['audience']}` content]"
         f"({explorer_link(current_relative, audience=article.metadata['audience'])})",
         f"- [Browse more `{article.metadata['team']}` content]"
@@ -784,6 +789,8 @@ def render_article_page(article, by_id: dict[str, object], articles: list, inbou
 
 
 def taxonomy_usage_count(articles: list, field_name: str, value: str) -> int:
+    if field_name == "type":
+        return sum(1 for article in articles if primary_object_type(article) == value)
     sample = articles[0].metadata[field_name] if articles else None
     if isinstance(sample, list):
         return sum(1 for article in articles if value in article.metadata[field_name])
@@ -827,7 +834,7 @@ def render_explorer_page(articles: list, taxonomies: dict[str, dict[str, object]
                 "summary": article.metadata["summary"],
                 "path": article.relative_path,
                 "site_path": site_href(current_relative, site_relative_path_for_article(article)),
-                "type": article.metadata["type"],
+                "type": primary_object_type(article),
                 "status": article.metadata["status"],
                 "owner": article.metadata["owner"],
                 "team": article.metadata["team"],
@@ -843,7 +850,7 @@ def render_explorer_page(articles: list, taxonomies: dict[str, dict[str, object]
         )
 
     explorer_taxonomies = {
-        "type": [entry["name"] for entry in taxonomies["article_types"]["values"]],
+        "type": [entry["name"] for entry in taxonomies["knowledge_object_types"]["values"]],
         "audience": [entry["name"] for entry in taxonomies["audiences"]["values"]],
         "service": [entry["name"] for entry in taxonomies["services"]["values"]],
         "system": [entry["name"] for entry in taxonomies["systems"]["values"]],
@@ -933,14 +940,14 @@ def render_authors_page(
         "",
         "# Authoring Discovery",
         "",
-        "Use this page before creating or revising a canonical article so new content lands with valid metadata and usable relationships.",
+        "Use this page before creating or revising a canonical knowledge object so new content lands with valid metadata and usable relationships.",
         "",
         render_card_grid(cards),
         "",
         "## Scaffold Workflow",
         "",
         "```bash",
-        'python3 scripts/new_article.py --type SOP --title "Example Procedure" \\',
+        'python3 scripts/new_article.py --type runbook --title "Example Procedure" \\',
         '  --team "Service Desk" --audience service_desk \\',
         '  --service "Remote Access" --system "<VPN_SERVICE>" --tag vpn',
         "```",
@@ -948,7 +955,7 @@ def render_authors_page(
         "List valid taxonomy values without opening individual files:",
         "",
         "```bash",
-        "python3 scripts/new_article.py --list-taxonomy article_types",
+        "python3 scripts/new_article.py --list-taxonomy knowledge_object_types",
         "python3 scripts/new_article.py --list-taxonomy services",
         "python3 scripts/new_article.py --list-taxonomy systems",
         "python3 scripts/new_article.py --list-taxonomy tags",
@@ -956,24 +963,24 @@ def render_authors_page(
         "",
         "## Interoperability Checklist",
         "",
-        "- Choose the narrowest valid `type`, `audience`, `team`, `service`, `system`, and `tag` values that make the article discoverable.",
-        "- Add `related_articles` for prerequisite, follow-on, escalation, or sibling procedures before merge.",
-        "- Use `references` for canonical local paths or supporting article links instead of duplicating content in `docs/`.",
-        "- Review the faceted explorer and the content-health page to avoid creating duplicate or isolated articles.",
+        "- Choose the narrowest valid `knowledge_object_type`, `audience`, `team`, `service`, `system`, and `tag` values that make the knowledge object discoverable.",
+        "- Add `related_object_ids` for prerequisite, follow-on, escalation, or sibling procedures before merge.",
+        "- Use `references` for canonical local paths or supporting knowledge-object links instead of duplicating content in `docs/`.",
+        "- Review the faceted explorer and the content-health page to avoid creating duplicate or isolated knowledge objects.",
         "",
         render_metric_grid(
             [
-                (str(missing_services), "articles missing service classification"),
-                (str(missing_systems), "articles missing system classification"),
-                (str(missing_tags), "articles missing tag classification"),
-                (str(isolated), "isolated articles"),
+                (str(missing_services), "knowledge objects missing service classification"),
+                (str(missing_systems), "knowledge objects missing system classification"),
+                (str(missing_tags), "knowledge objects missing tag classification"),
+                (str(isolated), "isolated knowledge objects"),
                 (str(len(duplicate_candidates)), "likely duplicate title pairs"),
             ]
         ),
         "",
         f"Discovery gaps: [content-health.md]({page_link(current_relative, 'content-health.md')})",
         "",
-        render_taxonomy_table("Article Types", "article_types", "type", taxonomies, articles, current_relative),
+        render_taxonomy_table("Knowledge Object Types", "knowledge_object_types", "type", taxonomies, articles, current_relative),
         render_taxonomy_table("Audiences", "audiences", "audience", taxonomies, articles, current_relative),
         render_taxonomy_table("Services", "services", "services", taxonomies, articles, current_relative),
         render_taxonomy_table("Systems", "systems", "systems", taxonomies, articles, current_relative),
@@ -1018,7 +1025,7 @@ def render_manager_page(
         render_metric_grid(
             [
                 (str(len(visible_articles)), "current navigation articles"),
-                (str(len(articles)), "total canonical articles"),
+                (str(len(articles)), "total canonical knowledge objects"),
                 (str(status_counts.get("deprecated", 0)), "deprecated articles"),
                 (str(status_counts.get("archived", 0)), "archived articles"),
                 (str(len(stale_rows)), "stale current articles"),
@@ -1265,7 +1272,7 @@ def render_content_health_page(
 
 def render_coverage_matrix_page(articles: list, taxonomies: dict[str, dict[str, object]]) -> str:
     current_relative = Path("knowledge/coverage-matrix.md")
-    type_order = [entry["name"] for entry in taxonomies["article_types"]["values"]]
+    type_order = [entry["name"] for entry in taxonomies["knowledge_object_types"]["values"]]
     service_order = [entry["name"] for entry in taxonomies["services"]["values"]]
     articles_by_service_type = defaultdict(int)
     unclassified_label = "Unclassified"
@@ -1273,14 +1280,14 @@ def render_coverage_matrix_page(articles: list, taxonomies: dict[str, dict[str, 
     for article in articles:
         services = article.metadata["services"] or [unclassified_label]
         for service in services:
-            articles_by_service_type[(service, article.metadata["type"])] += 1
+            articles_by_service_type[(service, primary_object_type(article))] += 1
 
     lines = [
         "<!-- Generated from canonical source content. Do not edit here. -->",
         "",
         "# Coverage Matrix",
         "",
-        "Counts below show canonical article coverage by service and article type. Each count links back into the explorer for follow-up review.",
+        "Counts below show canonical knowledge-object coverage by service and knowledge-object type. Each count links back into the explorer for follow-up review.",
         "",
         "| Service | " + " | ".join(type_order) + " | Total |",
         "| --- | " + " | ".join("---" for _ in type_order) + " | --- |",
@@ -1320,7 +1327,7 @@ def render_landing_page(
     status_counts = Counter(article.metadata["status"] for article in articles)
     metrics = [
         (str(len(visible_articles)), "current navigation articles"),
-        (str(len(articles)), "total canonical articles"),
+        (str(len(articles)), "total canonical knowledge objects"),
         (str(len(taxonomies["services"]["values"])), "service taxonomy values"),
         (str(len(taxonomies["systems"]["values"])), "system taxonomy values"),
         (str(status_counts.get("deprecated", 0)), "deprecated articles"),
@@ -1411,7 +1418,7 @@ def main() -> int:
     by_status = defaultdict(list)
 
     for article in visible_articles:
-        by_type[article.metadata["type"]].append(article)
+        by_type[primary_object_type(article)].append(article)
         by_audience[article.metadata["audience"]].append(article)
         by_team[article.metadata["team"]].append(article)
         for service in article.metadata["services"] or ["Unclassified"]:
@@ -1455,11 +1462,11 @@ def main() -> int:
     (knowledge_root / "by-type.md").write_text(
         render_grouped_index_page(
             "Knowledge By Type",
-            "Browse current knowledge grouped by article type.",
+            "Browse current knowledge grouped by knowledge-object type.",
             by_type,
             "knowledge/by-type.md",
             "type",
-            [entry["name"] for entry in taxonomies["article_types"]["values"]],
+            [entry["name"] for entry in taxonomies["knowledge_object_types"]["values"]],
         ),
         encoding="utf-8",
     )
@@ -1543,7 +1550,7 @@ def main() -> int:
     (archive_root / "index.md").write_text(render_archive_index(archived_articles), encoding="utf-8")
 
     expected_pages = {relative_path for relative_path in GENERATED_SITE_INDEX_PATHS}
-    print(f"generated site docs for {len(articles)} article(s) across {len(expected_pages)} generated indexes")
+    print(f"generated site docs for {len(articles)} knowledge object(s) across {len(expected_pages)} generated indexes")
     return 0
 
 

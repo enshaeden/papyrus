@@ -2,8 +2,10 @@
 id: kb-troubleshooting-onsite-support-setting-up-shared-laptops-for-events
 title: Setting Up Shared Laptops for Events
 canonical_path: knowledge/troubleshooting/onsite-support/setting-up-shared-laptops-for-events.md
-summary: 'You can create a single group in <ENDPOINT_MANAGEMENT_PLATFORM> then add that group to these policies, or do the machines as one offs:'
-type: troubleshooting
+summary: 'You can create a single group in <ENDPOINT_MANAGEMENT_PLATFORM> then add that group to these
+  policies, or do the machines as one offs:'
+knowledge_object_type: known_error
+legacy_article_type: troubleshooting
 status: active
 owner: service_owner
 source_type: imported
@@ -12,8 +14,6 @@ source_title: Setting Up Shared Laptops for Events
 team: Service Desk
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
-services:
-- Endpoint Provisioning
 tags:
 - endpoint
 - service-desk
@@ -22,6 +22,34 @@ updated: '2025-10-29'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: service_desk
+related_services:
+- Endpoint Provisioning
+symptoms:
+- 'You can create a single group in <ENDPOINT_MANAGEMENT_PLATFORM> then add that group to these policies,
+  or do the machines as one offs:'
+scope: 'Legacy source does not declare structured scope. Summary: You can create a single group in <ENDPOINT_MANAGEMENT_PLATFORM>
+  then add that group to these policies, or do the machines as one offs:'
+cause: Legacy source does not declare a structured cause field.
+diagnostic_checks:
+- Review the imported procedure body below and confirm the documented symptoms match the live issue.
+- Work through the diagnostic and remediation steps in order, recording any deviations in the ticket.
+- Escalate when the documented checks fail or the issue exceeds the article scope.
+mitigations:
+- Undo any reversible change documented in the procedure if validation fails.
+- Escalate to the owning team with the captured symptom and actions already taken.
+permanent_fix_status: unknown
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
+- kb-troubleshooting-onsite-support-index
 prerequisites:
 - Capture the exact symptom, affected scope, and recent changes before troubleshooting.
 - Confirm you have the required system access or escalation path before making changes.
@@ -35,10 +63,13 @@ verification:
 rollback:
 - Undo any reversible change documented in the procedure if validation fails.
 - Escalate to the owning team with the captured symptom and actions already taken.
-related_articles:
-- kb-troubleshooting-onsite-support-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Endpoint Provisioning
+related_articles:
+- kb-troubleshooting-onsite-support-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

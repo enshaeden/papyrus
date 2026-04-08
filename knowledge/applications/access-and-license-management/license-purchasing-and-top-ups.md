@@ -2,8 +2,10 @@
 id: kb-applications-access-and-license-management-license-purchasing-and-top-ups
 title: License purchasing and top ups
 canonical_path: knowledge/applications/access-and-license-management/license-purchasing-and-top-ups.md
-summary: 'Currently limited to <COLLABORATION_PLATFORM> and <PRODUCTIVITY_PLATFORM>, IT can and should purchase licensing as needed. Licenses will arrive Just in time (JIT) according to the following processes:'
-type: access
+summary: 'Currently limited to <COLLABORATION_PLATFORM> and <PRODUCTIVITY_PLATFORM>, IT can and should
+  purchase licensing as needed. Licenses will arrive Just in time (JIT) according to the following processes:'
+knowledge_object_type: runbook
+legacy_article_type: access
 status: active
 owner: service_owner
 source_type: imported
@@ -11,8 +13,6 @@ source_system: knowledge_portal_export
 source_title: License purchasing and top ups
 team: Identity and Access
 systems: []
-services:
-- Access Management
 tags:
 - account
 - access
@@ -21,6 +21,8 @@ updated: '2026-03-19'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: identity_admins
+related_services:
+- Access Management
 prerequisites:
 - Verify the request, identity details, and required approvals before changing access or account state.
 - Confirm the target system and business context match the scope of this article.
@@ -34,10 +36,25 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-applications-access-and-license-management-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Access Management
+related_articles:
+- kb-applications-access-and-license-management-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

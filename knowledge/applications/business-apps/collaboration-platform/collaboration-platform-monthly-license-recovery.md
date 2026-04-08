@@ -2,8 +2,10 @@
 id: kb-applications-business-apps-collaboration-platform-collaboration-platform-monthly-license-recovery
 title: <COLLABORATION_PLATFORM> Monthly License Recovery
 canonical_path: knowledge/applications/business-apps/collaboration-platform/collaboration-platform-monthly-license-recovery.md
-summary: Review suspended accounts each month and archive or remove inactive accounts to recover collaboration-platform licenses.
-type: access
+summary: Review suspended accounts each month and archive or remove inactive accounts to recover collaboration-platform
+  licenses.
+knowledge_object_type: runbook
+legacy_article_type: access
 status: active
 owner: service_owner
 source_type: imported
@@ -13,8 +15,6 @@ team: Identity and Access
 systems:
 - <COLLABORATION_PLATFORM>
 - <HR_SYSTEM>
-services:
-- Access Management
 tags:
 - access
 created: '2025-12-10'
@@ -22,6 +22,8 @@ updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: identity_admins
+related_services:
+- Access Management
 prerequisites:
 - Verify the request, identity details, and required approvals before changing access or account state.
 - Confirm the target system and business context match the scope of this article.
@@ -35,11 +37,27 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
+- kb-applications-business-apps-collaboration-platform-index
+- kb-applications-business-apps-collaboration-platform-deleting-archived-collaboration-platform-users-steps-and-considerations-for-restoration
+superseded_by: null
+replaced_by: null
+retirement_reason: null
+services:
+- Access Management
 related_articles:
 - kb-applications-business-apps-collaboration-platform-index
 - kb-applications-business-apps-collaboration-platform-deleting-archived-collaboration-platform-users-steps-and-considerations-for-restoration
-replaced_by: null
-retirement_reason: null
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

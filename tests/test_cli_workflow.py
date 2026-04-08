@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -104,7 +105,9 @@ class CliWorkflowTests(unittest.TestCase):
             self.assertTrue(created_path.exists())
             created_text = created_path.read_text(encoding="utf-8")
             self.assertIn("Temporary Example Procedure", created_text)
+            self.assertIn("knowledge_object_type: runbook", created_text)
             self.assertIn("canonical_path:", created_text)
+            self.assertIn("related_services:\n- Remote Access", created_text)
             self.assertIn("services:\n- Remote Access", created_text)
             self.assertIn("systems:\n- <VPN_SERVICE>", created_text)
             self.assertIn("tags:\n- vpn", created_text)
@@ -136,6 +139,23 @@ class CliWorkflowTests(unittest.TestCase):
         build_result = run_command("scripts/build_index.py")
         self.assertEqual(build_result.returncode, 0, msg=build_result.stderr)
         self.assertIn("knowledge.db", build_result.stdout)
+        with sqlite3.connect(ROOT / "build" / "knowledge.db") as connection:
+            table_names = {
+                row[0]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type IN ('table', 'view')"
+                ).fetchall()
+            }
+        self.assertIn("knowledge_objects", table_names)
+        self.assertIn("knowledge_revisions", table_names)
+        self.assertIn("citations", table_names)
+        self.assertIn("services", table_names)
+        self.assertIn("relationships", table_names)
+        self.assertIn("review_assignments", table_names)
+        self.assertIn("validation_runs", table_names)
+        self.assertIn("audit_events", table_names)
+        self.assertIn("search_documents", table_names)
+        self.assertNotIn("articles", table_names)
 
         search_result = run_command("scripts/search.py", "vpn")
         self.assertEqual(search_result.returncode, 0, msg=search_result.stderr)
@@ -144,7 +164,7 @@ class CliWorkflowTests(unittest.TestCase):
     def test_stale_report_for_seed_date(self) -> None:
         result = run_command("scripts/report_stale.py", "--as-of", "2026-04-07")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
-        self.assertIn("no stale articles found", result.stdout)
+        self.assertIn("no stale knowledge objects found", result.stdout)
 
     def test_content_health_report_cli(self) -> None:
         result = run_command("scripts/report_content_health.py", "--section", "duplicates")

@@ -2,8 +2,11 @@
 id: kb-user-lifecycle-onboarding-new-hires-hr-system-to-identity-provider-new-hire-account-staging-and-confirmation-process
 title: '<HR_SYSTEM> to <IDENTITY_PROVIDER>: New Hire Account Staging and Confirmation Process'
 canonical_path: knowledge/user-lifecycle/onboarding-new-hires/hr-system-to-identity-provider-new-hire-account-staging-and-confirmation-process.md
-summary: 'New Hire Workflow Overview: <ONBOARDING_WORKFLOW> < <HR_SYSTEM> < <TICKETING_SYSTEM> Ticket (<QUEUE_NAME>) Management New Hire Workflow Overview: <ONBOARDING_WORKFLOW> < <HR_SYSTEM> < <TICKETING_SYSTEM> Ticket (<QUEUE_NAME>) Management'
-type: onboarding
+summary: 'New Hire Workflow Overview: <ONBOARDING_WORKFLOW> < <HR_SYSTEM> < <TICKETING_SYSTEM> Ticket
+  (<QUEUE_NAME>) Management New Hire Workflow Overview: <ONBOARDING_WORKFLOW> < <HR_SYSTEM> < <TICKETING_SYSTEM>
+  Ticket (<QUEUE_NAME>) Management'
+knowledge_object_type: runbook
+legacy_article_type: onboarding
 status: active
 owner: service_owner
 source_type: imported
@@ -13,9 +16,6 @@ team: Identity and Access
 systems:
 - <HR_SYSTEM>
 - <IDENTITY_PROVIDER>
-services:
-- Identity
-- Onboarding
 tags:
 - account
 - authentication
@@ -25,6 +25,9 @@ updated: '2026-02-25'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: identity_admins
+related_services:
+- Identity
+- Onboarding
 prerequisites:
 - Verify the request, identity details, and required approvals before changing access or account state.
 - Confirm the target system and business context match the scope of this article.
@@ -38,10 +41,26 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-user-lifecycle-onboarding-new-hires-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Identity
+- Onboarding
+related_articles:
+- kb-user-lifecycle-onboarding-new-hires-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

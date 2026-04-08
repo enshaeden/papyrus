@@ -3,7 +3,8 @@ id: kb-offboarding-employee-offboarding-checklist
 title: Employee Offboarding Checklist
 canonical_path: knowledge/offboarding/employee-offboarding-checklist.md
 summary: Disable access, recover assets, and preserve required records when a user leaves the organization.
-type: offboarding
+knowledge_object_type: runbook
+legacy_article_type: offboarding
 status: active
 owner: service_owner
 source_type: native
@@ -16,10 +17,6 @@ systems:
 - <HR_SYSTEM>
 - <IDENTITY_PROVIDER>
 - <TICKETING_SYSTEM>
-services:
-- Offboarding
-- Identity
-- Access Management
 tags:
 - offboarding
 - checklist
@@ -30,6 +27,10 @@ updated: 2026-04-07
 last_reviewed: 2026-04-07
 review_cadence: monthly
 audience: it_ops
+related_services:
+- Offboarding
+- Identity
+- Access Management
 prerequisites:
 - Approved offboarding ticket or HRIS export with effective departure date and manager.
 - Confirmation of any legal hold, mailbox retention, or forwarding requirement.
@@ -46,11 +47,29 @@ verification:
 rollback:
 - If the separation is reversed, restore access only after written approval from HR and the manager.
 - Reissue recovered hardware only after the user record is returned to active status.
+citations:
+- article_id: null
+  source_title: Asset inventory record
+  source_type: document
+  source_ref: Asset inventory record
+  note: Use current inventory data when confirming device recovery status.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
+- kb-access-password-reset-account-lockout
+- kb-onboarding-employee-onboarding-checklist
+superseded_by: null
+replaced_by: null
+retirement_reason: null
+services:
+- Offboarding
+- Identity
+- Access Management
 related_articles:
 - kb-access-password-reset-account-lockout
 - kb-onboarding-employee-onboarding-checklist
-replaced_by: null
-retirement_reason: null
 references:
 - title: Asset inventory record
   note: Use current inventory data when confirming device recovery status.

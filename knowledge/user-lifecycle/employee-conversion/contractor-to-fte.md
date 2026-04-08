@@ -2,8 +2,10 @@
 id: kb-user-lifecycle-employee-conversion-contractor-to-fte
 title: Contractor to FTE
 canonical_path: knowledge/user-lifecycle/employee-conversion/contractor-to-fte.md
-summary: Coordinate identity, email, and downstream account updates when a contractor converts to a full-time employee.
-type: runbook
+summary: Coordinate identity, email, and downstream account updates when a contractor converts to a full-time
+  employee.
+knowledge_object_type: runbook
+legacy_article_type: runbook
 status: active
 owner: service_owner
 source_type: imported
@@ -14,10 +16,6 @@ systems:
 - <HR_SYSTEM>
 - <IDENTITY_PROVIDER>
 - <COLLABORATION_PLATFORM>
-services:
-- Identity
-- Onboarding
-- Access Management
 tags:
 - account
 - onboarding
@@ -26,6 +24,10 @@ updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: identity_admins
+related_services:
+- Identity
+- Onboarding
+- Access Management
 prerequisites:
 - Review the scope, approvals, and dependencies described in this article before starting.
 - Confirm you have the required systems access and escalation path before proceeding.
@@ -39,10 +41,27 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-user-lifecycle-employee-conversion-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Identity
+- Onboarding
+- Access Management
+related_articles:
+- kb-user-lifecycle-employee-conversion-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

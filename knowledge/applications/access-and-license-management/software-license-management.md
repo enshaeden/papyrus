@@ -2,8 +2,11 @@
 id: kb-applications-access-and-license-management-software-license-management
 title: Software License Management
 canonical_path: knowledge/applications/access-and-license-management/software-license-management.md
-summary: "Design and implement a standardized, end to end software license management process within <COMPANY_NAME>\u2019s IT department\u2014covering procurement, deployment, inventory tracking, renewal coordination, de provisioning, and..."
-type: access
+summary: "Design and implement a standardized, end to end software license management process within <COMPANY_NAME>\u2019\
+  s IT department\u2014covering procurement, deployment, inventory tracking, renewal coordination, de\
+  \ provisioning, and..."
+knowledge_object_type: runbook
+legacy_article_type: access
 status: active
 owner: service_owner
 source_type: imported
@@ -11,8 +14,6 @@ source_system: knowledge_portal_export
 source_title: Software License Management
 team: Identity and Access
 systems: []
-services:
-- Access Management
 tags:
 - account
 - access
@@ -21,6 +22,8 @@ updated: '2025-09-10'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: identity_admins
+related_services:
+- Access Management
 prerequisites:
 - Verify the request, identity details, and required approvals before changing access or account state.
 - Confirm the target system and business context match the scope of this article.
@@ -34,10 +37,25 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-applications-access-and-license-management-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Access Management
+related_articles:
+- kb-applications-access-and-license-management-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

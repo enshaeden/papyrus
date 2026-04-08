@@ -21,6 +21,11 @@ class KnowledgeDocument:
     def article_id(self) -> str:
         return self.knowledge_object_id
 
+    @property
+    def object_type(self) -> str:
+        value = self.metadata.get("knowledge_object_type") or self.metadata.get("type")
+        return str(value or "")
+
 
 @dataclass(frozen=True)
 class KnowledgeObject:
@@ -145,3 +150,18 @@ class SearchHit:
     status: str
     path: str
 
+
+@dataclass(frozen=True)
+class ParsedKnowledgeObjectSource:
+    document: KnowledgeDocument
+    object_type: str
+    legacy_type: str | None
+    metadata: dict[str, Any]
+    citations: list[dict[str, Any]]
+    related_services: list[str]
+    related_object_ids: list[str]
+    trust_state: str
+    approval_state: str
+    freshness_rank: int
+    citation_health_rank: int
+    ownership_rank: int

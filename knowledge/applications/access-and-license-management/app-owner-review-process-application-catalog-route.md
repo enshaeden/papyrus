@@ -3,7 +3,8 @@ id: kb-applications-access-and-license-management-app-owner-review-process-appli
 title: Application Catalog App Owner Review Process
 canonical_path: knowledge/applications/access-and-license-management/app-owner-review-process-application-catalog-route.md
 summary: Review and update application ownership records when the listed owner is no longer active.
-type: access
+knowledge_object_type: runbook
+legacy_article_type: access
 status: active
 owner: service_owner
 source_type: imported
@@ -14,8 +15,6 @@ systems:
 - <APPLICATION_CATALOG>
 - <ASSET_MANAGEMENT_SYSTEM>
 - <TICKETING_SYSTEM>
-services:
-- Access Management
 tags:
 - account
 - access
@@ -24,6 +23,8 @@ updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: identity_admins
+related_services:
+- Access Management
 prerequisites:
 - Verify the request, identity details, and required approvals before changing access or account state.
 - Confirm the target system and business context match the scope of this article.
@@ -37,10 +38,25 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-applications-access-and-license-management-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Access Management
+related_articles:
+- kb-applications-access-and-license-management-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

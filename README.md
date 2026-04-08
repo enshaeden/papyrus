@@ -14,15 +14,16 @@ Canonical authored knowledge remains in portable Markdown with YAML front matter
 
 ## Current Refactor Boundary
 
-Phase 1 and Phase 2 establish the architectural spine for the control-plane model.
+Phases 1-4 are implemented.
 
 - The repository framing is now knowledge-object centric instead of article centric.
 - Canonical authored source is still Markdown under `knowledge/` and `archive/knowledge/`.
 - The `src/papyrus/` package now owns reusable runtime logic instead of `scripts/kb_common.py`.
+- Typed source schemas now live under `schemas/knowledge_objects/` for `runbook`, `known_error`, and `service_record`.
+- `scripts/build_index.py` now rebuilds a relational SQLite runtime with first-class knowledge objects, revisions, citations, services, relationships, validation runs, review assignments, and audit events.
 - CLI scripts remain first-class operator entrypoints, but they are wrappers over application services.
 - MkDocs, `generated/`, and `site/` remain derived export concerns, not the primary product surface.
-
-[Unverified] Phase 3 and later phases will replace the current flat SQLite projection and universal article schema with typed object schemas and a governance-aware relational runtime.
+- The legacy universal article schema remains only as a migration compatibility shim.
 
 ## Repository Layout
 
@@ -31,7 +32,7 @@ Phase 1 and Phase 2 establish the architectural spine for the control-plane mode
 - `docs/`: explanatory architecture, workflow, and governance documentation.
 - `decisions/`: ADR-style structural decisions.
 - `src/papyrus/`: application package for domain, application, infrastructure, interface, and job layers.
-- `schemas/`: repository policy and current source-schema definitions.
+- `schemas/`: repository policy, typed source schemas, and legacy compatibility shims.
 - `taxonomies/`: controlled vocabularies used by validation and reporting.
 - `templates/`: approved source templates only.
 - `scripts/`: operator-facing CLI entrypoints and compatibility shims.
@@ -69,7 +70,7 @@ Validate canonical source and repository policy:
 python3 scripts/validate.py
 ```
 
-Build the current local SQLite projection:
+Build the current local runtime database:
 
 ```bash
 python3 scripts/build_index.py

@@ -2,8 +2,10 @@
 id: kb-governance-documentation-standards-documentation-labeling-metadata-standard
 title: Documentation Labeling & Metadata Standard
 canonical_path: knowledge/governance/documentation-standards/documentation-labeling-metadata-standard.md
-summary: To ensure consistency, clarity, and searchability in internal IT documentation by standardizing label usage.
-type: policy
+summary: To ensure consistency, clarity, and searchability in internal IT documentation by standardizing
+  label usage.
+knowledge_object_type: service_record
+legacy_article_type: policy
 status: active
 owner: service_owner
 source_type: imported
@@ -11,13 +13,33 @@ source_system: knowledge_portal_export
 source_title: Documentation Labeling & Metadata Standard
 team: IT Operations
 systems: []
-services: []
 tags: []
 created: '2025-11-05'
 updated: '2025-11-12'
 last_reviewed: '2026-04-07'
 review_cadence: annual
 audience: it_ops
+service_name: Documentation Labeling & Metadata Standard
+service_criticality: not_classified
+dependencies: []
+support_entrypoints:
+- Legacy source does not declare structured support entrypoints.
+common_failure_modes:
+- Legacy source does not declare structured common failure modes.
+related_runbooks: []
+related_known_errors: []
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
+- kb-governance-documentation-standards-index
 prerequisites:
 - Review the scope, approvals, and dependencies described in this article before starting.
 - Confirm you have the required systems access and escalation path before proceeding.
@@ -31,10 +53,12 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
-- kb-governance-documentation-standards-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services: []
+related_articles:
+- kb-governance-documentation-standards-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

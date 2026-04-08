@@ -15,6 +15,7 @@ GENERATED_SITE_DOCS_DIR = GENERATED_DIR / "site_docs"
 LEGACY_GENERATED_DOCS_DIR = DOCS_DIR / "generated"
 REPORTS_DIR = ROOT / "reports"
 ARTICLE_SCHEMA_PATH = ROOT / "schemas" / "article.yml"
+OBJECT_SCHEMA_DIR = ROOT / "schemas" / "knowledge_objects"
 POLICY_PATH = ROOT / "schemas" / "repository_policy.yml"
 TAXONOMY_DIR = ROOT / "taxonomies"
 BUILD_DIR = ROOT / "build"
@@ -152,4 +153,3 @@ GENERIC_BRAND_ALLOWLIST = {
 
 def relative_path(path: Path) -> str:
     return path.relative_to(ROOT).as_posix()
-

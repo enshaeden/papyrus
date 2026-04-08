@@ -2,8 +2,11 @@
 id: kb-helpdesk-policies-legal-compliance-collaboration
 title: Legal & Compliance Collaboration
 canonical_path: knowledge/helpdesk/policies/legal-compliance-collaboration.md
-summary: The purpose of this Standard Operating Procedure (SOP) is to define the processes and responsibilities for IT collaboration with the Legal and Compliance teams at <COMPANY_NAME>. This document ensures that IT plays a...
-type: policy
+summary: The purpose of this Standard Operating Procedure (SOP) is to define the processes and responsibilities
+  for IT collaboration with the Legal and Compliance teams at <COMPANY_NAME>. This document ensures that
+  IT plays a...
+knowledge_object_type: service_record
+legacy_article_type: policy
 status: active
 owner: service_owner
 source_type: imported
@@ -12,7 +15,6 @@ source_title: Legal & Compliance Collaboration
 team: Service Desk
 systems:
 - <TICKETING_SYSTEM>
-services: []
 tags:
 - service-desk
 created: '2025-10-28'
@@ -20,6 +22,28 @@ updated: '2025-10-31'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: service_desk
+service_name: Legal & Compliance Collaboration
+service_criticality: not_classified
+dependencies:
+- <TICKETING_SYSTEM>
+support_entrypoints:
+- Legacy source does not declare structured support entrypoints.
+common_failure_modes:
+- Legacy source does not declare structured common failure modes.
+related_runbooks: []
+related_known_errors: []
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
+- kb-helpdesk-policies-index
 prerequisites:
 - Review the scope, approvals, and dependencies described in this article before starting.
 - Confirm you have the required systems access and escalation path before proceeding.
@@ -33,10 +57,12 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
-- kb-helpdesk-policies-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services: []
+related_articles:
+- kb-helpdesk-policies-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

@@ -43,23 +43,13 @@ directories:
     - requirements.txt
 templates:
   approved_files:
-    - incident-postmortem.md
+    - known_error.md
     - runbook.md
-    - sop.md
-    - troubleshooting.md
-  family_by_article_type:
+    - service_record.md
+  family_by_knowledge_object_type:
     runbook: runbook
-    SOP: sop
-    troubleshooting: troubleshooting
-    FAQ: sop
-    reference: sop
-    policy: sop
-    onboarding: sop
-    offboarding: sop
-    access: sop
-    asset: sop
-    incident: incident-postmortem
-    postmortem: incident-postmortem
+    known_error: known_error
+    service_record: service_record
 lifecycle:
   active_navigation_statuses:
     - active

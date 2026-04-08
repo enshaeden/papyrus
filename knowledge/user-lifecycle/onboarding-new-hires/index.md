@@ -3,7 +3,8 @@ id: kb-user-lifecycle-onboarding-new-hires-index
 title: User Lifecycle / Onboarding New Hires
 canonical_path: knowledge/user-lifecycle/onboarding-new-hires/index.md
 summary: Collection index for curated seed content under User Lifecycle / Onboarding New Hires.
-type: reference
+knowledge_object_type: service_record
+legacy_article_type: reference
 status: active
 owner: service_owner
 source_type: derived
@@ -12,8 +13,6 @@ source_title: User Lifecycle / Onboarding New Hires
 team: Identity and Access
 systems:
 - <HR_SYSTEM>
-services:
-- Onboarding
 tags:
 - account
 - onboarding
@@ -22,19 +21,64 @@ updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: identity_admins
+service_name: Onboarding
+service_criticality: not_classified
+dependencies:
+- <HR_SYSTEM>
+support_entrypoints:
+- Legacy source does not declare structured support entrypoints.
+common_failure_modes:
+- Legacy source does not declare structured common failure modes.
+related_runbooks:
+- kb-user-lifecycle-onboarding-new-hires-application-access-for-new-employees-and-contractors
+- kb-user-lifecycle-onboarding-new-hires-day-1-preparing-accounts-and-devices
+- kb-user-lifecycle-onboarding-new-hires-day-1-onboarding-and-setup
+- kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-in-hr-system
+- kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-access-export-and-post-onboarding-cleanup-guide
+- kb-user-lifecycle-onboarding-new-hires-rescinded-or-delayed-onboarding
+- kb-user-lifecycle-onboarding-new-hires-hr-system-to-identity-provider-new-hire-account-staging-and-confirmation-process
+related_known_errors:
+- kb-user-lifecycle-onboarding-new-hires-troubleshooting-onboarding-workflow-contact-errors
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Collection Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
+- kb-user-lifecycle-onboarding-new-hires-application-access-for-new-employees-and-contractors
+- kb-user-lifecycle-onboarding-new-hires-day-1-preparing-accounts-and-devices
+- kb-user-lifecycle-onboarding-new-hires-day-1-onboarding-and-setup
+- kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-in-hr-system
+- kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-access-export-and-post-onboarding-cleanup-guide
+- kb-user-lifecycle-onboarding-new-hires-rescinded-or-delayed-onboarding
+- kb-user-lifecycle-onboarding-new-hires-troubleshooting-onboarding-workflow-contact-errors
+- kb-user-lifecycle-onboarding-new-hires-hr-system-to-identity-provider-new-hire-account-staging-and-confirmation-process
 prerequisites:
 - Review the collection summary and choose the child article that matches the task before acting.
 - Confirm the target region, platform, or lifecycle path aligns with the selected child article.
 steps:
 - Read the collection overview to identify the correct workflow or region-specific article.
-- Open the relevant child article and follow its procedure exactly rather than acting from the collection summary alone.
-- Record exceptions or missing migration details for follow-up in the migration manifest or rationale doc.
+- Open the relevant child article and follow its procedure exactly rather than acting from the collection
+  summary alone.
+- Record exceptions or missing migration details for follow-up in the migration manifest or rationale
+  doc.
 verification:
 - The selected child article clearly matches the task, region, and system in scope.
 - Operators can navigate from this collection page to the required child articles without ambiguity.
 rollback:
-- Use the child article rollback guidance for any operational change; this collection page is navigation-only context.
+- Use the child article rollback guidance for any operational change; this collection page is navigation-only
+  context.
 - Escalate to the owning team if none of the child articles match the task safely.
+superseded_by: null
+replaced_by: null
+retirement_reason: null
+services:
+- Onboarding
 related_articles:
 - kb-user-lifecycle-onboarding-new-hires-application-access-for-new-employees-and-contractors
 - kb-user-lifecycle-onboarding-new-hires-day-1-preparing-accounts-and-devices
@@ -44,8 +88,6 @@ related_articles:
 - kb-user-lifecycle-onboarding-new-hires-rescinded-or-delayed-onboarding
 - kb-user-lifecycle-onboarding-new-hires-troubleshooting-onboarding-workflow-contact-errors
 - kb-user-lifecycle-onboarding-new-hires-hr-system-to-identity-provider-new-hire-account-staging-and-confirmation-process
-replaced_by: null
-retirement_reason: null
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

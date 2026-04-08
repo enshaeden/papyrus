@@ -12,21 +12,12 @@ from kb_common import FRONT_MATTER_PATTERN, load_policy, load_taxonomies, simila
 
 TYPE_TO_DIRECTORY = {
     "runbook": "runbooks",
-    "SOP": "sops",
-    "troubleshooting": "troubleshooting",
-    "FAQ": "faqs",
-    "reference": "reference",
-    "policy": "policies",
-    "onboarding": "onboarding",
-    "offboarding": "offboarding",
-    "access": "access",
-    "asset": "assets",
-    "incident": "incidents",
-    "postmortem": "postmortems",
+    "known_error": "known-errors",
+    "service_record": "service-records",
 }
 
 LISTABLE_TAXONOMIES = (
-    "article_types",
+    "knowledge_object_types",
     "audiences",
     "services",
     "systems",
@@ -35,6 +26,8 @@ LISTABLE_TAXONOMIES = (
     "teams",
     "review_cadences",
     "source_types",
+    "service_criticality",
+    "permanent_fix_status",
 )
 
 
@@ -62,6 +55,10 @@ def render_yaml_field(field_name: str, values: list[str]) -> str:
     return "\n".join([f"{field_name}:", *[f"- {value}" for value in values]])
 
 
+def render_inline_list(values: list[str]) -> str:
+    return yaml.safe_dump(values, default_flow_style=True, sort_keys=False).strip()
+
+
 def load_existing_article_records(root: Path, policy: dict[str, object]) -> list[dict[str, object]]:
     records = []
     for directory in policy["directories"]["canonical_article_roots"]:
@@ -85,6 +82,15 @@ def load_existing_article_records(root: Path, policy: dict[str, object]) -> list
     return records
 
 
+def object_type(metadata: dict[str, object]) -> str:
+    return str(metadata.get("knowledge_object_type") or metadata.get("type") or "")
+
+
+def services_for(metadata: dict[str, object]) -> list[str]:
+    values = metadata.get("related_services") or metadata.get("services") or []
+    return [str(item) for item in values]
+
+
 def related_article_suggestions(
     destination: Path,
     draft_metadata: dict[str, object],
@@ -98,7 +104,7 @@ def related_article_suggestions(
 
         reasons = []
         score = 0
-        shared_services = sorted(set(draft_metadata["services"]).intersection(metadata.get("services", [])))
+        shared_services = sorted(set(draft_metadata["services"]).intersection(services_for(metadata)))
         if shared_services:
             score += len(shared_services) * 4
             reasons.append(f"shared service: {', '.join(shared_services)}")
@@ -121,9 +127,9 @@ def related_article_suggestions(
             score += 1
             reasons.append(f"shared team: {draft_metadata['team']}")
 
-        if draft_metadata["type"] == metadata.get("type"):
+        if draft_metadata["knowledge_object_type"] == object_type(metadata):
             score += 1
-            reasons.append(f"shared type: {draft_metadata['type']}")
+            reasons.append(f"shared object type: {draft_metadata['knowledge_object_type']}")
 
         if destination.parent.as_posix() == Path(record["path"]).parent.as_posix():
             score += 2
@@ -164,7 +170,7 @@ def emit_authoring_feedback(
         print(
             "Discovery warning: scaffold still has empty "
             + ", ".join(empty_fields)
-            + ". Populate these before merging so the generated browse views can classify the article.",
+            + ". Populate these before merging so runtime search and export views can classify the object.",
             file=sys.stderr,
         )
         print(
@@ -174,18 +180,18 @@ def emit_authoring_feedback(
 
     if not related_ids:
         print(
-            "Interoperability warning: related_articles is still empty. Add prerequisite, follow-on, escalation, or sibling article links before merging when applicable.",
+            "Interoperability warning: related_object_ids is still empty. Add prerequisite, follow-on, escalation, or sibling knowledge links before merging when applicable.",
             file=sys.stderr,
         )
 
     if not suggestions:
         print(
-            "[Inference] No strong related-article candidates were identified from the existing repository metadata.",
+            "[Inference] No strong related-object candidates were identified from the existing repository metadata.",
             file=sys.stderr,
         )
         return
 
-    print("[Inference] Candidate related articles based on title and metadata overlap:", file=sys.stderr)
+    print("[Inference] Candidate related knowledge objects based on title and metadata overlap:", file=sys.stderr)
     for score, record, reasons in suggestions[:5]:
         metadata = record["metadata"]
         print(
@@ -196,12 +202,12 @@ def emit_authoring_feedback(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Create a new knowledge article from an approved template")
+    parser = argparse.ArgumentParser(description="Create a new Papyrus knowledge object from an approved template")
     parser.add_argument("--root", default=None, help=argparse.SUPPRESS)
-    parser.add_argument("--title", help="Article title")
-    parser.add_argument("--type", help="Article type from taxonomies/article_types.yml")
+    parser.add_argument("--title", help="Object title")
+    parser.add_argument("--type", help="Knowledge object type from taxonomies/knowledge_object_types.yml")
     parser.add_argument("--slug", help="Optional explicit slug. Derived from title when omitted.")
-    parser.add_argument("--owner", default="TBD", help="Article owner")
+    parser.add_argument("--owner", default="TBD", help="Object owner")
     parser.add_argument("--team", default="Service Desk", help="Responsible team")
     parser.add_argument("--status", default="draft", help="Lifecycle status")
     parser.add_argument("--audience", default="service_desk", help="Primary audience")
@@ -209,10 +215,17 @@ def main() -> int:
     parser.add_argument("--system", action="append", default=[], help="System taxonomy value. Repeatable.")
     parser.add_argument("--tag", action="append", default=[], help="Tag taxonomy value. Repeatable.")
     parser.add_argument(
+        "--related-object",
+        action="append",
+        dest="related_object",
+        default=[],
+        help="Existing knowledge object id to prefill in related_object_ids. Repeatable.",
+    )
+    parser.add_argument(
         "--related-article",
         action="append",
-        default=[],
-        help="Existing article id to prefill in related_articles. Repeatable.",
+        dest="related_object",
+        help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "--list-taxonomy",
@@ -239,9 +252,9 @@ def main() -> int:
         if value not in allowed:
             raise ValueError(f"{field_name} must be one of {sorted(allowed)}")
 
-    allowed_types = set(taxonomies["article_types"]["allowed_values"])
+    allowed_types = set(taxonomies["knowledge_object_types"]["allowed_values"])
     if args.type not in allowed_types:
-        print(f"unsupported article type: {args.type}", file=sys.stderr)
+        print(f"unsupported knowledge object type: {args.type}", file=sys.stderr)
         return 1
 
     try:
@@ -258,14 +271,14 @@ def main() -> int:
         print(str(exc), file=sys.stderr)
         return 1
 
-    family_mapping = policy["templates"]["family_by_article_type"]
+    family_mapping = policy["templates"]["family_by_knowledge_object_type"]
     family = family_mapping.get(args.type)
     if not family:
-        print(f"no approved template family for article type: {args.type}", file=sys.stderr)
+        print(f"no approved template family for knowledge object type: {args.type}", file=sys.stderr)
         return 1
 
     slug = args.slug or slugify(args.title)
-    article_id = f"kb-{args.type.lower().replace(' ', '-')}-{slug}"
+    article_id = f"kb-{args.type.replace('_', '-')}-{slug}"
     directory = root / "knowledge" / TYPE_TO_DIRECTORY[args.type]
     directory.mkdir(parents=True, exist_ok=True)
     destination = directory / f"{slug}.md"
@@ -275,9 +288,9 @@ def main() -> int:
 
     existing_records = load_existing_article_records(root, policy)
     known_ids = {record["metadata"].get("id") for record in existing_records if record["metadata"].get("id")}
-    for related_id in args.related_article:
+    for related_id in args.related_object:
         if related_id not in known_ids:
-            print(f"related article not found: {related_id}", file=sys.stderr)
+            print(f"related knowledge object not found: {related_id}", file=sys.stderr)
             return 1
 
     template_path = root / "templates" / f"{family}.md"
@@ -287,12 +300,12 @@ def main() -> int:
     services = unique_preserving_order(args.service)
     systems = unique_preserving_order(args.system)
     tags = unique_preserving_order(args.tag)
-    related_articles = unique_preserving_order(args.related_article)
+    related_objects = unique_preserving_order(args.related_object)
 
     draft_metadata = {
         "id": article_id,
         "title": args.title,
-        "type": args.type,
+        "knowledge_object_type": args.type,
         "team": args.team,
         "audience": args.audience,
         "services": services,
@@ -306,16 +319,17 @@ def main() -> int:
             "id": article_id,
             "title": args.title,
             "canonical_path": destination.relative_to(root).as_posix(),
-            "type": args.type,
             "status": args.status,
             "owner": args.owner,
             "team": args.team,
             "audience": args.audience,
             "today": today,
-            "services_field": render_yaml_field("services", services),
+            "related_services_field": render_yaml_field("related_services", services),
             "systems_field": render_yaml_field("systems", systems),
             "tags_field": render_yaml_field("tags", tags),
-            "related_articles_field": render_yaml_field("related_articles", related_articles),
+            "related_object_ids_field": render_yaml_field("related_object_ids", related_objects),
+            "related_services_inline": render_inline_list(services),
+            "related_object_ids_inline": render_inline_list(related_objects),
         },
     )
     destination.write_text(rendered, encoding="utf-8")
@@ -323,7 +337,7 @@ def main() -> int:
 
     emit_authoring_feedback(
         draft_metadata,
-        related_articles,
+        related_objects,
         related_article_suggestions(destination, draft_metadata, existing_records),
     )
     return 0

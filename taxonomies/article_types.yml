@@ -1,5 +1,5 @@
 taxonomy: article_types
-description: Allowed knowledge article types.
+description: Deprecated legacy article-type taxonomy retained only for migration compatibility.
 values:
   - name: runbook
     description: Repeatable operational procedure.

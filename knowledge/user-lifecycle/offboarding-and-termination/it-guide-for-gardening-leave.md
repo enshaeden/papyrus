@@ -2,8 +2,11 @@
 id: kb-user-lifecycle-offboarding-and-termination-it-guide-for-gardening-leave
 title: IT Guide for Gardening Leave
 canonical_path: knowledge/user-lifecycle/offboarding-and-termination/it-guide-for-gardening-leave.md
-summary: 'Gardening leave is when an employee continues to receive full pay and benefits during their notice period but is instructed to stop performing their job responsibilities. This may occur for various reasons:'
-type: offboarding
+summary: 'Gardening leave is when an employee continues to receive full pay and benefits during their
+  notice period but is instructed to stop performing their job responsibilities. This may occur for various
+  reasons:'
+knowledge_object_type: runbook
+legacy_article_type: offboarding
 status: active
 owner: service_owner
 source_type: imported
@@ -13,9 +16,6 @@ team: Identity and Access
 systems:
 - <HR_SYSTEM>
 - <VIDEO_CONFERENCING_PLATFORM>
-services:
-- Collaboration
-- Offboarding
 tags:
 - av
 - offboarding
@@ -24,6 +24,9 @@ updated: '2025-10-28'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: identity_admins
+related_services:
+- Collaboration
+- Offboarding
 prerequisites:
 - Verify the request, identity details, and required approvals before changing access or account state.
 - Confirm the target system and business context match the scope of this article.
@@ -37,10 +40,26 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-user-lifecycle-offboarding-and-termination-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Collaboration
+- Offboarding
+related_articles:
+- kb-user-lifecycle-offboarding-and-termination-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

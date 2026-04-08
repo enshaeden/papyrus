@@ -2,8 +2,10 @@
 id: kb-applications-access-and-license-management-application-ownership-access-audit-playbook
 title: Application Ownership & Access Audit Playbook
 canonical_path: knowledge/applications/access-and-license-management/application-ownership-access-audit-playbook.md
-summary: This article centralizes <BUSINESS_APPLICATION_C> emails, the <ASSET_MANAGEMENT_SYSTEM> mapping, and a plug and play <KNOWLEDGE_PORTAL> article template to use after owner confirmation.
-type: SOP
+summary: This article centralizes <BUSINESS_APPLICATION_C> emails, the <ASSET_MANAGEMENT_SYSTEM> mapping,
+  and a plug and play <KNOWLEDGE_PORTAL> article template to use after owner confirmation.
+knowledge_object_type: runbook
+legacy_article_type: SOP
 status: active
 owner: service_owner
 source_type: imported
@@ -12,8 +14,6 @@ source_title: Application Ownership & Access Audit Playbook
 team: Identity and Access
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
-services:
-- Access Management
 tags:
 - account
 - access
@@ -22,6 +22,8 @@ updated: '2025-11-28'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
 audience: identity_admins
+related_services:
+- Access Management
 prerequisites:
 - Review the scope, approvals, and dependencies described in this article before starting.
 - Confirm you have the required systems access and escalation path before proceeding.
@@ -35,10 +37,25 @@ verification:
 rollback:
 - Revert any reversible change described in the procedure if verification fails.
 - Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
-related_articles:
+citations:
+- article_id: null
+  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+  source_type: document
+  source_ref: migration/import-manifest.yml
+  note: Sanitized source record.
+  excerpt: null
+  captured_at: null
+  validity_status: verified
+  integrity_hash: null
+related_object_ids:
 - kb-applications-access-and-license-management-index
+superseded_by: null
 replaced_by: null
 retirement_reason: null
+services:
+- Access Management
+related_articles:
+- kb-applications-access-and-license-management-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml

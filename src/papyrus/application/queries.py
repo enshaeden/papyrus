@@ -21,7 +21,6 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     collect_source_paths,
     load_knowledge_documents,
     load_policy,
-    load_schema,
 )
 from papyrus.infrastructure.markdown.parser import collect_broken_markdown_links
 
@@ -59,24 +58,24 @@ def search_projection(
     connection.row_factory = sqlite3.Row
     try:
         has_fts = connection.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='article_search'"
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='knowledge_search'"
         ).fetchone()
         case_sql = "CASE " + " ".join(
-            f"WHEN a.status = '{status}' THEN {rank}" for status, rank in status_rank.items()
+            f"WHEN d.status = '{status}' THEN {rank}" for status, rank in status_rank.items()
         ) + " ELSE 999 END"
         governance_sql = (
-            "CASE WHEN trim(coalesce(a.owner, '')) = '' THEN 1 ELSE 0 END, "
-            "a.last_reviewed DESC"
+            "d.freshness_rank, d.citation_health_rank, d.ownership_rank, "
+            "CASE WHEN d.approval_state = 'approved' THEN 0 ELSE 1 END"
         )
         if has_fts:
             rows = connection.execute(
                 f"""
-                SELECT a.id, a.title, a.summary, a.type, a.status, a.path
-                FROM article_search AS s
-                JOIN articles AS a ON a.id = s.id
-                WHERE article_search MATCH ?
-                  AND a.status IN {status_clause}
-                ORDER BY {case_sql}, {governance_sql}, bm25(article_search), a.title
+                SELECT d.object_id, d.title, d.summary, d.object_type, d.status, d.path
+                FROM knowledge_search AS s
+                JOIN search_documents AS d ON d.object_id = s.object_id
+                WHERE knowledge_search MATCH ?
+                  AND d.status IN {status_clause}
+                ORDER BY {case_sql}, {governance_sql}, bm25(knowledge_search), d.title
                 LIMIT ?
                 """,
                 (query, *status_values, limit),
@@ -85,8 +84,8 @@ def search_projection(
             like_query = f"%{query}%"
             rows = connection.execute(
                 f"""
-                SELECT id, title, summary, type, status, path
-                FROM articles AS a
+                SELECT object_id, title, summary, object_type, status, path
+                FROM search_documents AS d
                 WHERE search_text LIKE ?
                   AND status IN {status_clause}
                 ORDER BY {case_sql}, {governance_sql}, title
@@ -99,10 +98,10 @@ def search_projection(
 
     return [
         SearchHit(
-            object_id=row["id"],
+            object_id=row["object_id"],
             title=row["title"],
             summary=row["summary"],
-            content_type=row["type"],
+            content_type=row["object_type"],
             status=row["status"],
             path=row["path"],
         )
@@ -180,8 +179,7 @@ def collect_content_health_sections(selected: list[str] | None = None) -> dict[s
                 f"{warning.score} | {warning.path} | may contain operational-knowledge signals | "
                 f"{'; '.join(warning.signals)}"
             )
-            for warning in docs_knowledge_like_warnings(load_schema())
+            for warning in docs_knowledge_like_warnings()
         ]
 
     return outputs
-
