@@ -12,7 +12,7 @@ a:hover { text-decoration: underline; }
 .app-shell { min-height: 100vh; }
 .topbar {
   display: grid;
-  grid-template-columns: 18rem minmax(18rem, 1fr) auto;
+  grid-template-columns: 18rem minmax(18rem, 1fr) auto auto;
   gap: var(--space-4);
   align-items: center;
   padding: var(--space-5) var(--space-6);
@@ -53,10 +53,32 @@ a:hover { text-decoration: underline; }
   display: grid;
   gap: var(--space-4);
 }
+.sidebar-block {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: var(--shadow);
+}
+.sidebar-role-card {
+  background:
+    linear-gradient(180deg, rgba(54, 88, 75, 0.14), rgba(255, 255, 255, 0.88)),
+    rgba(255, 255, 255, 0.7);
+}
+.sidebar-role-name {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+.sidebar-role-summary,
+.sidebar-copy {
+  margin: 0;
+  color: var(--muted);
+}
 .sidebar-link {
   display: block;
   padding: var(--space-3) var(--space-4);
-  margin-bottom: var(--space-2);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.52);

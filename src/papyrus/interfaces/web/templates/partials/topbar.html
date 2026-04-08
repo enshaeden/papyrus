@@ -10,11 +10,11 @@
   </form>
   <form class="search-form" action="/actor/select" method="post">
     <label class="sr-only" for="actor-select">Current actor</label>
-    <input type="hidden" name="next_path" value="/queue" data-current-path />
+    <input type="hidden" name="next_path" value="" data-current-path />
     <select id="actor-select" name="actor" data-actor-select>
       {{ actor_options_html }}
     </select>
-    <button type="submit">Set Actor</button>
+    <button type="submit">Switch View</button>
   </form>
   <nav class="quick-links">
     {{ quick_links_html }}
@@ -23,11 +23,8 @@
 <script>
   (function () {
     const nextPath = document.querySelector("[data-current-path]");
-    if (nextPath) {
-      nextPath.value = window.location.pathname + window.location.search;
-    }
     const select = document.querySelector("[data-actor-select]");
-    if (!select) {
+    if (!nextPath || !select) {
       return;
     }
     const cookie = document.cookie
@@ -37,5 +34,17 @@
     if ([...select.options].some((option) => option.value === value)) {
       select.value = value;
     }
+    const syncNextPath = () => {
+      const selected = select.options[select.selectedIndex];
+      if (!selected) {
+        nextPath.value = window.location.pathname + window.location.search;
+        return;
+      }
+      nextPath.value = select.value === value
+        ? window.location.pathname + window.location.search
+        : (selected.dataset.home || "/queue");
+    };
+    syncNextPath();
+    select.addEventListener("change", syncNextPath);
   })();
 </script>

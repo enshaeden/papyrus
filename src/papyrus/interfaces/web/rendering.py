@@ -2,38 +2,14 @@ from __future__ import annotations
 
 import mimetypes
 import re
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from papyrus.interfaces.web.route_utils import WEB_ACTOR_OPTIONS
+from papyrus.interfaces.web.route_utils import WEB_ACTOR_OPTIONS, actor_home_path, actor_shell_for_id
 from papyrus.interfaces.web.view_helpers import escape, join_html, link
 
 
 PLACEHOLDER_PATTERN = re.compile(r"{{\s*([a-zA-Z0-9_]+)\s*}}")
-
-
-@dataclass(frozen=True)
-class NavItem:
-    key: str
-    label: str
-    href: str
-
-
-NAV_ITEMS = (
-    NavItem("read", "Read", "/queue"),
-    NavItem("write", "Write", "/write/objects/new"),
-    NavItem("manage", "Manage", "/dashboard/trust"),
-    NavItem("queue", "Queue", "/manage/queue"),
-    NavItem("services", "Services", "/services"),
-    NavItem("validation", "Validation", "/manage/validation-runs"),
-)
-
-QUICK_LINKS = (
-    ("Trust Dashboard", "/dashboard/trust"),
-    ("Audit Trail", "/manage/audit"),
-    ("New Revision", "/write/objects/new"),
-)
 
 
 class TemplateRenderer:
@@ -73,12 +49,15 @@ class PageRenderer:
         aside_html: str = "",
         scripts: Iterable[str] = (),
         page_context: dict[str, object] | None = None,
+        actor_id: str = "",
+        current_path: str = "",
     ) -> str:
+        role_config = actor_shell_for_id(actor_id)
         content_html = self.template_renderer.render(page_template, page_context or {})
         quick_links_html = join_html(
             [
-                link(label, href, css_class="quick-link")
-                for label, href in QUICK_LINKS
+                link(item.label, item.href, css_class="quick-link")
+                for item in role_config.quick_links
             ]
         )
         topbar_html = self.template_renderer.render(
@@ -87,24 +66,39 @@ class PageRenderer:
                 "quick_links_html": quick_links_html,
                 "search_value": escape(search_value),
                 "actor_options_html": "\n".join(
-                    f'<option value="{escape(actor.actor_id)}">{escape(actor.display_name)}</option>'
+                    f'<option value="{escape(actor.actor_id)}" data-home="{escape(actor_home_path(actor.actor_id))}">{escape(actor.display_name)}</option>'
                     for actor in WEB_ACTOR_OPTIONS
                 ),
             },
         )
-        nav_links_html = join_html(
+        nav_sections_html = join_html(
             [
-                link(
-                    item.label,
-                    item.href,
-                    css_class="sidebar-link is-active" if item.key == active_nav else "sidebar-link",
+                (
+                    '<div class="sidebar-block">'
+                    f'<p class="sidebar-label">{escape(section.title)}</p>'
+                    f'<p class="sidebar-copy">{escape(section.description)}</p>'
+                    + join_html(
+                        [
+                            link(
+                                item.label,
+                                item.href,
+                                css_class="sidebar-link is-active" if self._nav_item_is_active(item, active_nav=active_nav, current_path=current_path) else "sidebar-link",
+                            )
+                            for item in section.items
+                        ]
+                    )
+                    + "</div>"
                 )
-                for item in NAV_ITEMS
+                for section in role_config.nav_sections
             ]
         )
         sidebar_html = self.template_renderer.render(
             "partials/sidebar.html",
-            {"nav_links_html": nav_links_html},
+            {
+                "actor_display_name": escape(role_config.actor.display_name),
+                "actor_role_summary": escape(role_config.summary),
+                "nav_sections_html": nav_sections_html,
+            },
         )
         scripts_html = join_html(
             [f'<script src="{escape(path)}" defer></script>' for path in scripts],
@@ -138,3 +132,17 @@ class PageRenderer:
             return None
         content_type, _ = mimetypes.guess_type(str(asset_path))
         return asset_path.read_bytes(), content_type or "application/octet-stream"
+
+    @staticmethod
+    def _nav_item_is_active(item, *, active_nav: str, current_path: str) -> bool:
+        if current_path:
+            prefixes = item.match_prefixes or (item.href,)
+            if any(PageRenderer._path_matches(current_path, prefix) for prefix in prefixes):
+                return True
+        return item.key == active_nav
+
+    @staticmethod
+    def _path_matches(current_path: str, prefix: str) -> bool:
+        if prefix.endswith("/"):
+            return current_path.startswith(prefix)
+        return current_path == prefix or current_path.startswith(prefix + "/")

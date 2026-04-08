@@ -612,6 +612,59 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertEqual(actors["object_created"], "local.manager")
             self.assertEqual(actors["evidence_revalidation_requested"], "local.manager")
 
+    def test_role_selection_redirects_to_role_home_and_scopes_shell_navigation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            build_search_projection(database_path)
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+            )
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/actor/select",
+                method="POST",
+                form={"actor": "local.reviewer"},
+            )
+            self.assertEqual(status, "303 See Other")
+            self.assertEqual(headers["Location"], "/manage/queue")
+            self.assertIn("papyrus_actor=local.reviewer", headers["Set-Cookie"])
+
+            status, headers, _ = call_wsgi(application, "/", cookies={"papyrus_actor": "local.manager"})
+            self.assertEqual(status, "303 See Other")
+            self.assertEqual(headers["Location"], "/dashboard/trust")
+
+            status, _, operator_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.operator"})
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Local Operator", operator_body)
+            self.assertIn("Frontline Read", operator_body)
+            self.assertIn('href="/write/objects/new"', operator_body)
+            self.assertNotIn("Corpus Oversight", operator_body)
+
+            status, _, reviewer_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.reviewer"})
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Local Reviewer", reviewer_body)
+            self.assertIn("Review Workflow", reviewer_body)
+            self.assertIn('href="/manage/queue"', reviewer_body)
+            self.assertIn('href="/manage/validation-runs"', reviewer_body)
+            self.assertNotIn("Write Draft", reviewer_body)
+
+            status, _, manager_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.manager"})
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Local Manager", manager_body)
+            self.assertIn("Corpus Oversight", manager_body)
+            self.assertIn('href="/manage/audit"', manager_body)
+            self.assertNotIn("Write Draft", manager_body)
+
+            status, _, demo_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "papyrus-demo"})
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Papyrus Demo", demo_body)
+            self.assertIn("Demo Tour", demo_body)
+            self.assertIn("Governance Tour", demo_body)
+
     def test_shell_only_object_is_searchable_and_routes_back_to_revision_draft(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"

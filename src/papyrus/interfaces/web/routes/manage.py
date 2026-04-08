@@ -125,6 +125,8 @@ def register(router, runtime) -> None:
                 intro="Governance work is grouped by review state, staleness, evidence weakness, and ownership ambiguity.",
                 active_nav="manage",
                 flash_html=flash_html_for_request(runtime, request),
+                actor_id=actor_for_request(request),
+                current_path=request.path,
                 aside_html="",
                 page_context={"overview_html": overview_html, "tables_html": tables_html},
             )
@@ -196,6 +198,8 @@ def register(router, runtime) -> None:
                 intro="Supersession is a governed action. Capture the replacement and rationale so operators can follow the transition safely.",
                 active_nav="manage",
                 flash_html=flash_html_for_request(runtime, request),
+                actor_id=actor_for_request(request),
+                current_path=request.path,
                 aside_html="",
                 page_context={"summary_html": summary_html, "form_html": form_html},
             )
@@ -274,6 +278,8 @@ def register(router, runtime) -> None:
                 intro="Use suspect posture when a dependency or upstream change may invalidate the guidance before a full revision is ready.",
                 active_nav="manage",
                 flash_html=flash_html_for_request(runtime, request),
+                actor_id=actor_for_request(request),
+                current_path=request.path,
                 aside_html="",
                 page_context={"summary_html": summary_html, "form_html": form_html},
             )
@@ -327,6 +333,8 @@ def register(router, runtime) -> None:
                 intro="Request explicit evidence follow-up when snapshots, expiry windows, or supporting proofs need confirmation.",
                 active_nav="manage",
                 flash_html=flash_html_for_request(runtime, request),
+                actor_id=actor_for_request(request),
+                current_path=request.path,
                 aside_html="",
                 page_context={"summary_html": summary_html, "form_html": form_html},
             )
@@ -398,6 +406,8 @@ def register(router, runtime) -> None:
                 intro="Inspect revision metadata and trust posture before sending review work to a specific operator.",
                 active_nav="manage",
                 flash_html=flash_html_for_request(runtime, request),
+                actor_id=actor_for_request(request),
+                current_path=request.path,
                 aside_html="",
                 page_context={"summary_html": summary_html, "assignment_html": assignment_html, "form_html": form_html},
             )
@@ -487,6 +497,8 @@ def register(router, runtime) -> None:
                 intro="Action consequences stay explicit: reviewers decide with audit context, assignment state, and evidence posture in view.",
                 active_nav="manage",
                 flash_html=flash_html_for_request(runtime, request),
+                actor_id=actor_for_request(request),
+                current_path=request.path,
                 aside_html="",
                 page_context={"summary_html": summary_html, "decisions_html": decisions_html},
             )
@@ -574,6 +586,8 @@ def register(router, runtime) -> None:
                 intro="Governance-relevant history and validation outcomes are available without dropping to a CLI workflow.",
                 active_nav="manage",
                 flash_html=flash_html_for_request(runtime, request),
+                actor_id=actor_for_request(request),
+                current_path=request.path,
                 aside_html="",
                 page_context={"audit_html": audit_html, "event_html": event_html, "validation_html": validation_html},
             )
@@ -612,6 +626,8 @@ def register(router, runtime) -> None:
                 intro="Recent validation outcomes stay accessible inside the operator shell for traceable governance review.",
                 active_nav="validation",
                 flash_html=flash_html_for_request(runtime, request),
+                actor_id=actor_for_request(request),
+                current_path=request.path,
                 aside_html="",
                 action_bar_html=add_run_html,
                 page_context={"validation_table_html": validation_table_html},
@@ -670,6 +686,8 @@ def register(router, runtime) -> None:
                 intro="Validation outcomes are governance events too. Record what ran, what it found, and when it happened.",
                 active_nav="validation",
                 flash_html=flash_html_for_request(runtime, request),
+                actor_id=actor_for_request(request),
+                current_path=request.path,
                 aside_html="",
                 page_context={"form_html": form_html},
             )

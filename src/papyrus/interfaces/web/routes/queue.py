@@ -5,7 +5,7 @@ from typing import Any
 from papyrus.application.queries import knowledge_queue, search_knowledge_objects
 from papyrus.interfaces.web.http import Request, html_response
 from papyrus.interfaces.web.presenters.queue_presenter import present_queue_page
-from papyrus.interfaces.web.route_utils import flash_html_for_request
+from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
 
 
 def _apply_filters(
@@ -51,6 +51,14 @@ def register(router, runtime) -> None:
             selected_trust=selected_trust,
             selected_approval=selected_approval,
         )
-        return html_response(runtime.page_renderer.render_page(search_value=query, flash_html=flash_html_for_request(runtime, request), **page))
+        return html_response(
+            runtime.page_renderer.render_page(
+                search_value=query,
+                flash_html=flash_html_for_request(runtime, request),
+                actor_id=actor_for_request(request),
+                current_path=request.path,
+                **page,
+            )
+        )
 
     router.add(["GET"], "/queue", queue_page)

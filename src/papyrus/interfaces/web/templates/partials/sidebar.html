@@ -1,6 +1,8 @@
 <nav class="sidebar">
-  <div class="sidebar-block">
-    <p class="sidebar-label">Operator Modes</p>
-    {{ nav_links_html }}
+  <div class="sidebar-block sidebar-role-card">
+    <p class="sidebar-label">Current Role</p>
+    <p class="sidebar-role-name">{{ actor_display_name }}</p>
+    <p class="sidebar-role-summary">{{ actor_role_summary }}</p>
   </div>
+  {{ nav_sections_html }}
 </nav>
