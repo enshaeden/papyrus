@@ -8,7 +8,11 @@ from pathlib import Path
 
 import yaml
 
-from kb_common import FRONT_MATTER_PATTERN, load_policy, load_taxonomies, similarity_ratio, slugify
+from _bootstrap import ensure_src_path
+
+ensure_src_path()
+
+from papyrus.compat.kb_common import FRONT_MATTER_PATTERN, load_policy, load_taxonomies, similarity_ratio, slugify
 
 TYPE_TO_DIRECTORY = {
     "runbook": "runbooks",

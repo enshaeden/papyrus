@@ -30,7 +30,9 @@ support_entrypoints:
 common_failure_modes:
 - Legacy source does not declare structured common failure modes.
 related_runbooks: []
-related_known_errors: []
+related_known_errors:
+- kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide
+- kb-troubleshooting-audio-video-boardrooms-touch-controller-room-user-guide
 citations:
 - article_id: null
   source_title: <KNOWLEDGE_PORTAL> seed import manifest
@@ -45,6 +47,8 @@ related_object_ids:
 - kb-troubleshooting-audio-video-boardrooms-office-site-a-index
 - kb-troubleshooting-audio-video-boardrooms-office-site-c-index
 - kb-troubleshooting-audio-video-boardrooms-office-site-b-index
+- kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide
+- kb-troubleshooting-audio-video-boardrooms-touch-controller-room-user-guide
 prerequisites:
 - Review the collection summary and choose the child article that matches the task before acting.
 - Confirm the target region, platform, or lifecycle path aligns with the selected child article.
@@ -70,6 +74,8 @@ related_articles:
 - kb-troubleshooting-audio-video-boardrooms-office-site-a-index
 - kb-troubleshooting-audio-video-boardrooms-office-site-c-index
 - kb-troubleshooting-audio-video-boardrooms-office-site-b-index
+- kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide
+- kb-troubleshooting-audio-video-boardrooms-touch-controller-room-user-guide
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml
@@ -81,7 +87,11 @@ change_log:
 ---
 
 ## Scope
-This collection page was created during the <KNOWLEDGE_PORTAL> seed migration to organize `troubleshooting/audio-video/boardrooms` content under the curated KMDB structure.
+This collection page organizes site collections and the shared room-setup guides used across multiple offices.
+
+## Shared Setup Guides
+- [Standard AV Room User Guide](standard-av-room-user-guide.md)
+- [Touch Controller Room User Guide](touch-controller-room-user-guide.md)
 
 ## Child Collections
 - [Troubleshooting / Audio and Video / Boardrooms / <OFFICE_SITE_A>](office-site-a/index.md)
@@ -89,4 +99,5 @@ This collection page was created during the <KNOWLEDGE_PORTAL> seed migration to
 - [Troubleshooting / Audio and Video / Boardrooms / <OFFICE_SITE_B>](office-site-b/index.md)
 
 ## Migration Notes
-- This page is a collection index. Use the linked child articles for actionable procedures.
+- Use the shared setup guides for repeated room workflows.
+- Use the site collections for room lists, local overview pages, and any unique room exceptions.

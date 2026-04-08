@@ -55,7 +55,7 @@ citations:
 - article_id: kb-onboarding-employee-onboarding-checklist
   source_title: Onboarding checklist
   source_type: document
-  source_ref: knowledge/onboarding/employee-onboarding-checklist.md
+  source_ref: knowledge/user-lifecycle/onboarding-new-hires/employee-onboarding-checklist.md
   note: Use this checklist to confirm the laptop handoff is aligned with the broader onboarding workflow.
   excerpt: null
   captured_at: null
@@ -85,7 +85,7 @@ related_articles:
 references:
 - title: Onboarding checklist
   article_id: kb-onboarding-employee-onboarding-checklist
-  path: knowledge/onboarding/employee-onboarding-checklist.md
+  path: knowledge/user-lifecycle/onboarding-new-hires/employee-onboarding-checklist.md
   note: Use this checklist to confirm the laptop handoff is aligned with the broader onboarding workflow.
 - title: Asset inventory record
   note: 'Confirm serial number: <SERIAL_NUMBER>'

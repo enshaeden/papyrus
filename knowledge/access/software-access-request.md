@@ -48,7 +48,7 @@ citations:
 - article_id: kb-onboarding-employee-onboarding-checklist
   source_title: Onboarding checklist
   source_type: document
-  source_ref: knowledge/onboarding/employee-onboarding-checklist.md
+  source_ref: knowledge/user-lifecycle/onboarding-new-hires/employee-onboarding-checklist.md
   note: Use this when the request is part of a new hire setup rather than an ad hoc access change.
   excerpt: null
   captured_at: null
@@ -68,7 +68,7 @@ related_articles:
 references:
 - title: Onboarding checklist
   article_id: kb-onboarding-employee-onboarding-checklist
-  path: knowledge/onboarding/employee-onboarding-checklist.md
+  path: knowledge/user-lifecycle/onboarding-new-hires/employee-onboarding-checklist.md
   note: Use this when the request is part of a new hire setup rather than an ad hoc access change.
 change_log:
 - date: 2026-04-07

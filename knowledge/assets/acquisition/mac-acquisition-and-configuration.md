@@ -4,10 +4,10 @@ title: Mac Acquisition and Configuration
 canonical_path: knowledge/assets/acquisition/mac-acquisition-and-configuration.md
 summary: All Mac laptops are configured through the automated device enrollment. Once purchased from an
   approved device supplier, devices are added to <ENDPOINT_ENROLLMENT_PORTAL> (<ENDPOINT_ENROLLMENT_PORTAL>)
-  and are automatically enrolled in our <ENDPOINT_MANAGEMENT_PLATFORM> environment during the...
+  and are automatically enrolled in our <ENDPOINT_MANAGEMENT_PLATFORM> environment during the... Deprecated duplicate; use the deployment guide instead.
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+status: deprecated
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export
@@ -27,53 +27,53 @@ audience: systems_admins
 related_services:
 - Endpoint Provisioning
 prerequisites:
-- Confirm the device, asset record, and office or shipping context before taking action.
-- Verify you have the required inventory, MDM, or ticketing access for the task.
+- Review the deployment guide before acting on Mac provisioning work.
+- Use this deprecated page only to discover the replacement procedure during migration.
 steps:
-- Review the imported procedure body below and confirm the documented scope matches the task at hand.
-- Execute the documented steps in order and record the outcome in the relevant ticket or audit trail.
-- Stop and escalate if approvals, prerequisites, or expected checkpoints do not match the live request.
+- Open the replacement deployment article and follow that procedure for Mac setup.
+- Update any bookmarks or references that still point to this duplicate acquisition title.
+- Do not use this page as the active operational source.
 verification:
-- The expected outcome described in the procedure is confirmed in the target system or ticket record.
-- Completion notes, exceptions, and evidence are recorded in the relevant audit or support workflow.
+- The deployment article is the only active Mac provisioning path exposed from collection indexes.
+- Remaining references to this duplicate are tracked for cleanup.
 rollback:
-- Revert any reversible change described in the procedure if verification fails.
-- Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
+- Restore the previous body from version control if the replacement selection proves incorrect.
+- Re-open the deduplication review if distinct acquisition guidance is later recovered.
 citations:
-- article_id: null
-  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+- article_id: kb-assets-deployment-mac-laptop-deployment
+  source_title: Mac laptop Deployment
   source_type: document
-  source_ref: migration/import-manifest.yml
-  note: Sanitized source record.
+  source_ref: knowledge/assets/deployment/mac-laptop-deployment.md
+  note: Active replacement for this duplicate Mac provisioning article.
   excerpt: null
   captured_at: null
   validity_status: verified
   integrity_hash: null
 related_object_ids:
 - kb-assets-acquisition-index
-superseded_by: null
-replaced_by: null
-retirement_reason: null
+- kb-assets-deployment-mac-laptop-deployment
+superseded_by: kb-assets-deployment-mac-laptop-deployment
+replaced_by: kb-assets-deployment-mac-laptop-deployment
+retirement_reason: Deprecated during canonical deduplication because this article duplicated the Mac deployment procedure.
 services:
 - Endpoint Provisioning
 related_articles:
 - kb-assets-acquisition-index
+- kb-assets-deployment-mac-laptop-deployment
 references:
-- title: <KNOWLEDGE_PORTAL> seed import manifest
-  path: migration/import-manifest.yml
-  note: Sanitized source record.
+- title: Mac laptop Deployment
+  article_id: kb-assets-deployment-mac-laptop-deployment
+  path: knowledge/assets/deployment/mac-laptop-deployment.md
+  note: Active replacement for this duplicate Mac provisioning article.
 change_log:
 - date: '2026-04-07'
   summary: Imported from <KNOWLEDGE_PORTAL> seed content.
   author: seed_sanitization
+- date: '2026-04-07'
+  summary: Deprecated as a duplicate of the Mac deployment procedure.
+  author: codex
 ---
 
-## **Macbook Setup**
+## Deprecation Notice
 
-All Mac laptops are configured through the automated device enrollment. Once purchased from an approved device supplier, devices are added to <ENDPOINT_ENROLLMENT_PORTAL> (<ENDPOINT_ENROLLMENT_PORTAL>) and are automatically enrolled in our <ENDPOINT_MANAGEMENT_PLATFORM> environment during the setup process.
-
-Important Guidelines:
-
-- Never deploy a Mac laptop that is not listed in <ENDPOINT_ENROLLMENT_PORTAL>.
-- New hires must **complete their <IDENTITY_PROVIDER> account and MFA setup** (as outlined in Step 1) before logging in.
-- Once a user begins the login process, they must complete it **fully and reach the desktop** . *If setup is interrupted mid-way, the device may become bricked.*
+This imported title duplicated the active Mac provisioning workflow. Use [Mac laptop Deployment](../deployment/mac-laptop-deployment.md) for current operator guidance.

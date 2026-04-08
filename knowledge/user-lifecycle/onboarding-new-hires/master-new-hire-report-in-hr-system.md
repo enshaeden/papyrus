@@ -3,10 +3,10 @@ id: kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-in-hr-system
 title: Master New Hire Report in <HR_SYSTEM>
 canonical_path: knowledge/user-lifecycle/onboarding-new-hires/master-new-hire-report-in-hr-system.md
 summary: If any critical data is missing, contact HR immediately to resolve it before proceeding with
-  device setup or shipping.
+  device setup or shipping. Deprecated duplicate; use the more descriptive cleanup guide variant instead.
 knowledge_object_type: runbook
 legacy_article_type: onboarding
-status: active
+status: deprecated
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export
@@ -23,77 +23,57 @@ last_reviewed: '2026-04-07'
 review_cadence: quarterly
 audience: identity_admins
 related_services:
-- Identity
+- Access Management
 - Onboarding
 prerequisites:
-- Verify the request, identity details, and required approvals before changing access or account state.
-- Confirm the target system and business context match the scope of this article.
+- Review the replacement article before acting on the report workflow.
+- Use this deprecated page only to discover the replacement object during migration.
 steps:
-- Review the imported procedure body below and confirm the documented scope matches the task at hand.
-- Execute the documented steps in order and record the outcome in the relevant ticket or audit trail.
-- Stop and escalate if approvals, prerequisites, or expected checkpoints do not match the live request.
+- Open the replacement article and follow that procedure for access, export, and cleanup work.
+- Update any bookmarks or references that still point to this duplicate title.
+- Do not use this page as the active operational source.
 verification:
-- The expected outcome described in the procedure is confirmed in the target system or ticket record.
-- Completion notes, exceptions, and evidence are recorded in the relevant audit or support workflow.
+- The replacement article is the only active operator path referenced from collection indexes.
+- Any remaining references to this duplicate are scheduled for cleanup.
 rollback:
-- Revert any reversible change described in the procedure if verification fails.
-- Pause the workflow and escalate when the documented rollback path is unclear or incomplete.
+- Restore the previous body from version control if the replacement selection proves incorrect.
+- Re-open the deduplication review if operators still need both variants.
 citations:
-- article_id: null
-  source_title: <KNOWLEDGE_PORTAL> seed import manifest
+- article_id: kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-access-export-and-post-onboarding-cleanup-guide
+  source_title: 'Master New Hire Report: Access, Export, and Post-Onboarding Cleanup Guide'
   source_type: document
-  source_ref: migration/import-manifest.yml
-  note: Sanitized source record.
+  source_ref: knowledge/user-lifecycle/onboarding-new-hires/master-new-hire-report-access-export-and-post-onboarding-cleanup-guide.md
+  note: Active replacement for this duplicate report workflow.
   excerpt: null
   captured_at: null
   validity_status: verified
   integrity_hash: null
 related_object_ids:
 - kb-user-lifecycle-onboarding-new-hires-index
-superseded_by: null
-replaced_by: null
-retirement_reason: null
+- kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-access-export-and-post-onboarding-cleanup-guide
+superseded_by: kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-access-export-and-post-onboarding-cleanup-guide
+replaced_by: kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-access-export-and-post-onboarding-cleanup-guide
+retirement_reason: Deprecated during canonical deduplication because this article duplicated the active cleanup guide variant.
 services:
-- Identity
+- Access Management
 - Onboarding
 related_articles:
 - kb-user-lifecycle-onboarding-new-hires-index
+- kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-access-export-and-post-onboarding-cleanup-guide
 references:
-- title: <KNOWLEDGE_PORTAL> seed import manifest
-  path: migration/import-manifest.yml
-  note: Sanitized source record.
+- title: 'Master New Hire Report: Access, Export, and Post-Onboarding Cleanup Guide'
+  article_id: kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-access-export-and-post-onboarding-cleanup-guide
+  path: knowledge/user-lifecycle/onboarding-new-hires/master-new-hire-report-access-export-and-post-onboarding-cleanup-guide.md
+  note: Active replacement for this duplicate report workflow.
 change_log:
 - date: '2026-04-07'
   summary: Imported from <KNOWLEDGE_PORTAL> seed content.
   author: seed_sanitization
+- date: '2026-04-07'
+  summary: Deprecated as a duplicate of the more descriptive onboarding report guide.
+  author: codex
 ---
 
-# How to use the Master New Hire Report?
+## Deprecation Notice
 
-## **Accessing the Report:**
-
-- This report is sent to all **IT technicians who are subscribed** to receive it.
-- **New IT team members** must submit a **<TICKETING_SYSTEM> request** to gain access to the report in **<HR_SYSTEM>** .
-- Access is granted by the **Enterprise Applications team** .
-- Once approved, you can also **run the report manually** within <HR_SYSTEM> by searching for its name.
-
-## **Exporting & Filtering:**
-
-- Export the report from **<HR_SYSTEM> to <COLLABORATION_PLATFORM> Sheets** for easier filtering and sorting.
-- Use filters to view data by **region** and **start date** , which helps with planning device provisioning and handoffs.
-
-## **Shipping Information:**
-
-- The report includes details on whether a laptop needs to be **shipped** or will be **picked up in person** , along with **shipping address** and contact details.
-- If a shipping label is needed, make sure you have:
-  - **Delivery address**
-    - **Phone number**
-    - **Email address**
-
-## **Post-Onboarding Cleanup:**
-
-- After the new hires have been successfully onboarded, **delete the filtered sheet** you created in <COLLABORATION_PLATFORM> Sheets to keep data clean and secure.
-
-## **Missing Information:**
-
-If any critical data is missing, **contact HR immediately** to resolve it before proceeding with device setup or shipping.
+This imported title duplicated the active onboarding report workflow. Use [Master New Hire Report: Access, Export, and Post-Onboarding Cleanup Guide](master-new-hire-report-access-export-and-post-onboarding-cleanup-guide.md) for current operator guidance.

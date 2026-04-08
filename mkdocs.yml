@@ -35,7 +35,3 @@ nav:
       - System Model: system-design-docs/reference/system-model.md
   - Governance & Decisions:
       - Overview: decisions/index.md
-      - 0001 Source Of Truth And Anti-Drift Policy: decisions/0001-source-of-truth-and-anti-drift-policy.md
-      - 0002 Seed Migration Workspace And Sanitized Provenance: decisions/0002-seed-migration-workspace-and-provenance.md
-      - 0003 Sanitized Reports And Public Seed Artifacts: decisions/0003-sanitized-reports-and-public-seed-artifacts.md
-      - 0004 Knowledge-Object Control Plane Refactor: decisions/0004-knowledge-object-control-plane-refactor.md

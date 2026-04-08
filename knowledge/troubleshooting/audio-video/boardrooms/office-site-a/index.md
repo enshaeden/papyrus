@@ -32,10 +32,10 @@ common_failure_modes:
 - Legacy source does not declare structured common failure modes.
 related_runbooks: []
 related_known_errors:
-- kb-troubleshooting-audio-video-boardrooms-office-site-a-av-enabled-meeting-rooms-user-guide
 - kb-troubleshooting-audio-video-boardrooms-office-site-a-overview-office-site-a-meeting-rooms
+- kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide
+- kb-troubleshooting-audio-video-boardrooms-touch-controller-room-user-guide
 - kb-troubleshooting-audio-video-boardrooms-office-site-a-video-conferencing-platform-enabled-meeting-room-user-guide-for-room-name-f
-- kb-troubleshooting-audio-video-boardrooms-office-site-a-video-conferencing-platform-enabled-meeting-rooms-user-guide
 citations:
 - article_id: null
   source_title: <KNOWLEDGE_PORTAL> seed import manifest
@@ -47,10 +47,10 @@ citations:
   validity_status: verified
   integrity_hash: null
 related_object_ids:
-- kb-troubleshooting-audio-video-boardrooms-office-site-a-av-enabled-meeting-rooms-user-guide
 - kb-troubleshooting-audio-video-boardrooms-office-site-a-overview-office-site-a-meeting-rooms
+- kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide
+- kb-troubleshooting-audio-video-boardrooms-touch-controller-room-user-guide
 - kb-troubleshooting-audio-video-boardrooms-office-site-a-video-conferencing-platform-enabled-meeting-room-user-guide-for-room-name-f
-- kb-troubleshooting-audio-video-boardrooms-office-site-a-video-conferencing-platform-enabled-meeting-rooms-user-guide
 prerequisites:
 - Review the collection summary and choose the child article that matches the task before acting.
 - Confirm the target region, platform, or lifecycle path aligns with the selected child article.
@@ -73,10 +73,10 @@ retirement_reason: null
 services:
 - Collaboration
 related_articles:
-- kb-troubleshooting-audio-video-boardrooms-office-site-a-av-enabled-meeting-rooms-user-guide
 - kb-troubleshooting-audio-video-boardrooms-office-site-a-overview-office-site-a-meeting-rooms
+- kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide
+- kb-troubleshooting-audio-video-boardrooms-touch-controller-room-user-guide
 - kb-troubleshooting-audio-video-boardrooms-office-site-a-video-conferencing-platform-enabled-meeting-room-user-guide-for-room-name-f
-- kb-troubleshooting-audio-video-boardrooms-office-site-a-video-conferencing-platform-enabled-meeting-rooms-user-guide
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml
@@ -91,10 +91,11 @@ change_log:
 This collection page was created during the <KNOWLEDGE_PORTAL> seed migration to organize `troubleshooting/audio-video/boardrooms/<OFFICE_SITE_A>` content under the curated KMDB structure.
 
 ## Articles
-- [AV Enabled Meeting Rooms - User Guide](av-enabled-meeting-rooms-user-guide.md)
 - [Overview - <OFFICE_SITE_A> Meeting Rooms](overview-office-site-a-meeting-rooms.md)
+- [Standard AV Room User Guide](../standard-av-room-user-guide.md)
+- [Touch Controller Room User Guide](../touch-controller-room-user-guide.md)
 - [<VIDEO_CONFERENCING_PLATFORM> Enabled Meeting Room - User Guide for <ROOM_NAME_F>](video-conferencing-platform-enabled-meeting-room-user-guide-for-room-name-f.md)
-- [<VIDEO_CONFERENCING_PLATFORM> Enabled Meeting Rooms - User Guide](video-conferencing-platform-enabled-meeting-rooms-user-guide.md)
 
 ## Migration Notes
-- This page is a collection index. Use the linked child articles for actionable procedures.
+- Use the shared room guides for repeated workflows.
+- Use the overview and the room-specific <ROOM_NAME_F> guide for local mapping or unique room notes.

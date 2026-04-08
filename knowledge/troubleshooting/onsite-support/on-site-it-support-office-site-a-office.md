@@ -100,5 +100,5 @@ This article outlines the key logistical and IT support information for employee
 
 ## Conference Rooms
 - [Overview - <OFFICE_SITE_A> Meeting Rooms](../audio-video/boardrooms/office-site-a/overview-office-site-a-meeting-rooms.md)
-- [AV Enabled Meeting Rooms - User Guide](../audio-video/boardrooms/office-site-a/av-enabled-meeting-rooms-user-guide.md)
-- [<VIDEO_CONFERENCING_PLATFORM> Enabled Meeting Rooms - User Guide](../audio-video/boardrooms/office-site-a/video-conferencing-platform-enabled-meeting-rooms-user-guide.md)
+- [Standard AV Room User Guide](../audio-video/boardrooms/standard-av-room-user-guide.md)
+- [Touch Controller Room User Guide](../audio-video/boardrooms/touch-controller-room-user-guide.md)

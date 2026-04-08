@@ -30,10 +30,10 @@ support_entrypoints:
 common_failure_modes:
 - Legacy source does not declare structured common failure modes.
 related_runbooks:
+- kb-onboarding-employee-onboarding-checklist
 - kb-user-lifecycle-onboarding-new-hires-application-access-for-new-employees-and-contractors
 - kb-user-lifecycle-onboarding-new-hires-day-1-preparing-accounts-and-devices
 - kb-user-lifecycle-onboarding-new-hires-day-1-onboarding-and-setup
-- kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-in-hr-system
 - kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-access-export-and-post-onboarding-cleanup-guide
 - kb-user-lifecycle-onboarding-new-hires-rescinded-or-delayed-onboarding
 - kb-user-lifecycle-onboarding-new-hires-hr-system-to-identity-provider-new-hire-account-staging-and-confirmation-process
@@ -50,10 +50,10 @@ citations:
   validity_status: verified
   integrity_hash: null
 related_object_ids:
+- kb-onboarding-employee-onboarding-checklist
 - kb-user-lifecycle-onboarding-new-hires-application-access-for-new-employees-and-contractors
 - kb-user-lifecycle-onboarding-new-hires-day-1-preparing-accounts-and-devices
 - kb-user-lifecycle-onboarding-new-hires-day-1-onboarding-and-setup
-- kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-in-hr-system
 - kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-access-export-and-post-onboarding-cleanup-guide
 - kb-user-lifecycle-onboarding-new-hires-rescinded-or-delayed-onboarding
 - kb-user-lifecycle-onboarding-new-hires-troubleshooting-onboarding-workflow-contact-errors
@@ -80,10 +80,10 @@ retirement_reason: null
 services:
 - Onboarding
 related_articles:
+- kb-onboarding-employee-onboarding-checklist
 - kb-user-lifecycle-onboarding-new-hires-application-access-for-new-employees-and-contractors
 - kb-user-lifecycle-onboarding-new-hires-day-1-preparing-accounts-and-devices
 - kb-user-lifecycle-onboarding-new-hires-day-1-onboarding-and-setup
-- kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-in-hr-system
 - kb-user-lifecycle-onboarding-new-hires-master-new-hire-report-access-export-and-post-onboarding-cleanup-guide
 - kb-user-lifecycle-onboarding-new-hires-rescinded-or-delayed-onboarding
 - kb-user-lifecycle-onboarding-new-hires-troubleshooting-onboarding-workflow-contact-errors
@@ -102,10 +102,10 @@ change_log:
 This collection page was created during the <KNOWLEDGE_PORTAL> seed migration to organize `user-lifecycle/onboarding-new-hires` content under the curated KMDB structure.
 
 ## Articles
+- [Employee Onboarding Checklist](employee-onboarding-checklist.md)
 - [Application Access for New Employees and Contractors](application-access-for-new-employees-and-contractors.md)
 - [Day -1: Preparing Accounts and Devices](day-1-preparing-accounts-and-devices.md)
 - [Day 1: Onboarding and Setup](day-1-onboarding-and-setup.md)
-- [Master New Hire Report in <HR_SYSTEM>](master-new-hire-report-in-hr-system.md)
 - [Master New Hire Report: Access, Export, and Post-Onboarding Cleanup Guide](master-new-hire-report-access-export-and-post-onboarding-cleanup-guide.md)
 - [Rescinded or Delayed onboarding](rescinded-or-delayed-onboarding.md)
 - [Troubleshooting <HR_SYSTEM> To <ONBOARDING_WORKFLOW> Contact Errors](troubleshooting-onboarding-workflow-contact-errors.md)
@@ -113,3 +113,4 @@ This collection page was created during the <KNOWLEDGE_PORTAL> seed migration to
 
 ## Migration Notes
 - This page is a collection index. Use the linked child articles for actionable procedures.
+- The shorter "Master New Hire Report in <HR_SYSTEM>" import was retained only as a deprecated duplicate; use the cleanup guide variant above.

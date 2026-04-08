@@ -13,7 +13,11 @@ from os import path as os_path
 from pathlib import Path
 from urllib.parse import urlencode
 
-from kb_common import (
+from _bootstrap import ensure_src_path
+
+ensure_src_path()
+
+from papyrus.compat.kb_common import (
     DB_PATH,
     DECISIONS_DIR,
     DOCS_DIR,
@@ -411,7 +415,7 @@ def render_site_home(
         ),
         (
             "Governance & Decisions",
-            "Repository policy, information-governance rules, and ADR-style structural decisions.",
+            "Consolidated repository policy, information-governance rules, and structural rationale for operators.",
             site_href(current_relative, Path("decisions/index.md")),
         ),
     ]
@@ -419,7 +423,7 @@ def render_site_home(
         (str(len(export_articles)), "approved knowledge exports"),
         (str(excluded_count), "source knowledge objects excluded from export"),
         (str(doc_markdown_count), "operator docs and references"),
-        (str(decision_record_count), "decision records"),
+        (str(decision_record_count), "governance record" if decision_record_count == 1 else "governance records"),
     ]
     return (
         "<!-- Generated from source content. Do not edit here. -->\n\n"
@@ -441,8 +445,8 @@ def render_site_home(
         "- Use [Operator Docs](system-design-docs/index.md) for orientation, role-based playbooks, and the concise system model.\n"
         "- Source of truth: `docs/`.\n\n"
         "### Governance & Decisions\n\n"
-        "- Use [Governance & Decisions](decisions/index.md) for repository policy, structural rules, and durable rationale.\n"
-        "- Source of truth: `decisions/` for decision records, with supporting governance material referenced from `docs/`.\n"
+        "- Use [Governance & Decisions](decisions/index.md) for the consolidated operator-facing governance record, structural rules, and durable rationale.\n"
+        "- Source of truth: `decisions/` for accepted repository decisions, with supporting operator material referenced from `docs/`.\n"
     )
 
 

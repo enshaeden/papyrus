@@ -72,6 +72,7 @@ class CliWorkflowTests(unittest.TestCase):
         generated_ticket_guide_text = generated_ticket_guide.read_text(encoding="utf-8")
         generated_license_guide_text = generated_license_guide.read_text(encoding="utf-8")
         self.assertIn("approved-content export", generated_home_text)
+        self.assertIn("consolidated operator-facing governance record", generated_home_text)
         self.assertIn('href="knowledge/"', generated_home_text)
         self.assertNotIn('href="knowledge/index.md"', generated_home_text)
         self.assertIn("Papyrus Docs", generated_docs_index.read_text(encoding="utf-8"))

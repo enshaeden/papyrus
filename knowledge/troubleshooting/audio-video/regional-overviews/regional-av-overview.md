@@ -2,9 +2,7 @@
 id: kb-troubleshooting-audio-video-regional-overviews-regional-av-overview
 title: Regional AV Overview
 canonical_path: knowledge/troubleshooting/audio-video/regional-overviews/regional-av-overview.md
-summary: "Overview: <OFFICE_SITE_C> is the primary hub for <COMPANY_NAME>\u2019s AV operations and serves\
-  \ as the baseline model for global processes. The <OFFICE_SITE_C> primary office spans two floors (4th\
-  \ and 5th) and includes over 40 AV enabled rooms, ranging..."
+summary: Cross-site orientation for the AV support footprint and the site-specific overview pages that define local room standards.
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
 status: active
@@ -26,21 +24,16 @@ audience: systems_admins
 related_services:
 - Collaboration
 symptoms:
-- "Overview: <OFFICE_SITE_C> is the primary hub for <COMPANY_NAME>\u2019s AV operations and serves as\
-  \ the baseline model for global processes. The <OFFICE_SITE_C> primary office spans two floors (4th\
-  \ and 5th) and includes over 40 AV enabled rooms, ranging..."
-scope: "Legacy source does not declare structured scope. Summary: Overview: <OFFICE_SITE_C> is the primary\
-  \ hub for <COMPANY_NAME>\u2019s AV operations and serves as the baseline model for global processes.\
-  \ The <OFFICE_SITE_C> primary office spans two floors (4th and 5th) and includes over 40 AV enabled\
-  \ rooms, ranging..."
-cause: Legacy source does not declare a structured cause field.
+- Operators need to choose the correct site-specific AV baseline before applying maintenance, sweep, or room-support guidance.
+scope: Use this page for regional orientation and site selection only. Follow the linked site-specific overview for room standards, automation labels, and local maintenance notes.
+cause: AV operations differ by site layout, room mix, and automation labels; using the wrong site baseline can send operators to the wrong rooms, hardware expectations, or monthly sweep workflow.
 diagnostic_checks:
-- Review the imported procedure body below and confirm the documented symptoms match the live issue.
-- Work through the diagnostic and remediation steps in order, recording any deviations in the ticket.
-- Escalate when the documented checks fail or the issue exceeds the article scope.
+- Confirm the office or region in scope before selecting a room-support article.
+- Use the site-specific overview page to verify local room types, automation labels, and maintenance expectations.
+- Escalate if the site does not match any of the maintained overview pages.
 mitigations:
-- Undo any reversible change documented in the procedure if validation fails.
-- Escalate to the owning team with the captured symptom and actions already taken.
+- Route the request to the correct site-specific overview before taking room-level action.
+- Escalate to the owning team if the local AV footprint has drifted beyond the current overviews.
 permanent_fix_status: unknown
 citations:
 - article_id: null
@@ -54,19 +47,22 @@ citations:
   integrity_hash: null
 related_object_ids:
 - kb-troubleshooting-audio-video-regional-overviews-index
+- kb-troubleshooting-audio-video-regional-overviews-office-site-a-av
+- kb-troubleshooting-audio-video-regional-overviews-office-site-b-av
+- kb-troubleshooting-audio-video-regional-overviews-office-site-c-av
 prerequisites:
-- Capture the exact symptom, affected scope, and recent changes before troubleshooting.
-- Confirm you have the required system access or escalation path before making changes.
+- Confirm the office or site in scope before selecting a child overview.
+- Gather the room identifier, issue context, and maintenance objective before navigating to a site-specific page.
 steps:
-- Review the imported procedure body below and confirm the documented symptoms match the live issue.
-- Work through the diagnostic and remediation steps in order, recording any deviations in the ticket.
-- Escalate when the documented checks fail or the issue exceeds the article scope.
+- Start with the site summary table below to identify the correct regional AV overview.
+- Open the linked site-specific article and use that page for room-level maintenance or troubleshooting.
+- Record any new site-level drift so the overview set can be updated without duplicating guidance.
 verification:
-- The reported symptom no longer reproduces after the documented steps are completed.
-- The ticket or case record contains the troubleshooting outcome and any follow-up actions.
+- Operators can reach the correct site-specific AV page without ambiguity.
+- Site-level automation labels, room mix expectations, and maintenance posture are captured in the child overviews instead of duplicated here.
 rollback:
-- Undo any reversible change documented in the procedure if validation fails.
-- Escalate to the owning team with the captured symptom and actions already taken.
+- Restore the previous overview structure from version control if the regional summary no longer reflects the maintained child pages.
+- Escalate to the owning team if a site needs a new standalone overview rather than a regional summary update.
 superseded_by: null
 replaced_by: null
 retirement_reason: null
@@ -74,6 +70,9 @@ services:
 - Collaboration
 related_articles:
 - kb-troubleshooting-audio-video-regional-overviews-index
+- kb-troubleshooting-audio-video-regional-overviews-office-site-a-av
+- kb-troubleshooting-audio-video-regional-overviews-office-site-b-av
+- kb-troubleshooting-audio-video-regional-overviews-office-site-c-av
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml
@@ -82,33 +81,29 @@ change_log:
 - date: '2026-04-07'
   summary: Imported from <KNOWLEDGE_PORTAL> seed content.
   author: seed_sanitization
+- date: '2026-04-07'
+  summary: Reworked this page into a true regional overview to remove duplicated site-specific content.
+  author: codex
 ---
 
-**Overview:** <OFFICE_SITE_C> is the primary hub for <COMPANY_NAME>’s AV operations and serves as the baseline model for global processes. The <OFFICE_SITE_C> primary office spans multiple floors and includes a large set of AV-enabled rooms, ranging from small huddle rooms to large conference and event spaces.
+## Regional Summary
 
-**Automation Details:**
+Use this page to choose the correct site-specific AV baseline before running a room sweep, triaging an AV issue, or updating local maintenance expectations.
 
-- Monthly automation trigger: 9:00 AM PST, first business day of each month.
-- Regional <TICKETING_SYSTEM> label: `region-sea`
-- Tech Form: [<INTERNAL_URL>](<INTERNAL_URL>)
-- Automation links all submissions to the monthly parent issue labeled `room-sweep-YYYY-MM` .
-
-**Room Types & Equipment:**
-
-| Room Type | Typical Equipment | Notes |
+| Site | Primary Use | Site Overview |
 | --- | --- | --- |
-| Large Meeting Rooms (12–50 people) | Dual displays, conference-room hardware Trio 8800, room cameras, PolyStudio systems | Perform complete AV and dual display checks. |
-| Huddle Rooms (4–8 people) | room video bar or X30, single display, wireless display adapter | Verify cable labeling and wireless casting. |
-| Interview Rooms | conference-room hardware Trio, LED display, wireless display adapter | Test microphones and network connection. |
-| Private/Focus Rooms | Display + HDMI input | Confirm cable labeling and signage accuracy. |
+| <OFFICE_SITE_A> | Larger hybrid collaboration rooms and training spaces | [<OFFICE_SITE_A> AV](office-site-a-av.md) |
+| <OFFICE_SITE_B> | Smaller collaboration rooms and lightweight meeting setups | [<OFFICE_SITE_B> AV](office-site-b-av.md) |
+| <OFFICE_SITE_C> | Primary hub with the broadest room mix and monthly sweep baseline | [<OFFICE_SITE_C> AV](office-site-c-av.md) |
 
-**Maintenance Notes:**
+## How To Use This Overview
 
-- Common issue: conference-room hardware registration failures during firmware updates.
-- Verify wireless display adapter pairing and HDMI integrity monthly.
-- Large rooms require dual testing (conference-room hardware and passthrough laptop input).
+- Confirm the office or regional queue label in the request before opening a child page.
+- Use the site-specific overview for room counts, equipment expectations, automation labels, and local maintenance notes.
+- Capture any regional drift that affects multiple sites here, but keep room-level operational detail in the child pages.
 
-**Best Practices:**
+## Cross-Site Rules
 
-- Conduct sweeps early morning or late afternoon to avoid meeting conflicts.
-- Document the room identifier in <TICKETING_SYSTEM> comments for traceability.
+- Use a monthly sweep issue structure that is traceable in <TICKETING_SYSTEM>.
+- Record room identifiers and notable hardware variance in ticket comments so site owners can reconcile local drift.
+- Escalate any site that no longer matches its documented equipment mix instead of copy-editing another site's guidance into place.

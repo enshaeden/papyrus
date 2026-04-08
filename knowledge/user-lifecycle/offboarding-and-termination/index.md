@@ -31,6 +31,7 @@ common_failure_modes:
 related_runbooks:
 - kb-user-lifecycle-offboarding-and-termination-asset-term-hold-process
 - kb-user-lifecycle-offboarding-and-termination-automated-offboarding-processes
+- kb-offboarding-employee-offboarding-checklist
 - kb-user-lifecycle-offboarding-and-termination-handling-a-term-hold
 - kb-user-lifecycle-offboarding-and-termination-it-guide-for-gardening-leave
 - kb-user-lifecycle-offboarding-and-termination-obtaining-assets-from-terminated-users
@@ -50,6 +51,7 @@ citations:
 related_object_ids:
 - kb-user-lifecycle-offboarding-and-termination-asset-term-hold-process
 - kb-user-lifecycle-offboarding-and-termination-automated-offboarding-processes
+- kb-offboarding-employee-offboarding-checklist
 - kb-user-lifecycle-offboarding-and-termination-handling-a-term-hold
 - kb-user-lifecycle-offboarding-and-termination-it-guide-for-gardening-leave
 - kb-user-lifecycle-offboarding-and-termination-obtaining-assets-from-terminated-users
@@ -79,6 +81,7 @@ services:
 related_articles:
 - kb-user-lifecycle-offboarding-and-termination-asset-term-hold-process
 - kb-user-lifecycle-offboarding-and-termination-automated-offboarding-processes
+- kb-offboarding-employee-offboarding-checklist
 - kb-user-lifecycle-offboarding-and-termination-handling-a-term-hold
 - kb-user-lifecycle-offboarding-and-termination-it-guide-for-gardening-leave
 - kb-user-lifecycle-offboarding-and-termination-obtaining-assets-from-terminated-users
@@ -100,6 +103,7 @@ This collection page was created during the <KNOWLEDGE_PORTAL> seed migration to
 ## Articles
 - [Asset Term Hold Process](asset-term-hold-process.md)
 - [Automated Offboarding processes](automated-offboarding-processes.md)
+- [Employee Offboarding Checklist](employee-offboarding-checklist.md)
 - [Handling a Term Hold](handling-a-term-hold.md)
 - [IT Guide for Gardening Leave](it-guide-for-gardening-leave.md)
 - [Obtaining Assets from Terminated Users](obtaining-assets-from-terminated-users.md)

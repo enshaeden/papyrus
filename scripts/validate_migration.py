@@ -8,7 +8,11 @@ from typing import Any
 
 import yaml
 
-from kb_common import load_articles, load_policy
+from _bootstrap import ensure_src_path
+
+ensure_src_path()
+
+from papyrus.compat.kb_common import load_articles, load_policy
 
 
 ROOT = Path(__file__).resolve().parent.parent

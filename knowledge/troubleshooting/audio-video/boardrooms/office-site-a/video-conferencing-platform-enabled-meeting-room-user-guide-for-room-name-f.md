@@ -151,7 +151,7 @@ Once tapped, the meeting launches on the connected display, and the room system 
 
 - Create the meeting using the <COLLABORATION_PLATFORM> meeting web or app.
 
-- Share the meeting ID link with users you want to add and add the code on the touch controller using [Meeting Room User Guide – <ROOM_NAME_D> these steps](../office-site-b/meeting-room-user-guide-room-name-d.md)
+- Share the meeting ID link with users you want to add and add the code on the touch controller using [Touch Controller Room User Guide](../touch-controller-room-user-guide.md)
 
 # Managing Audio Controls
 

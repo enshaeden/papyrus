@@ -32,9 +32,9 @@ common_failure_modes:
 - Legacy source does not declare structured common failure modes.
 related_runbooks: []
 related_known_errors:
-- kb-troubleshooting-audio-video-boardrooms-office-site-b-meeting-room-user-guide-room-set-a
-- kb-troubleshooting-audio-video-boardrooms-office-site-b-meeting-room-user-guide-room-name-d
 - kb-troubleshooting-audio-video-boardrooms-office-site-b-overview-office-site-b-meeting-rooms
+- kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide
+- kb-troubleshooting-audio-video-boardrooms-touch-controller-room-user-guide
 citations:
 - article_id: null
   source_title: <KNOWLEDGE_PORTAL> seed import manifest
@@ -46,9 +46,9 @@ citations:
   validity_status: verified
   integrity_hash: null
 related_object_ids:
-- kb-troubleshooting-audio-video-boardrooms-office-site-b-meeting-room-user-guide-room-set-a
-- kb-troubleshooting-audio-video-boardrooms-office-site-b-meeting-room-user-guide-room-name-d
 - kb-troubleshooting-audio-video-boardrooms-office-site-b-overview-office-site-b-meeting-rooms
+- kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide
+- kb-troubleshooting-audio-video-boardrooms-touch-controller-room-user-guide
 prerequisites:
 - Review the collection summary and choose the child article that matches the task before acting.
 - Confirm the target region, platform, or lifecycle path aligns with the selected child article.
@@ -71,9 +71,9 @@ retirement_reason: null
 services:
 - Collaboration
 related_articles:
-- kb-troubleshooting-audio-video-boardrooms-office-site-b-meeting-room-user-guide-room-set-a
-- kb-troubleshooting-audio-video-boardrooms-office-site-b-meeting-room-user-guide-room-name-d
 - kb-troubleshooting-audio-video-boardrooms-office-site-b-overview-office-site-b-meeting-rooms
+- kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide
+- kb-troubleshooting-audio-video-boardrooms-touch-controller-room-user-guide
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
   path: migration/import-manifest.yml
@@ -88,9 +88,10 @@ change_log:
 This collection page was created during the <KNOWLEDGE_PORTAL> seed migration to organize `troubleshooting/audio-video/boardrooms/vancouver` content under the curated KMDB structure.
 
 ## Articles
-- [Meeting Room User Guide - <ROOM_NAME_A>, <ROOM_NAME_B>, <ROOM_NAME_C>](meeting-room-user-guide-room-set-a.md)
-- [Meeting Room User Guide – <ROOM_NAME_D>](meeting-room-user-guide-room-name-d.md)
 - [Overview - <OFFICE_SITE_B> Meeting Rooms](overview-office-site-b-meeting-rooms.md)
+- [Standard AV Room User Guide](../standard-av-room-user-guide.md)
+- [Touch Controller Room User Guide](../touch-controller-room-user-guide.md)
 
 ## Migration Notes
-- This page is a collection index. Use the linked child articles for actionable procedures.
+- Use the shared room guides for repeated workflows.
+- Use the overview page for the local room map and any office-specific support context.

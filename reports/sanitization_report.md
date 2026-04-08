@@ -1,91 +1,39 @@
 # Sanitization Report
 
+This report is a historical review artifact for the initial sanitized Papyrus seed set. It is not intended to be a living repository inventory, and it intentionally avoids mutable file counts that drift as the repository evolves.
+
 ## Scope
 
-- Reviewed all non-draft migrated source content selected into the KMDB seed set.
-- Sanitized canonical articles, collection indexes, templates, taxonomies, decisions, architecture/governance docs, migration manifests, and generated site examples.
-- Rebuilt derived site documentation from sanitized source content only.
-- Regenerated migration manifests from the sanitized repository state without retaining reversible source mappings.
+- Record the sanitization controls that remain true after the initial seed import.
+- Preserve the high-level categories of sensitive content removed or generalized during migration.
+- Point operators and maintainers at the current durable references for placeholder definitions and migration rationale.
 
-## Files Reviewed
+## Current Artifact Classification
 
-- Total reviewed in scope: 224
-- `README.md`: 1 file(s)
-- `decisions`: 4 file(s)
-- `docs`: 2 file(s)
-- `docs/architecture`: 3 file(s)
-- `docs/migration`: 1 file(s)
-- `knowledge/access`: 2 file(s)
-- `knowledge/applications`: 45 file(s)
-- `knowledge/assets`: 48 file(s)
-- `knowledge/governance`: 6 file(s)
-- `knowledge/helpdesk`: 14 file(s)
-- `knowledge/home`: 1 file(s)
-- `knowledge/incidents`: 1 file(s)
-- `knowledge/offboarding`: 1 file(s)
-- `knowledge/onboarding`: 1 file(s)
-- `knowledge/postmortems`: 1 file(s)
-- `knowledge/runbooks`: 1 file(s)
-- `knowledge/troubleshooting`: 46 file(s)
-- `knowledge/user-lifecycle`: 27 file(s)
-- `migration`: 4 file(s)
-- `schemas`: 2 file(s)
-- `taxonomies`: 9 file(s)
-- `templates`: 4 file(s)
+- Canonical operational knowledge lives under `knowledge/` and `archive/knowledge/`.
+- Repository documentation and operator reference material live under `docs/`.
+- Structural governance decisions live under `decisions/`.
+- Sanitized migration plans and manifests live under `migration/`.
+- Historical sanitization review artifacts live under `reports/`.
 
-## Files Changed
+The placeholder glossary is maintained as operator/reference documentation in `docs/reference/placeholder-glossary.md`, not as a report.
 
-- Total changed in scope: 219
-- `README.md`: 1 file(s)
-- `decisions`: 4 file(s)
-- `docs/architecture`: 2 file(s)
-- `docs/contributor-workflow.md`: 1 file(s)
-- `docs/index.md`: 1 file(s)
-- `docs/migration`: 1 file(s)
-- `knowledge/access`: 2 file(s)
-- `knowledge/applications`: 45 file(s)
-- `knowledge/assets`: 48 file(s)
-- `knowledge/governance`: 6 file(s)
-- `knowledge/helpdesk`: 14 file(s)
-- `knowledge/home`: 1 file(s)
-- `knowledge/incidents`: 1 file(s)
-- `knowledge/offboarding`: 1 file(s)
-- `knowledge/onboarding`: 1 file(s)
-- `knowledge/postmortems`: 1 file(s)
-- `knowledge/runbooks`: 1 file(s)
-- `knowledge/troubleshooting`: 46 file(s)
-- `knowledge/user-lifecycle`: 27 file(s)
-- `migration`: 4 file(s)
-- `reports`: 2 file(s)
-- `schemas`: 2 file(s)
-- `scripts/kb_common.py`: 1 file(s)
-- `taxonomies`: 2 file(s)
-- `templates`: 4 file(s)
+## Sanitization Outcomes Preserved
 
-## Files Excluded
+- Reversible source-to-seed mappings were not retained in the repository.
+- Credential-like values, recovery material, and shared-secret examples were removed.
+- Internal URLs, direct portal links, raw hostnames, IP addresses, and other sensitive routing details were removed or generalized.
+- Personal names, direct contact details, office addresses, and other identifying location markers were removed or generalized.
+- Product, vendor, and branded admin-console language were replaced with stable functional placeholders where needed to preserve the procedure safely.
+- Screenshot, console-capture, and other binary-heavy source artifacts remain excluded from canonical source.
 
-- No canonical seed files were excluded from the repository during this pass.
-- No binary screenshots, embedded exports, or other non-text seed artifacts exist under `knowledge/`, `migration/`, or `generated/site_docs/` after this pass.
+## Durable References
 
-## Placeholder Categories Introduced
+- Placeholder definitions: `docs/reference/placeholder-glossary.md`
+- Migration rationale: `docs/migration/seed-migration-rationale.md`
+- Governance boundary for migration and reports: `decisions/index.md`
 
-- Organization and people: `<COMPANY_NAME>`, `<ROLE_NAME>`, `<TEAM_NAME>`, `<PERSON_NAME>`, `<EMAIL_ADDRESS>`, `<PHONE_NUMBER>`, `<USERNAME>`, `<PASSWORD>`.
-- Locations and assets: `<OFFICE_ADDRESS>`, `<SHIPPING_ADDRESS>`, `<OFFICE_SITE_A>` through `<OFFICE_SITE_D>`, `<REGION_A>` through `<REGION_D>`, `<ROOM_NAME_A>` through `<ROOM_NAME_O>`, `<ASSET_TAG>`, `<SERIAL_NUMBER>`.
-- Systems and platforms: `<IDENTITY_PROVIDER>`, `<DIRECTORY_SERVICE>`, `<ENDPOINT_MANAGEMENT_PLATFORM>`, `<ENDPOINT_ENROLLMENT_PORTAL>`, `<COLLABORATION_PLATFORM>`, `<MESSAGING_PLATFORM>`, `<VIDEO_CONFERENCING_PLATFORM>`, `<REMOTE_SUPPORT_TOOL>`, `<REMOTE_WORKSPACE_PLATFORM>`, `<VPN_SERVICE>`, `<TICKETING_SYSTEM>`, `<KNOWLEDGE_PORTAL>`.
-- Business application placeholders: `<APPLICATION_NAME>`, `<APPLICATION_CATALOG>`, `<BUSINESS_APPLICATION_A>` through `<BUSINESS_APPLICATION_D>`, `<CLOUD_PLATFORM>`, `<CREATIVE_PLATFORM>`, `<DEVELOPER_TOOL_SUITE>`, `<DIGITAL_ASSET_PLATFORM>`, `<PRODUCTIVITY_PLATFORM>`, `<REPORTING_PLATFORM>`, `<PASSWORD_MANAGER>`, `<PASSWORD_MANAGER_VAULT>`, `<PRINTER_MANAGEMENT_PLATFORM>`, `<SHIPPING_CARRIER>`.
-- Network, routing, and provenance: `<INTERNAL_URL>`, `<SUPPORT_PORTAL_URL>`, `<REQUEST_FORM_URL>`, `<SUPPLIER_PORTAL_URL>`, `<HOSTNAME>`, `<IP_ADDRESS>`, `<IP_SUBNET>`, `<QUEUE_NAME>`, `<LOCATION_NAME>`, `<OUTAGE_TYPE>`, `<KNOWLEDGE_PORTAL_RECORD_ID>`, `<SOURCE_ARCHIVE_PATH>`, `<SOURCE_ARCHIVE_SHA256>`.
+## Known Limitations
 
-## Removed Content Categories
-
-- Credential-like values, recovery material, and shared-secret examples.
-- Internal URLs, internal domains, raw hostnames, IP addresses, and direct portal links.
-- Personal names, direct contact details, office addresses, and other identifying location markers.
-- Internal team labels, internal workflow names, and company-specific operating references that were not needed to preserve the procedure.
-- Vendor names, product names, branded feature names, branded plan names, and branded admin-console language where detectable.
-- Legacy export fragments such as raw record notes, copied source IDs, and malformed copied portal excerpts.
-
-## Unresolved Manual Review
-
-- No unresolved text findings remain in the validated source scope.
-- Future imports should continue to exclude or replace screenshots, console captures, and other binary artifacts before they enter canonical seed content.
-- Some procedures intentionally retain abstract placeholders for office sites, rooms, application names, and workflow variants. That is expected and is preferable to preserving identifying source values.
+- Some imported procedures still contain abstract placeholders for sites, rooms, business applications, and workflow variants. That is expected until those procedures are rewritten into more durable canonical guidance.
+- This report does not attempt to enumerate current file counts, current folder populations, or current duplicate status because those facts belong to validation and repository scans, not to a frozen sanitization artifact.

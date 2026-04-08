@@ -1,7 +1,7 @@
 ---
 id: kb-onboarding-employee-onboarding-checklist
 title: Employee Onboarding Checklist
-canonical_path: knowledge/onboarding/employee-onboarding-checklist.md
+canonical_path: knowledge/user-lifecycle/onboarding-new-hires/employee-onboarding-checklist.md
 summary: Coordinate endpoint, identity, and communications tasks required before a new hire starts.
 knowledge_object_type: runbook
 legacy_article_type: onboarding
@@ -61,6 +61,7 @@ citations:
   validity_status: verified
   integrity_hash: null
 related_object_ids:
+- kb-user-lifecycle-onboarding-new-hires-index
 - kb-runbooks-laptop-provisioning
 - kb-access-software-access-request
 - kb-offboarding-employee-offboarding-checklist
@@ -73,6 +74,7 @@ services:
 - Identity
 - Access Management
 related_articles:
+- kb-user-lifecycle-onboarding-new-hires-index
 - kb-runbooks-laptop-provisioning
 - kb-access-software-access-request
 - kb-offboarding-employee-offboarding-checklist
@@ -85,6 +87,9 @@ change_log:
 - date: 2026-04-07
   summary: Initial seed article.
   author: seed_sanitization
+- date: 2026-04-07
+  summary: Moved the checklist into the user-lifecycle onboarding collection to consolidate lifecycle content.
+  author: codex
 ---
 
 ## Notes

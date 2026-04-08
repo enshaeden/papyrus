@@ -398,6 +398,11 @@ class WebOperatorUiTests(unittest.TestCase):
             decision_path = headers["Location"].replace("/assign", "")
             object_id = "kb-operator-ui-manage"
 
+            status, _, body = call_wsgi(application, f"/manage/objects/{object_id}/suspect")
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Suspect posture context", body)
+            self.assertIn("Mark object suspect", body)
+
             status, _, body = call_wsgi(
                 application,
                 f"/manage/objects/{object_id}/suspect",
@@ -419,6 +424,21 @@ class WebOperatorUiTests(unittest.TestCase):
             )
             self.assertEqual(status, "303 See Other")
             self.assertIn("/objects/kb-operator-ui-manage", headers["Location"])
+
+            status, _, body = call_wsgi(application, f"/manage/objects/{object_id}/supersede")
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Supersession context", body)
+            self.assertIn("Supersede object", body)
+
+            status, _, body = call_wsgi(
+                application,
+                f"/manage/objects/{object_id}/supersede",
+                method="POST",
+                form={"replacement_object_id": "", "notes": ""},
+            )
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Replacement object ID is required.", body)
+            self.assertIn("A supersession rationale is required.", body)
 
             status, headers, _ = call_wsgi(
                 application,

@@ -26,30 +26,9 @@ This document records the operator-readiness hardening pass that moved Papyrus f
   - a change-triggered suspect object
 - Kept static export secondary and untouched as the approved-content surface.
 
-## Operator-Ready V1
+## Boundary Reference
 
-Papyrus operator-ready v1 is the smallest release that lets a local operator read, write, and govern knowledge safely without needing direct SQLite inspection or undocumented internal workflow knowledge.
-
-Included in v1:
-
-- a polished read surface across queue, object, service, dashboard, impact, and revision-history views
-- a structured write surface for object and revision creation plus review submission
-- a functioning manage surface for reviewer assignment, approval, rejection, supersession, suspect marking, validation-run recording, and audit inspection
-- reliable workflow transitions with explicit success and failure outcomes
-- calibrated trust posture with visible reasons instead of generic status language
-- a realistic sample/demo runtime with healthy, stale, weak-evidence, in-review, and change-triggered suspect content
-- role-based operability checks for read, write, and manage tasks
-- parity across CLI, web, and API for core operational truth
-- one clear local startup path and one clear demo/review path
-
-Explicitly deferred from v1:
-
-- enterprise authentication and RBAC
-- collaborative multi-user editing
-- notifications and subscriptions
-- real-time updates
-- advanced diff tooling
-- heavy external integrations not required for local operator readiness
+The normative operator-ready v1 boundary now lives in [Operator Governance And Decisions](../../decisions/index.md). Use this document for the implementation hardening details behind that boundary: workflow exposure, trust calibration, parity coverage, demo/runtime support, and the findings that drove this pass.
 
 ## Dependencies Introduced Or Modified
 

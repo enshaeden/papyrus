@@ -29,11 +29,9 @@ support_entrypoints:
 common_failure_modes:
 - Legacy source does not declare structured common failure modes.
 related_runbooks:
+- kb-assets-loaners-loaner-laptops
 - kb-assets-loaners-region-d-loaner-location-and-access-for-remote-support
 - kb-assets-loaners-region-a-loaner-location-and-access-for-remote-support
-- kb-assets-loaners-loaner-laptop-policy
-- kb-assets-loaners-loaner-laptop-policy-region-a
-- kb-assets-loaners-loaner-laptops
 - kb-assets-loaners-office-site-c-loaner-location-and-access-for-remote-support
 - kb-assets-loaners-office-site-b-loaner-location-and-access-for-remote-support
 related_known_errors: []
@@ -48,11 +46,9 @@ citations:
   validity_status: verified
   integrity_hash: null
 related_object_ids:
+- kb-assets-loaners-loaner-laptops
 - kb-assets-loaners-region-d-loaner-location-and-access-for-remote-support
 - kb-assets-loaners-region-a-loaner-location-and-access-for-remote-support
-- kb-assets-loaners-loaner-laptop-policy
-- kb-assets-loaners-loaner-laptop-policy-region-a
-- kb-assets-loaners-loaner-laptops
 - kb-assets-loaners-office-site-c-loaner-location-and-access-for-remote-support
 - kb-assets-loaners-office-site-b-loaner-location-and-access-for-remote-support
 prerequisites:
@@ -77,11 +73,9 @@ retirement_reason: null
 services:
 - Endpoint Provisioning
 related_articles:
+- kb-assets-loaners-loaner-laptops
 - kb-assets-loaners-region-d-loaner-location-and-access-for-remote-support
 - kb-assets-loaners-region-a-loaner-location-and-access-for-remote-support
-- kb-assets-loaners-loaner-laptop-policy
-- kb-assets-loaners-loaner-laptop-policy-region-a
-- kb-assets-loaners-loaner-laptops
 - kb-assets-loaners-office-site-c-loaner-location-and-access-for-remote-support
 - kb-assets-loaners-office-site-b-loaner-location-and-access-for-remote-support
 references:
@@ -95,16 +89,15 @@ change_log:
 ---
 
 ## Scope
-This collection page was created during the <KNOWLEDGE_PORTAL> seed migration to organize `assets/loaners` content under the curated KMDB structure.
+This collection page organizes the shared loaner-device policy and the site-specific storage or pickup pages used to fulfill the request.
 
 ## Articles
+- [Loaner Laptops](loaner-laptops.md)
 - [<REGION_D> Loaner Location and Access for Remote Support](region-d-loaner-location-and-access-for-remote-support.md)
 - [<REGION_A> Loaner Location and Access for Remote Support](region-a-loaner-location-and-access-for-remote-support.md)
-- [Loaner Laptop Policy](loaner-laptop-policy.md)
-- [Loaner Laptop Policy- <REGION_A>](loaner-laptop-policy-region-a.md)
-- [Loaner Laptops](loaner-laptops.md)
 - [<OFFICE_SITE_C> Loaner Location and Access for Remote Support](office-site-c-loaner-location-and-access-for-remote-support.md)
 - [<OFFICE_SITE_B> Loaner Location and Access for Remote Support](office-site-b-loaner-location-and-access-for-remote-support.md)
 
 ## Migration Notes
-- This page is a collection index. Use the linked child articles for actionable procedures.
+- Use [Loaner Laptops](loaner-laptops.md) for shared eligibility, inventory, and ticketing rules.
+- Use the location pages for office- or region-specific storage, pickup, and approval differences.

@@ -112,8 +112,8 @@ All meeting rooms should be reserved through <COLLABORATION_PLATFORM> Calendar. 
 | Column 1 | Column 2 | Column 3 |
 | --- | --- | --- |
 | **Room Name** | **Room Type** | **User Guide Link** |
-| Multiple AV-enabled rooms | AV Enabled rooms | [AV Enabled Meeting Rooms - User Guide](av-enabled-meeting-rooms-user-guide.md) |
-| <ROOM_NAME_A>, <ROOM_NAME_B> and <ROOM_NAME_C> | <VIDEO_CONFERENCING_PLATFORM> Enabled rooms | [<VIDEO_CONFERENCING_PLATFORM> Enabled Meeting Rooms - User Guide <VIDEO_CONFERENCING_PLATFORM> Enabled Meeting Rooms - User Guide](video-conferencing-platform-enabled-meeting-rooms-user-guide.md) |
+| Multiple AV-enabled rooms | AV Enabled rooms | [Standard AV Room User Guide](../standard-av-room-user-guide.md) |
+| <ROOM_NAME_A>, <ROOM_NAME_B> and <ROOM_NAME_C> | <VIDEO_CONFERENCING_PLATFORM> Enabled rooms | [Touch Controller Room User Guide](../touch-controller-room-user-guide.md) |
 |  |  |  |
 |  |  |  |
 

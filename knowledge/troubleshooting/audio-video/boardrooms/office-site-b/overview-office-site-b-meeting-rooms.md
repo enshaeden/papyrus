@@ -112,9 +112,9 @@ All meeting rooms should be reserved through <COLLABORATION_PLATFORM> Calendar. 
 | Column 1 | Column 2 | Column 3 |
 | --- | --- | --- |
 | **Room Name** | **Room Type** | **User Guide Link** |
-| Room 1 - <ROOM_NAME_D> | <VIDEO_CONFERENCING_PLATFORM> | [<ROOM_NAME_D> Room Guide](<INTERNAL_URL>) |
-| Room 2 - <ROOM_NAME_A> St. | Standard AV | [<ROOM_NAME_A> St. Room Guide](<INTERNAL_URL>) |
-| Room 3 - <ROOM_NAME_B> St. | Standard AV | [<ROOM_NAME_B> St. Room Guide](<INTERNAL_URL>) |
-| Room 4 - <ROOM_NAME_C> St. | Standard AV | [<ROOM_NAME_C> St. Room Guide](<INTERNAL_URL>) |
+| Room 1 - <ROOM_NAME_D> | <VIDEO_CONFERENCING_PLATFORM> | [Touch Controller Room User Guide](../touch-controller-room-user-guide.md) |
+| Room 2 - <ROOM_NAME_A> St. | Standard AV | [Standard AV Room User Guide](../standard-av-room-user-guide.md) |
+| Room 3 - <ROOM_NAME_B> St. | Standard AV | [Standard AV Room User Guide](../standard-av-room-user-guide.md) |
+| Room 4 - <ROOM_NAME_C> St. | Standard AV | [Standard AV Room User Guide](../standard-av-room-user-guide.md) |
 
 For assistance, contact: <EMAIL_ADDRESS>

@@ -72,7 +72,7 @@ change_log:
 
 New hire onboarding sessions are typically held on **Mondays** or on the designated **start date** set by **HR** .
 
-It is recommended that the onboarding team review the [Master New Hire Report in <HR_SYSTEM> Master New Hire Report in <HR_SYSTEM>](master-new-hire-report-in-hr-system.md) on the Friday prior to the next onboarding to confirm starting users for the next week.
+It is recommended that the onboarding team review the [Master New Hire Report: Access, Export, and Post-Onboarding Cleanup Guide](master-new-hire-report-access-export-and-post-onboarding-cleanup-guide.md) on the Friday prior to the next onboarding to confirm starting users for the next week.
 
 ### **Office Laptop Pickups:**
 

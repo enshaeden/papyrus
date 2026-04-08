@@ -76,7 +76,7 @@ This process needs to be followed for every assignment and deployment of assets 
 
 # Find an Available Laptop
 
-1. Determine if the user needs a [Mac Acquisition and Configuration Mac](../acquisition/mac-acquisition-and-configuration.md) or [Windows Deployment Windows](windows-deployment.md) device
+1. Determine if the user needs a [Mac laptop Deployment](mac-laptop-deployment.md) or [Windows Deployment](windows-deployment.md) device.
 2. Open the **<COMPANY_NAME> IT** base in <ASSET_MANAGEMENT_SYSTEM>.
 3. Navigate to the **Inventory** table.
 4. Switch to the **In Stock &** **Ready To Give** view to see laptops that are cleaned, erased, and ready for deployment.

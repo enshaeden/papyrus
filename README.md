@@ -47,4 +47,4 @@ python3 scripts/serve_api.py --db build/demo-knowledge.db
 - Manage playbook: [docs/playbooks/manage.md](docs/playbooks/manage.md)
 - System model: [docs/reference/system-model.md](docs/reference/system-model.md)
 - Operator readiness: [docs/reference/operator-readiness.md](docs/reference/operator-readiness.md)
-- Decisions and rationale: [decisions/index.md](decisions/index.md)
+- Operator governance and decisions: [decisions/index.md](decisions/index.md)

@@ -16,9 +16,10 @@ Use this documentation set to operate Papyrus from the repository as it exists n
 
 - [System model](reference/system-model.md): the object, revision, trust, citation, validation, runtime, and export rules in one place.
 - [Operator web UI](reference/operator-web-ui.md): server-rendered operator shell for read, write, and manage workflows.
-- [Operator readiness](reference/operator-readiness.md): demo/runtime path, operator CLI parity, structured findings, and v1 framing.
+- [Operator readiness](reference/operator-readiness.md): implementation hardening notes, demo/runtime path, operator CLI parity, and structured findings.
+- [Placeholder glossary](reference/placeholder-glossary.md): stable definitions for the sanitization placeholders still used across source and migration artifacts.
 
 ## Supporting Reference
 
-- [Decisions](../decisions/index.md): durable rationale for repository-level structure and policy.
+- [Operator governance and decisions](../decisions/index.md): consolidated repository boundaries, rationale, migration rules, and the operator-ready v1 cut line.
 - [Migration rationale](migration/seed-migration-rationale.md): historical reference for the sanitized seed and import boundary.

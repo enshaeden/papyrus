@@ -1,7 +1,7 @@
 ---
 id: kb-offboarding-employee-offboarding-checklist
 title: Employee Offboarding Checklist
-canonical_path: knowledge/offboarding/employee-offboarding-checklist.md
+canonical_path: knowledge/user-lifecycle/offboarding-and-termination/employee-offboarding-checklist.md
 summary: Disable access, recover assets, and preserve required records when a user leaves the organization.
 knowledge_object_type: runbook
 legacy_article_type: offboarding
@@ -58,6 +58,7 @@ citations:
   validity_status: verified
   integrity_hash: null
 related_object_ids:
+- kb-user-lifecycle-offboarding-and-termination-index
 - kb-access-password-reset-account-lockout
 - kb-onboarding-employee-onboarding-checklist
 superseded_by: null
@@ -68,6 +69,7 @@ services:
 - Identity
 - Access Management
 related_articles:
+- kb-user-lifecycle-offboarding-and-termination-index
 - kb-access-password-reset-account-lockout
 - kb-onboarding-employee-onboarding-checklist
 references:
@@ -77,6 +79,9 @@ change_log:
 - date: 2026-04-07
   summary: Initial seed article.
   author: seed_sanitization
+- date: 2026-04-07
+  summary: Moved the checklist into the user-lifecycle offboarding collection to consolidate lifecycle content.
+  author: codex
 ---
 
 ## Notes

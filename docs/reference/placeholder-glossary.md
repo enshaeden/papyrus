@@ -1,5 +1,15 @@
 # Placeholder Glossary
 
+Use this reference when you need the stable meaning of a sanitization placeholder that appears in canonical knowledge, migration artifacts, or historical reports.
+
+## Purpose And Scope
+
+- Keep placeholder definitions in a durable operator/reference area instead of a migration-only report.
+- Provide one canonical lookup page for the sanitized tokens that remain in the repository.
+- Support audits and future content cleanup without turning reports into living reference docs.
+
+## Placeholder Definitions
+
 - `<APPLICATION_CATALOG>`: Generic application inventory, routing, or record system.
 - `<APPLICATION_NAME>`: Generic application or software name used in reusable examples.
 - `<ASSET_MANAGEMENT_SYSTEM>`: Generic asset or inventory management system.

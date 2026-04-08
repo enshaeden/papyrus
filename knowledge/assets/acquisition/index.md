@@ -32,7 +32,7 @@ related_runbooks:
 - kb-assets-acquisition-adding-mobile-devices-to-endpoint-enrollment-portal
 - kb-assets-acquisition-device-enrollment-windows-workstation-setup-user-guide
 - kb-assets-acquisition-device-acquisition-and-registration
-- kb-assets-acquisition-mac-acquisition-and-configuration
+- kb-assets-deployment-mac-laptop-deployment
 - kb-assets-acquisition-receiving-a-new-windows-device
 - kb-assets-acquisition-windows-device-lifecycle
 related_known_errors: []
@@ -50,7 +50,7 @@ related_object_ids:
 - kb-assets-acquisition-adding-mobile-devices-to-endpoint-enrollment-portal
 - kb-assets-acquisition-device-enrollment-windows-workstation-setup-user-guide
 - kb-assets-acquisition-device-acquisition-and-registration
-- kb-assets-acquisition-mac-acquisition-and-configuration
+- kb-assets-deployment-mac-laptop-deployment
 - kb-assets-acquisition-receiving-a-new-windows-device
 - kb-assets-acquisition-windows-device-lifecycle
 prerequisites:
@@ -78,7 +78,7 @@ related_articles:
 - kb-assets-acquisition-adding-mobile-devices-to-endpoint-enrollment-portal
 - kb-assets-acquisition-device-enrollment-windows-workstation-setup-user-guide
 - kb-assets-acquisition-device-acquisition-and-registration
-- kb-assets-acquisition-mac-acquisition-and-configuration
+- kb-assets-deployment-mac-laptop-deployment
 - kb-assets-acquisition-receiving-a-new-windows-device
 - kb-assets-acquisition-windows-device-lifecycle
 references:
@@ -98,9 +98,10 @@ This collection page was created during the <KNOWLEDGE_PORTAL> seed migration to
 - [Adding tablet devices/mobile devices to <ENDPOINT_ENROLLMENT_PORTAL>](adding-mobile-devices-to-endpoint-enrollment-portal.md)
 - [device enrollment - Windows Workstation Setup - User Guide](device-enrollment-windows-workstation-setup-user-guide.md)
 - [Device Acquisition and Registration](device-acquisition-and-registration.md)
-- [Mac Acquisition and Configuration](mac-acquisition-and-configuration.md)
+- [Mac laptop Deployment](../deployment/mac-laptop-deployment.md)
 - [Receiving a new Windows device](receiving-a-new-windows-device.md)
 - [Windows Device Lifecycle](windows-device-lifecycle.md)
 
 ## Migration Notes
 - This page is a collection index. Use the linked child articles for actionable procedures.
+- The imported "Mac Acquisition and Configuration" page was deprecated after deduplication; use the shared deployment guide above.

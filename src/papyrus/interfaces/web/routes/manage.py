@@ -167,7 +167,7 @@ def register(router, runtime) -> None:
         )
         return html_response(
             runtime.page_renderer.render_page(
-                page_template="pages/manage_object_supersede.html",
+                page_template="pages/manage_object_form.html",
                 page_title="Supersede object",
                 headline="Supersede Object",
                 kicker="Manage",
@@ -245,7 +245,7 @@ def register(router, runtime) -> None:
         )
         return html_response(
             runtime.page_renderer.render_page(
-                page_template="pages/manage_object_suspect.html",
+                page_template="pages/manage_object_form.html",
                 page_title="Mark object suspect",
                 headline="Mark Object Suspect",
                 kicker="Manage",
