@@ -14,14 +14,14 @@
     <select id="actor-select" name="actor" data-actor-select>
       {{ actor_options_html }}
     </select>
-    <button class="button button-secondary" type="submit">Switch View</button>
   </form>
 </header>
 <script>
   (function () {
     const nextPath = document.querySelector("[data-current-path]");
     const select = document.querySelector("[data-actor-select]");
-    if (!nextPath || !select) {
+    const form = select ? select.closest("form") : null;
+    if (!nextPath || !select || !form) {
       return;
     }
     const cookie = document.cookie
@@ -42,6 +42,13 @@
         : (selected.dataset.home || "/queue");
     };
     syncNextPath();
-    select.addEventListener("change", syncNextPath);
+    select.addEventListener("change", () => {
+      syncNextPath();
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit();
+        return;
+      }
+      form.submit();
+    });
   })();
 </script>

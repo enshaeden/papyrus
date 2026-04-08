@@ -643,6 +643,7 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertIn("Frontline Read", operator_body)
             self.assertIn('href="/write/objects/new"', operator_body)
             self.assertNotIn("Corpus Oversight", operator_body)
+            self.assertNotIn("Switch View", operator_body)
 
             status, _, reviewer_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.reviewer"})
             self.assertEqual(status, "200 OK")

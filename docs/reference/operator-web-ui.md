@@ -62,7 +62,7 @@ This change does not rework repository schemas, canonical source layout, or the 
 
 - The old inline-rendering `src/papyrus/interfaces/web.py` implementation was removed.
 - The compatibility import path remains the same: `papyrus.interfaces.web`.
-- Switching actor from the topbar now redirects to the selected role's primary page instead of keeping every role on the same queue view.
+- Changing the role selector in the topbar now switches immediately to the selected role's primary page instead of requiring a second submit button or keeping every role on the same queue view.
 - Demo runtime is implicit in the seeded runtime and no longer appears as a separate selectable role in the shell.
 - The shared shell keeps the underlying routes intact, but the visible navigation differs by role:
   - Local Operator: queue, services, and authoring entry points
