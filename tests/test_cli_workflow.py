@@ -74,7 +74,7 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertIn("approved-content export", generated_home_text)
         self.assertIn('href="knowledge/"', generated_home_text)
         self.assertNotIn('href="knowledge/index.md"', generated_home_text)
-        self.assertIn("System & Design Docs", generated_docs_index.read_text(encoding="utf-8"))
+        self.assertIn("Papyrus Docs", generated_docs_index.read_text(encoding="utf-8"))
         self.assertIn("Knowledge Explorer", generated_explorer_text)
         site_paths = re.findall(r'"site_path": "([^"]+)"', generated_explorer_text)
         self.assertTrue(site_paths)

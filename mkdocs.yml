@@ -26,17 +26,15 @@ nav:
       - By Team: knowledge/by-team.md
       - By Status: knowledge/by-status.md
       - Archive: archive/index.md
-  - System & Design Docs:
+  - Operator Docs:
       - Overview: system-design-docs/index.md
-      - Control-Plane Architecture: system-design-docs/architecture/control-plane-architecture.md
-      - Contributor Workflow: system-design-docs/contributor-workflow.md
-      - Information Architecture: system-design-docs/architecture/information-architecture.md
-      - Knowledge Object Lifecycle: system-design-docs/architecture/content-lifecycle.md
-      - Phase-Zero Discovery Plan: system-design-docs/knowledge-discovery-improvement-plan.md
-      - Migration Rationale: system-design-docs/migration/seed-migration-rationale.md
+      - Getting Started: system-design-docs/getting-started.md
+      - Read Playbook: system-design-docs/playbooks/read.md
+      - Write Playbook: system-design-docs/playbooks/write.md
+      - Manage Playbook: system-design-docs/playbooks/manage.md
+      - System Model: system-design-docs/reference/system-model.md
   - Governance & Decisions:
       - Overview: decisions/index.md
-      - Governance Policy: system-design-docs/architecture/governance.md
       - 0001 Source Of Truth And Anti-Drift Policy: decisions/0001-source-of-truth-and-anti-drift-policy.md
       - 0002 Seed Migration Workspace And Sanitized Provenance: decisions/0002-seed-migration-workspace-and-provenance.md
       - 0003 Sanitized Reports And Public Seed Artifacts: decisions/0003-sanitized-reports-and-public-seed-artifacts.md

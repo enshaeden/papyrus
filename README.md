@@ -1,161 +1,43 @@
 # Papyrus
 
-Papyrus is a local-first governed operational knowledge control plane for IT support and systems operations.
+Papyrus is a local-first governed operational knowledge control plane for IT support and systems operations. Canonical knowledge stays in Markdown under `knowledge/` and `archive/knowledge/`; Papyrus builds a relational runtime on top of that source so operators can search, review, validate, and govern knowledge without turning generated output into the source of truth.
 
-Canonical authored knowledge remains in portable Markdown with YAML front matter under `knowledge/` and `archive/knowledge/`. Runtime state, validation, search, reporting, and governance workflows now live in an application package under `src/papyrus/`. Generated artifacts remain rebuildable and non-authoritative.
+## Core Questions
 
-## What Papyrus Must Answer
+- What is the current guidance?
+- Why should we trust it?
+- Who owns and reviewed it?
+- What changed that may have invalidated it?
+- What else is affected by this object or service?
 
-- What do we know?
-- Why do we believe it?
-- Who reviewed or approved it?
-- What changed that may invalidate it?
-- What other knowledge becomes suspect when one thing changes?
+## Use Modes
 
-## Current Refactor Boundary
+- `Read`: find the right runbook, known error, or service record and judge whether it is safe to use.
+- `Write`: create or revise canonical knowledge, attach evidence, validate it, and hand it off for review.
+- `Manage`: review queues, audit trust posture, inspect revision history, and track content health.
 
-Phases 1-9 are implemented.
-
-- The repository framing is now knowledge-object centric instead of article centric.
-- Canonical authored source is still Markdown under `knowledge/` and `archive/knowledge/`.
-- The `src/papyrus/` package now owns reusable runtime logic instead of `scripts/kb_common.py`.
-- Typed source schemas now live under `schemas/knowledge_objects/` for `runbook`, `known_error`, and `service_record`.
-- `scripts/build_index.py` now rebuilds a relational SQLite runtime with first-class knowledge objects, revisions, citations, services, relationships, validation runs, review assignments, and audit events.
-- Governance workflows now create revisions, submit them for review, assign reviewers, approve or reject revisions, supersede objects, record validation runs, and mark objects suspect due to change through the application layer.
-- Source sync preserves existing runtime review state and audit history instead of resetting the database on every rebuild.
-- Citation validation now degrades weak evidence in the runtime when citations lack capture metadata, integrity data, or resolvable local targets.
-- Search and reporting now run against runtime freshness, approval state, citation health, and ownership clarity instead of a flat article projection.
-- A thin JSON API and a thin server-rendered operator web interface now expose the same runtime-backed queue, detail, revision, service, trust, and impact queries.
-- CLI scripts remain first-class operator entrypoints, but they are wrappers over application services.
-- MkDocs, `generated/`, and `site/` remain derived export concerns, not the primary product surface.
-- Static export now requires runtime approval state and emits approved knowledge content only.
-- The legacy universal article schema remains only as a migration compatibility shim.
-
-## Repository Layout
-
-- `knowledge/`: active canonical authored knowledge source files.
-- `archive/knowledge/`: archived canonical authored knowledge source files.
-- `docs/`: explanatory architecture, workflow, and governance documentation.
-- `decisions/`: ADR-style structural decisions.
-- `src/papyrus/`: application package for domain, application, infrastructure, interface, and job layers.
-- `schemas/`: repository policy, typed source schemas, and legacy compatibility shims.
-- `taxonomies/`: controlled vocabularies used by validation and reporting.
-- `templates/`: approved source templates only.
-- `scripts/`: operator-facing CLI entrypoints and compatibility shims.
-- `migration/`: sanitized migration inputs and manifests; never canonical source.
-- `reports/`: sanitized review and migration reports.
-- `generated/`: derived export inputs.
-- `build/`: derived local runtime artifacts such as SQLite projections.
-- `site/`: rendered static export output.
-- `tests/`: regression coverage.
-
-## Operating Model
-
-Papyrus distinguishes three layers:
-
-1. Canonical authored source
-   Source of truth under `knowledge/` and `archive/knowledge/`.
-2. Operational runtime state
-   Local, rebuildable application state used for validation, search, reporting, and later governance workflows.
-3. Derived exports
-   Static site output, generated pages, and other rebuildable views.
-
-If source and a derived artifact disagree, the source wins.
-
-## Quick Start
-
-Bootstrap a local environment:
+## Short Start
 
 ```bash
 ./scripts/bootstrap.sh
-```
-
-Validate canonical source and repository policy:
-
-```bash
 python3 scripts/validate.py
-```
-
-Build the current local runtime database:
-
-```bash
 python3 scripts/build_index.py
-```
-
-Search the local projection:
-
-```bash
-python3 scripts/search.py vpn
-```
-
-Report review due dates:
-
-```bash
-python3 scripts/report_stale.py
-```
-
-Report duplicates, link failures, isolation, and metadata gaps:
-
-```bash
-python3 scripts/report_content_health.py
-```
-
-Focus on runtime evidence and governance posture:
-
-```bash
-python3 scripts/report_content_health.py --section citation-health --section suspect-objects
-```
-
-Serve the operator web interface:
-
-```bash
 python3 scripts/serve_web.py
 ```
 
-Serve the JSON API:
+For terminal-first work:
 
 ```bash
-python3 scripts/serve_api.py
+python3 scripts/search.py vpn
+python3 scripts/report_stale.py
+python3 scripts/report_content_health.py
 ```
 
-Create a new canonical source scaffold:
+## Operator Docs
 
-```bash
-python3 scripts/new_article.py --type runbook --title "Example Procedure"
-```
-
-Use the convenience wrapper for the primary operator surface:
-
-```bash
-./scripts/serve.sh
-```
-
-Build the optional approved-content static export:
-
-```bash
-./scripts/build_static_export.sh
-```
-
-Serve the optional approved-content static export:
-
-```bash
-./scripts/serve_static_export.sh
-```
-
-## Source Of Truth Rules
-
-- Canonical authored knowledge lives only under `knowledge/` and `archive/knowledge/`.
-- Generated artifacts under `generated/`, `build/`, and `site/` are never authoritative.
-- Validation is the completion gate.
-- Structural changes to schemas, taxonomies, or top-level directories require a decision record.
-- Static site output is secondary to the authored source and application runtime.
-- The static export is an approved-content publication surface, not a replacement for the runtime queue, trust dashboard, or impact views.
-
-## Key Documents
-
-- Control-plane architecture: [docs/architecture/control-plane-architecture.md](docs/architecture/control-plane-architecture.md)
-- Governance policy: [docs/architecture/governance.md](docs/architecture/governance.md)
-- Knowledge object lifecycle: [docs/architecture/content-lifecycle.md](docs/architecture/content-lifecycle.md)
-- Information architecture: [docs/architecture/information-architecture.md](docs/architecture/information-architecture.md)
-- Contributor workflow: [docs/contributor-workflow.md](docs/contributor-workflow.md)
-- Refactor ADR: [decisions/0004-knowledge-object-control-plane-refactor.md](decisions/0004-knowledge-object-control-plane-refactor.md)
+- Start here: [docs/getting-started.md](docs/getting-started.md)
+- Read playbook: [docs/playbooks/read.md](docs/playbooks/read.md)
+- Write playbook: [docs/playbooks/write.md](docs/playbooks/write.md)
+- Manage playbook: [docs/playbooks/manage.md](docs/playbooks/manage.md)
+- System model: [docs/reference/system-model.md](docs/reference/system-model.md)
+- Decisions and rationale: [decisions/index.md](decisions/index.md)

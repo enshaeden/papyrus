@@ -405,8 +405,8 @@ def render_site_home(
             site_href(current_relative, Path("knowledge/index.md")),
         ),
         (
-            "System & Design Docs",
-            "Repository architecture, schema behavior, generator design, taxonomy design, and workflow guidance.",
+            "Operator Docs",
+            "Orientation, role-based playbooks, and the concise system model for operating Papyrus.",
             site_href(current_relative, Path("system-design-docs/index.md")),
         ),
         (
@@ -418,7 +418,7 @@ def render_site_home(
     metrics = [
         (str(len(export_articles)), "approved knowledge exports"),
         (str(excluded_count), "source knowledge objects excluded from export"),
-        (str(doc_markdown_count), "system and design docs"),
+        (str(doc_markdown_count), "operator docs and references"),
         (str(decision_record_count), "decision records"),
     ]
     return (
@@ -437,8 +437,8 @@ def render_site_home(
         "### Approved Knowledge Export\n\n"
         "- Approved export of operator-facing procedures, references, troubleshooting content, runbooks, and service records.\n"
         "- Source of truth remains `knowledge/` and `archive/knowledge/`, not this site.\n\n"
-        "### System & Design Docs\n\n"
-        "- Use [System & Design Docs](system-design-docs/index.md) for repository architecture, schema behavior, generator design, taxonomy design, and contributor workflow guidance.\n"
+        "### Operator Docs\n\n"
+        "- Use [Operator Docs](system-design-docs/index.md) for orientation, role-based playbooks, and the concise system model.\n"
         "- Source of truth: `docs/`.\n\n"
         "### Governance & Decisions\n\n"
         "- Use [Governance & Decisions](decisions/index.md) for repository policy, structural rules, and durable rationale.\n"
@@ -973,7 +973,7 @@ def render_authors_page(
     current_relative = Path("knowledge/authors.md")
     cards = []
     for title, description, target in AUTHOR_SHORTCUTS:
-        href = target["page"] if target else repo_doc_href(current_relative, "docs/contributor-workflow.md")
+        href = target["page"] if target else repo_doc_href(current_relative, "docs/playbooks/write.md")
         cards.append((title, description, href if target is None else page_href(current_relative, target["page"])))
 
     missing_services = len(articles_missing_list_field(articles, "services"))
@@ -1034,8 +1034,9 @@ def render_authors_page(
         render_taxonomy_table("Teams", "teams", "team", taxonomies, articles, current_relative),
         "## Workflow References",
         "",
-        f"- [Contributor workflow]({repo_doc_link(current_relative, 'docs/contributor-workflow.md')})",
-        f"- [Knowledge discovery implementation plan]({repo_doc_link(current_relative, 'docs/knowledge-discovery-improvement-plan.md')})",
+        f"- [Getting started]({repo_doc_link(current_relative, 'docs/getting-started.md')})",
+        f"- [Write playbook]({repo_doc_link(current_relative, 'docs/playbooks/write.md')})",
+        f"- [System model]({repo_doc_link(current_relative, 'docs/reference/system-model.md')})",
         "",
     ]
     return "\n".join(lines).strip() + "\n"

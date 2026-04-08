@@ -1,33 +1,22 @@
-# System & Design Docs
+# Papyrus Docs
 
-This area explains how the Papyrus control plane works. It covers repository architecture, governance, lifecycle rules, runtime design, and contributor workflow. It is not the source of truth for operator-facing procedures.
+Use this documentation set to operate Papyrus from the repository as it exists now.
 
-## Use The Right Area
+## Orientation
 
-- For canonical operational knowledge, use `knowledge/` or `archive/knowledge/`.
-- For architecture, runtime, governance, and workflow documentation, use `docs/`.
-- For durable structural rationale and tradeoffs, use `decisions/`.
+- [Getting started](getting-started.md): shortest path to a working local runtime and the main entrypoints.
 
-## What Belongs Here
+## Playbooks
 
-- Control-plane architecture and domain model
-- Canonical source versus runtime-state rules
-- Repository policy, validation, and taxonomy behavior
-- Contributor workflow and migration guidance
-- Export and publishing design for derived artifacts
+- [Read](playbooks/read.md): search, inspect trust posture, follow related objects, and spot stale or suspect knowledge.
+- [Write](playbooks/write.md): create or revise canonical source, attach citations, validate, and prepare review handoff.
+- [Manage](playbooks/manage.md): review queues, inspect revision history and audit trails, and run content-health checks.
 
-## What Does Not Belong Here
+## System Model
 
-- Canonical operator procedures
-- Runbook steps copied from `knowledge/`
-- Static-export output treated as source of truth
+- [System model](reference/system-model.md): the object, revision, trust, citation, validation, runtime, and export rules in one place.
 
-## Start Here
+## Supporting Reference
 
-- [Control-Plane Architecture](architecture/control-plane-architecture.md)
-- [Governance Policy](architecture/governance.md)
-- [Knowledge Object Lifecycle](architecture/content-lifecycle.md)
-- [Information Architecture](architecture/information-architecture.md)
-- [Contributor Workflow](contributor-workflow.md)
-- [Refactor ADR](../decisions/0004-knowledge-object-control-plane-refactor.md)
-- [Phase-Zero Discovery Plan](knowledge-discovery-improvement-plan.md)
+- [Decisions](../decisions/index.md): durable rationale for repository-level structure and policy.
+- [Migration rationale](migration/seed-migration-rationale.md): historical reference for the sanitized seed and import boundary.

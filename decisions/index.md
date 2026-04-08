@@ -8,12 +8,13 @@ This area records the structural rules and durable rationale behind the Papyrus 
 - For architecture, workflow, and governance design documentation, use `docs/`.
 - For accepted structural choices with rationale and tradeoffs, use `decisions/`.
 
-## Governance References
+## Operator And Reference Docs
 
-- [Control-Plane Architecture](../docs/architecture/control-plane-architecture.md)
-- [Governance Policy](../docs/architecture/governance.md)
-- [Information Architecture](../docs/architecture/information-architecture.md)
-- [Contributor Workflow](../docs/contributor-workflow.md)
+- [Getting started](../docs/getting-started.md)
+- [Read playbook](../docs/playbooks/read.md)
+- [Write playbook](../docs/playbooks/write.md)
+- [Manage playbook](../docs/playbooks/manage.md)
+- [System model](../docs/reference/system-model.md)
 
 ## Decision Records
 
