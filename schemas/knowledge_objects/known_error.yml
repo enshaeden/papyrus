@@ -101,6 +101,7 @@ fields:
       - source_ref
     allowed_keys:
       - article_id
+      - claim_anchor
       - source_title
       - source_type
       - source_ref

@@ -140,6 +140,7 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertEqual(build_result.returncode, 0, msg=build_result.stderr)
         self.assertIn("knowledge.db", build_result.stdout)
         connection = sqlite3.connect(ROOT / "build" / "knowledge.db")
+        connection.row_factory = sqlite3.Row
         try:
             table_names = {
                 row[0]
@@ -147,6 +148,22 @@ class CliWorkflowTests(unittest.TestCase):
                     "SELECT name FROM sqlite_master WHERE type IN ('table', 'view')"
                 ).fetchall()
             }
+            citation_statuses = {
+                row["validity_status"]: row["item_count"]
+                for row in connection.execute(
+                    "SELECT validity_status, COUNT(*) AS item_count FROM citations GROUP BY validity_status"
+                ).fetchall()
+            }
+            citation_validation_row = connection.execute(
+                "SELECT run_type, status FROM validation_runs WHERE run_type = 'citation_scan' ORDER BY completed_at DESC LIMIT 1"
+            ).fetchone()
+            after_change_row = connection.execute(
+                """
+                SELECT freshness_rank
+                FROM search_documents
+                WHERE object_id = 'kb-applications-access-and-license-management-add-productivity-platform-licenses'
+                """
+            ).fetchone()
         finally:
             connection.close()
         self.assertIn("knowledge_objects", table_names)
@@ -159,6 +176,11 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertIn("audit_events", table_names)
         self.assertIn("search_documents", table_names)
         self.assertNotIn("articles", table_names)
+        self.assertIn("unverified", citation_statuses)
+        self.assertIn("verified", citation_statuses)
+        self.assertIsNotNone(citation_validation_row)
+        self.assertEqual(citation_validation_row["run_type"], "citation_scan")
+        self.assertEqual(after_change_row["freshness_rank"], 0)
 
         search_result = run_command("scripts/search.py", "vpn")
         self.assertEqual(search_result.returncode, 0, msg=search_result.stderr)
@@ -173,6 +195,13 @@ class CliWorkflowTests(unittest.TestCase):
         result = run_command("scripts/report_content_health.py", "--section", "duplicates")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("[duplicates]", result.stdout)
+
+    def test_content_health_report_citation_section(self) -> None:
+        run_command("scripts/build_index.py")
+        result = run_command("scripts/report_content_health.py", "--section", "citation-health")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("[citation-health]", result.stdout)
+        self.assertIn("kb-applications-access-and-license-management-add-productivity-platform-licenses", result.stdout)
 
     def test_content_health_report_docs_warning_section(self) -> None:
         result = run_command("scripts/report_content_health.py", "--section", "knowledge-like-docs")

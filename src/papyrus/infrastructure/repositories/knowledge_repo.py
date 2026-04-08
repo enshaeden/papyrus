@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -140,10 +141,41 @@ def load_articles(policy: dict[str, Any] | None = None) -> list[KnowledgeDocumen
     return load_knowledge_documents(policy)
 
 
+def load_current_runtime_documents(connection: sqlite3.Connection) -> list[KnowledgeDocument]:
+    rows = connection.execute(
+        """
+        SELECT o.canonical_path, r.normalized_payload_json, r.body_markdown
+        FROM knowledge_objects AS o
+        JOIN knowledge_revisions AS r ON r.revision_id = o.current_revision_id
+        ORDER BY o.object_id
+        """
+    ).fetchall()
+    documents: list[KnowledgeDocument] = []
+    for row in rows:
+        metadata = json.loads(row["normalized_payload_json"])
+        relative = str(row["canonical_path"])
+        documents.append(
+            KnowledgeDocument(
+                source_path=ROOT / relative,
+                relative_path=relative,
+                metadata=metadata,
+                body=str(row["body_markdown"]),
+            )
+        )
+    return documents
+
+
 def get_knowledge_object(connection: sqlite3.Connection, object_id: str) -> sqlite3.Row | None:
     return connection.execute(
         "SELECT * FROM knowledge_objects WHERE object_id = ?",
         (object_id,),
+    ).fetchone()
+
+
+def get_knowledge_object_by_canonical_path(connection: sqlite3.Connection, canonical_path: str) -> sqlite3.Row | None:
+    return connection.execute(
+        "SELECT * FROM knowledge_objects WHERE canonical_path = ?",
+        (canonical_path,),
     ).fetchone()
 
 
@@ -180,14 +212,23 @@ def next_revision_number(connection: sqlite3.Connection, object_id: str) -> int:
 
 
 def delete_source_sync_relationships(connection: sqlite3.Connection, object_id: str) -> None:
+    delete_projected_relationships(connection, object_id, ("source_sync",))
+
+
+def delete_projected_relationships(
+    connection: sqlite3.Connection,
+    object_id: str,
+    provenances: tuple[str, ...] = ("source_sync", "workflow_projection"),
+) -> None:
+    placeholders = ", ".join("?" for _ in provenances)
     connection.execute(
-        """
+        f"""
         DELETE FROM relationships
         WHERE source_entity_type = 'knowledge_object'
           AND source_entity_id = ?
-          AND provenance = 'source_sync'
+          AND provenance IN ({placeholders})
         """,
-        (object_id,),
+        (object_id, *provenances),
     )
 
 

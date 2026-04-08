@@ -10,7 +10,8 @@ import yaml
 from papyrus.domain.entities import BrokenLink, KnowledgeDocument, ParsedKnowledgeObjectSource
 from papyrus.domain.policies import (
     approval_state_for_status,
-    citation_health_rank,
+    citation_health_rank_for_statuses,
+    normalize_citation_validity_status,
     ownership_rank,
     primary_object_type,
     trust_state,
@@ -186,7 +187,31 @@ def _string_list(values: object) -> list[str]:
 def _normalize_citations(metadata: dict[str, object]) -> list[dict[str, object]]:
     existing = metadata.get("citations")
     if isinstance(existing, list) and existing:
-        return [dict(item) for item in existing if isinstance(item, dict)]
+        citations: list[dict[str, object]] = []
+        for item in existing:
+            if not isinstance(item, dict):
+                continue
+            source_ref = str(item.get("source_ref") or item.get("path") or item.get("url") or "").strip()
+            source_title = str(item.get("source_title") or item.get("title") or source_ref).strip()
+            if not source_ref or not source_title:
+                continue
+            citations.append(
+                {
+                    "article_id": item.get("article_id"),
+                    "claim_anchor": str(item.get("claim_anchor")).strip() if item.get("claim_anchor") else None,
+                    "source_title": source_title,
+                    "source_type": str(item.get("source_type") or "document").strip() or "document",
+                    "source_ref": source_ref,
+                    "note": str(item.get("note")).strip() if item.get("note") else None,
+                    "excerpt": str(item.get("excerpt")).strip() if item.get("excerpt") else None,
+                    "captured_at": str(item.get("captured_at")).strip() if item.get("captured_at") else None,
+                    "validity_status": normalize_citation_validity_status(
+                        str(item.get("validity_status")) if item.get("validity_status") is not None else None
+                    ),
+                    "integrity_hash": str(item.get("integrity_hash")).strip() if item.get("integrity_hash") else None,
+                }
+            )
+        return citations
 
     legacy = metadata.get("references")
     if not isinstance(legacy, list):
@@ -204,6 +229,7 @@ def _normalize_citations(metadata: dict[str, object]) -> list[dict[str, object]]
         citations.append(
             {
                 "article_id": item.get("article_id"),
+                "claim_anchor": None,
                 "source_title": source_title,
                 "source_type": "document",
                 "source_ref": source_ref,
@@ -211,7 +237,7 @@ def _normalize_citations(metadata: dict[str, object]) -> list[dict[str, object]]
                 "excerpt": None,
                 "captured_at": None,
                 "validity_status": "verified" if source_ref else "unverified",
-                "integrity_hash": hashlib.sha256(f"{source_title}|{source_ref}".encode("utf-8")).hexdigest()[:16],
+                "integrity_hash": None,
             }
         )
     return citations
@@ -325,7 +351,9 @@ def normalize_object_metadata(
     else:  # pragma: no cover
         raise ValueError(f"{document.relative_path}: unsupported knowledge object type {object_type}")
 
-    citation_rank = citation_health_rank(len(citations), 0)
+    citation_rank = citation_health_rank_for_statuses(
+        [str(citation.get("validity_status", "unverified")) for citation in citations]
+    )
     owner_rank_value = ownership_rank(owner)
     fresh_rank = freshness_rank(status, review_date, review_cadence_days, now)
 

@@ -76,11 +76,85 @@ def ownership_rank(owner: str) -> int:
 
 
 def citation_health_rank(citation_count: int, broken_count: int) -> int:
+    return citation_health_rank_from_status_counts(
+        citation_count=citation_count,
+        broken_count=broken_count,
+        stale_count=0,
+        unverified_count=0,
+    )
+
+
+def citation_health_rank_from_status_counts(
+    *,
+    citation_count: int,
+    broken_count: int = 0,
+    stale_count: int = 0,
+    unverified_count: int = 0,
+) -> int:
     if broken_count:
+        return 3
+    if stale_count:
         return 2
-    if citation_count == 0:
+    if unverified_count or citation_count == 0:
         return 1
     return 0
+
+
+def citation_health_label(rank: int) -> str:
+    if rank >= 3:
+        return "broken"
+    if rank == 2:
+        return "stale"
+    if rank == 1:
+        return "unverified"
+    return "verified"
+
+
+def citation_validity_rank(status: str) -> int:
+    ranking = {
+        "verified": 0,
+        "unverified": 1,
+        "stale": 2,
+        "broken": 3,
+    }
+    return ranking.get(str(status), 1)
+
+
+def worse_citation_validity(left: str, right: str) -> str:
+    return left if citation_validity_rank(left) >= citation_validity_rank(right) else right
+
+
+def normalize_citation_validity_status(status: str | None) -> str:
+    normalized = str(status or "").strip().lower()
+    if normalized in {"verified", "unverified", "stale", "broken"}:
+        return normalized
+    return "unverified"
+
+
+def citation_status_counts(citation_statuses: list[str]) -> dict[str, int]:
+    counts = {"verified": 0, "unverified": 0, "stale": 0, "broken": 0}
+    for status in citation_statuses:
+        counts[normalize_citation_validity_status(status)] += 1
+    return counts
+
+
+def citation_health_rank_for_statuses(citation_statuses: list[str]) -> int:
+    counts = citation_status_counts(citation_statuses)
+    return citation_health_rank_from_status_counts(
+        citation_count=sum(counts.values()),
+        broken_count=counts["broken"],
+        stale_count=counts["stale"],
+        unverified_count=counts["unverified"],
+    )
+
+
+def citation_health_rank_for_counts(counts: dict[str, int]) -> int:
+    return citation_health_rank_from_status_counts(
+        citation_count=sum(counts.values()),
+        broken_count=int(counts.get("broken", 0) or 0),
+        stale_count=int(counts.get("stale", 0) or 0),
+        unverified_count=int(counts.get("unverified", 0) or 0),
+    )
 
 
 def freshness_rank(
@@ -92,7 +166,7 @@ def freshness_rank(
     if status == "draft":
         return 2
     if review_cadence_days is None:
-        return 1
+        return 0
     due_date = last_reviewed + dt.timedelta(days=review_cadence_days)
     return 1 if due_date < as_of else 0
 
@@ -122,10 +196,11 @@ def runtime_trust_state(
 ) -> str:
     if revision_state != RevisionReviewStatus.APPROVED.value:
         return TrustState.SUSPECT.value
+    if preserve_existing_warning and existing_trust_state == TrustState.SUSPECT.value:
+        return TrustState.SUSPECT.value
     if base_trust_state != TrustState.TRUSTED.value:
         return base_trust_state
     if preserve_existing_warning and existing_trust_state in {
-        TrustState.SUSPECT.value,
         TrustState.STALE.value,
         TrustState.WEAK_EVIDENCE.value,
     }:

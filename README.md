@@ -14,7 +14,7 @@ Canonical authored knowledge remains in portable Markdown with YAML front matter
 
 ## Current Refactor Boundary
 
-Phases 1-5 are implemented.
+Phases 1-7 are implemented.
 
 - The repository framing is now knowledge-object centric instead of article centric.
 - Canonical authored source is still Markdown under `knowledge/` and `archive/knowledge/`.
@@ -23,6 +23,8 @@ Phases 1-5 are implemented.
 - `scripts/build_index.py` now rebuilds a relational SQLite runtime with first-class knowledge objects, revisions, citations, services, relationships, validation runs, review assignments, and audit events.
 - Governance workflows now create revisions, submit them for review, assign reviewers, approve or reject revisions, supersede objects, record validation runs, and mark objects suspect due to change through the application layer.
 - Source sync preserves existing runtime review state and audit history instead of resetting the database on every rebuild.
+- Citation validation now degrades weak evidence in the runtime when citations lack capture metadata, integrity data, or resolvable local targets.
+- Search and reporting now run against runtime freshness, approval state, citation health, and ownership clarity instead of a flat article projection.
 - CLI scripts remain first-class operator entrypoints, but they are wrappers over application services.
 - MkDocs, `generated/`, and `site/` remain derived export concerns, not the primary product surface.
 - The legacy universal article schema remains only as a migration compatibility shim.
@@ -94,6 +96,12 @@ Report duplicates, link failures, isolation, and metadata gaps:
 
 ```bash
 python3 scripts/report_content_health.py
+```
+
+Focus on runtime evidence and governance posture:
+
+```bash
+python3 scripts/report_content_health.py --section citation-health --section suspect-objects
 ```
 
 Create a new canonical source scaffold:

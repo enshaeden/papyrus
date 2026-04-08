@@ -227,6 +227,26 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 actor="tests",
                 notes="Approved during workflow testing.",
             )
+
+            citation_row = read_row(
+                database_path,
+                "SELECT COUNT(*) AS item_count, MIN(validity_status) AS validity_status FROM citations WHERE revision_id = ?",
+                (revision_b.revision_id,),
+            )
+            self.assertIsNotNone(citation_row)
+            self.assertEqual(citation_row["item_count"], 1)
+            self.assertEqual(citation_row["validity_status"], "unverified")
+
+            search_row = read_row(
+                database_path,
+                "SELECT trust_state, citation_health_rank, approval_state FROM search_documents WHERE object_id = ?",
+                (object_b.object_id,),
+            )
+            self.assertIsNotNone(search_row)
+            self.assertEqual(search_row["approval_state"], "approved")
+            self.assertEqual(search_row["citation_health_rank"], 1)
+            self.assertEqual(search_row["trust_state"], "weak_evidence")
+
             workflow.supersede_object(
                 object_id=object_a.object_id,
                 replacement_object_id=object_b.object_id,

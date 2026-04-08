@@ -43,12 +43,41 @@ def ensure_iso_date(value: Any) -> bool:
     return True
 
 
+def ensure_iso_date_or_datetime(value: Any) -> bool:
+    if value is None:
+        return True
+    if ensure_iso_date(value):
+        return True
+    if isinstance(value, dt.datetime):
+        return True
+    if not isinstance(value, str) or not value.strip():
+        return False
+    candidate = value.strip().replace("Z", "+00:00")
+    try:
+        dt.datetime.fromisoformat(candidate)
+    except ValueError:
+        return False
+    return True
+
+
 def parse_iso_date(value: Any) -> dt.date:
     if isinstance(value, dt.datetime):
         return value.date()
     if isinstance(value, dt.date):
         return value
     return dt.date.fromisoformat(value)
+
+
+def parse_iso_date_or_datetime(value: Any) -> dt.date:
+    if isinstance(value, dt.datetime):
+        return value.date()
+    if isinstance(value, dt.date):
+        return value
+    candidate = str(value).strip().replace("Z", "+00:00")
+    try:
+        return dt.datetime.fromisoformat(candidate).date()
+    except ValueError:
+        return dt.date.fromisoformat(candidate)
 
 
 def date_to_iso(value: Any) -> str:
@@ -89,4 +118,3 @@ def render_change_log(entries: list[dict[str, Any]]) -> str:
         f"- {date_to_iso(entry['date'])} | {entry['author']} | {entry['summary']}\n"
         for entry in entries
     )
-

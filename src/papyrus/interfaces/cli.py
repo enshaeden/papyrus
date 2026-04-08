@@ -6,12 +6,11 @@ import sqlite3
 import sys
 
 from papyrus.application.commands import build_projection_command, validate_repository_command
-from papyrus.application.queries import CONTENT_HEALTH_SECTIONS, collect_content_health_sections, search_projection
+from papyrus.application.queries import CONTENT_HEALTH_SECTIONS, collect_content_health_sections, search_projection, stale_projection
 from papyrus.domain.policies import searchable_statuses
 from papyrus.infrastructure.markdown.serializer import parse_iso_date
 from papyrus.infrastructure.paths import DB_PATH
-from papyrus.infrastructure.repositories.knowledge_repo import load_knowledge_documents, load_policy, load_taxonomies
-from papyrus.jobs.stale_scan import stale_documents
+from papyrus.infrastructure.repositories.knowledge_repo import load_policy
 
 
 def validate_main() -> int:
@@ -95,22 +94,19 @@ def report_stale_main() -> int:
     )
     args = parser.parse_args()
 
-    policy = load_policy()
-    taxonomies = load_taxonomies()
-    documents = load_knowledge_documents(policy)
-    statuses = {"active"}
-    if args.include_deprecated:
-        statuses.add("deprecated")
-
-    rows = stale_documents(documents, taxonomies, parse_iso_date(args.as_of), statuses)
+    rows = stale_projection(
+        as_of=parse_iso_date(args.as_of),
+        include_deprecated=args.include_deprecated,
+        database_path=DB_PATH,
+    )
     if not rows:
         print("no stale knowledge objects found")
         return 0
 
-    for days_overdue, document, due_date in rows:
+    for days_overdue, object_id, title, path, due_date in rows:
         print(
             f"{days_overdue:>4} days overdue | {due_date.isoformat()} | "
-            f"{document.metadata['id']} | {document.metadata['title']} | {document.relative_path}"
+            f"{object_id} | {title} | {path}"
         )
     return 0
 

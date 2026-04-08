@@ -32,7 +32,10 @@ citations:
 - source_title: Replace with a supporting document, local path, or canonical knowledge-object reference.
   source_type: document
   source_ref: Replace with a canonical path, URL placeholder, or system reference.
+  claim_anchor: null
   note: Explain why this citation supports the known error record.
+  captured_at: null
+  integrity_hash: null
 {{related_object_ids_field}}
 superseded_by: null
 retirement_reason: null
@@ -53,3 +56,7 @@ State how operators recognize this issue and how to distinguish it from adjacent
 ## Escalation Threshold
 
 State when the documented mitigations are exhausted and which team should take over.
+
+## Evidence Notes
+
+- Replace `captured_at: null` and `integrity_hash: null` when you have real evidence capture details. Leaving them null keeps the citation in weak-evidence posture.

@@ -4,7 +4,7 @@ Papyrus is being refactored from an article-centric Markdown repository into a g
 
 ## Current State
 
-Phase 1 through Phase 5 establish the current control-plane spine.
+Phase 1 through Phase 7 establish the current control-plane spine.
 
 - Canonical authored source remains Markdown with YAML front matter under `knowledge/` and `archive/knowledge/`.
 - Core runtime logic moves into `src/papyrus/`.
@@ -12,6 +12,8 @@ Phase 1 through Phase 5 establish the current control-plane spine.
 - Typed source schemas now live under `schemas/knowledge_objects/`.
 - The local SQLite runtime now models knowledge objects, revisions, citations, services, relationships, validation runs, review assignments, and audit events.
 - Deterministic governance workflows now create objects, create revisions, submit revisions for review, assign reviewers, approve or reject revisions, supersede objects, record validation runs, and mark objects suspect due to change.
+- Citation scans now resolve runtime evidence posture from canonical source plus local runtime context instead of treating front matter references as passively trusted.
+- Search and reporting now read from the relational runtime for freshness, approval state, citation health, ownership clarity, and suspect-object views.
 - The flat article schema remains only as a migration compatibility structure.
 
 ## Domain Focus
@@ -47,6 +49,26 @@ Trust posture is determined by signals such as:
 
 Trust posture is separate from lifecycle state. An active object may still be suspect or stale.
 
+### Evidence Posture
+
+Citation records are first-class runtime rows, not just front matter blobs. Each citation can carry:
+
+- `source_type`
+- `source_ref`
+- `source_title`
+- `claim_anchor`
+- `note` or `excerpt`
+- `captured_at`
+- `validity_status`
+- `integrity_hash`
+
+Papyrus resolves runtime citation posture conservatively:
+
+- missing local targets become broken evidence
+- migration-era provenance without capture metadata remains unverified evidence
+- cited knowledge objects that change after the current object was reviewed can degrade trust
+- missing integrity data remains visible as weak evidence instead of being silently treated as verified
+
 ## Lifecycle Model
 
 Papyrus separates:
@@ -73,6 +95,7 @@ The sync boundary is one-way with respect to authority:
 - exports are derived from source plus runtime logic
 
 The current sync flow ingests canonical Markdown source into a relational runtime that preserves object identity separately from revision identity and does not wipe workflow state on rebuild.
+It also re-runs citation health and refreshes runtime search/reporting projections after sync so weak evidence is reflected immediately.
 
 ## Layered Runtime Design
 
@@ -85,6 +108,18 @@ The target runtime is organized under `src/papyrus/`:
 - `jobs/`: scheduled or operator-invoked scans
 
 This separation exists to keep validation, search, reporting, and future governance workflows reusable across multiple interfaces.
+
+## Reporting And Search
+
+Search is now application-backed over relational runtime tables instead of a flattened article projection. Ranking considers:
+
+- lifecycle status
+- freshness
+- approval state
+- citation health
+- ownership clarity
+
+Health reporting uses runtime-backed views where the runtime is now the right operating model, while source-oriented checks such as broken Markdown links and orphaned generated files still evaluate the source tree directly.
 
 ## Role Of Derived Artifacts
 

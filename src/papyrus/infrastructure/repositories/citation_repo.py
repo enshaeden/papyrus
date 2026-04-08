@@ -63,3 +63,67 @@ def insert_citation(
 
 def delete_citations_for_revision(connection: sqlite3.Connection, revision_id: str) -> None:
     connection.execute("DELETE FROM citations WHERE revision_id = ?", (revision_id,))
+
+
+def update_citation_validity_status(
+    connection: sqlite3.Connection,
+    citation_id: str,
+    validity_status: str,
+) -> None:
+    connection.execute(
+        "UPDATE citations SET validity_status = ? WHERE citation_id = ?",
+        (validity_status, citation_id),
+    )
+
+
+def citation_status_counts_for_revision(connection: sqlite3.Connection, revision_id: str) -> dict[str, int]:
+    counts = {"verified": 0, "unverified": 0, "stale": 0, "broken": 0}
+    rows = connection.execute(
+        """
+        SELECT validity_status, COUNT(*) AS item_count
+        FROM citations
+        WHERE revision_id = ?
+        GROUP BY validity_status
+        """,
+        (revision_id,),
+    ).fetchall()
+    for row in rows:
+        status = str(row["validity_status"])
+        if status not in counts:
+            counts["unverified"] += int(row["item_count"])
+            continue
+        counts[status] = int(row["item_count"])
+    return counts
+
+
+def list_current_citations(
+    connection: sqlite3.Connection,
+    object_ids: tuple[str, ...] | None = None,
+) -> list[sqlite3.Row]:
+    parameters: tuple[str, ...] = ()
+    object_filter = ""
+    if object_ids:
+        placeholders = ", ".join("?" for _ in object_ids)
+        object_filter = f" AND o.object_id IN ({placeholders})"
+        parameters = tuple(object_ids)
+    return connection.execute(
+        f"""
+        SELECT
+            c.*,
+            r.object_id,
+            r.revision_number,
+            o.title AS object_title,
+            o.status AS object_status,
+            o.canonical_path AS object_path,
+            o.last_reviewed AS object_last_reviewed,
+            o.review_cadence AS object_review_cadence,
+            o.updated_date AS object_updated_date
+        FROM citations AS c
+        JOIN knowledge_revisions AS r ON r.revision_id = c.revision_id
+        JOIN knowledge_objects AS o ON o.object_id = r.object_id
+        WHERE o.current_revision_id = r.revision_id
+        {object_filter}
+        ORDER BY o.object_id, c.citation_id
+        """,
+        parameters,
+    ).fetchall()

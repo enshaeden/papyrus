@@ -34,10 +34,8 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     get_knowledge_object,
     get_knowledge_revision,
     next_revision_number,
-    replace_fts_document,
     upsert_knowledge_object,
     upsert_relationship,
-    upsert_search_document,
     update_knowledge_object_runtime_state,
     update_knowledge_revision_state,
     insert_knowledge_revision,
@@ -48,9 +46,10 @@ from papyrus.infrastructure.repositories.review_repo import (
     list_review_assignments_for_revision,
     update_review_assignment,
 )
-from papyrus.infrastructure.search.indexer import summarize_for_search
 from papyrus.infrastructure.search.indexer import fts5_available
+from papyrus.jobs.citation_scan import scan_citations
 from papyrus.jobs.stale_scan import cadence_to_days
+from papyrus.application.runtime_projection import persist_revision_artifacts, refresh_current_object_projection
 
 
 def _now_utc() -> dt.datetime:
@@ -202,43 +201,18 @@ class GovernanceWorkflow:
         if not current_revision_id:
             delete_search_document(connection, object_id)
             return
-
-        revision_row = get_knowledge_revision(connection, current_revision_id)
-        if revision_row is None:
-            delete_search_document(connection, object_id)
-            return
-
-        metadata = json.loads(revision_row["normalized_payload_json"])
-        document = self._build_document(metadata, revision_row["body_markdown"])
-        parsed = self._parsed_revision(metadata, revision_row["body_markdown"])
-        upsert_search_document(
+        scan_citations(
             connection,
-            object_id=object_id,
-            revision_id=revision_row["revision_id"],
-            title=object_row["title"],
-            summary=object_row["summary"],
-            object_type=object_row["object_type"],
-            legacy_type=object_row["legacy_type"],
-            status=object_row["status"],
-            owner=object_row["owner"],
-            team=object_row["team"],
-            trust_state=object_row["trust_state"],
-            approval_state=revision_row["revision_state"],
-            freshness_rank=parsed.freshness_rank,
-            citation_health_rank=parsed.citation_health_rank,
-            ownership_rank=parsed.ownership_rank,
-            path=object_row["canonical_path"],
-            search_text=summarize_for_search(document),
+            taxonomies=self._taxonomies(),
+            as_of=dt.date.today(),
+            object_ids=[object_id],
+            persist=True,
         )
-        replace_fts_document(
+        refresh_current_object_projection(
             connection,
             object_id=object_id,
-            title=object_row["title"],
-            summary=object_row["summary"],
-            body=revision_row["body_markdown"],
-            tags=list(metadata.get("tags", [])),
-            systems=list(metadata.get("systems", [])),
-            services=list(metadata.get("related_services") or metadata.get("services") or []),
+            taxonomies=self._taxonomies(),
+            as_of=dt.date.today(),
         )
 
     def create_object(
@@ -381,6 +355,12 @@ class GovernanceWorkflow:
                 current_revision_id=revision_id,
                 tags_json=json_dump(parsed.metadata.get("tags", [])),
                 systems_json=json_dump(parsed.metadata.get("systems", [])),
+            )
+            persist_revision_artifacts(
+                connection,
+                parsed=parsed,
+                revision_id=revision_id,
+                relationship_provenance="workflow_projection",
             )
             self._refresh_search_projection(connection, object_id)
 

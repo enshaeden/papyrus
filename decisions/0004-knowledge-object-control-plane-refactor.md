@@ -68,6 +68,14 @@ The refactor proceeds in phases:
 3. replace the flat runtime projection with a relational operating model
 4. replace the universal article schema with object-type-specific schemas
 5. add explicit governance workflows
+6. harden citations into runtime evidence with degradable trust posture
+7. rebuild search and reporting over runtime governance signals
+
+Later-phase clarification added during implementation:
+
+- citation validity must remain conservative; missing capture metadata or integrity data cannot be treated as verified evidence
+- runtime reporting should move to the relational model where that model is now the operating source for trust, approval, freshness, and evidence posture
+- source-oriented checks such as broken Markdown links and orphaned generated files remain source-tree validations because the runtime does not replace the canonical filesystem
 
 ## Rejected Alternatives
 

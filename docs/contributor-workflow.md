@@ -22,6 +22,7 @@ Papyrus is in a controlled refactor from an article-centric repository to a know
 - Existing scaffold tooling still uses `scripts/new_article.py` as a compatibility entrypoint.
 - Typed source schemas under `schemas/knowledge_objects/` are now the primary source model for `runbook`, `known_error`, and `service_record`.
 - `schemas/article.yml` remains only as a legacy compatibility fallback for migration-era content handling.
+- Citation posture is now runtime-evaluated. Migration provenance without `captured_at` or `integrity_hash` will remain weak evidence until it is recaptured as a proper citation.
 
 Do not create parallel schemas or ad hoc runtime helpers while the refactor is in progress.
 
@@ -59,6 +60,7 @@ Validation remains the completion gate and currently checks:
 - canonical path correctness
 - lifecycle metadata requirements
 - related-object and replacement references
+- citation structure, citation status values, and citation target existence
 - duplicate-title signals
 - directory contract
 - broken local Markdown links
@@ -74,6 +76,7 @@ python3 scripts/build_index.py
 
 This rebuilds the local relational SQLite runtime used by search and reporting. The runtime is derived and rebuildable; the Markdown source remains authoritative.
 Current review assignments, audit events, validation runs, and revision states are preserved across sync runs.
+The build also re-evaluates citation posture and refreshes search/reporting ranks from the runtime state.
 
 ## Search Locally
 
@@ -105,6 +108,13 @@ To focus on one section:
 
 ```bash
 python3 scripts/report_content_health.py --section duplicates
+```
+
+To inspect runtime evidence and trust posture directly:
+
+```bash
+python3 scripts/report_content_health.py --section citation-health
+python3 scripts/report_content_health.py --section suspect-objects
 ```
 
 ## Static Export

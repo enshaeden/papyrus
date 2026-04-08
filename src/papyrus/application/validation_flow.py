@@ -14,6 +14,7 @@ from papyrus.infrastructure.markdown.parser import (
     normalize_object_metadata,
 )
 from papyrus.infrastructure.markdown.serializer import ensure_iso_date, json_dump, parse_iso_date, similarity_ratio
+from papyrus.infrastructure.markdown.serializer import ensure_iso_date_or_datetime
 from papyrus.infrastructure.migrations import apply_runtime_schema
 from papyrus.infrastructure.paths import (
     ADDRESS_PATTERN,
@@ -112,6 +113,39 @@ def validate_field(
                             field_name,
                         )
                     )
+                if field_name == "citations":
+                    captured_at = item.get("captured_at")
+                    if captured_at is not None and not ensure_iso_date_or_datetime(captured_at):
+                        issues.append(
+                            ValidationIssue(
+                                path,
+                                f"entry {index} has a non-ISO captured_at value",
+                                field_name,
+                            )
+                        )
+                    validity_status = item.get("validity_status")
+                    if validity_status is not None and str(validity_status) not in {
+                        "verified",
+                        "unverified",
+                        "stale",
+                        "broken",
+                    }:
+                        issues.append(
+                            ValidationIssue(
+                                path,
+                                f"entry {index} has an unsupported validity_status '{validity_status}'",
+                                field_name,
+                            )
+                        )
+                    claim_anchor = item.get("claim_anchor")
+                    if claim_anchor is not None and (not isinstance(claim_anchor, str) or not claim_anchor.strip()):
+                        issues.append(
+                            ValidationIssue(
+                                path,
+                                f"entry {index} has an empty claim_anchor",
+                                field_name,
+                            )
+                        )
     else:
         issues.append(ValidationIssue(path, f"unsupported schema kind: {kind}", field_name))
 

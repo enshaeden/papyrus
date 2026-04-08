@@ -34,7 +34,10 @@ citations:
 - source_title: Replace with a supporting document, local path, or canonical knowledge-object reference.
   source_type: document
   source_ref: Replace with a canonical path, URL placeholder, or system reference.
+  claim_anchor: null
   note: Explain why this citation supports the runbook.
+  captured_at: null
+  integrity_hash: null
 services: {{related_services_inline}}
 related_articles: {{related_object_ids_inline}}
 references:
@@ -56,3 +59,4 @@ State exclusions, escalation boundaries, approval thresholds, or handoff points.
 ## Related Knowledge Notes
 
 - Note the prerequisite, follow-on, fallback, or sibling procedures that should also be linked in `related_articles` or `references`.
+- Replace `captured_at: null` and `integrity_hash: null` when you have real evidence capture details. Leaving them null keeps the citation in weak-evidence posture.
