@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from papyrus.application.impact_flow import (
+    calculate_blast_radius,
     docs_knowledge_like_warnings,
     documents_missing_list_field,
     find_possible_duplicate_documents,
@@ -416,9 +417,7 @@ def knowledge_queue(
                 citation_health_rank,
                 ownership_rank
             FROM search_documents
-            LIMIT ?
             """,
-            (limit,),
         ).fetchall()
         items = [
             {
@@ -449,6 +448,7 @@ def knowledge_queue(
                     -int(item["freshness_rank"]),
                     -int(item["ownership_rank"]),
                     item["title"],
+                    item["object_id"],
                 )
             )
         else:
@@ -462,9 +462,10 @@ def knowledge_queue(
                     0 if item["linked_services"] else 1,
                     0 if int(item["relationship_count"]) > 0 else 1,
                     item["title"],
+                    item["object_id"],
                 )
             )
-        return items
+        return items[:limit]
     finally:
         connection.close()
 
@@ -665,6 +666,17 @@ def knowledge_object_detail(
                     "captured_at": str(row["captured_at"]) if row["captured_at"] is not None else None,
                     "validity_status": str(row["validity_status"]),
                     "integrity_hash": str(row["integrity_hash"]) if row["integrity_hash"] is not None else None,
+                    "evidence_snapshot_path": (
+                        str(row["evidence_snapshot_path"]) if row["evidence_snapshot_path"] is not None else None
+                    ),
+                    "evidence_expiry_at": (
+                        str(row["evidence_expiry_at"]) if row["evidence_expiry_at"] is not None else None
+                    ),
+                    "evidence_last_validated_at": (
+                        str(row["evidence_last_validated_at"])
+                        if row["evidence_last_validated_at"] is not None
+                        else None
+                    ),
                 }
                 for row in connection.execute(
                     """
@@ -676,6 +688,20 @@ def knowledge_object_detail(
                     (current_revision["revision_id"],),
                 ).fetchall()
             ]
+        evidence_status = {
+            "total_citations": len(citations),
+            "snapshot_count": sum(1 for item in citations if item["evidence_snapshot_path"]),
+            "missing_snapshot_count": sum(1 for item in citations if not item["evidence_snapshot_path"]),
+            "stale_count": sum(1 for item in citations if item["validity_status"] in {"stale", "broken"}),
+            "revalidation_count": sum(
+                1 for item in citations if item["validity_status"] != "verified" or not item["evidence_last_validated_at"]
+            ),
+        }
+        evidence_status["summary"] = (
+            f"{evidence_status['snapshot_count']} snapshot(s), "
+            f"{evidence_status['stale_count']} stale or broken, "
+            f"{evidence_status['revalidation_count']} needing revalidation"
+        )
 
         related_services = [
             {
@@ -839,6 +865,7 @@ def knowledge_object_detail(
             ),
             "metadata": metadata,
             "citations": citations,
+            "evidence_status": evidence_status,
             "related_services": related_services,
             "outbound_relationships": outbound_relationships,
             "inbound_relationships": inbound_relationships,
@@ -1482,6 +1509,42 @@ def validation_run_history(
         connection.close()
 
 
+def _recent_events(
+    connection: sqlite3.Connection,
+    *,
+    entity_type: str,
+    entity_ids: list[str],
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    if not entity_ids:
+        return []
+    placeholders = ", ".join("?" for _ in entity_ids)
+    rows = connection.execute(
+        f"""
+        SELECT event_id, event_type, source, entity_type, entity_id, occurred_at, actor, payload_json
+        FROM events
+        WHERE entity_type = ?
+          AND entity_id IN ({placeholders})
+        ORDER BY occurred_at DESC, event_id DESC
+        LIMIT ?
+        """,
+        (entity_type, *entity_ids, limit),
+    ).fetchall()
+    return [
+        {
+            "event_id": str(row["event_id"]),
+            "event_type": str(row["event_type"]),
+            "source": str(row["source"]),
+            "entity_type": str(row["entity_type"]),
+            "entity_id": str(row["entity_id"]),
+            "occurred_at": str(row["occurred_at"]),
+            "actor": str(row["actor"]),
+            "payload": _json_dict(row["payload_json"]),
+        }
+        for row in rows
+    ]
+
+
 def impact_view_for_object(
     object_id: str,
     *,
@@ -1557,11 +1620,33 @@ def impact_view_for_object(
             ).fetchall()
         ]
 
-        impacted_lookup: dict[str, dict[str, Any]] = {}
-        for item in inbound_relationships:
-            impacted_lookup[item["object_id"]] = item
-        for item in citation_dependents:
-            impacted_lookup.setdefault(item["object_id"], item)
+        blast_radius = [
+            item
+            for item in calculate_blast_radius(
+                connection,
+                changed_entity_type="knowledge_object",
+                changed_entity_id=object_id,
+            )
+            if item["object_id"] != object_id
+        ]
+        recent_events = _recent_events(connection, entity_type="knowledge_object", entity_ids=[object_id])
+        current_impact = {
+            "what_changed": (
+                recent_events[0]["payload"].get("summary")
+                if recent_events
+                else "No direct change event recorded. Structural impact is inferred from current relationships and citations."
+            ),
+            "why_impacted": (
+                recent_events[0]["payload"].get("reason")
+                if recent_events
+                else "Objects that depend on or cite this object would require revalidation if it changes."
+            ),
+            "propagation_path": [f"object:{object_id}"],
+            "revalidate": [
+                "Review dependent runbooks, known errors, and service records for stale assumptions.",
+                "Revalidate any citations that point at this canonical path.",
+            ],
+        }
 
         return {
             "entity_type": "knowledge_object",
@@ -1571,10 +1656,12 @@ def impact_view_for_object(
                 "path": str(object_row["canonical_path"]),
                 "trust_state": str(object_row["trust_state"]),
             },
+            "current_impact": current_impact,
+            "recent_events": recent_events,
             "inbound_relationships": inbound_relationships,
             "citation_dependents": citation_dependents,
             "related_services": service_links,
-            "impacted_objects": sorted(impacted_lookup.values(), key=lambda item: item["title"]),
+            "impacted_objects": blast_radius,
         }
     finally:
         connection.close()
@@ -1585,12 +1672,40 @@ def impact_view_for_service(
     *,
     database_path: str | Path = DB_PATH,
 ) -> dict[str, Any]:
-    detail = service_detail(service_id_or_name, database_path=database_path)
-    return {
-        "entity_type": "service",
-        "entity": detail["service"],
-        "impacted_objects": detail["linked_objects"],
-    }
+    connection = require_runtime_connection(database_path)
+    try:
+        detail = service_detail(service_id_or_name, database_path=database_path)
+        entity_ids = [detail["service"]["service_id"], detail["service"]["service_name"]]
+        recent_events = _recent_events(connection, entity_type="service", entity_ids=entity_ids)
+        current_impact = {
+            "what_changed": (
+                recent_events[0]["payload"].get("summary")
+                if recent_events
+                else "No direct service change event recorded. Impact is inferred from linked knowledge and dependency relationships."
+            ),
+            "why_impacted": (
+                recent_events[0]["payload"].get("reason")
+                if recent_events
+                else "Knowledge linked to this service is in blast radius when the service changes."
+            ),
+            "propagation_path": [f"service:{detail['service']['service_name']}"],
+            "revalidate": [
+                "Review linked runbooks, known errors, and service records against the changed service state.",
+            ],
+        }
+        return {
+            "entity_type": "service",
+            "entity": detail["service"],
+            "current_impact": current_impact,
+            "recent_events": recent_events,
+            "impacted_objects": calculate_blast_radius(
+                connection,
+                changed_entity_type="service",
+                changed_entity_id=service_id_or_name,
+            ),
+        }
+    finally:
+        connection.close()
 
 
 def stale_projection(

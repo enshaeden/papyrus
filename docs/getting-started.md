@@ -19,15 +19,15 @@ Failure signals:
 
 ## 2. Choose Your Entry Point
 
-For browser-based work:
+For the default operator path:
 
 ```bash
-python3 scripts/serve_web.py
-python3 scripts/serve_api.py
+python3 scripts/run.py --operator
 ```
 
 - Web entrypoint: local web root route `/`
 - API entrypoint: local API health route `/health`
+- Runtime DB: `build/knowledge.db`
 
 For terminal-first work:
 
@@ -40,9 +40,16 @@ python3 scripts/operator_view.py object kb-troubleshooting-vpn-connectivity --db
 For a fast demo/runtime review path:
 
 ```bash
-python3 scripts/demo_runtime.py
-python3 scripts/serve_web.py --db build/demo-knowledge.db
-python3 scripts/serve_api.py --db build/demo-knowledge.db
+python3 scripts/run.py --demo
+python3 scripts/run_scenario.py service-degradation
+python3 scripts/operator_view.py queue --db build/demo-knowledge.db
+```
+
+For advanced surface-specific startup:
+
+```bash
+python3 scripts/serve_web.py --db build/knowledge.db --source-root .
+python3 scripts/serve_api.py --db build/knowledge.db --source-root .
 ```
 
 ## 3. Pick The Right Playbook
@@ -57,3 +64,4 @@ python3 scripts/serve_api.py --db build/demo-knowledge.db
 - Repository decisions live in `decisions/`.
 - Operator and reference docs live in `docs/`.
 - Derived output in `generated/`, `build/`, and `site/` is rebuildable and not authoritative.
+- Approved revisions write back deterministically to canonical Markdown through the governed application layer.

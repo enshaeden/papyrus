@@ -13,6 +13,7 @@ from papyrus.application.commands import (
     assign_reviewer_command,
     create_object_command,
     create_revision_command,
+    ingest_event_command,
     mark_object_suspect_due_to_change_command,
     record_validation_run_command,
     reject_revision_command,
@@ -36,7 +37,8 @@ from papyrus.application.queries import (
     trust_dashboard,
     validation_run_history,
 )
-from papyrus.infrastructure.paths import DB_PATH
+from papyrus.domain.actor import require_actor_id
+from papyrus.infrastructure.paths import DB_PATH, ROOT
 
 
 def _json_response(start_response, status: str, payload: object) -> list[bytes]:
@@ -78,7 +80,7 @@ def _actor_from_payload(request_payload: dict[str, object], *, require_explicit:
     actor = str(request_payload.get("actor") or "").strip()
     if require_explicit and not actor:
         raise ValueError("actor is required for governed API actions")
-    return actor or "papyrus-api"
+    return require_actor_id(actor) if require_explicit else actor
 
 
 def _object_result_payload(
@@ -106,8 +108,9 @@ def _object_result_payload(
     return payload
 
 
-def app(database_path: str | Path = DB_PATH) -> Callable:
+def app(database_path: str | Path = DB_PATH, source_root: str | Path = ROOT) -> Callable:
     resolved_database_path = Path(database_path)
+    resolved_source_root = Path(source_root).resolve()
 
     def application(environ, start_response):
         method = environ.get("REQUEST_METHOD", "GET")
@@ -198,10 +201,42 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
                     {"validation_runs": validation_run_history(database_path=resolved_database_path)},
                 )
 
+            if method == "POST" and path == "/events":
+                actor = _actor_from_payload(request_payload, require_explicit=True)
+                result = ingest_event_command(
+                    database_path=resolved_database_path,
+                    event_type=str(request_payload["event_type"]),
+                    source=str(request_payload.get("source") or "local"),
+                    entity_type=str(request_payload["entity_type"]),
+                    entity_id=str(request_payload["entity_id"]),
+                    payload=request_payload.get("payload") or {},
+                    actor=actor,
+                    occurred_at=request_payload.get("occurred_at"),
+                    event_id=str(request_payload["event_id"]) if request_payload.get("event_id") else None,
+                )
+                return _json_response(
+                    start_response,
+                    "201 Created",
+                    {
+                        "message": "Event ingested.",
+                        "actor": actor,
+                        "event_id": result.event_id,
+                        "event_type": result.event_type,
+                        "entity_type": result.entity_type,
+                        "entity_id": result.entity_id,
+                        "impacted_count": result.impacted_count,
+                        "links": {
+                            "queue": "/queue",
+                            "audit": "/manage/audit",
+                        },
+                    },
+                )
+
             if method == "POST" and path == "/objects":
-                actor = _actor_from_payload(request_payload, require_explicit=False)
+                actor = _actor_from_payload(request_payload, require_explicit=True)
                 created = create_object_command(
                     database_path=resolved_database_path,
+                    source_root=resolved_source_root,
                     actor=actor,
                     **{key: value for key, value in request_payload.items() if key != "actor"},
                 )
@@ -231,9 +266,10 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
                         revision_history(parts[1], database_path=resolved_database_path),
                     )
                 if method == "POST" and len(parts) == 3 and parts[2] == "revisions":
-                    actor = _actor_from_payload(request_payload, require_explicit=False)
+                    actor = _actor_from_payload(request_payload, require_explicit=True)
                     created = create_revision_command(
                         database_path=resolved_database_path,
+                        source_root=resolved_source_root,
                         object_id=parts[1],
                         normalized_payload=request_payload["normalized_payload"],
                         body_markdown=request_payload["body_markdown"],
@@ -256,6 +292,7 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
                     actor = _actor_from_payload(request_payload, require_explicit=True)
                     supersede_object_command(
                         database_path=resolved_database_path,
+                        source_root=resolved_source_root,
                         object_id=parts[1],
                         replacement_object_id=str(request_payload["replacement_object_id"]),
                         actor=actor,
@@ -332,6 +369,7 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
                 actor = _actor_from_payload(request_payload, require_explicit=True)
                 result = submit_for_review_command(
                     database_path=resolved_database_path,
+                    source_root=resolved_source_root,
                     object_id=str(request_payload["object_id"]),
                     revision_id=str(request_payload["revision_id"]),
                     actor=actor,
@@ -355,6 +393,7 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
                     due_at = dt.datetime.fromisoformat(due_at_raw)
                 assignment = assign_reviewer_command(
                     database_path=resolved_database_path,
+                    source_root=resolved_source_root,
                     object_id=str(request_payload["object_id"]),
                     revision_id=str(request_payload["revision_id"]),
                     reviewer=str(request_payload["reviewer"]),
@@ -384,6 +423,7 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
                 actor = _actor_from_payload(request_payload, require_explicit=True)
                 approved = approve_revision_command(
                     database_path=resolved_database_path,
+                    source_root=resolved_source_root,
                     object_id=str(request_payload["object_id"]),
                     revision_id=str(request_payload["revision_id"]),
                     reviewer=str(request_payload["reviewer"]),
@@ -406,6 +446,7 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
                 actor = _actor_from_payload(request_payload, require_explicit=True)
                 rejected = reject_revision_command(
                     database_path=resolved_database_path,
+                    source_root=resolved_source_root,
                     object_id=str(request_payload["object_id"]),
                     revision_id=str(request_payload["revision_id"]),
                     reviewer=str(request_payload["reviewer"]),
@@ -530,9 +571,10 @@ def main() -> int:
     parser.add_argument("--host", default="127.0.0.1", help="Bind host. Defaults to 127.0.0.1.")
     parser.add_argument("--port", type=int, default=8081, help="Bind port. Defaults to 8081.")
     parser.add_argument("--db", default=str(DB_PATH), help="Runtime SQLite database path.")
+    parser.add_argument("--source-root", default=str(ROOT), help="Canonical source root for governed writeback.")
     args = parser.parse_args()
 
-    with make_server(args.host, args.port, app(args.db)) as server:
+    with make_server(args.host, args.port, app(args.db, args.source_root)) as server:
         print(f"Papyrus JSON API listening on http://{args.host}:{args.port}")
         server.serve_forever()
     return 0

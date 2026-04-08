@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from typing import Any
+from http.cookies import SimpleCookie
 from urllib.parse import parse_qs
 
 
@@ -14,6 +15,7 @@ class Request:
     form: dict[str, list[str]]
     json_body: dict[str, Any] | None = None
     route_params: dict[str, str] = field(default_factory=dict)
+    cookies: dict[str, str] = field(default_factory=dict)
 
     def query_value(self, name: str, default: str = "") -> str:
         values = self.query.get(name)
@@ -35,6 +37,9 @@ class Request:
 
     def route_value(self, name: str, default: str = "") -> str:
         return self.route_params.get(name, default)
+
+    def cookie_value(self, name: str, default: str = "") -> str:
+        return self.cookies.get(name, default)
 
 
 @dataclass(frozen=True)
@@ -71,16 +76,21 @@ def request_from_environ(environ: dict[str, Any]) -> Request:
         else:
             form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
 
+    cookie = SimpleCookie()
+    cookie.load(environ.get("HTTP_COOKIE", ""))
+    cookies = {key: morsel.value for key, morsel in cookie.items()}
+
     return Request(
         method=method,
         path=path,
         query=query,
         form=form,
         json_body=json_body,
+        cookies=cookies,
     )
 
 
-def html_response(body: str, status: str = "200 OK") -> Response:
+def html_response(body: str, status: str = "200 OK", headers: list[tuple[str, str]] | None = None) -> Response:
     payload = body.encode("utf-8")
     return Response(
         status=status,
@@ -89,11 +99,12 @@ def html_response(body: str, status: str = "200 OK") -> Response:
             ("Content-Type", "text/html; charset=utf-8"),
             ("Content-Length", str(len(payload))),
             ("Cache-Control", "no-store"),
+            *(headers or []),
         ],
     )
 
 
-def json_response(payload: object, status: str = "200 OK") -> Response:
+def json_response(payload: object, status: str = "200 OK", headers: list[tuple[str, str]] | None = None) -> Response:
     body = json.dumps(payload, sort_keys=True, ensure_ascii=True).encode("utf-8")
     return Response(
         status=status,
@@ -102,15 +113,25 @@ def json_response(payload: object, status: str = "200 OK") -> Response:
             ("Content-Type", "application/json; charset=utf-8"),
             ("Content-Length", str(len(body))),
             ("Cache-Control", "no-store"),
+            *(headers or []),
         ],
     )
 
 
-def redirect_response(location: str, status: str = "303 See Other") -> Response:
+def redirect_response(
+    location: str,
+    status: str = "303 See Other",
+    headers: list[tuple[str, str]] | None = None,
+) -> Response:
     return Response(
         status=status,
         body=b"",
-        headers=[("Location", location), ("Content-Length", "0"), ("Cache-Control", "no-store")],
+        headers=[
+            ("Location", location),
+            ("Content-Length", "0"),
+            ("Cache-Control", "no-store"),
+            *(headers or []),
+        ],
     )
 
 

@@ -28,6 +28,12 @@ LEGACY_ARTICLE_TYPE_TO_OBJECT_TYPE = {
 }
 
 PLACEHOLDER_OWNER_VALUES = {"", "TBD", "service_owner"}
+TRUST_STATE_RANKS = {
+    TrustState.TRUSTED.value: 0,
+    TrustState.WEAK_EVIDENCE.value: 1,
+    TrustState.STALE.value: 2,
+    TrustState.SUSPECT.value: 3,
+}
 
 
 def searchable_statuses(policy: dict[str, Any]) -> list[str]:
@@ -205,3 +211,31 @@ def runtime_trust_state(
     }:
         return str(existing_trust_state)
     return TrustState.TRUSTED.value
+
+
+def worse_trust_state(current: str, proposed: str) -> str:
+    current_rank = TRUST_STATE_RANKS.get(str(current), 0)
+    proposed_rank = TRUST_STATE_RANKS.get(str(proposed), 0)
+    return proposed if proposed_rank >= current_rank else current
+
+
+def relationship_strength_for(relationship_type: str, target_entity_type: str) -> float:
+    if relationship_type == "superseded_by":
+        return 0.95
+    if target_entity_type == "service":
+        return 0.9
+    if relationship_type in {"related_runbook", "related_known_error"}:
+        return 0.8
+    if relationship_type == "related_object":
+        return 0.7
+    return 0.6
+
+
+def relationship_direction_for(relationship_type: str, target_entity_type: str) -> str:
+    if relationship_type == "superseded_by":
+        return "reverse"
+    if target_entity_type == "service":
+        return "reverse"
+    if relationship_type in {"related_object", "related_runbook", "related_known_error"}:
+        return "reverse"
+    return "bidirectional"

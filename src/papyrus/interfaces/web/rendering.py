@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+from papyrus.interfaces.web.route_utils import WEB_ACTOR_OPTIONS
 from papyrus.interfaces.web.view_helpers import escape, join_html, link
 
 
@@ -84,6 +85,10 @@ class PageRenderer:
             {
                 "quick_links_html": quick_links_html,
                 "search_value": escape(search_value),
+                "actor_options_html": "\n".join(
+                    f'<option value="{escape(actor.actor_id)}">{escape(actor.display_name)}</option>'
+                    for actor in WEB_ACTOR_OPTIONS
+                ),
             },
         )
         nav_links_html = join_html(

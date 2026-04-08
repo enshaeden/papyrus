@@ -6,14 +6,28 @@ from pathlib import Path
 from papyrus.application.commands import (
     assign_reviewer_command,
     approve_revision_command,
+    attach_evidence_snapshot_command,
     build_projection_command,
     create_object_command,
     create_revision_command,
+    ingest_event_command,
+    mark_evidence_stale_command,
     mark_object_suspect_due_to_change_command,
     record_validation_run_command,
+    request_evidence_revalidation_command,
     submit_for_review_command,
 )
-from papyrus.infrastructure.paths import DB_PATH
+from papyrus.application.queries import impact_view_for_service, knowledge_object_detail, manage_queue, trust_dashboard
+from papyrus.infrastructure.paths import DB_PATH, ROOT
+
+
+DEMO_SOURCE_ROOT = ROOT / "build" / "demo-source"
+OPERATOR_SCENARIOS = (
+    "service_degradation",
+    "stale_knowledge",
+    "conflicting_evidence",
+    "review_backlog",
+)
 
 
 def _citation(*, title: str, ref: str, note: str, validity_status: str) -> dict[str, str]:
@@ -187,9 +201,19 @@ def _service_record_payload(
     return payload
 
 
-def _approve_revision(database_path: Path, *, object_id: str, payload: dict[str, object], change_summary: str, actor: str, reviewer: str) -> str:
+def _approve_revision(
+    database_path: Path,
+    *,
+    object_id: str,
+    payload: dict[str, object],
+    change_summary: str,
+    actor: str,
+    reviewer: str,
+    source_root: Path = ROOT,
+) -> str:
     revision = create_revision_command(
         database_path=database_path,
+        source_root=source_root,
         object_id=object_id,
         normalized_payload=payload,
         body_markdown=f"## Demo Narrative\n\n{change_summary}",
@@ -197,9 +221,17 @@ def _approve_revision(database_path: Path, *, object_id: str, payload: dict[str,
         legacy_metadata=payload,
         change_summary=change_summary,
     )
-    submit_for_review_command(database_path=database_path, object_id=object_id, revision_id=revision.revision_id, actor=actor, notes=change_summary)
+    submit_for_review_command(
+        database_path=database_path,
+        source_root=source_root,
+        object_id=object_id,
+        revision_id=revision.revision_id,
+        actor=actor,
+        notes=change_summary,
+    )
     assign_reviewer_command(
         database_path=database_path,
+        source_root=source_root,
         object_id=object_id,
         revision_id=revision.revision_id,
         reviewer=reviewer,
@@ -208,6 +240,7 @@ def _approve_revision(database_path: Path, *, object_id: str, payload: dict[str,
     )
     approve_revision_command(
         database_path=database_path,
+        source_root=source_root,
         object_id=object_id,
         revision_id=revision.revision_id,
         reviewer=reviewer,
@@ -217,12 +250,51 @@ def _approve_revision(database_path: Path, *, object_id: str, payload: dict[str,
     return revision.revision_id
 
 
-def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, object]:
+def _citation_id_for_object(database_path: Path, object_id: str) -> str:
+    detail = knowledge_object_detail(object_id, database_path=database_path)
+    if not detail["citations"]:
+        raise ValueError(f"demo object has no current citations: {object_id}")
+    return str(detail["citations"][0]["citation_id"])
+
+
+def _queue_counts(database_path: Path) -> dict[str, int]:
+    queue = manage_queue(database_path=database_path)
+    return {
+        "review_required": len(queue["review_required"]),
+        "stale_items": len(queue["stale_items"]),
+        "weak_evidence_items": len(queue["weak_evidence_items"]),
+        "ownership_items": len(queue["ownership_items"]),
+    }
+
+
+def _scenario_summary(
+    *,
+    scenario: str,
+    database_path: Path,
+    source_root: Path,
+    extra: dict[str, object] | None = None,
+) -> dict[str, object]:
+    dashboard = trust_dashboard(database_path=database_path)
+    summary = {
+        "scenario": scenario,
+        "database_path": str(database_path),
+        "source_root": str(source_root),
+        "trust_counts": dashboard["trust_counts"],
+        "approval_counts": dashboard["approval_counts"],
+        "queue_counts": _queue_counts(database_path),
+    }
+    if extra:
+        summary.update(extra)
+    return summary
+
+
+def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: Path = DEMO_SOURCE_ROOT) -> dict[str, object]:
     result = build_projection_command(database_path=database_path)
     actor = "papyrus-demo"
 
     create_object_command(
         database_path=database_path,
+        source_root=source_root,
         object_id="kb-demo-remote-access-service-record",
         object_type="service_record",
         title="Remote Access Service Record",
@@ -234,6 +306,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
     )
     create_object_command(
         database_path=database_path,
+        source_root=source_root,
         object_id="kb-demo-vpn-recovery-runbook",
         object_type="runbook",
         title="Remote Access VPN Recovery",
@@ -245,6 +318,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
     )
     create_object_command(
         database_path=database_path,
+        source_root=source_root,
         object_id="kb-demo-identity-service-record",
         object_type="service_record",
         title="Identity Service Record",
@@ -256,6 +330,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
     )
     create_object_command(
         database_path=database_path,
+        source_root=source_root,
         object_id="kb-demo-identity-fallback-runbook",
         object_type="runbook",
         title="Identity Fallback Sign-In Runbook",
@@ -267,6 +342,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
     )
     create_object_command(
         database_path=database_path,
+        source_root=source_root,
         object_id="kb-demo-identity-token-known-error",
         object_type="known_error",
         title="Identity Token Refresh Failure",
@@ -278,6 +354,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
     )
     create_object_command(
         database_path=database_path,
+        source_root=source_root,
         object_id="kb-demo-password-reset-runbook",
         object_type="runbook",
         title="Password Reset Escalation Runbook",
@@ -289,6 +366,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
     )
     create_object_command(
         database_path=database_path,
+        source_root=source_root,
         object_id="kb-demo-evidence-gap-known-error",
         object_type="known_error",
         title="Legacy VPN Split-Tunnel Failure",
@@ -315,6 +393,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
         change_summary="Initial healthy remote-access service record.",
         actor=actor,
         reviewer="manager.remote-access",
+        source_root=source_root,
     )
     _approve_revision(
         database_path,
@@ -331,6 +410,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
         change_summary="Initial approved remote-access recovery runbook.",
         actor=actor,
         reviewer="manager.remote-access",
+        source_root=source_root,
     )
     _approve_revision(
         database_path,
@@ -348,6 +428,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
         change_summary="Initial identity service record.",
         actor=actor,
         reviewer="manager.identity",
+        source_root=source_root,
     )
     _approve_revision(
         database_path,
@@ -366,6 +447,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
         change_summary="Initial identity fallback runbook now intentionally stale.",
         actor=actor,
         reviewer="manager.identity",
+        source_root=source_root,
     )
     _approve_revision(
         database_path,
@@ -382,6 +464,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
         change_summary="Approved known error before dependency drift.",
         actor=actor,
         reviewer="manager.identity",
+        source_root=source_root,
     )
     mark_object_suspect_due_to_change_command(
         database_path=database_path,
@@ -406,10 +489,12 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
         change_summary="Known error preserved with weak evidence for demo.",
         actor=actor,
         reviewer="manager.remote-access",
+        source_root=source_root,
     )
 
     pending_revision = create_revision_command(
         database_path=database_path,
+        source_root=source_root,
         object_id="kb-demo-password-reset-runbook",
         normalized_payload=_runbook_payload(
             object_id="kb-demo-password-reset-runbook",
@@ -427,6 +512,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
     )
     submit_for_review_command(
         database_path=database_path,
+        source_root=source_root,
         object_id="kb-demo-password-reset-runbook",
         revision_id=pending_revision.revision_id,
         actor=actor,
@@ -434,6 +520,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
     )
     assign_reviewer_command(
         database_path=database_path,
+        source_root=source_root,
         object_id="kb-demo-password-reset-runbook",
         revision_id=pending_revision.revision_id,
         reviewer="manager.identity",
@@ -453,9 +540,42 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
         },
         actor=actor,
     )
+    attach_evidence_snapshot_command(
+        database_path=database_path,
+        citation_id=_citation_id_for_object(database_path, "kb-demo-remote-access-service-record"),
+        snapshot_source_path=source_root / "knowledge" / "demo" / "remote-access-service-record.md",
+        actor=actor,
+        expires_at="2026-07-01T00:00:00+00:00",
+        root_path=source_root,
+    )
+    stale_evidence = mark_evidence_stale_command(
+        database_path=database_path,
+        object_id="kb-demo-evidence-gap-known-error",
+        actor=actor,
+        reason="Imported note lacks a current evidence snapshot and needs revalidation.",
+    )
+    revalidation = request_evidence_revalidation_command(
+        database_path=database_path,
+        object_id="kb-demo-identity-fallback-runbook",
+        actor=actor,
+        notes="Quarterly review found stale identity fallback guidance.",
+    )
+    change_event = ingest_event_command(
+        database_path=database_path,
+        event_type="validation_failure",
+        source="local",
+        entity_type="knowledge_object",
+        entity_id="kb-demo-evidence-gap-known-error",
+        payload={
+            "summary": "Legacy VPN split-tunnel validation no longer matches the imported note.",
+            "object_ids": ["kb-demo-evidence-gap-known-error"],
+        },
+        actor=actor,
+    )
 
     return {
         "database_path": str(result.database_path),
+        "source_root": str(source_root),
         "document_count": result.document_count,
         "demo_objects": [
             "kb-demo-remote-access-service-record",
@@ -466,4 +586,137 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH) -> dict[str, obje
             "kb-demo-password-reset-runbook",
             "kb-demo-evidence-gap-known-error",
         ],
+        "demo_actions": {
+            "stale_citation_ids": stale_evidence.citation_ids,
+            "revalidation_object_id": revalidation.object_id,
+            "change_event_id": change_event.event_id,
+        },
     }
+
+
+def run_operator_scenario(
+    *,
+    scenario: str,
+    database_path: Path = DB_PATH,
+    source_root: Path = DEMO_SOURCE_ROOT,
+    actor: str = "papyrus-demo",
+) -> dict[str, object]:
+    normalized = scenario.strip().lower().replace("-", "_")
+    if normalized not in OPERATOR_SCENARIOS:
+        raise ValueError(f"unsupported scenario: {scenario}")
+
+    base_runtime = build_operator_demo_runtime(database_path=database_path, source_root=source_root)
+
+    if normalized == "service_degradation":
+        event = ingest_event_command(
+            database_path=database_path,
+            event_type="service_change",
+            source="local",
+            entity_type="service",
+            entity_id="Remote Access",
+            payload={"summary": "Remote Access failover behavior changed after a network maintenance window."},
+            actor=actor,
+        )
+        impact = impact_view_for_service("Remote Access", database_path=database_path)
+        return _scenario_summary(
+            scenario=normalized,
+            database_path=database_path,
+            source_root=source_root,
+            extra={
+                "demo_objects": base_runtime["demo_objects"],
+                "event_id": event.event_id,
+                "impacted_objects": impact["impacted_objects"],
+            },
+        )
+
+    if normalized == "stale_knowledge":
+        queue = manage_queue(database_path=database_path)
+        return _scenario_summary(
+            scenario=normalized,
+            database_path=database_path,
+            source_root=source_root,
+            extra={
+                "demo_objects": base_runtime["demo_objects"],
+                "stale_items": [
+                    {"object_id": item["object_id"], "title": item["title"], "trust_state": item["trust_state"]}
+                    for item in queue["stale_items"]
+                ],
+            },
+        )
+
+    if normalized == "conflicting_evidence":
+        event = ingest_event_command(
+            database_path=database_path,
+            event_type="evidence_conflict",
+            source="local",
+            entity_type="evidence",
+            entity_id="docs/reference/system-model.md",
+            payload={
+                "summary": "Conflicting operator notes were recorded against the remote-access service evidence.",
+                "trust_state": "weak_evidence",
+            },
+            actor=actor,
+        )
+        detail = knowledge_object_detail("kb-demo-remote-access-service-record", database_path=database_path)
+        return _scenario_summary(
+            scenario=normalized,
+            database_path=database_path,
+            source_root=source_root,
+            extra={
+                "demo_objects": base_runtime["demo_objects"],
+                "event_id": event.event_id,
+                "object_id": detail["object"]["object_id"],
+                "trust_state": detail["object"]["trust_state"],
+                "evidence_status": detail["evidence_status"],
+            },
+        )
+
+    detail = knowledge_object_detail("kb-demo-vpn-recovery-runbook", database_path=database_path)
+    payload = dict(detail["metadata"])
+    payload["updated"] = "2026-04-08"
+    payload["last_reviewed"] = "2026-04-08"
+    payload["change_log"] = [
+        *(payload.get("change_log") if isinstance(payload.get("change_log"), list) else []),
+        {"date": "2026-04-08", "summary": "Review backlog scenario follow-up.", "author": actor},
+    ]
+    revision = create_revision_command(
+        database_path=database_path,
+        source_root=source_root,
+        object_id="kb-demo-vpn-recovery-runbook",
+        normalized_payload=payload,
+        body_markdown="## Demo Narrative\n\nScenario backlog revision waiting for review.",
+        actor=actor,
+        legacy_metadata=detail["metadata"],
+        change_summary="Queue another recovery update for review.",
+    )
+    submit_for_review_command(
+        database_path=database_path,
+        source_root=source_root,
+        object_id="kb-demo-vpn-recovery-runbook",
+        revision_id=revision.revision_id,
+        actor=actor,
+        notes="Queue another review item to simulate backlog pressure.",
+    )
+    assign_reviewer_command(
+        database_path=database_path,
+        source_root=source_root,
+        object_id="kb-demo-vpn-recovery-runbook",
+        revision_id=revision.revision_id,
+        reviewer="manager.remote-access",
+        actor=actor,
+        notes="Backlog scenario assignment.",
+    )
+    queue = manage_queue(database_path=database_path)
+    return _scenario_summary(
+        scenario=normalized,
+        database_path=database_path,
+        source_root=source_root,
+        extra={
+            "demo_objects": base_runtime["demo_objects"],
+            "revision_id": revision.revision_id,
+            "review_required": [
+                {"object_id": item["object_id"], "revision_id": item["revision_id"], "title": item["title"]}
+                for item in queue["review_required"]
+            ],
+        },
+    )

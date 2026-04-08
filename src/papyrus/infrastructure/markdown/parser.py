@@ -209,6 +209,21 @@ def _normalize_citations(metadata: dict[str, object]) -> list[dict[str, object]]
                         str(item.get("validity_status")) if item.get("validity_status") is not None else None
                     ),
                     "integrity_hash": str(item.get("integrity_hash")).strip() if item.get("integrity_hash") else None,
+                    "evidence_snapshot_path": (
+                        str(item.get("evidence_snapshot_path")).strip()
+                        if item.get("evidence_snapshot_path")
+                        else None
+                    ),
+                    "evidence_expiry_at": (
+                        str(item.get("evidence_expiry_at")).strip()
+                        if item.get("evidence_expiry_at")
+                        else None
+                    ),
+                    "evidence_last_validated_at": (
+                        str(item.get("evidence_last_validated_at")).strip()
+                        if item.get("evidence_last_validated_at")
+                        else None
+                    ),
                 }
             )
         return citations
@@ -238,6 +253,9 @@ def _normalize_citations(metadata: dict[str, object]) -> list[dict[str, object]]
                 "captured_at": None,
                 "validity_status": "verified" if source_ref else "unverified",
                 "integrity_hash": None,
+                "evidence_snapshot_path": None,
+                "evidence_expiry_at": None,
+                "evidence_last_validated_at": None,
             }
         )
     return citations

@@ -10,11 +10,15 @@ from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_
 def present_object_impact(renderer: TemplateRenderer, *, impact: dict[str, Any]) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     entity = impact["entity"]
+    current_impact = impact["current_impact"]
     summary_html = components.section_card(
         title="Impact profile",
         eyebrow="Impact",
         body_html=(
-            f"<p><strong>{escape(entity['title'])}</strong> affects inbound relationships, citation dependents, and related services.</p>"
+            f"<p><strong>{escape(entity['title'])}</strong></p>"
+            f"<p><strong>What changed:</strong> {escape(current_impact['what_changed'])}</p>"
+            f"<p><strong>Why this is impacted:</strong> {escape(current_impact['why_impacted'])}</p>"
+            f"<p><strong>What to revalidate:</strong> {escape(' | '.join(current_impact['revalidate']))}</p>"
         ),
         footer_html=link("Back to object", f"/objects/{quoted_path(entity['object_id'])}", css_class="button button-secondary"),
     )
@@ -23,10 +27,28 @@ def present_object_impact(renderer: TemplateRenderer, *, impact: dict[str, Any])
             components.relationships_panel(
                 title="Impacted objects",
                 items=[
-                    f"{link(item['title'], f'/objects/{quoted_path(item['object_id'])}')}<span class=\"list-meta\">{escape(item['trust_state'])}</span>"
+                    (
+                        f"{link(item['title'], f'/objects/{quoted_path(item['object_id'])}')}"
+                        f"<span class=\"list-meta\">{escape(item['trust_state'])} · {escape(item['reason'])}</span>"
+                        f"<span class=\"list-meta\">changed: {escape(item['what_changed'])}</span>"
+                        f"<span class=\"list-meta\">path: {escape(' -> '.join(item['propagation_path']))}</span>"
+                        f"<span class=\"list-meta\">revalidate: {escape(' | '.join(item['revalidate']))}</span>"
+                    )
                     for item in impact["impacted_objects"]
                 ],
                 empty_label="No impacted objects were found.",
+            ),
+            components.relationships_panel(
+                title="Recent change events",
+                items=[
+                    (
+                        f"{escape(event['occurred_at'])}: {escape(event['event_type'])}"
+                        f"<span class=\"list-meta\">{escape(event['actor'])} · {escape(event['source'])}</span>"
+                        f"<span class=\"list-meta\">{escape(str(event['payload'].get('summary') or event['payload'].get('reason') or 'No event summary.'))}</span>"
+                    )
+                    for event in impact["recent_events"]
+                ],
+                empty_label="No direct change events recorded for this object.",
             ),
             components.relationships_panel(
                 title="Inbound relationships",
@@ -69,19 +91,47 @@ def present_object_impact(renderer: TemplateRenderer, *, impact: dict[str, Any])
 def present_service_impact(renderer: TemplateRenderer, *, impact: dict[str, Any]) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     entity = impact["entity"]
+    current_impact = impact["current_impact"]
     summary_html = components.section_card(
         title="Service impact profile",
         eyebrow="Impact",
-        body_html=f"<p><strong>{escape(entity['service_name'])}</strong> impacts linked knowledge objects.</p>",
+        body_html=(
+            f"<p><strong>{escape(entity['service_name'])}</strong></p>"
+            f"<p><strong>What changed:</strong> {escape(current_impact['what_changed'])}</p>"
+            f"<p><strong>Why this is impacted:</strong> {escape(current_impact['why_impacted'])}</p>"
+            f"<p><strong>What to revalidate:</strong> {escape(' | '.join(current_impact['revalidate']))}</p>"
+        ),
         footer_html=link("Back to service", f"/services/{quoted_path(entity['service_id'])}", css_class="button button-secondary"),
     )
-    impacts_html = components.relationships_panel(
-        title="Impacted objects",
-        items=[
-            f"{link(item['title'], f'/objects/{quoted_path(item['object_id'])}')}<span class=\"list-meta\">{escape(item['trust_state'])}</span>"
-            for item in impact["impacted_objects"]
-        ],
-        empty_label="No impacted objects were linked.",
+    impacts_html = join_html(
+        [
+            components.relationships_panel(
+                title="Impacted objects",
+                items=[
+                    (
+                        f"{link(item['title'], f'/objects/{quoted_path(item['object_id'])}')}"
+                        f"<span class=\"list-meta\">{escape(item['trust_state'])} · {escape(item['reason'])}</span>"
+                        f"<span class=\"list-meta\">changed: {escape(item['what_changed'])}</span>"
+                        f"<span class=\"list-meta\">path: {escape(' -> '.join(item['propagation_path']))}</span>"
+                        f"<span class=\"list-meta\">revalidate: {escape(' | '.join(item['revalidate']))}</span>"
+                    )
+                    for item in impact["impacted_objects"]
+                ],
+                empty_label="No impacted objects were linked.",
+            ),
+            components.relationships_panel(
+                title="Recent change events",
+                items=[
+                    (
+                        f"{escape(event['occurred_at'])}: {escape(event['event_type'])}"
+                        f"<span class=\"list-meta\">{escape(event['actor'])} · {escape(event['source'])}</span>"
+                        f"<span class=\"list-meta\">{escape(str(event['payload'].get('summary') or event['payload'].get('reason') or 'No event summary.'))}</span>"
+                    )
+                    for event in impact["recent_events"]
+                ],
+                empty_label="No direct change events recorded for this service.",
+            ),
+        ]
     )
     return {
         "page_template": "pages/impact_service.html",

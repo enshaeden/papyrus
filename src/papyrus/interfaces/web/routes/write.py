@@ -10,7 +10,7 @@ from papyrus.interfaces.web.forms.review_forms import validate_submit_form
 from papyrus.interfaces.web.http import Request, html_response, redirect_response
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
-from papyrus.interfaces.web.route_utils import flash_html_for_request
+from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
 from papyrus.interfaces.web.view_helpers import escape, link, quoted_path
 
 
@@ -282,7 +282,12 @@ def register(router, runtime) -> None:
             values = {key: request.form_value(key) for key in values}
             result = validate_object_form(values, taxonomies=runtime.taxonomies)
             if result.is_valid:
-                created = create_object_command(database_path=runtime.database_path, actor="papyrus-web", **result.cleaned_data)
+                created = create_object_command(
+                    database_path=runtime.database_path,
+                    source_root=runtime.source_root,
+                    actor=actor_for_request(request),
+                    **result.cleaned_data,
+                )
                 return redirect_response(
                     f"/write/objects/{quoted_path(created.object_id)}/revisions/new?notice={quote_plus('Object shell created')}"
                 )
@@ -311,15 +316,21 @@ def register(router, runtime) -> None:
         findings: list[str] | None = None
         if request.method == "POST":
             values.update({key: request.form_value(key) for key in values})
-            result = validate_revision_form(values=values, object_detail=detail, taxonomies=runtime.taxonomies)
+            result = validate_revision_form(
+                values=values,
+                object_detail=detail,
+                taxonomies=runtime.taxonomies,
+                actor=actor_for_request(request),
+            )
             findings = result.cleaned_data["validation_findings"]
             if result.is_valid:
                 revision = create_revision_command(
                     database_path=runtime.database_path,
+                    source_root=runtime.source_root,
                     object_id=object_id,
                     normalized_payload=result.cleaned_data["normalized_payload"],
                     body_markdown=result.cleaned_data["body_markdown"],
-                    actor="papyrus-web",
+                    actor=actor_for_request(request),
                     legacy_metadata=detail.get("metadata") or {},
                     change_summary=result.cleaned_data["change_summary"],
                 )
@@ -357,9 +368,10 @@ def register(router, runtime) -> None:
             if result.is_valid:
                 submit_for_review_command(
                     database_path=runtime.database_path,
+                    source_root=runtime.source_root,
                     object_id=object_id,
                     revision_id=revision_id,
-                    actor="papyrus-web",
+                    actor=actor_for_request(request),
                     notes=result.cleaned_data["notes"],
                 )
                 return redirect_response(

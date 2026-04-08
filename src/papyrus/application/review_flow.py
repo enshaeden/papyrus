@@ -8,13 +8,9 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from papyrus.domain.entities import (
-    AuditEvent,
-    KnowledgeDocument,
-    KnowledgeObject,
-    KnowledgeRevision,
-    ReviewAssignment,
-)
+from papyrus.application import writeback_flow
+from papyrus.domain.actor import require_actor_id
+from papyrus.domain.entities import AuditEvent, KnowledgeDocument, KnowledgeObject, KnowledgeRevision, ReviewAssignment
 from papyrus.domain.policies import runtime_trust_state
 from papyrus.domain.value_objects import (
     KnowledgeLifecycleStatus,
@@ -25,6 +21,7 @@ from papyrus.domain.value_objects import (
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.parser import normalize_object_metadata
 from papyrus.infrastructure.markdown.serializer import json_dump
+from papyrus.infrastructure.markdown.writer import MarkdownWriter
 from papyrus.infrastructure.migrations import apply_runtime_schema
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
@@ -124,8 +121,9 @@ def _audit_event(
 
 
 class GovernanceWorkflow:
-    def __init__(self, database_path: Path = DB_PATH):
+    def __init__(self, database_path: Path = DB_PATH, source_root: Path = ROOT):
         self.database_path = Path(database_path)
+        self.source_root = Path(source_root).resolve()
         self.taxonomies = None
 
     def _connection(self) -> sqlite3.Connection:
@@ -180,7 +178,7 @@ class GovernanceWorkflow:
     def _build_document(self, metadata: dict[str, Any], body_markdown: str) -> KnowledgeDocument:
         canonical_path = str(metadata.get("canonical_path") or "")
         return KnowledgeDocument(
-            source_path=ROOT / canonical_path if canonical_path else ROOT,
+            source_path=self.source_root / canonical_path if canonical_path else self.source_root,
             relative_path=canonical_path,
             metadata=dict(metadata),
             body=body_markdown,
@@ -235,6 +233,7 @@ class GovernanceWorkflow:
         tags: list[str] | None = None,
         systems: list[str] | None = None,
     ) -> KnowledgeObject:
+        actor = require_actor_id(actor)
         now = _now_utc()
         connection = self._connection()
         try:
@@ -298,6 +297,7 @@ class GovernanceWorkflow:
         legacy_metadata: dict[str, Any] | None = None,
         change_summary: str | None = None,
     ) -> KnowledgeRevision:
+        actor = require_actor_id(actor)
         connection = self._connection()
         now = _now_utc()
         try:
@@ -395,6 +395,7 @@ class GovernanceWorkflow:
         actor: str,
         notes: str | None = None,
     ) -> AuditEvent:
+        actor = require_actor_id(actor)
         connection = self._connection()
         now = _now_utc()
         try:
@@ -457,6 +458,7 @@ class GovernanceWorkflow:
         due_at: dt.datetime | None = None,
         notes: str | None = None,
     ) -> ReviewAssignment:
+        actor = require_actor_id(actor)
         connection = self._connection()
         now = _now_utc()
         try:
@@ -519,8 +521,10 @@ class GovernanceWorkflow:
         actor: str,
         notes: str | None = None,
     ) -> KnowledgeRevision:
+        actor = require_actor_id(actor)
         connection = self._connection()
         now = _now_utc()
+        writeback_result: writeback_flow.SourceWritebackResult | None = None
         try:
             object_row = self._require_object(connection, object_id)
             revision_row = self._require_revision(connection, object_id=object_id, revision_id=revision_id)
@@ -564,6 +568,13 @@ class GovernanceWorkflow:
                 current_revision_id=revision_id,
             )
             self._refresh_search_projection(connection, object_id)
+            writeback_result = writeback_flow.write_revision_to_source(
+                connection,
+                object_id=object_id,
+                revision_id=revision_id,
+                actor=actor,
+                root_path=self.source_root,
+            )
 
             event_id = _event_id("revision-approved")
             details = {
@@ -571,6 +582,7 @@ class GovernanceWorkflow:
                 "assignment_id": active_assignment["assignment_id"],
                 "notes": notes,
                 "previous_revision_id": object_row["current_revision_id"],
+                "source_writeback_path": writeback_result.file_path.relative_to(self.source_root).as_posix(),
             }
             insert_audit_event(
                 connection,
@@ -585,6 +597,11 @@ class GovernanceWorkflow:
             connection.commit()
             return _row_to_revision(self._require_revision(connection, object_id=object_id, revision_id=revision_id))
         except Exception:
+            if writeback_result is not None:
+                MarkdownWriter(self.source_root).restore(
+                    file_path=writeback_result.file_path,
+                    previous_text=writeback_result.previous_text,
+                )
             connection.rollback()
             raise
         finally:
@@ -599,6 +616,7 @@ class GovernanceWorkflow:
         actor: str,
         notes: str,
     ) -> KnowledgeRevision:
+        actor = require_actor_id(actor)
         connection = self._connection()
         now = _now_utc()
         try:
@@ -669,6 +687,7 @@ class GovernanceWorkflow:
         actor: str,
         notes: str | None = None,
     ) -> KnowledgeObject:
+        actor = require_actor_id(actor)
         connection = self._connection()
         now = _now_utc()
         try:
@@ -741,6 +760,7 @@ def mark_object_suspect_due_to_change(
     changed_entity_type: str,
     changed_entity_id: str | None = None,
 ) -> AuditEvent:
+    actor = require_actor_id(actor)
     workflow = GovernanceWorkflow(database_path)
     connection = workflow._connection()
     now = _now_utc()

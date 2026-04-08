@@ -205,6 +205,17 @@ def persist_revision_artifacts(
             captured_at=str(citation.get("captured_at")).strip() if citation.get("captured_at") else None,
             validity_status=str(citation.get("validity_status", "unverified")),
             integrity_hash=str(citation.get("integrity_hash")).strip() if citation.get("integrity_hash") else None,
+            evidence_snapshot_path=(
+                str(citation.get("evidence_snapshot_path")).strip()
+                if citation.get("evidence_snapshot_path")
+                else None
+            ),
+            evidence_expiry_at=str(citation.get("evidence_expiry_at")).strip() if citation.get("evidence_expiry_at") else None,
+            evidence_last_validated_at=(
+                str(citation.get("evidence_last_validated_at")).strip()
+                if citation.get("evidence_last_validated_at")
+                else None
+            ),
         )
 
     return object_services

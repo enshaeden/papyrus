@@ -20,7 +20,7 @@ Papyrus is a local-first governed operational knowledge control plane for IT sup
 
 ```bash
 ./scripts/bootstrap.sh
-python3 scripts/serve_web.py
+python3 scripts/run.py --operator
 ```
 
 For terminal-first operator checks:
@@ -34,9 +34,18 @@ python3 scripts/operator_view.py object kb-troubleshooting-vpn-connectivity --db
 For a review/demo runtime with realistic workflow tension:
 
 ```bash
-python3 scripts/demo_runtime.py
-python3 scripts/serve_web.py --db build/demo-knowledge.db
-python3 scripts/serve_api.py --db build/demo-knowledge.db
+python3 scripts/run.py --demo
+python3 scripts/run_scenario.py service-degradation
+```
+
+Advanced local commands remain available:
+
+```bash
+python3 scripts/source_sync.py writeback --object kb-troubleshooting-vpn-connectivity
+python3 scripts/source_sync.py writeback-all
+python3 scripts/ingest_event.py --type service_change --entity Remote\\ Access --payload payload.json
+python3 scripts/serve_web.py --db build/knowledge.db --source-root .
+python3 scripts/serve_api.py --db build/knowledge.db --source-root .
 ```
 
 ## Operator Docs

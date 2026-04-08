@@ -6,6 +6,7 @@ from typing import Any, Iterable
 
 from papyrus.application.export_flow import ExportRuntimeUnavailableError, filter_approved_export_documents
 from papyrus.application.impact_flow import find_possible_duplicate_documents
+from papyrus.domain.actor import require_actor_id
 from papyrus.domain.entities import KnowledgeDocument, ValidationIssue
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.parser import (
@@ -125,6 +126,24 @@ def validate_field(
                                 field_name,
                             )
                         )
+                    evidence_expiry_at = item.get("evidence_expiry_at")
+                    if evidence_expiry_at is not None and not ensure_iso_date_or_datetime(evidence_expiry_at):
+                        issues.append(
+                            ValidationIssue(
+                                path,
+                                f"entry {index} has a non-ISO evidence_expiry_at value",
+                                field_name,
+                            )
+                        )
+                    evidence_last_validated_at = item.get("evidence_last_validated_at")
+                    if evidence_last_validated_at is not None and not ensure_iso_date_or_datetime(evidence_last_validated_at):
+                        issues.append(
+                            ValidationIssue(
+                                path,
+                                f"entry {index} has a non-ISO evidence_last_validated_at value",
+                                field_name,
+                            )
+                        )
                     validity_status = item.get("validity_status")
                     if validity_status is not None and str(validity_status) not in {
                         "verified",
@@ -136,6 +155,17 @@ def validate_field(
                             ValidationIssue(
                                 path,
                                 f"entry {index} has an unsupported validity_status '{validity_status}'",
+                                field_name,
+                            )
+                        )
+                    evidence_snapshot_path = item.get("evidence_snapshot_path")
+                    if evidence_snapshot_path is not None and (
+                        not isinstance(evidence_snapshot_path, str) or not evidence_snapshot_path.strip()
+                    ):
+                        issues.append(
+                            ValidationIssue(
+                                path,
+                                f"entry {index} has an empty evidence_snapshot_path",
                                 field_name,
                             )
                         )
@@ -491,6 +521,26 @@ def validate_knowledge_documents(
                             "citations",
                         )
                     )
+            evidence_snapshot_path = citation.get("evidence_snapshot_path")
+            if evidence_snapshot_path:
+                snapshot_target = ROOT / str(evidence_snapshot_path)
+                if not snapshot_target.exists():
+                    issues.append(
+                        ValidationIssue(
+                            path,
+                            f"evidence snapshot path does not exist: {evidence_snapshot_path}",
+                            "citations",
+                        )
+                    )
+            evidence_expiry_at = citation.get("evidence_expiry_at")
+            if evidence_expiry_at and parse_iso_date_or_datetime(evidence_expiry_at) < dt.date.today():
+                issues.append(
+                    ValidationIssue(
+                        path,
+                        f"evidence snapshot expired at {evidence_expiry_at}",
+                        "citations",
+                    )
+                )
 
     duplicates = find_possible_duplicate_documents(
         documents,
@@ -570,6 +620,7 @@ def record_validation_run(
     started_at: dt.datetime | None = None,
     completed_at: dt.datetime | None = None,
 ) -> str:
+    actor = require_actor_id(actor)
     started = started_at or dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     completed = completed_at or started
     connection = open_runtime_database(database_path, minimum_schema_version=RUNTIME_SCHEMA_VERSION)

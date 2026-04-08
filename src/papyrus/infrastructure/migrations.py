@@ -60,7 +60,10 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             excerpt TEXT,
             captured_at TEXT,
             validity_status TEXT NOT NULL,
-            integrity_hash TEXT
+            integrity_hash TEXT,
+            evidence_snapshot_path TEXT,
+            evidence_expiry_at TEXT,
+            evidence_last_validated_at TEXT
         );
 
         CREATE TABLE IF NOT EXISTS services (
@@ -84,7 +87,9 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             target_entity_type TEXT NOT NULL,
             target_entity_id TEXT NOT NULL,
             relationship_type TEXT NOT NULL,
-            provenance TEXT NOT NULL
+            provenance TEXT NOT NULL,
+            relationship_strength REAL NOT NULL,
+            relationship_direction TEXT NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS review_assignments (
@@ -118,6 +123,17 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             details_json TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS events (
+            event_id TEXT PRIMARY KEY,
+            event_type TEXT NOT NULL,
+            source TEXT NOT NULL,
+            entity_type TEXT NOT NULL,
+            entity_id TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            occurred_at TEXT NOT NULL,
+            actor TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS search_documents (
             object_id TEXT PRIMARY KEY REFERENCES knowledge_objects(object_id),
             revision_id TEXT NOT NULL REFERENCES knowledge_revisions(revision_id),
@@ -144,6 +160,8 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
         CREATE INDEX IF NOT EXISTS idx_relationships_target ON relationships(target_entity_type, target_entity_id);
         CREATE INDEX IF NOT EXISTS idx_services_name ON services(service_name);
         CREATE INDEX IF NOT EXISTS idx_search_documents_status ON search_documents(status);
+        CREATE INDEX IF NOT EXISTS idx_events_entity ON events(entity_type, entity_id);
+        CREATE INDEX IF NOT EXISTS idx_events_occurred_at ON events(occurred_at);
         """
     )
 

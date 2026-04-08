@@ -8,6 +8,7 @@ from typing import Any
 import yaml
 
 from papyrus.domain.entities import KnowledgeDocument
+from papyrus.domain.policies import relationship_direction_for, relationship_strength_for
 from papyrus.infrastructure.markdown.parser import parse_knowledge_document
 from papyrus.infrastructure.paths import (
     ARTICLE_SCHEMA_PATH,
@@ -242,7 +243,19 @@ def upsert_relationship(
     target_entity_id: str,
     relationship_type: str,
     provenance: str,
+    relationship_strength: float | None = None,
+    relationship_direction: str | None = None,
 ) -> None:
+    resolved_strength = (
+        relationship_strength
+        if relationship_strength is not None
+        else relationship_strength_for(relationship_type, target_entity_type)
+    )
+    resolved_direction = (
+        relationship_direction
+        if relationship_direction is not None
+        else relationship_direction_for(relationship_type, target_entity_type)
+    )
     connection.execute(
         """
         INSERT INTO relationships (
@@ -252,15 +265,19 @@ def upsert_relationship(
             target_entity_type,
             target_entity_id,
             relationship_type,
-            provenance
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            provenance,
+            relationship_strength,
+            relationship_direction
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(relationship_id) DO UPDATE SET
             source_entity_type = excluded.source_entity_type,
             source_entity_id = excluded.source_entity_id,
             target_entity_type = excluded.target_entity_type,
             target_entity_id = excluded.target_entity_id,
             relationship_type = excluded.relationship_type,
-            provenance = excluded.provenance
+            provenance = excluded.provenance,
+            relationship_strength = excluded.relationship_strength,
+            relationship_direction = excluded.relationship_direction
         """,
         (
             relationship_id,
@@ -270,6 +287,8 @@ def upsert_relationship(
             target_entity_id,
             relationship_type,
             provenance,
+            resolved_strength,
+            resolved_direction,
         ),
     )
 

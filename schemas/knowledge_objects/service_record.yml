@@ -109,6 +109,9 @@ fields:
       - captured_at
       - validity_status
       - integrity_hash
+      - evidence_snapshot_path
+      - evidence_expiry_at
+      - evidence_last_validated_at
   related_object_ids:
     kind: list[string]
     required: true

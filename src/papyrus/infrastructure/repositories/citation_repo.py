@@ -17,6 +17,9 @@ def insert_citation(
     captured_at: str | None,
     validity_status: str,
     integrity_hash: str | None,
+    evidence_snapshot_path: str | None,
+    evidence_expiry_at: str | None,
+    evidence_last_validated_at: str | None,
 ) -> None:
     connection.execute(
         """
@@ -31,8 +34,11 @@ def insert_citation(
             excerpt,
             captured_at,
             validity_status,
-            integrity_hash
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            integrity_hash,
+            evidence_snapshot_path,
+            evidence_expiry_at,
+            evidence_last_validated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(citation_id) DO UPDATE SET
             revision_id = excluded.revision_id,
             claim_anchor = excluded.claim_anchor,
@@ -43,7 +49,10 @@ def insert_citation(
             excerpt = excluded.excerpt,
             captured_at = excluded.captured_at,
             validity_status = excluded.validity_status,
-            integrity_hash = excluded.integrity_hash
+            integrity_hash = excluded.integrity_hash,
+            evidence_snapshot_path = excluded.evidence_snapshot_path,
+            evidence_expiry_at = excluded.evidence_expiry_at,
+            evidence_last_validated_at = excluded.evidence_last_validated_at
         """,
         (
             citation_id,
@@ -57,6 +66,9 @@ def insert_citation(
             captured_at,
             validity_status,
             integrity_hash,
+            evidence_snapshot_path,
+            evidence_expiry_at,
+            evidence_last_validated_at,
         ),
     )
 
@@ -73,6 +85,42 @@ def update_citation_validity_status(
     connection.execute(
         "UPDATE citations SET validity_status = ? WHERE citation_id = ?",
         (validity_status, citation_id),
+    )
+
+
+def update_citation_evidence_fields(
+    connection: sqlite3.Connection,
+    *,
+    citation_id: str,
+    validity_status: str | None = None,
+    integrity_hash: str | None = None,
+    evidence_snapshot_path: str | None = None,
+    evidence_expiry_at: str | None = None,
+    evidence_last_validated_at: str | None = None,
+) -> None:
+    assignments: list[str] = []
+    values: list[str | None] = []
+    if validity_status is not None:
+        assignments.append("validity_status = ?")
+        values.append(validity_status)
+    if integrity_hash is not None:
+        assignments.append("integrity_hash = ?")
+        values.append(integrity_hash)
+    if evidence_snapshot_path is not None:
+        assignments.append("evidence_snapshot_path = ?")
+        values.append(evidence_snapshot_path)
+    if evidence_expiry_at is not None:
+        assignments.append("evidence_expiry_at = ?")
+        values.append(evidence_expiry_at)
+    if evidence_last_validated_at is not None:
+        assignments.append("evidence_last_validated_at = ?")
+        values.append(evidence_last_validated_at)
+    if not assignments:
+        return
+    values.append(citation_id)
+    connection.execute(
+        f"UPDATE citations SET {', '.join(assignments)} WHERE citation_id = ?",
+        tuple(values),
     )
 
 

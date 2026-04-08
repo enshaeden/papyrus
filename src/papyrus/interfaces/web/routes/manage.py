@@ -7,6 +7,7 @@ from papyrus.application.commands import (
     approve_revision_command,
     assign_reviewer_command,
     mark_object_suspect_due_to_change_command,
+    request_evidence_revalidation_command,
     record_validation_run_command,
     reject_revision_command,
     supersede_object_command,
@@ -22,7 +23,7 @@ from papyrus.interfaces.web.forms.review_forms import (
 from papyrus.interfaces.web.http import Request, html_response, redirect_response
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
-from papyrus.interfaces.web.route_utils import flash_html_for_request
+from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
 from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, tone_for_approval, tone_for_trust
 
 
@@ -124,9 +125,10 @@ def register(router, runtime) -> None:
             if result.is_valid:
                 supersede_object_command(
                     database_path=runtime.database_path,
+                    source_root=runtime.source_root,
                     object_id=object_id,
                     replacement_object_id=str(result.cleaned_data["replacement_object_id"]),
-                    actor="papyrus-web",
+                    actor=actor_for_request(request),
                     notes=str(result.cleaned_data["notes"]),
                 )
                 return redirect_response(
@@ -196,7 +198,7 @@ def register(router, runtime) -> None:
                 mark_object_suspect_due_to_change_command(
                     database_path=runtime.database_path,
                     object_id=object_id,
-                    actor="papyrus-web",
+                    actor=actor_for_request(request),
                     reason=str(result.cleaned_data["reason"]),
                     changed_entity_type=str(result.cleaned_data["changed_entity_type"]),
                     changed_entity_id=result.cleaned_data["changed_entity_id"],
@@ -257,6 +259,59 @@ def register(router, runtime) -> None:
             )
         )
 
+    def evidence_revalidation_page(request: Request):
+        object_id = request.route_value("object_id")
+        detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        forms = FormPresenter(runtime.template_renderer)
+        components = ComponentPresenter(runtime.template_renderer)
+        values = {"notes": request.form_value("notes")}
+        if request.method == "POST":
+            request_evidence_revalidation_command(
+                database_path=runtime.database_path,
+                object_id=object_id,
+                actor=actor_for_request(request),
+                notes=values["notes"] or None,
+            )
+            return redirect_response(
+                f"/objects/{quoted_path(object_id)}?notice={quote_plus('Evidence revalidation requested')}"
+            )
+        summary_html = components.section_card(
+            title="Evidence status context",
+            eyebrow="Evidence",
+            body_html=(
+                f"<p><strong>{escape(detail['object']['title'])}</strong></p>"
+                f"<p>{escape(detail['evidence_status']['summary'])}</p>"
+            ),
+        )
+        form_html = components.section_card(
+            title="Revalidate evidence",
+            eyebrow="Evidence",
+            body_html=(
+                '<form class="governed-form" method="post">'
+                + forms.field(
+                    field_id="notes",
+                    label="Revalidation notes",
+                    control_html=forms.textarea(field_id="notes", name="notes", value=values["notes"], rows=4),
+                    hint="Optional notes for the next reviewer or operator.",
+                )
+                + forms.button(label="Request evidence revalidation")
+                + "</form>"
+            ),
+        )
+        return html_response(
+            runtime.page_renderer.render_page(
+                page_template="pages/manage_object_form.html",
+                page_title="Revalidate evidence",
+                headline="Revalidate Evidence",
+                kicker="Evidence",
+                intro="Request explicit evidence follow-up when snapshots, expiry windows, or supporting proofs need confirmation.",
+                active_nav="manage",
+                flash_html=flash_html_for_request(runtime, request),
+                aside_html="",
+                page_context={"summary_html": summary_html, "form_html": form_html},
+            )
+        )
+
     def review_assignment_page(request: Request):
         object_id = request.route_value("object_id")
         revision_id = request.route_value("revision_id")
@@ -274,10 +329,11 @@ def register(router, runtime) -> None:
             if result.is_valid:
                 assign_reviewer_command(
                     database_path=runtime.database_path,
+                    source_root=runtime.source_root,
                     object_id=object_id,
                     revision_id=revision_id,
                     reviewer=str(result.cleaned_data["reviewer"]),
-                    actor="papyrus-web",
+                    actor=actor_for_request(request),
                     due_at=result.cleaned_data["due_at"],
                     notes=result.cleaned_data["notes"],
                 )
@@ -345,10 +401,11 @@ def register(router, runtime) -> None:
                 if action == "approve":
                     approve_revision_command(
                         database_path=runtime.database_path,
+                        source_root=runtime.source_root,
                         object_id=object_id,
                         revision_id=revision_id,
                         reviewer=str(result.cleaned_data["reviewer"]),
-                        actor="papyrus-web",
+                        actor=actor_for_request(request),
                         notes=result.cleaned_data["notes"],
                     )
                     return redirect_response(
@@ -356,10 +413,11 @@ def register(router, runtime) -> None:
                     )
                 reject_revision_command(
                     database_path=runtime.database_path,
+                    source_root=runtime.source_root,
                     object_id=object_id,
                     revision_id=revision_id,
                     reviewer=str(result.cleaned_data["reviewer"]),
-                    actor="papyrus-web",
+                    actor=actor_for_request(request),
                     notes=str(result.cleaned_data["notes"]),
                 )
                 return redirect_response(
@@ -531,7 +589,7 @@ def register(router, runtime) -> None:
                     status=str(result.cleaned_data["status"]),
                     finding_count=int(result.cleaned_data["finding_count"]),
                     details={"summary": details_text} if details_text else {},
-                    actor="papyrus-web",
+                    actor=actor_for_request(request),
                 )
                 return redirect_response(
                     "/manage/validation-runs?notice="
@@ -569,6 +627,7 @@ def register(router, runtime) -> None:
     router.add(["GET"], "/manage/queue", manage_queue_page)
     router.add(["GET", "POST"], "/manage/objects/{object_id}/supersede", object_supersede_page)
     router.add(["GET", "POST"], "/manage/objects/{object_id}/suspect", object_suspect_page)
+    router.add(["GET", "POST"], "/manage/objects/{object_id}/evidence/revalidate", evidence_revalidation_page)
     router.add(["GET", "POST"], "/manage/reviews/{object_id}/{revision_id}/assign", review_assignment_page)
     router.add(["GET", "POST"], "/manage/reviews/{object_id}/{revision_id}", review_decision_page)
     router.add(["GET"], "/manage/audit", audit_page)

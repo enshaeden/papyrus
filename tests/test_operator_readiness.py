@@ -85,7 +85,8 @@ class OperatorReadinessTests(unittest.TestCase):
     def test_demo_runtime_builds_meaningful_operational_tension(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "demo.db"
-            result = build_operator_demo_runtime(database_path=database_path)
+            source_root = Path(temp_dir) / "repo"
+            result = build_operator_demo_runtime(database_path=database_path, source_root=source_root)
             self.assertEqual(len(result["demo_objects"]), 7)
             connection = sqlite3.connect(database_path)
             connection.row_factory = sqlite3.Row
@@ -132,7 +133,8 @@ class OperatorReadinessTests(unittest.TestCase):
     def test_search_prefers_strongest_identity_answer_first(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "demo.db"
-            build_operator_demo_runtime(database_path=database_path)
+            source_root = Path(temp_dir) / "repo"
+            build_operator_demo_runtime(database_path=database_path, source_root=source_root)
 
             results = search_knowledge_objects("identity", limit=200, database_path=database_path)
             demo_identity_results = [item for item in results if item["object_id"].startswith("kb-demo-identity")]
@@ -160,6 +162,23 @@ class OperatorReadinessTests(unittest.TestCase):
                 actor="tests",
             )
             application = api_app(database_path)
+
+            status, _, body = call_wsgi(
+                application,
+                "/objects",
+                method="POST",
+                json_payload={
+                    "object_id": "kb-api-missing-actor",
+                    "object_type": "runbook",
+                    "title": "API Missing Actor",
+                    "summary": "Should fail without an actor.",
+                    "owner": "api_owner",
+                    "team": "IT Operations",
+                    "canonical_path": "knowledge/demo/api-missing-actor.md",
+                },
+            )
+            self.assertEqual(status, "400 Bad Request")
+            self.assertIn("actor is required", body)
 
             status, _, body = call_wsgi(
                 application,

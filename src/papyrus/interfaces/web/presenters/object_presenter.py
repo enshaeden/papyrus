@@ -22,6 +22,11 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
             "action": "Inspect the object detail query payload for approval guidance.",
         },
     }
+    evidence_status = detail.get("evidence_status") or {
+        "summary": "No evidence summary available.",
+        "missing_snapshot_count": 0,
+        "stale_count": 0,
+    }
     header_html = components.object_header(
         object_type=item["object_type"],
         object_id=item["object_id"],
@@ -77,7 +82,12 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
             components.citations_panel(
                 title="Supporting citations",
                 items=[
-                    f"<strong>{escape(citation['source_title'])}</strong><span class=\"list-meta\">{escape(citation['source_ref'])} · {escape(citation['validity_status'])}</span>"
+                    (
+                        f"<strong>{escape(citation['source_title'])}</strong>"
+                        f"<span class=\"list-meta\">{escape(citation['source_ref'])} · {escape(citation['validity_status'])}</span>"
+                        f"<span class=\"list-meta\">snapshot: {escape(citation.get('evidence_snapshot_path') or 'missing')}</span>"
+                        f"<span class=\"list-meta\">expires: {escape(citation.get('evidence_expiry_at') or 'not set')}</span>"
+                    )
                     for citation in detail["citations"]
                 ],
                 empty_label="No citations attached to the current revision.",
@@ -136,6 +146,20 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                     *[reason["summary"] + ": " + reason["detail"] for reason in posture["informational_warnings"]],
                 ],
                 empty_label="No active trust warnings.",
+            ),
+            components.section_card(
+                title="Evidence status",
+                eyebrow="Evidence",
+                body_html=(
+                    f"<p>{escape(evidence_status['summary'])}</p>"
+                    f"<p><strong>Missing snapshots:</strong> {escape(evidence_status['missing_snapshot_count'])}</p>"
+                    f"<p><strong>Stale or broken evidence:</strong> {escape(evidence_status['stale_count'])}</p>"
+                ),
+                footer_html=link(
+                    "Revalidate Evidence",
+                    f"/manage/objects/{quoted_path(item['object_id'])}/evidence/revalidate",
+                    css_class="button button-secondary",
+                ),
             ),
             components.section_card(
                 title="Approval posture",

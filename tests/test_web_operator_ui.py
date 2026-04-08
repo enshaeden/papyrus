@@ -16,7 +16,14 @@ from papyrus.application.sync_flow import build_search_projection
 from papyrus.interfaces.web import app as web_app
 
 
-def call_wsgi(application, path: str, *, method: str = "GET", form: dict[str, object] | None = None) -> tuple[str, dict[str, str], str]:
+def call_wsgi(
+    application,
+    path: str,
+    *,
+    method: str = "GET",
+    form: dict[str, object] | None = None,
+    cookies: dict[str, str] | None = None,
+) -> tuple[str, dict[str, str], str]:
     status_holder: dict[str, object] = {}
 
     def start_response(status: str, headers: list[tuple[str, str]]) -> None:
@@ -43,7 +50,10 @@ def call_wsgi(application, path: str, *, method: str = "GET", form: dict[str, ob
         "wsgi.multithread": False,
         "wsgi.multiprocess": False,
         "wsgi.run_once": False,
+        "codex.status_holder": status_holder,
     }
+    if cookies:
+        environ["HTTP_COOKIE"] = "; ".join(f"{name}={value}" for name, value in cookies.items())
     response_body = b"".join(application(environ, start_response)).decode("utf-8")
     return str(status_holder["status"]), dict(status_holder["headers"]), response_body
 
@@ -62,7 +72,8 @@ class WebOperatorUiTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
-            application = web_app(database_path)
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(database_path, source_root=source_root)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -189,7 +200,8 @@ class WebOperatorUiTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
-            application = web_app(database_path)
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(database_path, source_root=source_root)
 
             status, _, body = call_wsgi(
                 application,
@@ -340,7 +352,8 @@ class WebOperatorUiTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
-            application = web_app(database_path)
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(database_path, source_root=source_root)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -454,6 +467,116 @@ class WebOperatorUiTests(unittest.TestCase):
             )
             self.assertEqual(status, "303 See Other")
             self.assertIn("/manage/validation-runs", headers["Location"])
+
+    def test_actor_selection_and_evidence_revalidation_actions_use_selected_actor(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            build_search_projection(database_path)
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(database_path, source_root=source_root)
+            actor_cookie = {"papyrus_actor": "local.manager"}
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/actor/select",
+                method="POST",
+                form={"actor": "local.manager", "next_path": "/queue"},
+            )
+            self.assertEqual(status, "303 See Other")
+            self.assertIn("papyrus_actor=local.manager", headers["Set-Cookie"])
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/write/objects/new",
+                method="POST",
+                form={
+                    "object_id": "kb-operator-ui-evidence",
+                    "object_type": "runbook",
+                    "title": "Operator UI Evidence Flow",
+                    "summary": "Evidence revalidation coverage.",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "canonical_path": "knowledge/runbooks/operator-ui-evidence-flow.md",
+                    "review_cadence": "quarterly",
+                    "status": "draft",
+                    "systems": "<VPN_SERVICE>",
+                    "tags": "vpn",
+                },
+                cookies=actor_cookie,
+            )
+            revision_form_path = headers["Location"]
+            status, headers, _ = call_wsgi(
+                application,
+                revision_form_path,
+                method="POST",
+                form={
+                    "title": "Operator UI Evidence Flow",
+                    "summary": "Evidence revalidation coverage.",
+                    "status": "draft",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "review_cadence": "quarterly",
+                    "audience": "service_desk",
+                    "systems": "<VPN_SERVICE>",
+                    "tags": "vpn",
+                    "related_services": "Remote Access",
+                    "related_object_ids": "kb-troubleshooting-vpn-connectivity",
+                    "change_summary": "Seed evidence flow through web UI.",
+                    "prerequisites": "Open the ticket.",
+                    "steps": "Run the first step.",
+                    "verification": "Confirm the operator outcome.",
+                    "rollback": "Undo the step.",
+                    "use_when": "Use this when the governed workflow needs validation.",
+                    "boundaries_and_escalation": "Escalate when the workflow fails twice.",
+                    "related_knowledge_notes": "Pair with the VPN troubleshooting article.",
+                    "citation_1_source_title": "Seed import manifest",
+                    "citation_1_source_type": "document",
+                    "citation_1_source_ref": "migration/import-manifest.yml",
+                    "citation_1_note": "Internal provenance placeholder.",
+                    "citation_2_source_type": "document",
+                    "citation_3_source_type": "document",
+                },
+                cookies=actor_cookie,
+            )
+            self.assertEqual(status, "303 See Other")
+
+            status, _, body = call_wsgi(
+                application,
+                "/manage/objects/kb-operator-ui-evidence/evidence/revalidate",
+                cookies=actor_cookie,
+            )
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Revalidate Evidence", body)
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/manage/objects/kb-operator-ui-evidence/evidence/revalidate",
+                method="POST",
+                form={"notes": "Operator requested a refreshed evidence snapshot."},
+                cookies=actor_cookie,
+            )
+            self.assertEqual(status, "303 See Other")
+            self.assertIn("/objects/kb-operator-ui-evidence", headers["Location"])
+
+            connection = sqlite3.connect(database_path)
+            connection.row_factory = sqlite3.Row
+            try:
+                audit_rows = connection.execute(
+                    """
+                    SELECT event_type, actor
+                    FROM audit_events
+                    WHERE object_id = ?
+                      AND event_type IN ('object_created', 'evidence_revalidation_requested')
+                    ORDER BY event_type
+                    """,
+                    ("kb-operator-ui-evidence",),
+                ).fetchall()
+            finally:
+                connection.close()
+
+            actors = {str(row["event_type"]): str(row["actor"]) for row in audit_rows}
+            self.assertEqual(actors["object_created"], "local.manager")
+            self.assertEqual(actors["evidence_revalidation_requested"], "local.manager")
 
 
 if __name__ == "__main__":

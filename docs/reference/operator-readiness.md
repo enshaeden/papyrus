@@ -1,6 +1,6 @@
 # Operator Readiness
 
-This document records the operator-readiness hardening pass that moved Papyrus from a well-structured prototype to an operator-facing local-first system with explicit workflow outcomes, calibrated trust signals, parity checks, and a realistic demo/runtime path.
+This document records the operator-readiness hardening pass that moved Papyrus from a well-structured prototype to an operator-facing local-first system with explicit workflow outcomes, calibrated trust signals, parity checks, closed-loop source writeback, structured change ingestion, and a realistic demo/runtime path.
 
 ## Purpose And Scope
 
@@ -8,6 +8,7 @@ This document records the operator-readiness hardening pass that moved Papyrus f
 - Keep all read, write, and manage behavior anchored in the shared application layer.
 - Provide one clear local happy path and one clear demo/review path.
 - Make trust degradation explicit, inspectable, and useful in real operator hands.
+- Keep governed source, runtime governance, and consequence propagation in one accountable loop.
 
 ## Technical Approach
 
@@ -17,13 +18,16 @@ This document records the operator-readiness hardening pass that moved Papyrus f
   - marking an object suspect with explicit rationale
   - recording a validation run
 - Added a thin parity CLI in `scripts/operator_view.py` for queue, dashboard, object detail, review detail, manage queue, and validation-run inspection.
-- Added `scripts/demo_runtime.py` plus `src/papyrus/application/demo_flow.py` to build a realistic local demo/runtime with:
+- Added governed source writeback, event ingestion, evidence lifecycle handling, and actor enforcement through the shared application layer.
+- Added `scripts/run.py` for one-command operator and demo startup.
+- Added `scripts/demo_runtime.py`, `scripts/run_scenario.py`, and `src/papyrus/application/demo_flow.py` to build a realistic local demo/runtime with:
   - a healthy service and trusted runbook
   - a degraded service
   - a stale runbook
   - a weak-evidence known error
   - an in-review revision
   - a change-triggered suspect object
+  - evidence snapshot, evidence-stale, and revalidation activity
 - Kept static export secondary and untouched as the approved-content surface.
 
 ## Boundary Reference
@@ -57,9 +61,8 @@ The normative operator-ready v1 boundary now lives in [Operator Governance And D
 Build and review it with:
 
 ```bash
-python3 scripts/demo_runtime.py
-python3 scripts/serve_web.py --db build/demo-knowledge.db
-python3 scripts/serve_api.py --db build/demo-knowledge.db
+python3 scripts/run.py --demo
+python3 scripts/run_scenario.py service-degradation
 python3 scripts/operator_view.py queue --db build/demo-knowledge.db
 ```
 
@@ -76,7 +79,7 @@ python3 scripts/operator_view.py queue --db build/demo-knowledge.db
 
 ## Known Limitations And Tradeoffs
 
-- The write/manage UI still governs runtime state rather than writing canonical Markdown source directly.
+- Papyrus now writes approved revisions back to canonical Markdown, but authoring still begins in structured runtime forms rather than raw Markdown edits.
 - The CLI is an inspection/parity surface, not a full authoring surface.
 - Authentication, RBAC, notifications, realtime updates, and collaborative multi-user editing remain deferred.
 - Static export remains approval-gated and secondary; it is intentionally not a live governance surface.

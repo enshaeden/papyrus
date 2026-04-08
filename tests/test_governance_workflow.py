@@ -85,7 +85,8 @@ class GovernanceWorkflowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"
             build_search_projection(database_path)
-            workflow = GovernanceWorkflow(database_path)
+            source_root = Path(temp_dir) / "repo"
+            workflow = GovernanceWorkflow(database_path, source_root=source_root)
 
             document = parse_knowledge_document(ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md")
             payload = copy.deepcopy(document.metadata)
@@ -161,7 +162,8 @@ class GovernanceWorkflowTests(unittest.TestCase):
     def test_runtime_created_objects_support_reject_supersede_suspect_and_validation_run(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"
-            workflow = GovernanceWorkflow(database_path)
+            source_root = Path(temp_dir) / "repo"
+            workflow = GovernanceWorkflow(database_path, source_root=source_root)
 
             object_a = workflow.create_object(
                 object_id="kb-runbook-phase5-a",

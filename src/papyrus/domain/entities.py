@@ -59,6 +59,9 @@ class Citation:
     captured_at: dt.datetime | None = None
     validity_status: str = "unverified"
     integrity_hash: str | None = None
+    evidence_snapshot_path: str | None = None
+    evidence_expiry_at: dt.datetime | None = None
+    evidence_last_validated_at: dt.datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -75,6 +78,8 @@ class Relationship:
     source_object_id: str
     target_object_id: str
     relationship_type: str
+    relationship_strength: float = 1.0
+    relationship_direction: str = "reverse"
 
 
 @dataclass(frozen=True)
@@ -107,6 +112,10 @@ class AuditEvent:
     object_id: str | None = None
     revision_id: str | None = None
     details: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not str(self.actor).strip():
+            raise ValueError("audit actor must be present")
 
 
 @dataclass(frozen=True)

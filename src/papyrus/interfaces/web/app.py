@@ -8,7 +8,7 @@ from urllib.parse import unquote
 from wsgiref.simple_server import make_server
 
 from papyrus.application.queries import KnowledgeObjectNotFoundError, RuntimeUnavailableError, ServiceNotFoundError
-from papyrus.infrastructure.paths import DB_PATH
+from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.infrastructure.repositories.knowledge_repo import load_taxonomies
 from papyrus.interfaces.web.http import Request, html_response, redirect_response, request_from_environ, static_response
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
@@ -88,10 +88,12 @@ def _error_page(
     )
 
 
-def app(database_path: str | Path = DB_PATH) -> Callable:
+def app(database_path: str | Path = DB_PATH, source_root: str | Path = ROOT) -> Callable:
     resolved_database_path = Path(database_path)
+    resolved_source_root = Path(source_root).resolve()
     runtime = WebRuntime(
         database_path=resolved_database_path,
+        source_root=resolved_source_root,
         page_renderer=PageRenderer(Path(__file__).resolve().parent),
         taxonomies=load_taxonomies(),
     )
@@ -107,6 +109,14 @@ def app(database_path: str | Path = DB_PATH) -> Callable:
     def application(environ, start_response):
         request = request_from_environ(environ)
         try:
+            if request.method == "POST" and request.path == "/actor/select":
+                actor = request.form_value("actor").strip() or "local.operator"
+                next_path = request.form_value("next_path", "/queue") or "/queue"
+                response = redirect_response(
+                    next_path,
+                    headers=[("Set-Cookie", f"papyrus_actor={actor}; Path=/; SameSite=Lax")],
+                )
+                return response.as_wsgi(start_response)
             if request.path == "/":
                 return redirect_response("/queue").as_wsgi(start_response)
             if request.path.startswith("/static/"):
@@ -161,9 +171,10 @@ def main() -> int:
     parser.add_argument("--host", default="127.0.0.1", help="Bind host. Defaults to 127.0.0.1.")
     parser.add_argument("--port", type=int, default=8080, help="Bind port. Defaults to 8080.")
     parser.add_argument("--db", default=str(DB_PATH), help="Runtime SQLite database path.")
+    parser.add_argument("--source-root", default=str(ROOT), help="Canonical source root for governed writeback.")
     args = parser.parse_args()
 
-    with make_server(args.host, args.port, app(args.db)) as server:
+    with make_server(args.host, args.port, app(args.db, args.source_root)) as server:
         print(f"Papyrus web interface listening on http://{args.host}:{args.port}")
         server.serve_forever()
     return 0

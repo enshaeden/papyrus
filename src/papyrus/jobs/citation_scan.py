@@ -11,6 +11,7 @@ from papyrus.infrastructure.markdown.serializer import parse_iso_date, parse_iso
 from papyrus.infrastructure.paths import ROOT
 from papyrus.infrastructure.repositories.citation_repo import list_current_citations, update_citation_validity_status
 from papyrus.infrastructure.repositories.knowledge_repo import get_knowledge_object_by_canonical_path
+from papyrus.infrastructure.storage.evidence_store import EvidenceStore
 from papyrus.jobs.stale_scan import cadence_to_days
 
 
@@ -51,15 +52,35 @@ def classify_citation(
     *,
     taxonomies: dict[str, dict[str, object]],
     as_of: dt.date,
+    root_path: Path = ROOT,
 ) -> tuple[str, list[str]]:
     status = normalize_citation_validity_status(str(row["validity_status"]))
     reasons: list[str] = []
     source_ref = str(row["source_ref"] or "").strip()
     captured_at = row["captured_at"]
     integrity_hash = str(row["integrity_hash"]).strip() if row["integrity_hash"] else None
+    evidence_snapshot_path = str(row["evidence_snapshot_path"]).strip() if row["evidence_snapshot_path"] else None
+    evidence_expiry_at = row["evidence_expiry_at"]
+    evidence_last_validated_at = row["evidence_last_validated_at"]
     object_last_reviewed = parse_iso_date(row["object_last_reviewed"])
     cadence_days = cadence_to_days(str(row["object_review_cadence"]), taxonomies)
     local_path = resolve_local_evidence_path(source_ref)
+    evidence_store = EvidenceStore(root_path=root_path)
+
+    if evidence_snapshot_path:
+        snapshot_path = evidence_store.resolve_snapshot_path(evidence_snapshot_path)
+        if not snapshot_path.exists():
+            status = worse_citation_validity(status, "broken")
+            reasons.append("evidence snapshot path does not exist")
+        elif integrity_hash is not None and current_integrity_hash(snapshot_path) != integrity_hash:
+            status = worse_citation_validity(status, "stale")
+            reasons.append("evidence snapshot changed since the stored integrity hash")
+    if evidence_expiry_at is not None and parse_iso_date_or_datetime(evidence_expiry_at) < as_of:
+        status = worse_citation_validity(status, "stale")
+        reasons.append("evidence snapshot expired")
+    if evidence_snapshot_path and evidence_last_validated_at is None:
+        status = worse_citation_validity(status, "unverified")
+        reasons.append("evidence snapshot lacks last_validated timestamp")
 
     if local_path is not None:
         if not local_path.exists():
@@ -117,6 +138,7 @@ def scan_citations(
     as_of: dt.date | None = None,
     object_ids: list[str] | None = None,
     persist: bool = True,
+    root_path: Path = ROOT,
 ) -> CitationScanResult:
     rows = list_current_citations(connection, tuple(object_ids) if object_ids else None)
     findings: list[CitationFinding] = []
@@ -129,6 +151,7 @@ def scan_citations(
             row,
             taxonomies=taxonomies,
             as_of=scan_date,
+            root_path=root_path,
         )
         if persist and status != row["validity_status"]:
             update_citation_validity_status(connection, str(row["citation_id"]), status)
@@ -162,5 +185,11 @@ def source_ref_for_row(row: sqlite3.Row) -> str:
     return str(row["source_ref"] or "")
 
 
-def run(connection: sqlite3.Connection, *, taxonomies: dict[str, dict[str, object]], as_of: dt.date | None = None) -> CitationScanResult:
-    return scan_citations(connection, taxonomies=taxonomies, as_of=as_of, persist=True)
+def run(
+    connection: sqlite3.Connection,
+    *,
+    taxonomies: dict[str, dict[str, object]],
+    as_of: dt.date | None = None,
+    root_path: Path = ROOT,
+) -> CitationScanResult:
+    return scan_citations(connection, taxonomies=taxonomies, as_of=as_of, persist=True, root_path=root_path)

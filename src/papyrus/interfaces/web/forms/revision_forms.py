@@ -168,6 +168,7 @@ def validate_revision_form(
     values: dict[str, str],
     object_detail: dict[str, Any],
     taxonomies: dict[str, dict[str, Any]],
+    actor: str,
 ) -> RevisionFormResult:
     errors: dict[str, list[str]] = {}
 
@@ -251,7 +252,7 @@ def validate_revision_form(
         ],
         "change_log": [
             *(metadata.get("change_log") if isinstance(metadata.get("change_log"), list) else []),
-            {"date": today, "summary": values["change_summary"].strip() or "Structured revision update.", "author": "papyrus-web"},
+            {"date": today, "summary": values["change_summary"].strip() or "Structured revision update.", "author": actor.strip()},
         ],
     }
 

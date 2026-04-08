@@ -8,7 +8,34 @@
     <input id="global-search" name="query" type="search" placeholder="Search operational knowledge" value="{{ search_value }}" />
     <button type="submit">Search</button>
   </form>
+  <form class="search-form" action="/actor/select" method="post">
+    <label class="sr-only" for="actor-select">Current actor</label>
+    <input type="hidden" name="next_path" value="/queue" data-current-path />
+    <select id="actor-select" name="actor" data-actor-select>
+      {{ actor_options_html }}
+    </select>
+    <button type="submit">Set Actor</button>
+  </form>
   <nav class="quick-links">
     {{ quick_links_html }}
   </nav>
 </header>
+<script>
+  (function () {
+    const nextPath = document.querySelector("[data-current-path]");
+    if (nextPath) {
+      nextPath.value = window.location.pathname + window.location.search;
+    }
+    const select = document.querySelector("[data-actor-select]");
+    if (!select) {
+      return;
+    }
+    const cookie = document.cookie
+      .split("; ")
+      .find((item) => item.startsWith("papyrus_actor="));
+    const value = cookie ? decodeURIComponent(cookie.split("=")[1]) : "local.operator";
+    if ([...select.options].some((option) => option.value === value)) {
+      select.value = value;
+    }
+  })();
+</script>

@@ -25,6 +25,7 @@ Papyrus is a local-first operational knowledge control plane for IT support and 
 - Structural governance decisions stay in `decisions/`.
 - Runtime state, indexes, reports, and static exports are rebuildable and non-authoritative.
 - Operators should use the runtime, API, web UI, CLI, and approved static export according to role, but treat canonical source as the final authority when layers disagree.
+- Approved runtime revisions must write back deterministically to canonical Markdown through the governed application layer.
 
 ## Repository Boundaries
 
@@ -71,17 +72,23 @@ Papyrus is intentionally knowledge-object-centric rather than article-centric.
 - knowledge objects
 - knowledge revisions
 - citations
+- events
 - services
 - relationships
 - review assignments
 - validation runs
 - audit events
+- actors
 
 ### Architectural Direction
 
 - Shared runtime logic belongs in `src/papyrus/` with explicit domain, application, infrastructure, interface, and job layers.
 - CLI, API, and web surfaces must share the same application services instead of duplicating workflow logic.
 - Canonical authored source remains local-first Markdown.
+- Approved revisions must write back to canonical Markdown through the application layer instead of manual source sync.
+- Change, validation, and evidence events must be ingested explicitly and stored locally before impact propagation occurs.
+- Trust degradation must remain explicit, causal, and auditable. Hidden downgrade paths are not acceptable.
+- Governance actions must always carry an accountable actor.
 - Runtime state, reports, search projections, and exports remain rebuildable and non-authoritative.
 - MkDocs and other static export outputs are secondary publication surfaces, not the control plane.
 
@@ -98,6 +105,11 @@ The control-plane refactor proceeds in phases:
 7. Rebuild search and reporting over runtime governance signals.
 8. Expose thin operator web and API surfaces over the shared application layer.
 9. Keep static export explicit, optional, and approval-gated.
+10. Close the loop from governed runtime revision back to canonical Markdown source.
+11. Ingest structured local change events and propagate visible consequence.
+12. Mature evidence handling from presence checks into lifecycle state.
+13. Require accountable actors across all governed actions.
+14. Preserve a trivial local startup path for operator and demo modes.
 
 ### Rejected Alternatives
 
@@ -124,6 +136,14 @@ Papyrus v1 is defined as an operator-ready, local-first, governance-aware system
 - shared operational truth across CLI, web, and API surfaces
 - a simple local startup path and a deterministic demo/review path
 
+### Closed-Loop Control Plane Extension
+
+- Approved revisions now write back deterministically to canonical Markdown source.
+- Papyrus can ingest structured local events and propagate causal impact.
+- Evidence lifecycle now includes snapshots, expiry, stale state, and revalidation requests.
+- Web, API, CLI, demo, and scenario flows all require or supply an accountable actor.
+- Demo and operator startup are available as one-command local entrypoints through `scripts/run.py`.
+
 ### Explicitly Deferred
 
 - enterprise authentication and RBAC
@@ -138,11 +158,12 @@ Papyrus v1 is defined as an operator-ready, local-first, governance-aware system
 - No new third-party dependencies are required by this consolidated governance model.
 - Papyrus continues to rely on local Markdown source, SQLite-backed runtime projections, existing schemas and taxonomies, and the current static export toolchain.
 - Repository shape assumptions now include `migration/`, `reports/`, and `src/papyrus/` as intentional parts of the governed system boundary.
+- The controlled-source schemas now carry evidence lifecycle fields, and the runtime schema now includes events plus weighted relationship metadata. This change is intentional so impact and writeback behavior stay local, causal, and reproducible.
 
 ## Known Limitations And Tradeoffs
 
 - Papyrus is intentionally strict about source-of-truth boundaries, which increases validation pressure but materially reduces drift.
-- Runtime governance and review state remain rebuildable and inspectable, but canonical source editing still happens in Markdown rather than in-place through the runtime.
+- Runtime governance and review state remain rebuildable and inspectable, but Papyrus still uses local operator-selected actors rather than enterprise identity.
 - Static export remains secondary and approval-gated, which keeps publication safer but means it is not the live governance surface.
 - Operator-ready v1 is intentionally narrower than enterprise collaboration software, so auth, notifications, real-time updates, and heavier integrations remain future work.
 
@@ -150,8 +171,12 @@ Papyrus v1 is defined as an operator-ready, local-first, governance-aware system
 
 - Source and derived state disagree:
   Treat canonical source as authoritative, rebuild the runtime or export, and re-run validation.
+- Governed writeback fails:
+  Treat the approval as incomplete, inspect the source root and audit event trail, correct the schema or path issue, and rerun the approval or explicit source sync.
 - Runtime projections or search surfaces become stale:
   Rebuild with `python3 scripts/build_index.py` and re-check operator views.
+- Change or evidence event causes unexpected trust degradation:
+  Inspect the stored event payload, propagation path, and audit history before overriding trust posture.
 - Static export becomes inconsistent with approval state:
   Rebuild approved output and do not patch generated files manually.
 - Migration or review artifacts drift toward canonical behavior:
