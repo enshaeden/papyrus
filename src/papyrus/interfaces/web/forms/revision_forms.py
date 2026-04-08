@@ -22,6 +22,13 @@ COMMON_FIELDS = (
     "change_summary",
 )
 
+LOCAL_GOVERNED_CITATION_PREFIXES = (
+    "knowledge/",
+    "archive/knowledge/",
+    "docs/",
+    "decisions/",
+)
+
 
 @dataclass(frozen=True)
 class RevisionFormResult:
@@ -41,6 +48,22 @@ def _metadata_value(metadata: dict[str, Any], key: str, fallback: str = "") -> s
     if value is None:
         return fallback
     return str(value)
+
+
+def _citation_is_local_governed_reference(source_ref: str) -> bool:
+    normalized = source_ref.strip()
+    return normalized.startswith(LOCAL_GOVERNED_CITATION_PREFIXES)
+
+
+def _citation_requires_capture_metadata(source_ref: str) -> bool:
+    normalized = source_ref.strip()
+    if normalized.startswith("migration/"):
+        return True
+    return not _citation_is_local_governed_reference(normalized)
+
+
+def _default_citation_validity_status(source_ref: str) -> str:
+    return "verified" if _citation_is_local_governed_reference(source_ref) else "unverified"
 
 
 def build_revision_defaults(detail: dict[str, Any]) -> dict[str, str]:
@@ -89,14 +112,17 @@ def build_revision_defaults(detail: dict[str, Any]) -> dict[str, str]:
         "citation_1_source_type": "document",
         "citation_1_source_ref": "",
         "citation_1_note": "",
+        "citation_1_lookup": "",
         "citation_2_source_title": "",
         "citation_2_source_type": "document",
         "citation_2_source_ref": "",
         "citation_2_note": "",
+        "citation_2_lookup": "",
         "citation_3_source_title": "",
         "citation_3_source_type": "document",
         "citation_3_source_ref": "",
         "citation_3_note": "",
+        "citation_3_lookup": "",
     }
     citations = detail.get("citations", [])
     for index, citation in enumerate(citations[:3], start=1):
@@ -104,6 +130,7 @@ def build_revision_defaults(detail: dict[str, Any]) -> dict[str, str]:
         values[f"citation_{index}_source_type"] = str(citation["source_type"])
         values[f"citation_{index}_source_ref"] = str(citation["source_ref"])
         values[f"citation_{index}_note"] = str(citation["note"] or "")
+        values[f"citation_{index}_lookup"] = str(citation["source_title"])
     if revision and revision["body_markdown"]:
         values["use_when"] = revision["body_markdown"]
     return values
@@ -127,7 +154,7 @@ def _citation_entries(values: dict[str, str]) -> list[dict[str, Any]]:
                 "claim_anchor": None,
                 "excerpt": None,
                 "captured_at": None,
-                "validity_status": None,
+                "validity_status": _default_citation_validity_status(source_ref),
                 "integrity_hash": None,
             }
         )
@@ -308,10 +335,13 @@ def build_submission_findings(*, object_type: str, payload: dict[str, Any]) -> l
         weak_count = sum(
             1
             for citation in payload["citations"]
-            if not citation.get("captured_at") or not citation.get("integrity_hash")
+            if _citation_requires_capture_metadata(str(citation.get("source_ref") or ""))
+            and (not citation.get("captured_at") or not citation.get("integrity_hash"))
         )
         if weak_count:
-            findings.append(f"{weak_count} citation(s) are still in weak-evidence posture.")
+            findings.append(
+                f"{weak_count} citation(s) are still in weak-evidence posture because they do not yet record when the evidence was captured or a source integrity hash."
+            )
     if object_type in {"runbook", "known_error"} and not payload.get("related_services"):
         findings.append("Related service links are missing.")
     if object_type == "service_record" and not payload.get("dependencies"):

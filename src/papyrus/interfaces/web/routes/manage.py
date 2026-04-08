@@ -27,35 +27,55 @@ from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for
 from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, tone_for_approval, tone_for_trust
 
 
+def _manage_item_detail_href(item: dict[str, object]) -> str:
+    current_revision_id = str(item.get("current_revision_id") or "").strip()
+    revision_state = str(item.get("revision_state") or "")
+    if not current_revision_id or revision_state in {"draft", "rejected"}:
+        return f"/write/objects/{quoted_path(str(item['object_id']))}/revisions/new#revision-form"
+    if revision_state == "in_review" and item.get("revision_id"):
+        return f"/manage/reviews/{quoted_path(str(item['object_id']))}/{quoted_path(str(item['revision_id']))}"
+    return f"/objects/{quoted_path(str(item['object_id']))}"
+
+
+def _manage_item_actions(item: dict[str, object]) -> str:
+    object_id = quoted_path(str(item["object_id"]))
+    revision_id = str(item.get("revision_id") or "").strip()
+    current_revision_id = str(item.get("current_revision_id") or "").strip()
+    revision_state = str(item.get("revision_state") or "")
+    actions: list[str] = []
+
+    if not current_revision_id:
+        actions.append(link("Draft first revision", f"/write/objects/{object_id}/revisions/new#revision-form", css_class="button button-primary"))
+    elif revision_state in {"draft", "rejected"}:
+        actions.append(link("Continue draft", f"/write/objects/{object_id}/revisions/new#revision-form", css_class="button button-primary"))
+        if revision_id:
+            actions.append(link("Submit for review", f"/write/objects/{object_id}/submit?revision_id={quoted_path(revision_id)}", css_class="button button-secondary"))
+    elif revision_state == "in_review" and revision_id:
+        actions.append(link("Assign reviewer", f"/manage/reviews/{object_id}/{quoted_path(revision_id)}/assign", css_class="button button-secondary"))
+        actions.append(link("Review decision", f"/manage/reviews/{object_id}/{quoted_path(revision_id)}", css_class="button button-primary"))
+
+    actions.extend(
+        [
+            link("Mark suspect", f"/manage/objects/{object_id}/suspect", css_class="button button-secondary"),
+            link("Supersede", f"/manage/objects/{object_id}/supersede", css_class="button button-secondary"),
+        ]
+    )
+    return join_html(actions, " ")
+
+
 def _manage_table(components, title: str, items: list[dict[str, object]], *, show_actions: bool = False) -> str:
+    del show_actions
     rows = []
     for item in items:
-        actions = ""
-        if show_actions and item.get("revision_id"):
-            actions = join_html(
-                [
-                    link("Assign", f"/manage/reviews/{quoted_path(str(item['object_id']))}/{quoted_path(str(item['revision_id']))}/assign", css_class="button button-secondary"),
-                    link("Decide", f"/manage/reviews/{quoted_path(str(item['object_id']))}/{quoted_path(str(item['revision_id']))}", css_class="button button-secondary"),
-                ],
-                " ",
-            )
-        actions = join_html(
-            [
-                actions,
-                link("Mark suspect", f"/manage/objects/{quoted_path(str(item['object_id']))}/suspect", css_class="button button-secondary"),
-                link("Supersede", f"/manage/objects/{quoted_path(str(item['object_id']))}/supersede", css_class="button button-secondary"),
-            ],
-            " ",
-        )
         rows.append(
             [
-                link(str(item["title"]), f"/objects/{quoted_path(str(item['object_id']))}"),
+                link(str(item["title"]), _manage_item_detail_href(item)),
                 escape(item["revision_state"]),
                 f'{escape(item["trust_state"])}<p class="cell-meta">{escape(item["posture"]["trust_summary"])}</p>',
                 f'{escape(item["approval_state"])}<p class="cell-meta">{escape(item["posture"]["approval"]["summary"])}</p>',
                 escape(", ".join(item["reasons"])),
                 escape(item["owner"]),
-                actions,
+                _manage_item_actions(item),
             ]
         )
     return components.section_card(

@@ -1,20 +1,21 @@
 from __future__ import annotations
 
+import json
 from urllib.parse import quote_plus
 
 from papyrus.application.commands import create_object_command, create_revision_command, submit_for_review_command
-from papyrus.application.queries import knowledge_object_detail, review_detail
+from papyrus.application.queries import knowledge_object_detail, review_detail, search_knowledge_objects
 from papyrus.interfaces.web.forms.object_forms import default_object_values, validate_object_form
 from papyrus.interfaces.web.forms.revision_forms import build_revision_defaults, build_submission_findings, validate_revision_form
 from papyrus.interfaces.web.forms.review_forms import validate_submit_form
-from papyrus.interfaces.web.http import Request, html_response, redirect_response
+from papyrus.interfaces.web.http import Request, html_response, json_response, redirect_response
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
-from papyrus.interfaces.web.view_helpers import escape, link, quoted_path
+from papyrus.interfaces.web.view_helpers import escape, link, parse_multiline, quoted_path
 
 
-def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[str]]) -> dict[str, str]:
+def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[str]], *, form_action: str) -> dict[str, str]:
     forms = FormPresenter(runtime.template_renderer)
     components = ComponentPresenter(runtime.template_renderer)
     controls = [
@@ -96,8 +97,9 @@ def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[
             errors=errors.get("tags"),
         ),
     ]
+    validation_html = _revision_error_summary_html(components, errors) if errors else ""
     body_html = (
-        '<form class="governed-form" method="post">'
+        f'<form class="governed-form" method="post" action="{escape(form_action)}">'
         + "".join(controls)
         + forms.button(label="Create object shell")
         + "</form>"
@@ -110,6 +112,7 @@ def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[
         ),
     )
     return {
+        "validation_html": validation_html,
         "form_html": components.section_card(title="Create knowledge object", eyebrow="Write", body_html=body_html),
         "guidance_html": guidance_html,
     }
@@ -131,10 +134,173 @@ def _common_revision_aside(runtime, detail) -> str:
     )
 
 
-def _render_revision_form(runtime, detail, values: dict[str, str], errors: dict[str, list[str]], findings: list[str] | None = None) -> dict[str, str]:
+def _write_timeline_html(*, stage: str, is_first_revision: bool = False) -> str:
+    step_two_label = "Draft first revision" if is_first_revision else "Draft revision"
+    steps = [
+        {
+            "index": "1",
+            "title": "Create object shell",
+            "detail": "Define the governed object ID, owner, and source path.",
+            "state": "current" if stage == "object" else "complete",
+        },
+        {
+            "index": "2",
+            "title": step_two_label,
+            "detail": "Capture the structured fields, narrative sections, and citations.",
+            "state": "current" if stage == "revision" else "complete" if stage == "submit" else "upcoming",
+        },
+        {
+            "index": "3",
+            "title": "Submit for review",
+            "detail": "Hand the draft into governance review and assignment.",
+            "state": "current" if stage == "submit" else "upcoming",
+        },
+    ]
+
+    parts: list[str] = ['<div class="workflow-top" aria-label="Write workflow">']
+    for position, step in enumerate(steps):
+        parts.append(
+            f'<section class="workflow-top-step is-{escape(step["state"])}">'
+            f'<span class="workflow-top-index">{escape(step["index"])}</span>'
+            '<div class="workflow-top-copy">'
+            f'<p class="workflow-top-label">{escape(step["title"])}</p>'
+            f'<p class="workflow-top-detail">{escape(step["detail"])}</p>'
+            f'<p class="workflow-top-state">{escape("Current step" if step["state"] == "current" else "Complete" if step["state"] == "complete" else "Next")}</p>'
+            "</div>"
+            "</section>"
+        )
+        if position < len(steps) - 1:
+            parts.append('<span class="workflow-top-arrow" aria-hidden="true">→</span>')
+    parts.append("</div>")
+    return "".join(parts)
+
+
+def _citation_search_status(title: str, reference: str) -> str:
+    if title and reference:
+        return f"Selected source: {title} -> {reference}"
+    return "Search existing knowledge objects by title, tag, or object ID. Selecting a result fills the fields below."
+
+
+def _evidence_guidance_section(
+    components,
+    *,
+    title: str,
+    include_action: bool = False,
+    object_id: str | None = None,
+) -> str:
+    action_html = ""
+    if include_action and object_id:
+        action_html = (
+            '<p><strong>Next step:</strong> use the manage-side evidence flow to request follow-up on these citations.</p>'
+            + f'<p>{link("Request evidence revalidation", f"/manage/objects/{quoted_path(object_id)}/evidence/revalidate", css_class="button button-secondary")}</p>'
+        )
+    return components.section_card(
+        title=title,
+        eyebrow="Evidence",
+        body_html=(
+            "<p>Citations to governed local Papyrus content are treated as internal references. External, migration, or other manual evidence remains weak until follow-up records when the evidence was captured and stores an integrity-backed snapshot.</p>"
+            "<p>Current web boundary: the write form does not attach evidence snapshots directly.</p>"
+            + action_html
+        ),
+        tone="default",
+    )
+
+
+def _citation_lookup_control_html(*, index: int, values: dict[str, str]) -> str:
+    lookup_value = values.get(f"citation_{index}_lookup", "")
+    return (
+        '<div class="citation-picker">'
+        f'<input id="citation_{index}_lookup" name="citation_{index}_lookup" type="text" '
+        'class="text-input citation-picker-input" '
+        f'value="{escape(lookup_value)}" placeholder="Search by title, tag, or object ID" '
+        'autocomplete="off" spellcheck="false" />'
+        '<div class="citation-picker-results" hidden></div>'
+        f'<p class="field-hint citation-picker-status">{escape(_citation_search_status(values.get(f"citation_{index}_source_title", ""), values.get(f"citation_{index}_source_ref", "")))}</p>'
+        "</div>"
+    )
+
+
+def _multi_value_picker_status(selected_values: list[str], *, singular_label: str) -> str:
+    if not selected_values:
+        return f"No {singular_label} selected yet."
+    count = len(selected_values)
+    return f"{count} {singular_label}{'' if count == 1 else 's'} selected."
+
+
+def _static_picker_options(values: list[str], *, detail: str) -> list[dict[str, str]]:
+    return [
+        {
+            "value": item,
+            "label": item,
+            "detail": detail,
+        }
+        for item in values
+    ]
+
+
+def _multi_value_picker_control_html(
+    *,
+    field_name: str,
+    values: dict[str, str],
+    placeholder: str,
+    singular_label: str,
+    manual_entry_label: str,
+    static_options: list[dict[str, str]] | None = None,
+    search_url: str | None = None,
+    exclude_object_id: str | None = None,
+) -> str:
+    selected_values = parse_multiline(values.get(field_name, ""))
+    search_attr = f' data-search-url="{escape(search_url)}"' if search_url else ""
+    exclude_attr = f' data-exclude-object-id="{escape(exclude_object_id)}"' if exclude_object_id else ""
+    static_options_attr = escape(json.dumps(static_options or [], ensure_ascii=True))
+    return (
+        f'<div class="multi-value-picker" data-multi-value-picker data-empty-label="{escape(f"No {singular_label} selected yet.")}"'
+        f' data-static-options="{static_options_attr}"{search_attr}{exclude_attr}>'
+        '<div class="multi-value-picker-selected"></div>'
+        f'<input id="{escape(field_name)}" type="text" class="text-input multi-value-picker-input" '
+        f'placeholder="{escape(placeholder)}" autocomplete="off" spellcheck="false" />'
+        '<div class="multi-value-picker-results" hidden></div>'
+        '<details class="multi-value-picker-manual">'
+        f'<summary>{escape(manual_entry_label)}</summary>'
+        f'<textarea id="{escape(field_name)}_storage" name="{escape(field_name)}" rows="3" class="multi-value-picker-storage">{escape(chr(10).join(selected_values))}</textarea>'
+        "</details>"
+        f'<p class="field-hint multi-value-picker-status">{escape(_multi_value_picker_status(selected_values, singular_label=singular_label))}</p>'
+        "</div>"
+    )
+
+
+def _revision_error_label(field_name: str) -> str:
+    label = field_name.replace("_", " ")
+    label = label.replace(" id", " ID")
+    label = label.replace(" ids", " IDs")
+    return label[:1].upper() + label[1:] if label else field_name
+
+
+def _revision_error_summary_html(components, errors: dict[str, list[str]]) -> str:
+    items: list[str] = []
+    for field_name, messages in errors.items():
+        label = escape(_revision_error_label(field_name))
+        for message in messages:
+            items.append(f"{label}: {escape(message)}")
+    if not items:
+        return ""
+    return components.validation_summary(title="Blocking validation", findings=items, empty_label="")
+
+
+def _render_revision_form(
+    runtime,
+    detail,
+    values: dict[str, str],
+    errors: dict[str, list[str]],
+    findings: list[str] | None = None,
+    *,
+    form_action: str,
+    is_first_revision: bool = False,
+) -> dict[str, str]:
     forms = FormPresenter(runtime.template_renderer)
     components = ComponentPresenter(runtime.template_renderer)
-    object_type = detail["object"]["object_type"]
+    object_info = detail["object"]
+    object_type = object_info["object_type"]
 
     def multiline_field(name: str, label: str, hint: str) -> str:
         return forms.field(
@@ -155,9 +321,49 @@ def _render_revision_form(runtime, detail, values: dict[str, str], errors: dict[
         forms.field(field_id="review_cadence", label="Review cadence", control_html=forms.select(field_id="review_cadence", name="review_cadence", value=values["review_cadence"], options=runtime.taxonomies["review_cadences"]["allowed_values"]), errors=errors.get("review_cadence")),
         forms.field(field_id="audience", label="Audience", control_html=forms.select(field_id="audience", name="audience", value=values["audience"], options=runtime.taxonomies["audiences"]["allowed_values"]), errors=errors.get("audience")),
         multiline_field("systems", "Systems", "One controlled system reference per line."),
-        multiline_field("tags", "Tags", "One controlled tag per line."),
-        multiline_field("related_services", "Related services", "One related service per line."),
-        multiline_field("related_object_ids", "Related object IDs", "Link upstream, fallback, or sibling knowledge objects for impact tracing."),
+        forms.field(
+            field_id="tags",
+            label="Tags",
+            control_html=_multi_value_picker_control_html(
+                field_name="tags",
+                values=values,
+                placeholder="Search controlled tags",
+                singular_label="tag",
+                manual_entry_label="Manual tag entry",
+                static_options=_static_picker_options(runtime.taxonomies["tags"]["allowed_values"], detail="Controlled tag"),
+            ),
+            hint="Search and select one or more controlled tags.",
+            errors=errors.get("tags"),
+        ),
+        forms.field(
+            field_id="related_services",
+            label="Related services",
+            control_html=_multi_value_picker_control_html(
+                field_name="related_services",
+                values=values,
+                placeholder="Search related services",
+                singular_label="service",
+                manual_entry_label="Manual service entry",
+                static_options=_static_picker_options(runtime.taxonomies["services"]["allowed_values"], detail="Controlled service"),
+            ),
+            hint="Search and select one or more related services.",
+            errors=errors.get("related_services"),
+        ),
+        forms.field(
+            field_id="related_object_ids",
+            label="Related object IDs",
+            control_html=_multi_value_picker_control_html(
+                field_name="related_object_ids",
+                values=values,
+                placeholder="Search related objects by title, tag, or object ID",
+                singular_label="related object",
+                manual_entry_label="Manual object ID entry",
+                search_url="/write/objects/search",
+                exclude_object_id=str(object_info["object_id"]),
+            ),
+            hint="Search existing knowledge objects and select one or more related objects for impact tracing.",
+            errors=errors.get("related_object_ids"),
+        ),
     ]
     if object_type == "runbook":
         sections.extend(
@@ -203,37 +409,77 @@ def _render_revision_form(runtime, detail, values: dict[str, str], errors: dict[
 
     citation_fields = []
     for index in range(1, 4):
-        citation_fields.extend(
-            [
-                forms.field(field_id=f"citation_{index}_source_title", label=f"Citation {index} title", control_html=forms.input(field_id=f"citation_{index}_source_title", name=f"citation_{index}_source_title", value=values.get(f"citation_{index}_source_title", "")), errors=errors.get("citations")),
-                forms.field(field_id=f"citation_{index}_source_type", label=f"Citation {index} type", control_html=forms.input(field_id=f"citation_{index}_source_type", name=f"citation_{index}_source_type", value=values.get(f"citation_{index}_source_type", "document")), hint="document, url, or system reference."),
-                forms.field(field_id=f"citation_{index}_source_ref", label=f"Citation {index} reference", control_html=forms.input(field_id=f"citation_{index}_source_ref", name=f"citation_{index}_source_ref", value=values.get(f"citation_{index}_source_ref", "")), errors=errors.get("citations")),
-                forms.field(field_id=f"citation_{index}_note", label=f"Citation {index} note", control_html=forms.textarea(field_id=f"citation_{index}_note", name=f"citation_{index}_note", value=values.get(f"citation_{index}_note", ""), rows=2), hint="Why this evidence supports the draft."),
-            ]
+        citation_fields.append(
+            f'<section class="citation-entry" data-citation-picker data-citation-index="{index}" '
+            f'data-search-url="/write/citations/search" data-exclude-object-id="{escape(object_info["object_id"])}">'
+            f"<h4>Citation {index}</h4>"
+            '<p class="citation-entry-intro">Reference an existing knowledge article first. Manual fields remain available below when the source is not already in Papyrus.</p>'
+            + forms.field(
+                field_id=f"citation_{index}_lookup",
+                label=f"Citation {index} source search",
+                control_html=_citation_lookup_control_html(index=index, values=values),
+                hint="Search existing article titles, tags, or object IDs.",
+                errors=errors.get("citations") if index == 1 else None,
+            )
+            + forms.field(
+                field_id=f"citation_{index}_source_title",
+                label=f"Citation {index} selected title",
+                control_html=forms.input(field_id=f"citation_{index}_source_title", name=f"citation_{index}_source_title", value=values.get(f"citation_{index}_source_title", "")),
+                hint="Filled from the selected knowledge object. Edit only for manual evidence entry.",
+            )
+            + forms.field(
+                field_id=f"citation_{index}_source_type",
+                label=f"Citation {index} type",
+                control_html=forms.input(field_id=f"citation_{index}_source_type", name=f"citation_{index}_source_type", value=values.get(f"citation_{index}_source_type", "document")),
+                hint="document, url, or system reference.",
+            )
+            + forms.field(
+                field_id=f"citation_{index}_source_ref",
+                label=f"Citation {index} selected reference",
+                control_html=forms.input(field_id=f"citation_{index}_source_ref", name=f"citation_{index}_source_ref", value=values.get(f"citation_{index}_source_ref", "")),
+                hint="Filled from the selected knowledge object path. Edit only for manual evidence entry.",
+            )
+            + forms.field(
+                field_id=f"citation_{index}_note",
+                label=f"Citation {index} note",
+                control_html=forms.textarea(field_id=f"citation_{index}_note", name=f"citation_{index}_note", value=values.get(f"citation_{index}_note", ""), rows=2),
+                hint="Why this evidence supports the draft.",
+            )
+            + "</section>"
         )
 
-    validation_html = ""
+    validation_sections: list[str] = []
+    if errors:
+        validation_sections.append(_revision_error_summary_html(components, errors))
     if findings:
-        validation_html = components.validation_findings(title="Pre-submit findings", items=[escape(item) for item in findings], tone="warning")
+        validation_sections.append(
+            components.validation_findings(title="Pre-submit findings", items=[escape(item) for item in findings], tone="warning")
+        )
+    validation_html = "".join(validation_sections)
 
     body_html = (
-        '<form class="governed-form" method="post">'
+        f'<form class="governed-form" method="post" action="{escape(form_action)}">'
         + "".join(sections)
         + '<section class="form-section"><h3>Evidence</h3>'
         + "".join(citation_fields)
         + "</section>"
-        + forms.button(label="Save draft revision")
+        + forms.button(label="Save first draft revision" if is_first_revision else "Save draft revision")
         + "</form>"
     )
     guidance_html = components.section_card(
         title="Authorship guidance",
         eyebrow="Write",
-        body_html="<p>Structured fields feed trust, discovery, and governance surfaces directly. Narrative sections support operator judgment without hiding the metadata.</p>",
+        body_html=(
+            "<p>The object shell is already created. Complete the revision fields below to author the first governed content for this object.</p>"
+            if is_first_revision
+            else "<p>Structured fields feed trust, discovery, and governance surfaces directly. Narrative sections support operator judgment without hiding the metadata.</p>"
+        )
+        + "<p>Evidence note: citations to existing governed Papyrus articles are accepted as internal references. External or manual evidence stays weak until later follow-up records timing and integrity metadata.</p>",
     )
     return {
         "validation_html": validation_html,
-        "form_html": components.section_card(title="Create revision", eyebrow="Write", body_html=body_html),
-        "guidance_html": guidance_html,
+        "form_html": f'<div id="revision-form">{components.section_card(title="Draft first revision" if is_first_revision else "Create revision", eyebrow="Write", body_html=body_html)}</div>',
+        "guidance_html": guidance_html + _evidence_guidance_section(components, title="How evidence gets strengthened"),
     }
 
 
@@ -267,9 +513,18 @@ def _render_submit_page(runtime, detail, findings: list[str], form_errors: dict[
         ),
     )
     findings_html = components.validation_findings(title="Pre-submit validation", items=[escape(item) for item in findings] or ["No blocking findings detected."], tone="warning" if findings else "approved")
+    guidance_html = ""
+    if any("weak-evidence posture" in item for item in findings):
+        guidance_html = _evidence_guidance_section(
+            components,
+            title="How to strengthen weak evidence",
+            include_action=True,
+            object_id=str(detail["object"]["object_id"]),
+        )
     return {
         "summary_html": summary_html,
         "findings_html": findings_html,
+        "guidance_html": guidance_html,
         "form_html": form_html,
     }
 
@@ -278,6 +533,7 @@ def register(router, runtime) -> None:
     def create_object_page(request: Request):
         values = default_object_values()
         errors: dict[str, list[str]] = {}
+        page_flash_html = flash_html_for_request(runtime, request) if request.method != "POST" else ""
         if request.method == "POST":
             values = {key: request.form_value(key) for key in values}
             result = validate_object_form(values, taxonomies=runtime.taxonomies)
@@ -289,10 +545,16 @@ def register(router, runtime) -> None:
                     **result.cleaned_data,
                 )
                 return redirect_response(
-                    f"/write/objects/{quoted_path(created.object_id)}/revisions/new?notice={quote_plus('Object shell created')}"
+                    f"/write/objects/{quoted_path(created.object_id)}/revisions/new?notice={quote_plus('Object shell created. Step 2 of 3: draft the first revision below.')}#revision-form"
                 )
             errors = result.errors
-        page_context = _render_object_form(runtime, values, errors)
+            if errors:
+                page_flash_html = FormPresenter(runtime.template_renderer).flash(
+                    title="Attention",
+                    body="Object shell not created. Fix the blocking fields below.",
+                    tone="warning",
+                )
+        page_context = _render_object_form(runtime, values, errors, form_action=request.path)
         return html_response(
             runtime.page_renderer.render_page(
                 page_template="pages/write_object_new.html",
@@ -301,7 +563,8 @@ def register(router, runtime) -> None:
                 kicker="Write",
                 intro="Start with a governed object shell, then move directly into a structured revision draft.",
                 active_nav="write",
-                flash_html=flash_html_for_request(runtime, request),
+                flash_html=page_flash_html,
+                header_detail_html=_write_timeline_html(stage="object", is_first_revision=True),
                 action_bar_html="",
                 aside_html="",
                 page_context=page_context,
@@ -311,9 +574,11 @@ def register(router, runtime) -> None:
     def create_revision_page(request: Request):
         object_id = request.route_value("object_id")
         detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        is_first_revision = detail["current_revision"] is None
         values = build_revision_defaults(detail)
         errors: dict[str, list[str]] = {}
         findings: list[str] | None = None
+        page_flash_html = flash_html_for_request(runtime, request) if request.method != "POST" else ""
         if request.method == "POST":
             values.update({key: request.form_value(key) for key in values})
             result = validate_revision_form(
@@ -338,20 +603,86 @@ def register(router, runtime) -> None:
                     f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision.revision_id)}&notice={quote_plus('Draft revision saved')}"
                 )
             errors = result.errors
-        page_context = _render_revision_form(runtime, detail, values, errors, findings)
+            if errors:
+                page_flash_html = FormPresenter(runtime.template_renderer).flash(
+                    title="Attention",
+                    body="Draft not saved. Fix the blocking fields below.",
+                    tone="warning",
+                )
+        page_context = _render_revision_form(
+            runtime,
+            detail,
+            values,
+            errors,
+            findings,
+            form_action=request.path,
+            is_first_revision=is_first_revision,
+        )
         return html_response(
             runtime.page_renderer.render_page(
                 page_template="pages/write_revision_new.html",
-                page_title="Create revision",
-                headline="Create Revision",
+                page_title="Step 2: Draft first revision" if is_first_revision else "Create revision",
+                headline="Step 2: Draft First Revision" if is_first_revision else "Create Revision",
                 kicker="Write",
-                intro="Draft governed revisions with structured fields first, then narrative sections and evidence.",
+                intro=(
+                    "Shell creation is complete. Draft the first governed revision below."
+                    if is_first_revision
+                    else "Draft governed revisions with structured fields first, then narrative sections and evidence."
+                ),
                 active_nav="write",
-                flash_html=flash_html_for_request(runtime, request),
+                flash_html=page_flash_html,
+                header_detail_html=_write_timeline_html(stage="revision", is_first_revision=is_first_revision),
                 aside_html=_common_revision_aside(runtime, detail),
+                scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
                 page_context=page_context,
             )
         )
+
+    def citation_search_endpoint(request: Request):
+        query = request.query_value("query").strip()
+        exclude_object_id = request.query_value("exclude_object_id").strip()
+        if len(query) < 2:
+            return json_response({"items": []})
+        candidates = search_knowledge_objects(query, limit=12, database_path=runtime.database_path)
+        items: list[dict[str, str]] = []
+        for candidate in candidates:
+            if exclude_object_id and str(candidate["object_id"]) == exclude_object_id:
+                continue
+            if candidate.get("current_revision_id") is None:
+                continue
+            items.append(
+                {
+                    "object_id": str(candidate["object_id"]),
+                    "title": str(candidate["title"]),
+                    "path": str(candidate["path"]),
+                    "object_type": str(candidate["object_type"]),
+                    "approval_state": str(candidate["approval_state"]),
+                    "trust_state": str(candidate["trust_state"]),
+                }
+            )
+        return json_response({"items": items})
+
+    def related_object_search_endpoint(request: Request):
+        query = request.query_value("query").strip()
+        exclude_object_id = request.query_value("exclude_object_id").strip()
+        if len(query) < 2:
+            return json_response({"items": []})
+        candidates = search_knowledge_objects(query, limit=12, database_path=runtime.database_path)
+        items: list[dict[str, str]] = []
+        for candidate in candidates:
+            if exclude_object_id and str(candidate["object_id"]) == exclude_object_id:
+                continue
+            items.append(
+                {
+                    "value": str(candidate["object_id"]),
+                    "label": str(candidate["title"]),
+                    "detail": (
+                        f"{candidate['object_id']} | {candidate['path']} | "
+                        f"{candidate['approval_state']} approval | {candidate['trust_state']} trust"
+                    ),
+                }
+            )
+        return json_response({"items": items})
 
     def submit_revision_page(request: Request):
         object_id = request.route_value("object_id")
@@ -388,11 +719,14 @@ def register(router, runtime) -> None:
                 intro="Inspect readiness before review. Missing structure or weak evidence should be explicit before handoff.",
                 active_nav="write",
                 flash_html=flash_html_for_request(runtime, request),
+                header_detail_html=_write_timeline_html(stage="submit", is_first_revision=detail["revision"]["revision_number"] == 1),
                 aside_html=_common_revision_aside(runtime, {"object": detail["object"]}),
                 page_context=page_context,
             )
         )
 
     router.add(["GET", "POST"], "/write/objects/new", create_object_page)
+    router.add(["GET"], "/write/citations/search", citation_search_endpoint)
+    router.add(["GET"], "/write/objects/search", related_object_search_endpoint)
     router.add(["GET", "POST"], "/write/objects/{object_id}/revisions/new", create_revision_page)
     router.add(["GET", "POST"], "/write/objects/{object_id}/submit", submit_revision_page)

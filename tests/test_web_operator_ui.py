@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import sqlite3
 import sys
 import tempfile
@@ -58,6 +59,10 @@ def call_wsgi(
     return str(status_holder["status"]), dict(status_holder["headers"]), response_body
 
 
+def request_path_without_fragment(path: str) -> str:
+    return path.split("#", 1)[0]
+
+
 def read_row(database_path: Path, query: str, parameters: tuple = ()) -> sqlite3.Row | None:
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
@@ -102,7 +107,7 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, headers, body = call_wsgi(
                 application,
-                revision_form_path,
+                request_path_without_fragment(revision_form_path),
                 method="POST",
                 form={
                     "title": "Operator UI Approval Flow",
@@ -140,6 +145,11 @@ class WebOperatorUiTests(unittest.TestCase):
             status, _, submit_body = call_wsgi(application, submit_path)
             self.assertEqual(status, "200 OK")
             self.assertIn("Pre-submit validation", submit_body)
+            self.assertIn("do not yet record when the evidence was captured or a source integrity hash", submit_body)
+            self.assertIn("How to strengthen weak evidence", submit_body)
+            self.assertIn("write form does not attach evidence snapshots directly", submit_body)
+            self.assertIn("/manage/objects/kb-operator-ui-approve/evidence/revalidate", submit_body)
+            self.assertIn("Request evidence revalidation", submit_body)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -230,6 +240,10 @@ class WebOperatorUiTests(unittest.TestCase):
                 },
             )
             self.assertEqual(status, "200 OK")
+            self.assertIn("Object shell not created. Fix the blocking fields below.", body)
+            self.assertIn("Blocking validation", body)
+            self.assertIn("Object ID: Object ID must match kb-slug format.", body)
+            self.assertIn("Title: Title is required.", body)
             self.assertIn("Object ID must match kb-slug format.", body)
             self.assertIn("Canonical path must stay under knowledge/", body)
 
@@ -255,7 +269,7 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, body = call_wsgi(
                 application,
-                revision_form_path,
+                request_path_without_fragment(revision_form_path),
                 method="POST",
                 form={
                     "title": "Operator UI Rejection Flow",
@@ -286,11 +300,15 @@ class WebOperatorUiTests(unittest.TestCase):
                 },
             )
             self.assertEqual(status, "200 OK")
+            self.assertIn("Draft not saved. Fix the blocking fields below.", body)
+            self.assertIn("Blocking validation", body)
             self.assertIn("At least one citation is required.", body)
+            self.assertIn("Related object IDs: This field is required.", body)
+            self.assertNotIn("Object shell created. Step 2 of 3: draft the first revision below.", body)
 
             status, headers, _ = call_wsgi(
                 application,
-                revision_form_path,
+                request_path_without_fragment(revision_form_path),
                 method="POST",
                 form={
                     "title": "Operator UI Rejection Flow",
@@ -388,7 +406,7 @@ class WebOperatorUiTests(unittest.TestCase):
             revision_form_path = headers["Location"]
             status, headers, _ = call_wsgi(
                 application,
-                revision_form_path,
+                request_path_without_fragment(revision_form_path),
                 method="POST",
                 form={
                     "title": "Operator UI Manage Flow",
@@ -523,7 +541,7 @@ class WebOperatorUiTests(unittest.TestCase):
             revision_form_path = headers["Location"]
             status, headers, _ = call_wsgi(
                 application,
-                revision_form_path,
+                request_path_without_fragment(revision_form_path),
                 method="POST",
                 form={
                     "title": "Operator UI Evidence Flow",
@@ -593,6 +611,314 @@ class WebOperatorUiTests(unittest.TestCase):
             actors = {str(row["event_type"]): str(row["actor"]) for row in audit_rows}
             self.assertEqual(actors["object_created"], "local.manager")
             self.assertEqual(actors["evidence_revalidation_requested"], "local.manager")
+
+    def test_shell_only_object_is_searchable_and_routes_back_to_revision_draft(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            build_search_projection(database_path)
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+            )
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/write/objects/new",
+                method="POST",
+                form={
+                    "object_id": "kb-operator-ui-shell-search",
+                    "object_type": "runbook",
+                    "title": "Shell Search Runbook",
+                    "summary": "Draft shell should be discoverable before its first revision.",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "canonical_path": "knowledge/runbooks/shell-search-runbook.md",
+                    "review_cadence": "quarterly",
+                    "status": "draft",
+                    "systems": "<VPN_SERVICE>",
+                    "tags": "vpn",
+                },
+            )
+            self.assertEqual(status, "303 See Other")
+            revision_form_path = headers["Location"]
+            self.assertEqual(
+                revision_form_path,
+                "/write/objects/kb-operator-ui-shell-search/revisions/new?notice=Object+shell+created.+Step+2+of+3%3A+draft+the+first+revision+below.#revision-form",
+            )
+
+            status, _, body = call_wsgi(application, request_path_without_fragment(revision_form_path))
+            self.assertEqual(status, "200 OK")
+            self.assertIn('class="workflow-top"', body)
+            self.assertIn("Create object shell", body)
+            self.assertIn("Step 2: Draft First Revision", body)
+            self.assertIn("Save first draft revision", body)
+            self.assertIn("Current step", body)
+            self.assertIn("Submit for review", body)
+            self.assertIn('id="revision-form"', body)
+            self.assertIn('method="post" action="/write/objects/kb-operator-ui-shell-search/revisions/new"', body)
+
+            status, _, body = call_wsgi(
+                application,
+                "/queue?query=Shell+Search+Runbook&object_type=runbook&approval=draft",
+            )
+            self.assertEqual(status, "200 OK")
+            self.assertIn("kb-operator-ui-shell-search", body)
+            self.assertIn("/write/objects/kb-operator-ui-shell-search/revisions/new#revision-form", body)
+
+    def test_manage_queue_exposes_next_governance_actions_for_shells_and_drafts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            build_search_projection(database_path)
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+            )
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/write/objects/new",
+                method="POST",
+                form={
+                    "object_id": "kb-operator-ui-manage-shell",
+                    "object_type": "runbook",
+                    "title": "Manage Queue Shell",
+                    "summary": "Manage queue should show the next authoring step.",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "canonical_path": "knowledge/runbooks/manage-queue-shell.md",
+                    "review_cadence": "quarterly",
+                    "status": "draft",
+                    "systems": "<VPN_SERVICE>",
+                    "tags": "vpn",
+                },
+            )
+            self.assertEqual(status, "303 See Other")
+
+            status, _, body = call_wsgi(application, "/manage/queue")
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Manage Queue Shell", body)
+            self.assertIn("approval:draft", body)
+            self.assertIn("/write/objects/kb-operator-ui-manage-shell/revisions/new#revision-form", body)
+            self.assertIn("Draft first revision", body)
+
+            revision_form_path = request_path_without_fragment(headers["Location"])
+            status, headers, _ = call_wsgi(
+                application,
+                revision_form_path,
+                method="POST",
+                form={
+                    "title": "Manage Queue Shell",
+                    "summary": "Manage queue should show the next authoring step.",
+                    "status": "draft",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "review_cadence": "quarterly",
+                    "audience": "service_desk",
+                    "systems": "<VPN_SERVICE>",
+                    "tags": "vpn",
+                    "related_services": "Remote Access",
+                    "related_object_ids": "kb-troubleshooting-vpn-connectivity",
+                    "change_summary": "Seed first draft for manage queue testing.",
+                    "prerequisites": "Open the ticket.",
+                    "steps": "Run the first step.",
+                    "verification": "Confirm the operator outcome.",
+                    "rollback": "Undo the step.",
+                    "use_when": "Use this when the managed workflow needs approval routing.",
+                    "boundaries_and_escalation": "Escalate when the workflow fails twice.",
+                    "related_knowledge_notes": "Pair with the VPN troubleshooting article.",
+                    "citation_1_source_title": "Seed import manifest",
+                    "citation_1_source_type": "document",
+                    "citation_1_source_ref": "migration/import-manifest.yml",
+                    "citation_1_note": "Internal provenance placeholder.",
+                    "citation_2_source_type": "document",
+                    "citation_3_source_type": "document",
+                },
+            )
+            self.assertEqual(status, "303 See Other")
+
+            status, _, body = call_wsgi(application, "/manage/queue")
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Continue draft", body)
+            self.assertIn("Submit for review", body)
+            self.assertIn("/write/objects/kb-operator-ui-manage-shell/revisions/new#revision-form", body)
+            self.assertIn("/write/objects/kb-operator-ui-manage-shell/submit?revision_id=", body)
+
+    def test_revision_citation_search_exposes_article_lookup_and_finds_existing_objects(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            build_search_projection(database_path)
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+            )
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/write/objects/new",
+                method="POST",
+                form={
+                    "object_id": "kb-operator-ui-citation-search",
+                    "object_type": "runbook",
+                    "title": "Citation Search Runbook",
+                    "summary": "Citation search should find existing governed knowledge.",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "canonical_path": "knowledge/runbooks/citation-search-runbook.md",
+                    "review_cadence": "quarterly",
+                    "status": "draft",
+                    "systems": "<VPN_SERVICE>",
+                    "tags": "citation-search-tag",
+                },
+            )
+            self.assertEqual(status, "303 See Other")
+            revision_form_path = request_path_without_fragment(headers["Location"])
+
+            status, _, body = call_wsgi(application, revision_form_path)
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Citation 1 source search", body)
+            self.assertIn("Search by title, tag, or object ID", body)
+            self.assertIn("/static/js/citation_picker.js", body)
+            self.assertIn("/write/citations/search", body)
+
+            status, _, payload = call_wsgi(application, "/write/citations/search?query=kb-operator-ui-citation-search")
+            self.assertEqual(status, "200 OK")
+            self.assertEqual(json.loads(payload), {"items": []})
+
+            status, headers, _ = call_wsgi(
+                application,
+                revision_form_path,
+                method="POST",
+                form={
+                    "title": "Citation Search Runbook",
+                    "summary": "Citation search should find existing governed knowledge.",
+                    "status": "draft",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "review_cadence": "quarterly",
+                    "audience": "service_desk",
+                    "systems": "<VPN_SERVICE>",
+                    "tags": "citation-search-tag",
+                    "related_services": "Remote Access",
+                    "related_object_ids": "kb-troubleshooting-vpn-connectivity",
+                    "change_summary": "Seed draft for citation search coverage.",
+                    "prerequisites": "Open the ticket.",
+                    "steps": "Run the first step.",
+                    "verification": "Confirm the operator outcome.",
+                    "rollback": "Undo the step.",
+                    "use_when": "Use this when citation search coverage needs validation.",
+                    "boundaries_and_escalation": "Escalate when the workflow fails twice.",
+                    "related_knowledge_notes": "Pair with the VPN troubleshooting article.",
+                    "citation_1_source_title": "VPN Troubleshooting",
+                    "citation_1_source_type": "document",
+                    "citation_1_source_ref": "knowledge/troubleshooting/vpn-connectivity.md",
+                    "citation_1_note": "Use the governed source article as supporting evidence.",
+                    "citation_2_source_type": "document",
+                    "citation_3_source_type": "document",
+                },
+            )
+            self.assertEqual(status, "303 See Other")
+            submit_path = headers["Location"]
+
+            status, _, submit_body = call_wsgi(application, submit_path)
+            self.assertEqual(status, "200 OK")
+            self.assertNotIn("weak-evidence posture", submit_body)
+
+            citation_row = read_row(
+                database_path,
+                """
+                SELECT validity_status
+                FROM citations
+                WHERE revision_id = (
+                    SELECT current_revision_id
+                    FROM knowledge_objects
+                    WHERE object_id = ?
+                )
+                ORDER BY citation_id
+                LIMIT 1
+                """,
+                ("kb-operator-ui-citation-search",),
+            )
+            self.assertIsNotNone(citation_row)
+            self.assertEqual(citation_row["validity_status"], "verified")
+
+            for query in (
+                "Citation Search Runbook",
+                "kb-operator-ui-citation-search",
+                "citation-search-tag",
+            ):
+                status, _, payload = call_wsgi(
+                    application,
+                    f"/write/citations/search?query={urllib.parse.quote_plus(query)}",
+                )
+                self.assertEqual(status, "200 OK")
+                items = json.loads(payload)["items"]
+                self.assertTrue(
+                    any(item["object_id"] == "kb-operator-ui-citation-search" for item in items),
+                    msg=f"expected citation search result for query {query!r}",
+                )
+
+    def test_revision_multiselect_fields_render_search_controls_and_object_lookup(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            build_search_projection(database_path)
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+            )
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/write/objects/new",
+                method="POST",
+                form={
+                    "object_id": "kb-operator-ui-multiselect",
+                    "object_type": "runbook",
+                    "title": "Multi Select Runbook",
+                    "summary": "Revision form should render searchable multi-select controls.",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "canonical_path": "knowledge/runbooks/multi-select-runbook.md",
+                    "review_cadence": "quarterly",
+                    "status": "draft",
+                    "systems": "<VPN_SERVICE>",
+                    "tags": "vpn",
+                },
+            )
+            self.assertEqual(status, "303 See Other")
+            revision_form_path = request_path_without_fragment(headers["Location"])
+
+            status, _, body = call_wsgi(application, revision_form_path)
+            self.assertEqual(status, "200 OK")
+            self.assertIn("/static/js/multi_value_picker.js", body)
+            self.assertIn("Search and select one or more controlled tags.", body)
+            self.assertIn("Search and select one or more related services.", body)
+            self.assertIn("Search existing knowledge objects and select one or more related objects for impact tracing.", body)
+            self.assertIn("Manual tag entry", body)
+            self.assertIn("Manual service entry", body)
+            self.assertIn("Manual object ID entry", body)
+            self.assertIn("/write/objects/search", body)
+            self.assertIn("Search controlled tags", body)
+            self.assertIn("Search related services", body)
+            self.assertIn("Search related objects by title, tag, or object ID", body)
+
+            status, _, payload = call_wsgi(
+                application,
+                "/write/objects/search?query=VPN&exclude_object_id=kb-operator-ui-multiselect",
+            )
+            self.assertEqual(status, "200 OK")
+            items = json.loads(payload)["items"]
+            self.assertTrue(
+                any(item["value"] == "kb-troubleshooting-vpn-connectivity" for item in items),
+                msg="expected related object search to return a real runtime object",
+            )
 
 
 if __name__ == "__main__":

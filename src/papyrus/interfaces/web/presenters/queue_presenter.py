@@ -7,6 +7,12 @@ from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path
 
 
+def _queue_item_href(item: dict[str, Any]) -> str:
+    if item.get("current_revision_id"):
+        return f"/objects/{quoted_path(item['object_id'])}"
+    return f"/write/objects/{quoted_path(item['object_id'])}/revisions/new#revision-form"
+
+
 def present_queue_page(
     renderer: TemplateRenderer,
     *,
@@ -61,7 +67,7 @@ def present_queue_page(
     )
     rows = [
         [
-            f"{link(item['title'], f'/objects/{quoted_path(item['object_id'])}')}"
+            f"{link(item['title'], _queue_item_href(item))}"
             f'<p class="cell-meta">{escape(item["object_id"])} · {escape(item["path"])}</p>',
             escape(item["object_type"]),
             components.badge(label="Trust", value=item["trust_state"], tone="approved" if item["trust_state"] == "trusted" else "warning"),

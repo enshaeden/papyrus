@@ -392,6 +392,59 @@ def _augment_queue_items(connection: sqlite3.Connection, items: list[dict[str, A
     return items
 
 
+def _queue_projection_select() -> str:
+    return """
+        SELECT
+            o.object_id,
+            o.current_revision_id,
+            o.title,
+            o.object_type,
+            o.status,
+            o.owner,
+            o.team,
+            COALESCE(d.path, o.canonical_path) AS path,
+            o.trust_state,
+            COALESCE(
+                d.approval_state,
+                CASE
+                    WHEN r.revision_state IN ('approved', 'in_review', 'draft', 'rejected', 'superseded') THEN r.revision_state
+                    WHEN o.current_revision_id IS NULL THEN 'draft'
+                    ELSE 'unknown'
+                END
+            ) AS approval_state,
+            COALESCE(d.freshness_rank, 0) AS freshness_rank,
+            COALESCE(d.citation_health_rank, 0) AS citation_health_rank,
+            COALESCE(d.ownership_rank, CASE WHEN TRIM(o.owner) = '' THEN 1 ELSE 0 END) AS ownership_rank,
+            COALESCE(d.search_text, '') AS search_text
+        FROM knowledge_objects AS o
+        LEFT JOIN search_documents AS d ON d.object_id = o.object_id
+        LEFT JOIN knowledge_revisions AS r ON r.revision_id = o.current_revision_id
+    """
+
+
+def _queue_item_from_projection_row(row: sqlite3.Row) -> dict[str, Any]:
+    current_revision_id = str(row["current_revision_id"]) if row["current_revision_id"] is not None else None
+    reasons = _queue_reasons(row)
+    if current_revision_id is None:
+        reasons.insert(0, "no_revision")
+    return {
+        "object_id": str(row["object_id"]),
+        "title": str(row["title"]),
+        "object_type": str(row["object_type"]),
+        "status": str(row["status"]),
+        "owner": str(row["owner"]),
+        "team": str(row["team"]),
+        "path": str(row["path"]),
+        "trust_state": str(row["trust_state"]),
+        "approval_state": str(row["approval_state"]),
+        "freshness_rank": int(row["freshness_rank"]),
+        "citation_health_rank": int(row["citation_health_rank"]),
+        "ownership_rank": int(row["ownership_rank"]),
+        "current_revision_id": current_revision_id,
+        "reasons": reasons,
+    }
+
+
 def knowledge_queue(
     *,
     limit: int = 200,
@@ -401,43 +454,9 @@ def knowledge_queue(
     connection = require_runtime_connection(database_path)
     try:
         rows = connection.execute(
-            """
-            SELECT
-                object_id,
-                revision_id,
-                title,
-                object_type,
-                status,
-                owner,
-                team,
-                path,
-                trust_state,
-                approval_state,
-                freshness_rank,
-                citation_health_rank,
-                ownership_rank
-            FROM search_documents
-            """,
+            _queue_projection_select(),
         ).fetchall()
-        items = [
-            {
-                "object_id": str(row["object_id"]),
-                "title": str(row["title"]),
-                "object_type": str(row["object_type"]),
-                "status": str(row["status"]),
-                "owner": str(row["owner"]),
-                "team": str(row["team"]),
-                "path": str(row["path"]),
-                "trust_state": str(row["trust_state"]),
-                "approval_state": str(row["approval_state"]),
-                "freshness_rank": int(row["freshness_rank"]),
-                "citation_health_rank": int(row["citation_health_rank"]),
-                "ownership_rank": int(row["ownership_rank"]),
-                "current_revision_id": str(row["revision_id"]),
-                "reasons": _queue_reasons(row),
-            }
-            for row in rows
-        ]
+        items = [_queue_item_from_projection_row(row) for row in rows]
         _augment_queue_items(connection, items)
         if ranking == "triage":
             items.sort(
@@ -483,46 +502,41 @@ def search_knowledge_objects(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='knowledge_search'"
         ).fetchone()
         rows_by_object_id: dict[str, sqlite3.Row] = {}
+        projection_sql = _queue_projection_select()
         if has_fts:
             try:
                 fts_rows = connection.execute(
-                    """
-                    SELECT
-                        d.object_id,
-                        d.title,
-                        d.object_type,
-                        d.status,
-                        d.owner,
-                        d.team,
-                        d.path,
-                        d.trust_state,
-                        d.approval_state,
-                        d.freshness_rank,
-                        d.citation_health_rank,
-                        d.ownership_rank
-                    FROM knowledge_search AS s
-                    JOIN search_documents AS d ON d.object_id = s.object_id
+                    f"""
+                    {projection_sql}
+                    JOIN knowledge_search AS s ON s.object_id = o.object_id
                     WHERE knowledge_search MATCH ?
                     ORDER BY
-                        CASE d.approval_state
+                        CASE COALESCE(
+                            d.approval_state,
+                            CASE
+                                WHEN r.revision_state IN ('approved', 'in_review', 'draft', 'rejected', 'superseded') THEN r.revision_state
+                                WHEN o.current_revision_id IS NULL THEN 'draft'
+                                ELSE 'unknown'
+                            END
+                        )
                             WHEN 'approved' THEN 0
                             WHEN 'in_review' THEN 1
                             WHEN 'draft' THEN 2
                             WHEN 'rejected' THEN 3
                             ELSE 4
                         END,
-                        CASE d.trust_state
+                        CASE o.trust_state
                             WHEN 'trusted' THEN 0
                             WHEN 'weak_evidence' THEN 1
                             WHEN 'suspect' THEN 2
                             WHEN 'stale' THEN 3
                             ELSE 4
                         END,
-                        d.citation_health_rank,
-                        d.freshness_rank,
-                        d.ownership_rank,
+                        COALESCE(d.citation_health_rank, 0),
+                        COALESCE(d.freshness_rank, 0),
+                        COALESCE(d.ownership_rank, CASE WHEN TRIM(o.owner) = '' THEN 1 ELSE 0 END),
                         bm25(knowledge_search),
-                        d.title
+                        o.title
                     LIMIT ?
                     """,
                     (query, candidate_limit),
@@ -534,69 +548,47 @@ def search_knowledge_objects(
 
         like_query = f"%{query}%"
         like_rows = connection.execute(
-            """
-            SELECT
-                object_id,
-                title,
-                object_type,
-                status,
-                owner,
-                team,
-                path,
-                trust_state,
-                approval_state,
-                freshness_rank,
-                citation_health_rank,
-                ownership_rank
-            FROM search_documents
+            f"""
+            {projection_sql}
             WHERE search_text LIKE ?
-               OR object_id LIKE ?
-               OR title LIKE ?
+               OR o.object_id LIKE ?
+               OR o.title LIKE ?
+               OR o.summary LIKE ?
+               OR o.canonical_path LIKE ?
             ORDER BY
-                CASE approval_state
+                CASE COALESCE(
+                    d.approval_state,
+                    CASE
+                        WHEN r.revision_state IN ('approved', 'in_review', 'draft', 'rejected', 'superseded') THEN r.revision_state
+                        WHEN o.current_revision_id IS NULL THEN 'draft'
+                        ELSE 'unknown'
+                    END
+                )
                     WHEN 'approved' THEN 0
                     WHEN 'in_review' THEN 1
                     WHEN 'draft' THEN 2
                     WHEN 'rejected' THEN 3
                     ELSE 4
                 END,
-                CASE trust_state
+                CASE o.trust_state
                     WHEN 'trusted' THEN 0
                     WHEN 'weak_evidence' THEN 1
                     WHEN 'suspect' THEN 2
                     WHEN 'stale' THEN 3
                     ELSE 4
                 END,
-                citation_health_rank,
-                freshness_rank,
-                ownership_rank,
-                title
+                COALESCE(d.citation_health_rank, 0),
+                COALESCE(d.freshness_rank, 0),
+                COALESCE(d.ownership_rank, CASE WHEN TRIM(o.owner) = '' THEN 1 ELSE 0 END),
+                o.title
             LIMIT ?
             """,
-            (like_query, like_query, like_query, candidate_limit),
+            (like_query, like_query, like_query, like_query, like_query, candidate_limit),
         ).fetchall()
         for row in like_rows:
             rows_by_object_id.setdefault(str(row["object_id"]), row)
         rows = list(rows_by_object_id.values())
-        items = [
-            {
-                "object_id": str(row["object_id"]),
-                "title": str(row["title"]),
-                "object_type": str(row["object_type"]),
-                "status": str(row["status"]),
-                "owner": str(row["owner"]),
-                "team": str(row["team"]),
-                "path": str(row["path"]),
-                "trust_state": str(row["trust_state"]),
-                "approval_state": str(row["approval_state"]),
-                "freshness_rank": int(row["freshness_rank"]),
-                "citation_health_rank": int(row["citation_health_rank"]),
-                "ownership_rank": int(row["ownership_rank"]),
-                "current_revision_id": None,
-                "reasons": _queue_reasons(row),
-            }
-            for row in rows
-        ]
+        items = [_queue_item_from_projection_row(row) for row in rows]
         _augment_queue_items(connection, items)
         items.sort(
             key=lambda item: (
@@ -1249,6 +1241,7 @@ def manage_queue(
                     WHEN r.revision_state = 'draft' THEN 'draft'
                     WHEN r.revision_state = 'rejected' THEN 'rejected'
                     WHEN r.revision_state = 'approved' THEN 'approved'
+                    WHEN o.current_revision_id IS NULL THEN 'draft'
                     ELSE 'unknown'
                 END) AS approval_state,
                 COALESCE(d.freshness_rank, 0) AS freshness_rank,

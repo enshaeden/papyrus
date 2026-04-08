@@ -39,12 +39,17 @@ This change does not rework repository schemas, canonical source layout, or the 
 - Draft objects and draft revisions remain runtime-governed records; the UI does not write canonical Markdown source files.
 - Revision history is comparison-friendly, but it does not yet implement a true side-by-side diff view.
 - The interface is still intended for local or otherwise trusted operator environments; it does not introduce an authentication or CSRF layer.
-- Form structure is typed and guided, but repeated citation entry is intentionally modest rather than fully dynamic.
+- Form structure is typed and guided. Revision evidence entry now includes a search-backed citation picker for existing knowledge objects while preserving manual source entry for non-Papyrus evidence.
+- Revision metadata entry for tags, related services, and related object IDs now uses searchable multi-select controls while preserving manual newline entry as a fallback.
+- Weak-evidence warnings on write and submit screens now distinguish between governed local Papyrus references and external/manual evidence, and point operators to the manage-side evidence follow-up flow when capture metadata is still required.
 
 ## Operational Notes
 
 - The old inline-rendering `src/papyrus/interfaces/web.py` implementation was removed.
 - The compatibility import path remains the same: `papyrus.interfaces.web`.
 - Read surfaces preserve queue, object detail, revision history, service detail, dashboard, and impact coverage while improving trust visibility.
+- Shell-only objects created through the write flow remain discoverable in `/queue` before their first revision exists. Queue hits for those shells route back into `/write/objects/{object_id}/revisions/new#revision-form`, and write screens now render a top-of-page step timeline so the current workflow stage is visible during object creation, revision drafting, and review submission.
+- Invalid object-shell creation attempts now render a warning flash and blocking validation summary at the top of the page so missing or malformed required fields are visible without hunting through the full form.
+- Invalid revision saves now post back to the clean revision URL instead of preserving the original shell-created success notice, and the page renders a top-of-form blocking validation summary so operators can see why the draft was not saved.
 - Write and manage flows now use redirect-after-post patterns so operator actions are explicit and inspectable.
 - Governed manage routes now capture rationale for rejection, supersession, and suspect posture rather than silently mutating runtime state.

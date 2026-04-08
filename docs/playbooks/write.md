@@ -43,6 +43,12 @@ For each material claim:
 - keep the citation specific enough that another operator can re-check it
 - prefer direct evidence over inherited provenance notes
 
+Current web authoring boundary:
+
+- citations that point to existing governed local Papyrus content are treated as internal references
+- external, migration, or other manual evidence remains weak until follow-up records when the evidence was captured and attaches an integrity-backed snapshot
+- the web write form does not currently attach evidence snapshots directly; use the manage-side evidence follow-up path after the revision exists
+
 Failure signals:
 
 - the cited local target does not exist
