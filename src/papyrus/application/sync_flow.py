@@ -2,24 +2,33 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
-import sqlite3
 from pathlib import Path
+import uuid
 
 from papyrus.application.validation_flow import validate_knowledge_documents
-from papyrus.infrastructure.db import recreate_database
+from papyrus.domain.policies import bootstrap_revision_state, runtime_trust_state
+from papyrus.domain.value_objects import RevisionReviewStatus
+from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.parser import normalize_object_metadata
 from papyrus.infrastructure.markdown.serializer import date_to_iso, json_dump
 from papyrus.infrastructure.migrations import apply_runtime_schema
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
-from papyrus.infrastructure.repositories.citation_repo import insert_citation
+from papyrus.infrastructure.repositories.citation_repo import delete_citations_for_revision, insert_citation
 from papyrus.infrastructure.repositories.knowledge_repo import (
-    insert_knowledge_object,
+    delete_source_sync_relationships,
+    get_knowledge_object,
+    get_knowledge_revision,
     insert_knowledge_revision,
     load_knowledge_documents,
     load_object_schemas,
     load_policy,
     load_schema,
     load_taxonomies,
+    next_revision_number,
+    replace_fts_document,
+    upsert_knowledge_object,
+    upsert_relationship,
+    upsert_search_document,
 )
 from papyrus.infrastructure.repositories.service_repo import upsert_service
 from papyrus.infrastructure.repositories.validation_repo import insert_validation_run
@@ -39,8 +48,46 @@ def _service_id(service_name: str) -> str:
     return hashlib.sha256(service_name.encode("utf-8")).hexdigest()[:24]
 
 
-def _insert_relationship(
-    connection: sqlite3.Connection,
+def _event_id(prefix: str, object_id: str | None, revision_id: str | None, now_iso: str) -> str:
+    del object_id, revision_id, now_iso
+    return f"{prefix}-{uuid.uuid4().hex[:12]}"
+
+
+def _sync_revision_state(
+    *,
+    existing_object,
+    existing_revision,
+    status: str,
+) -> str:
+    if existing_revision is not None:
+        return str(existing_revision["revision_state"])
+    if existing_object is None:
+        return bootstrap_revision_state(status)
+    return RevisionReviewStatus.DRAFT.value
+
+
+def _sync_trust_state(
+    *,
+    parsed_trust_state: str,
+    revision_state: str,
+    existing_object,
+    revision_id: str,
+) -> str:
+    existing_trust_state = None
+    preserve_existing_warning = False
+    if existing_object is not None and existing_object["current_revision_id"] == revision_id:
+        existing_trust_state = str(existing_object["trust_state"])
+        preserve_existing_warning = True
+    return runtime_trust_state(
+        base_trust_state=parsed_trust_state,
+        revision_state=revision_state,
+        existing_trust_state=existing_trust_state,
+        preserve_existing_warning=preserve_existing_warning,
+    )
+
+
+def _sync_relationship(
+    connection,
     *,
     source_entity_type: str,
     source_entity_id: str,
@@ -49,112 +96,44 @@ def _insert_relationship(
     relationship_type: str,
     provenance: str,
 ) -> None:
-    connection.execute(
-        """
-        INSERT INTO relationships (
-            relationship_id,
+    upsert_relationship(
+        connection,
+        relationship_id=_relationship_id(
             source_entity_type,
             source_entity_id,
             target_entity_type,
             target_entity_id,
             relationship_type,
-            provenance
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            _relationship_id(source_entity_type, source_entity_id, target_entity_type, target_entity_id, relationship_type),
-            source_entity_type,
-            source_entity_id,
-            target_entity_type,
-            target_entity_id,
-            relationship_type,
-            provenance,
         ),
+        source_entity_type=source_entity_type,
+        source_entity_id=source_entity_id,
+        target_entity_type=target_entity_type,
+        target_entity_id=target_entity_id,
+        relationship_type=relationship_type,
+        provenance=provenance,
     )
 
 
-def _insert_search_document(
-    connection: sqlite3.Connection,
-    *,
-    object_id: str,
-    revision_id: str,
-    title: str,
-    summary: str,
-    object_type: str,
-    legacy_type: str | None,
-    status: str,
-    owner: str,
-    team: str,
-    trust_state: str,
-    approval_state: str,
-    freshness_rank: int,
-    citation_health_rank: int,
-    ownership_rank: int,
-    path: str,
-    search_text: str,
-    body: str,
-    tags: list[str],
-    systems: list[str],
-    services: list[str],
-    has_fts5: bool,
-) -> None:
-    connection.execute(
-        """
-        INSERT INTO search_documents (
-            object_id,
-            revision_id,
-            title,
-            summary,
-            object_type,
-            legacy_type,
-            status,
-            owner,
-            team,
-            trust_state,
-            approval_state,
-            freshness_rank,
-            citation_health_rank,
-            ownership_rank,
-            path,
-            search_text
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            object_id,
-            revision_id,
-            title,
-            summary,
-            object_type,
-            legacy_type,
-            status,
-            owner,
-            team,
-            trust_state,
-            approval_state,
-            freshness_rank,
-            citation_health_rank,
-            ownership_rank,
-            path,
-            search_text,
-        ),
-    )
-
-    if has_fts5:
-        connection.execute(
-            """
-            INSERT INTO knowledge_search (object_id, title, summary, body, tags, systems, services)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                object_id,
-                title,
-                summary,
-                body,
-                " ".join(tags),
-                " ".join(systems),
-                " ".join(services),
-            ),
+def _seed_services(connection, taxonomies: dict[str, dict[str, object]]) -> dict[str, str]:
+    seeded_services: dict[str, str] = {}
+    for service_name in taxonomies.get("services", {}).get("allowed_values", []):
+        service_id = _service_id(service_name)
+        seeded_services[service_name] = service_id
+        upsert_service(
+            connection,
+            service_id=service_id,
+            service_name=service_name,
+            canonical_object_id=None,
+            owner=None,
+            team=None,
+            status="active",
+            service_criticality="not_classified",
+            support_entrypoints_json=json_dump([]),
+            dependencies_json=json_dump([]),
+            common_failure_modes_json=json_dump([]),
+            source="taxonomy",
         )
+    return seeded_services
 
 
 def build_search_projection(database_path: Path) -> tuple[int, str]:
@@ -167,38 +146,26 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
     if issues:
         raise ValueError("index build aborted because validation failed")
 
-    connection = recreate_database(database_path)
-    now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
+    connection = open_runtime_database(database_path, minimum_schema_version=RUNTIME_SCHEMA_VERSION)
+    now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    now_iso = now.isoformat()
     try:
         has_fts5 = fts5_available(connection)
         apply_runtime_schema(connection, has_fts5=has_fts5)
-        connection.execute("INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)", (1, now))
+        connection.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+            (RUNTIME_SCHEMA_VERSION, now_iso),
+        )
 
-        seeded_services: dict[str, str] = {}
-        for service_name in taxonomies.get("services", {}).get("allowed_values", []):
-            service_id = _service_id(service_name)
-            seeded_services[service_name] = service_id
-            upsert_service(
-                connection,
-                service_id=service_id,
-                service_name=service_name,
-                canonical_object_id=None,
-                owner=None,
-                team=None,
-                status="active",
-                service_criticality="not_classified",
-                support_entrypoints_json=json_dump([]),
-                dependencies_json=json_dump([]),
-                common_failure_modes_json=json_dump([]),
-                source="taxonomy",
-            )
+        seeded_services = _seed_services(connection, taxonomies)
 
+        validation_run_id = _event_id("validation-sync-build", None, None, now_iso)
         insert_validation_run(
             connection,
-            run_id="validation-sync-build",
+            run_id=validation_run_id,
             run_type="sync_preflight_validation",
-            started_at=now,
-            completed_at=now,
+            started_at=now_iso,
+            completed_at=now_iso,
             status="passed",
             finding_count=0,
             details_json=json_dump({"document_count": len(documents)}),
@@ -214,11 +181,29 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
             normalized_metadata_json = json_dump(parsed.metadata)
             revision_hash = _content_hash(normalized_metadata_json, document.body)
             revision_id = f"{document.knowledge_object_id}-rev-{revision_hash[:12]}"
-            revision_state = parsed.approval_state
+            existing_object = get_knowledge_object(connection, document.knowledge_object_id)
+            existing_revision = get_knowledge_revision(connection, revision_id)
+            revision_state = _sync_revision_state(
+                existing_object=existing_object,
+                existing_revision=existing_revision,
+                status=str(parsed.metadata["status"]),
+            )
+            trust_state = _sync_trust_state(
+                parsed_trust_state=parsed.trust_state,
+                revision_state=revision_state,
+                existing_object=existing_object,
+                revision_id=revision_id,
+            )
+
             change_log = parsed.metadata.get("change_log") or []
             latest_change = change_log[-1]["summary"] if change_log else None
+            revision_number = (
+                int(existing_revision["revision_number"])
+                if existing_revision is not None
+                else next_revision_number(connection, document.knowledge_object_id)
+            )
 
-            insert_knowledge_object(
+            upsert_knowledge_object(
                 connection,
                 object_id=document.knowledge_object_id,
                 object_type=parsed.object_type,
@@ -236,25 +221,27 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                 updated_date=date_to_iso(parsed.metadata["updated"]),
                 last_reviewed=date_to_iso(parsed.metadata["last_reviewed"]),
                 review_cadence=str(parsed.metadata["review_cadence"]),
-                trust_state=parsed.trust_state,
+                trust_state=trust_state,
                 current_revision_id=revision_id,
                 tags_json=json_dump(parsed.metadata.get("tags", [])),
                 systems_json=json_dump(parsed.metadata.get("systems", [])),
             )
-            insert_knowledge_revision(
-                connection,
-                revision_id=revision_id,
-                object_id=document.knowledge_object_id,
-                revision_number=1,
-                revision_state=revision_state,
-                source_path=document.relative_path,
-                content_hash=revision_hash,
-                body_markdown=document.body,
-                normalized_payload_json=normalized_metadata_json,
-                legacy_metadata_json=json_dump(document.metadata),
-                imported_at=now,
-                change_summary=latest_change,
-            )
+
+            if existing_revision is None:
+                insert_knowledge_revision(
+                    connection,
+                    revision_id=revision_id,
+                    object_id=document.knowledge_object_id,
+                    revision_number=revision_number,
+                    revision_state=revision_state,
+                    source_path=document.relative_path,
+                    content_hash=revision_hash,
+                    body_markdown=document.body,
+                    normalized_payload_json=normalized_metadata_json,
+                    legacy_metadata_json=json_dump(document.metadata),
+                    imported_at=now_iso,
+                    change_summary=latest_change,
+                )
 
             object_services = parsed.related_services
             if parsed.object_type == "service_record":
@@ -275,6 +262,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                     source="service_record",
                 )
 
+            delete_source_sync_relationships(connection, document.knowledge_object_id)
             for service_name in object_services:
                 service_id = seeded_services.get(service_name, _service_id(service_name))
                 if service_name not in seeded_services:
@@ -292,7 +280,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                         common_failure_modes_json=json_dump([]),
                         source="observed_relationship",
                     )
-                _insert_relationship(
+                _sync_relationship(
                     connection,
                     source_entity_type="knowledge_object",
                     source_entity_id=document.knowledge_object_id,
@@ -303,7 +291,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                 )
 
             for related_object_id in parsed.related_object_ids:
-                _insert_relationship(
+                _sync_relationship(
                     connection,
                     source_entity_type="knowledge_object",
                     source_entity_id=document.knowledge_object_id,
@@ -315,7 +303,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
 
             superseded_by = parsed.metadata.get("superseded_by")
             if superseded_by:
-                _insert_relationship(
+                _sync_relationship(
                     connection,
                     source_entity_type="knowledge_object",
                     source_entity_id=document.knowledge_object_id,
@@ -326,7 +314,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                 )
 
             for related_runbook in parsed.metadata.get("related_runbooks", []):
-                _insert_relationship(
+                _sync_relationship(
                     connection,
                     source_entity_type="knowledge_object",
                     source_entity_id=document.knowledge_object_id,
@@ -337,7 +325,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                 )
 
             for related_known_error in parsed.metadata.get("related_known_errors", []):
-                _insert_relationship(
+                _sync_relationship(
                     connection,
                     source_entity_type="knowledge_object",
                     source_entity_id=document.knowledge_object_id,
@@ -347,6 +335,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                     provenance="source_sync",
                 )
 
+            delete_citations_for_revision(connection, revision_id)
             for index, citation in enumerate(parsed.citations, start=1):
                 insert_citation(
                     connection,
@@ -363,7 +352,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                     integrity_hash=str(citation.get("integrity_hash")) if citation.get("integrity_hash") is not None else None,
                 )
 
-            _insert_search_document(
+            upsert_search_document(
                 connection,
                 object_id=document.knowledge_object_id,
                 revision_id=revision_id,
@@ -374,47 +363,69 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                 status=str(parsed.metadata["status"]),
                 owner=str(parsed.metadata["owner"]),
                 team=str(parsed.metadata["team"]),
-                trust_state=parsed.trust_state,
-                approval_state=parsed.approval_state,
+                trust_state=trust_state,
+                approval_state=revision_state,
                 freshness_rank=parsed.freshness_rank,
                 citation_health_rank=parsed.citation_health_rank,
                 ownership_rank=parsed.ownership_rank,
                 path=document.relative_path,
                 search_text=summarize_for_search(document),
+            )
+            replace_fts_document(
+                connection,
+                object_id=document.knowledge_object_id,
+                title=str(parsed.metadata["title"]),
+                summary=str(parsed.metadata["summary"]),
                 body=document.body,
                 tags=list(parsed.metadata.get("tags", [])),
                 systems=list(parsed.metadata.get("systems", [])),
                 services=object_services,
-                has_fts5=has_fts5,
             )
 
-            insert_audit_event(
-                connection,
-                event_id=f"sync-{document.knowledge_object_id}",
-                event_type="source_synced",
-                occurred_at=now,
-                actor="sync_flow",
-                object_id=document.knowledge_object_id,
-                revision_id=revision_id,
-                details_json=json_dump(
-                    {
-                        "object_type": parsed.object_type,
-                        "source_path": document.relative_path,
-                        "citation_count": len(parsed.citations),
-                        "service_count": len(object_services),
-                    }
-                ),
-            )
+            if existing_object is None:
+                insert_audit_event(
+                    connection,
+                    event_id=_event_id("source-object-ingested", document.knowledge_object_id, revision_id, now_iso),
+                    event_type="source_object_ingested",
+                    occurred_at=now_iso,
+                    actor="sync_flow",
+                    object_id=document.knowledge_object_id,
+                    revision_id=revision_id,
+                    details_json=json_dump(
+                        {
+                            "object_type": parsed.object_type,
+                            "source_path": document.relative_path,
+                            "revision_number": revision_number,
+                        }
+                    ),
+                )
+            elif existing_object["current_revision_id"] != revision_id:
+                insert_audit_event(
+                    connection,
+                    event_id=_event_id("source-revision-detected", document.knowledge_object_id, revision_id, now_iso),
+                    event_type="source_revision_detected",
+                    occurred_at=now_iso,
+                    actor="sync_flow",
+                    object_id=document.knowledge_object_id,
+                    revision_id=revision_id,
+                    details_json=json_dump(
+                        {
+                            "source_path": document.relative_path,
+                            "previous_revision_id": existing_object["current_revision_id"],
+                            "revision_number": revision_number,
+                        }
+                    ),
+                )
 
         insert_audit_event(
             connection,
-            event_id="audit-validation-sync-build",
+            event_id=_event_id("validation-recorded", None, None, now_iso),
             event_type="validation_recorded",
-            occurred_at=now,
+            occurred_at=now_iso,
             actor="sync_flow",
             object_id=None,
             revision_id=None,
-            details_json=json_dump({"run_id": "validation-sync-build"}),
+            details_json=json_dump({"run_id": validation_run_id}),
         )
         connection.commit()
     finally:

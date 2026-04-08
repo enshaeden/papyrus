@@ -1,21 +1,25 @@
 from __future__ import annotations
 
+import datetime as dt
 import re
 from typing import Any, Iterable
 
 from papyrus.application.impact_flow import find_possible_duplicate_documents
 from papyrus.domain.entities import KnowledgeDocument, ValidationIssue
+from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.parser import (
     collect_broken_markdown_links,
     collect_broken_rendered_site_links,
     extract_markdown_title,
     normalize_object_metadata,
 )
-from papyrus.infrastructure.markdown.serializer import ensure_iso_date, parse_iso_date, similarity_ratio
+from papyrus.infrastructure.markdown.serializer import ensure_iso_date, json_dump, parse_iso_date, similarity_ratio
+from papyrus.infrastructure.migrations import apply_runtime_schema
 from papyrus.infrastructure.paths import (
     ADDRESS_PATTERN,
     BRANDED_ADMIN_PATTERNS,
     BUILD_DIR,
+    DB_PATH,
     DOMAIN_PATTERN,
     EMAIL_PATTERN,
     GENERATED_DIR,
@@ -33,6 +37,7 @@ from papyrus.infrastructure.paths import (
     TEMPLATE_DIR,
     relative_path,
 )
+from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
 from papyrus.infrastructure.repositories.knowledge_repo import (
     collect_article_paths,
     collect_decision_paths,
@@ -45,7 +50,8 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     load_schema,
     load_taxonomies,
 )
-from papyrus.infrastructure.search.indexer import site_knowledge_output_path, site_relative_path_for_repo_path
+from papyrus.infrastructure.repositories.validation_repo import insert_validation_run
+from papyrus.infrastructure.search.indexer import fts5_available, site_knowledge_output_path, site_relative_path_for_repo_path
 
 
 def validate_field(
@@ -501,6 +507,56 @@ def validate_repository(include_rendered_site: bool = False) -> list[ValidationI
 
     issues.extend(validate_sanitization(collect_sanitization_paths(policy)))
     return issues
+
+
+def record_validation_run(
+    *,
+    database_path=DB_PATH,
+    run_id: str,
+    run_type: str,
+    status: str,
+    finding_count: int,
+    details: dict[str, Any],
+    actor: str,
+    started_at: dt.datetime | None = None,
+    completed_at: dt.datetime | None = None,
+) -> str:
+    started = started_at or dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    completed = completed_at or started
+    connection = open_runtime_database(database_path, minimum_schema_version=RUNTIME_SCHEMA_VERSION)
+    try:
+        apply_runtime_schema(connection, has_fts5=fts5_available(connection))
+        connection.execute(
+            "INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+            (RUNTIME_SCHEMA_VERSION, started.isoformat()),
+        )
+        insert_validation_run(
+            connection,
+            run_id=run_id,
+            run_type=run_type,
+            started_at=started.isoformat(),
+            completed_at=completed.isoformat(),
+            status=status,
+            finding_count=finding_count,
+            details_json=json_dump(details),
+        )
+        insert_audit_event(
+            connection,
+            event_id=f"validation-run-{run_id}",
+            event_type="validation_run_recorded",
+            occurred_at=completed.isoformat(),
+            actor=actor,
+            object_id=None,
+            revision_id=None,
+            details_json=json_dump({"run_id": run_id, "run_type": run_type, "status": status}),
+        )
+        connection.commit()
+        return run_id
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
 
 
 def orphaned_files(policy: dict[str, Any], documents: list[KnowledgeDocument]) -> list[str]:

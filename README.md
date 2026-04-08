@@ -2,7 +2,7 @@
 
 Papyrus is a local-first governed operational knowledge control plane for IT support and systems operations.
 
-Canonical authored knowledge remains in portable Markdown with YAML front matter under `knowledge/` and `archive/knowledge/`. Runtime state, validation, search, reporting, and future review workflows are being moved into an application package under `src/papyrus/`. Generated artifacts remain rebuildable and non-authoritative.
+Canonical authored knowledge remains in portable Markdown with YAML front matter under `knowledge/` and `archive/knowledge/`. Runtime state, validation, search, reporting, and governance workflows now live in an application package under `src/papyrus/`. Generated artifacts remain rebuildable and non-authoritative.
 
 ## What Papyrus Must Answer
 
@@ -14,13 +14,15 @@ Canonical authored knowledge remains in portable Markdown with YAML front matter
 
 ## Current Refactor Boundary
 
-Phases 1-4 are implemented.
+Phases 1-5 are implemented.
 
 - The repository framing is now knowledge-object centric instead of article centric.
 - Canonical authored source is still Markdown under `knowledge/` and `archive/knowledge/`.
 - The `src/papyrus/` package now owns reusable runtime logic instead of `scripts/kb_common.py`.
 - Typed source schemas now live under `schemas/knowledge_objects/` for `runbook`, `known_error`, and `service_record`.
 - `scripts/build_index.py` now rebuilds a relational SQLite runtime with first-class knowledge objects, revisions, citations, services, relationships, validation runs, review assignments, and audit events.
+- Governance workflows now create revisions, submit them for review, assign reviewers, approve or reject revisions, supersede objects, record validation runs, and mark objects suspect due to change through the application layer.
+- Source sync preserves existing runtime review state and audit history instead of resetting the database on every rebuild.
 - CLI scripts remain first-class operator entrypoints, but they are wrappers over application services.
 - MkDocs, `generated/`, and `site/` remain derived export concerns, not the primary product surface.
 - The legacy universal article schema remains only as a migration compatibility shim.

@@ -6,12 +6,12 @@ import sqlite3
 def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None:
     connection.executescript(
         """
-        CREATE TABLE schema_migrations (
+        CREATE TABLE IF NOT EXISTS schema_migrations (
             version INTEGER PRIMARY KEY,
             applied_at TEXT NOT NULL
         );
 
-        CREATE TABLE knowledge_objects (
+        CREATE TABLE IF NOT EXISTS knowledge_objects (
             object_id TEXT PRIMARY KEY,
             object_type TEXT NOT NULL,
             legacy_type TEXT,
@@ -29,12 +29,12 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             last_reviewed TEXT NOT NULL,
             review_cadence TEXT NOT NULL,
             trust_state TEXT NOT NULL,
-            current_revision_id TEXT NOT NULL,
+            current_revision_id TEXT,
             tags_json TEXT NOT NULL,
             systems_json TEXT NOT NULL
         );
 
-        CREATE TABLE knowledge_revisions (
+        CREATE TABLE IF NOT EXISTS knowledge_revisions (
             revision_id TEXT PRIMARY KEY,
             object_id TEXT NOT NULL REFERENCES knowledge_objects(object_id),
             revision_number INTEGER NOT NULL,
@@ -49,7 +49,7 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             UNIQUE(object_id, revision_number)
         );
 
-        CREATE TABLE citations (
+        CREATE TABLE IF NOT EXISTS citations (
             citation_id TEXT PRIMARY KEY,
             revision_id TEXT NOT NULL REFERENCES knowledge_revisions(revision_id),
             claim_anchor TEXT,
@@ -63,7 +63,7 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             integrity_hash TEXT
         );
 
-        CREATE TABLE services (
+        CREATE TABLE IF NOT EXISTS services (
             service_id TEXT PRIMARY KEY,
             service_name TEXT NOT NULL UNIQUE,
             canonical_object_id TEXT,
@@ -77,7 +77,7 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             source TEXT NOT NULL
         );
 
-        CREATE TABLE relationships (
+        CREATE TABLE IF NOT EXISTS relationships (
             relationship_id TEXT PRIMARY KEY,
             source_entity_type TEXT NOT NULL,
             source_entity_id TEXT NOT NULL,
@@ -87,7 +87,7 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             provenance TEXT NOT NULL
         );
 
-        CREATE TABLE review_assignments (
+        CREATE TABLE IF NOT EXISTS review_assignments (
             assignment_id TEXT PRIMARY KEY,
             object_id TEXT NOT NULL,
             revision_id TEXT,
@@ -98,7 +98,7 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             notes TEXT
         );
 
-        CREATE TABLE validation_runs (
+        CREATE TABLE IF NOT EXISTS validation_runs (
             run_id TEXT PRIMARY KEY,
             run_type TEXT NOT NULL,
             started_at TEXT NOT NULL,
@@ -108,7 +108,7 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             details_json TEXT NOT NULL
         );
 
-        CREATE TABLE audit_events (
+        CREATE TABLE IF NOT EXISTS audit_events (
             event_id TEXT PRIMARY KEY,
             event_type TEXT NOT NULL,
             occurred_at TEXT NOT NULL,
@@ -118,7 +118,7 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             details_json TEXT NOT NULL
         );
 
-        CREATE TABLE search_documents (
+        CREATE TABLE IF NOT EXISTS search_documents (
             object_id TEXT PRIMARY KEY REFERENCES knowledge_objects(object_id),
             revision_id TEXT NOT NULL REFERENCES knowledge_revisions(revision_id),
             title TEXT NOT NULL,
@@ -137,20 +137,20 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             search_text TEXT NOT NULL
         );
 
-        CREATE INDEX idx_objects_type_status ON knowledge_objects(object_type, status);
-        CREATE INDEX idx_revisions_object ON knowledge_revisions(object_id);
-        CREATE INDEX idx_citations_revision ON citations(revision_id);
-        CREATE INDEX idx_relationships_source ON relationships(source_entity_type, source_entity_id);
-        CREATE INDEX idx_relationships_target ON relationships(target_entity_type, target_entity_id);
-        CREATE INDEX idx_services_name ON services(service_name);
-        CREATE INDEX idx_search_documents_status ON search_documents(status);
+        CREATE INDEX IF NOT EXISTS idx_objects_type_status ON knowledge_objects(object_type, status);
+        CREATE INDEX IF NOT EXISTS idx_revisions_object ON knowledge_revisions(object_id);
+        CREATE INDEX IF NOT EXISTS idx_citations_revision ON citations(revision_id);
+        CREATE INDEX IF NOT EXISTS idx_relationships_source ON relationships(source_entity_type, source_entity_id);
+        CREATE INDEX IF NOT EXISTS idx_relationships_target ON relationships(target_entity_type, target_entity_id);
+        CREATE INDEX IF NOT EXISTS idx_services_name ON services(service_name);
+        CREATE INDEX IF NOT EXISTS idx_search_documents_status ON search_documents(status);
         """
     )
 
     if has_fts5:
         connection.execute(
             """
-            CREATE VIRTUAL TABLE knowledge_search USING fts5(
+            CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_search USING fts5(
                 object_id UNINDEXED,
                 title,
                 summary,

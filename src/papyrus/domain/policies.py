@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from papyrus.domain.value_objects import KnowledgeObjectType
+from papyrus.domain.value_objects import KnowledgeObjectType, RevisionReviewStatus, TrustState
 
 
 SUPPORTED_KNOWLEDGE_OBJECT_TYPES = (
@@ -57,6 +57,20 @@ def approval_state_for_status(status: str) -> str:
     return "approved" if status in {"active", "deprecated", "archived"} else "draft"
 
 
+def approval_state_for_revision_state(revision_state: str) -> str:
+    if revision_state == RevisionReviewStatus.APPROVED.value:
+        return RevisionReviewStatus.APPROVED.value
+    return revision_state
+
+
+def bootstrap_revision_state(status: str) -> str:
+    return (
+        RevisionReviewStatus.APPROVED.value
+        if status in {"active", "deprecated", "archived"}
+        else RevisionReviewStatus.DRAFT.value
+    )
+
+
 def ownership_rank(owner: str) -> int:
     return 1 if owner.strip() in PLACEHOLDER_OWNER_VALUES else 0
 
@@ -91,9 +105,29 @@ def trust_state(
     ownership_rank_value: int,
 ) -> str:
     if freshness_rank_value > 0:
-        return "stale"
+        return TrustState.STALE.value
     if citation_health_rank_value > 0:
-        return "weak_evidence"
+        return TrustState.WEAK_EVIDENCE.value
     if ownership_rank_value > 0:
-        return "suspect"
-    return "trusted" if status != "draft" else "suspect"
+        return TrustState.SUSPECT.value
+    return TrustState.TRUSTED.value if status != "draft" else TrustState.SUSPECT.value
+
+
+def runtime_trust_state(
+    *,
+    base_trust_state: str,
+    revision_state: str,
+    existing_trust_state: str | None = None,
+    preserve_existing_warning: bool = True,
+) -> str:
+    if revision_state != RevisionReviewStatus.APPROVED.value:
+        return TrustState.SUSPECT.value
+    if base_trust_state != TrustState.TRUSTED.value:
+        return base_trust_state
+    if preserve_existing_warning and existing_trust_state in {
+        TrustState.SUSPECT.value,
+        TrustState.STALE.value,
+        TrustState.WEAK_EVIDENCE.value,
+    }:
+        return str(existing_trust_state)
+    return TrustState.TRUSTED.value

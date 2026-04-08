@@ -139,13 +139,16 @@ class CliWorkflowTests(unittest.TestCase):
         build_result = run_command("scripts/build_index.py")
         self.assertEqual(build_result.returncode, 0, msg=build_result.stderr)
         self.assertIn("knowledge.db", build_result.stdout)
-        with sqlite3.connect(ROOT / "build" / "knowledge.db") as connection:
+        connection = sqlite3.connect(ROOT / "build" / "knowledge.db")
+        try:
             table_names = {
                 row[0]
                 for row in connection.execute(
                     "SELECT name FROM sqlite_master WHERE type IN ('table', 'view')"
                 ).fetchall()
             }
+        finally:
+            connection.close()
         self.assertIn("knowledge_objects", table_names)
         self.assertIn("knowledge_revisions", table_names)
         self.assertIn("citations", table_names)

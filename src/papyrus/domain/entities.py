@@ -81,9 +81,12 @@ class Relationship:
 class ReviewAssignment:
     assignment_id: str
     object_id: str
-    revision_id: str
+    revision_id: str | None
     reviewer: str
     state: str
+    assigned_at: dt.datetime | None = None
+    due_at: dt.datetime | None = None
+    notes: str | None = None
 
 
 @dataclass(frozen=True)

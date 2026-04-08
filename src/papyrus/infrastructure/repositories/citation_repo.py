@@ -33,6 +33,17 @@ def insert_citation(
             validity_status,
             integrity_hash
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(citation_id) DO UPDATE SET
+            revision_id = excluded.revision_id,
+            claim_anchor = excluded.claim_anchor,
+            source_type = excluded.source_type,
+            source_ref = excluded.source_ref,
+            source_title = excluded.source_title,
+            note = excluded.note,
+            excerpt = excluded.excerpt,
+            captured_at = excluded.captured_at,
+            validity_status = excluded.validity_status,
+            integrity_hash = excluded.integrity_hash
         """,
         (
             citation_id,
@@ -48,3 +59,7 @@ def insert_citation(
             integrity_hash,
         ),
     )
+
+
+def delete_citations_for_revision(connection: sqlite3.Connection, revision_id: str) -> None:
+    connection.execute("DELETE FROM citations WHERE revision_id = ?", (revision_id,))

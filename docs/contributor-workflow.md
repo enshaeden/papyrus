@@ -73,6 +73,7 @@ python3 scripts/build_index.py
 ```
 
 This rebuilds the local relational SQLite runtime used by search and reporting. The runtime is derived and rebuildable; the Markdown source remains authoritative.
+Current review assignments, audit events, validation runs, and revision states are preserved across sync runs.
 
 ## Search Locally
 

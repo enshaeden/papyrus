@@ -4,13 +4,14 @@ Papyrus is being refactored from an article-centric Markdown repository into a g
 
 ## Current State
 
-Phase 1 through Phase 4 establish the current control-plane spine.
+Phase 1 through Phase 5 establish the current control-plane spine.
 
 - Canonical authored source remains Markdown with YAML front matter under `knowledge/` and `archive/knowledge/`.
 - Core runtime logic moves into `src/papyrus/`.
 - Existing CLI entrypoints remain in place, but become wrappers over application services.
 - Typed source schemas now live under `schemas/knowledge_objects/`.
 - The local SQLite runtime now models knowledge objects, revisions, citations, services, relationships, validation runs, review assignments, and audit events.
+- Deterministic governance workflows now create objects, create revisions, submit revisions for review, assign reviewers, approve or reject revisions, supersede objects, record validation runs, and mark objects suspect due to change.
 - The flat article schema remains only as a migration compatibility structure.
 
 ## Domain Focus
@@ -54,7 +55,7 @@ Papyrus separates:
 - revision review lifecycle
 - trust posture
 
-During the transition, source files still carry compatibility fields such as `services`, `related_articles`, and `references` so legacy tooling can be bridged safely. Later phases will deepen workflow behavior around review assignment, approval, rejection, supersession, and suspect-state handling.
+During the transition, source files still carry compatibility fields such as `services`, `related_articles`, and `references` so legacy tooling can be bridged safely. Current workflow state lives in the runtime database and is preserved across source sync runs. Later phases will add broader operator surfaces on top of the same workflow services.
 
 ## Sync Model
 
@@ -71,7 +72,7 @@ The sync boundary is one-way with respect to authority:
 - runtime state is derived and rebuildable
 - exports are derived from source plus runtime logic
 
-The current sync flow ingests canonical Markdown source into a relational runtime that preserves object identity separately from revision identity.
+The current sync flow ingests canonical Markdown source into a relational runtime that preserves object identity separately from revision identity and does not wipe workflow state on rebuild.
 
 ## Layered Runtime Design
 

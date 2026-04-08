@@ -4,9 +4,10 @@ from typing import Any
 
 import yaml
 
-from papyrus.domain.entities import DocsPlacementWarning, DuplicateCandidate, KnowledgeDocument
+from papyrus.domain.entities import AuditEvent, DocsPlacementWarning, DuplicateCandidate, KnowledgeDocument
 from papyrus.infrastructure.markdown.parser import extract_markdown_title
 from papyrus.infrastructure.markdown.serializer import similarity_ratio
+from papyrus.infrastructure.paths import DB_PATH
 from papyrus.infrastructure.paths import (
     DOCS_OPERATOR_LANGUAGE_PATTERNS,
     FRONT_MATTER_PATTERN,
@@ -180,3 +181,24 @@ def missing_owner_documents(documents: list[KnowledgeDocument]) -> list[Knowledg
 
 def documents_missing_list_field(documents: list[KnowledgeDocument], field_name: str) -> list[KnowledgeDocument]:
     return [document for document in documents if not document.metadata.get(field_name)]
+
+
+def mark_object_suspect_due_to_change(
+    *,
+    object_id: str,
+    actor: str,
+    reason: str,
+    changed_entity_type: str,
+    changed_entity_id: str | None = None,
+    database_path=DB_PATH,
+) -> AuditEvent:
+    from papyrus.application.review_flow import mark_object_suspect_due_to_change as review_flow_mark_suspect
+
+    return review_flow_mark_suspect(
+        database_path=database_path,
+        object_id=object_id,
+        actor=actor,
+        reason=reason,
+        changed_entity_type=changed_entity_type,
+        changed_entity_id=changed_entity_id,
+    )

@@ -24,6 +24,13 @@ class RevisionReviewStatus(StrEnum):
     SUPERSEDED = "superseded"
 
 
+class ReviewAssignmentState(StrEnum):
+    ASSIGNED = "assigned"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
 class TrustState(StrEnum):
     TRUSTED = "trusted"
     SUSPECT = "suspect"
@@ -36,4 +43,3 @@ class CitationValidityStatus(StrEnum):
     UNVERIFIED = "unverified"
     BROKEN = "broken"
     STALE = "stale"
-
