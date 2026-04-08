@@ -1,0 +1,14 @@
+<header class="topbar">
+  <div class="identity-block">
+    <a class="identity-mark" href="/queue">Papyrus</a>
+    <p class="identity-copy">Governed operational knowledge</p>
+  </div>
+  <form class="search-form" action="/queue" method="get">
+    <label class="sr-only" for="global-search">Search Papyrus</label>
+    <input id="global-search" name="query" type="search" placeholder="Search operational knowledge" value="{{ search_value }}" />
+    <button type="submit">Search</button>
+  </form>
+  <nav class="quick-links">
+    {{ quick_links_html }}
+  </nav>
+</header>

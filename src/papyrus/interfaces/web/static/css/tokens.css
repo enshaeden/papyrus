@@ -1,0 +1,32 @@
+:root {
+  --bg: #f3f0e8;
+  --panel: #fcfaf6;
+  --panel-strong: #f8f4ee;
+  --line: #d7d1c4;
+  --line-strong: #bfb6a4;
+  --text: #202522;
+  --muted: #5a635d;
+  --accent: #36584b;
+  --accent-soft: #dce7e0;
+  --pending: #7a6423;
+  --pending-soft: #f0e7cb;
+  --warning: #8a5427;
+  --warning-soft: #f3e1d1;
+  --danger: #8d3438;
+  --danger-soft: #f3d6d8;
+  --muted-soft: #e6e0d3;
+  --shadow: 0 18px 50px rgba(38, 42, 39, 0.08);
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --font-sans: "Avenir Next", "Segoe UI", sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-mono: "SFMono-Regular", Consolas, monospace;
+}

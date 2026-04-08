@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page_title }} | Papyrus</title>
+  <link rel="stylesheet" href="/static/css/tokens.css" />
+  <link rel="stylesheet" href="/static/css/layout.css" />
+  <link rel="stylesheet" href="/static/css/components.css" />
+  <link rel="stylesheet" href="/static/css/pages.css" />
+</head>
+<body>
+  <div class="app-shell">
+    {{ topbar_html }}
+    <div class="shell-columns">
+      {{ sidebar_html }}
+      <main class="main-column">
+        <header class="page-header">
+          <p class="page-kicker">{{ kicker }}</p>
+          <h1>{{ headline }}</h1>
+          <p class="page-intro">{{ intro }}</p>
+        </header>
+        {{ flash_html }}
+        {{ action_bar_html }}
+        {{ content_html }}
+      </main>
+      <aside class="context-column">
+        {{ aside_html }}
+      </aside>
+    </div>
+  </div>
+  <script src="/static/js/filters.js" defer></script>
+  <script src="/static/js/disclosure.js" defer></script>
+  <script src="/static/js/forms.js" defer></script>
+  {{ scripts_html }}
+</body>
+</html>

@@ -5,6 +5,7 @@ import json
 import sqlite3
 import sys
 import tempfile
+import urllib.parse
 import unittest
 from pathlib import Path
 
@@ -17,22 +18,43 @@ from papyrus.interfaces.api import app as api_app
 from papyrus.interfaces.web import app as web_app
 
 
-def call_wsgi(application, path: str) -> tuple[str, dict[str, str], str]:
+def call_wsgi(
+    application,
+    path: str,
+    *,
+    method: str = "GET",
+    form: dict[str, object] | None = None,
+    json_payload: dict[str, object] | None = None,
+) -> tuple[str, dict[str, str], str]:
     status_holder: dict[str, object] = {}
 
     def start_response(status: str, headers: list[tuple[str, str]]) -> None:
         status_holder["status"] = status
         status_holder["headers"] = {name: value for name, value in headers}
 
+    if json_payload is not None:
+        body = json.dumps(json_payload).encode("utf-8")
+        content_type = "application/json"
+    else:
+        body = urllib.parse.urlencode(form or {}, doseq=True).encode("utf-8")
+        content_type = "application/x-www-form-urlencoded"
+
+    if "?" in path:
+        path_info, query_string = path.split("?", 1)
+    else:
+        path_info, query_string = path, ""
+
     environ = {
-        "REQUEST_METHOD": "GET",
-        "PATH_INFO": path,
-        "QUERY_STRING": "",
+        "REQUEST_METHOD": method,
+        "PATH_INFO": path_info,
+        "QUERY_STRING": query_string,
+        "CONTENT_TYPE": content_type,
+        "CONTENT_LENGTH": str(len(body)),
         "SERVER_NAME": "testserver",
         "SERVER_PORT": "80",
         "wsgi.version": (1, 0),
         "wsgi.url_scheme": "http",
-        "wsgi.input": io.BytesIO(b""),
+        "wsgi.input": io.BytesIO(body),
         "wsgi.errors": io.StringIO(),
         "wsgi.multithread": False,
         "wsgi.multiprocess": False,
@@ -93,6 +115,16 @@ class InterfaceSurfaceTests(unittest.TestCase):
         self.assertIn("object_count", dashboard_payload)
         self.assertIn("queue", dashboard_payload)
 
+        status, _, body = call_wsgi(application, "/services")
+        self.assertEqual(status, "200 OK")
+        services_payload = json.loads(body)
+        self.assertIn("services", services_payload)
+
+        status, _, body = call_wsgi(application, "/manage/queue")
+        self.assertEqual(status, "200 OK")
+        manage_payload = json.loads(body)
+        self.assertIn("review_required", manage_payload)
+
         status, _, body = call_wsgi(application, "/impact/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
         impact_payload = json.loads(body)
@@ -110,7 +142,8 @@ class InterfaceSurfaceTests(unittest.TestCase):
         status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
         self.assertIn("VPN Troubleshooting", body)
-        self.assertIn("Revision History", body)
+        self.assertIn("Revision history", body)
+        self.assertIn("Supporting citations", body)
 
         status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity/revisions")
         self.assertEqual(status, "200 OK")
@@ -124,9 +157,61 @@ class InterfaceSurfaceTests(unittest.TestCase):
         self.assertEqual(status, "200 OK")
         self.assertIn("Trust Dashboard", body)
 
+        status, _, body = call_wsgi(application, "/services")
+        self.assertEqual(status, "200 OK")
+        self.assertIn("Service catalog", body)
+
+        status, _, body = call_wsgi(application, "/manage/queue")
+        self.assertEqual(status, "200 OK")
+        self.assertIn("Review Queue", body)
+
+        status, _, body = call_wsgi(application, "/manage/audit")
+        self.assertEqual(status, "200 OK")
+        self.assertIn("Audit And Governance", body)
+
         status, _, body = call_wsgi(application, "/impact/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
         self.assertIn("Impact", body)
+
+    def test_web_errors_and_method_guards_render_explicit_pages(self) -> None:
+        application = web_app(self.database_path)
+
+        status, _, body = call_wsgi(application, "/not-a-real-route")
+        self.assertEqual(status, "404 Not Found")
+        self.assertIn("Not found", body)
+
+        status, _, body = call_wsgi(application, "/queue", method="POST", form={"query": "vpn"})
+        self.assertEqual(status, "405 Method Not Allowed")
+        self.assertIn("Method not allowed", body)
+
+    def test_api_write_endpoint_creates_object(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "workflow.db"
+            build_search_projection(database_path)
+            application = api_app(database_path)
+
+            status, _, body = call_wsgi(
+                application,
+                "/objects",
+                method="POST",
+                json_payload={
+                    "object_id": "kb-api-created-object",
+                    "object_type": "runbook",
+                    "title": "API Created Object",
+                    "summary": "Created through API workflow coverage.",
+                    "owner": "api_owner",
+                    "team": "IT Operations",
+                    "canonical_path": "knowledge/runbooks/api-created-object.md",
+                    "actor": "tests",
+                    "review_cadence": "quarterly",
+                    "status": "draft",
+                    "systems": ["<VPN_SERVICE>"],
+                    "tags": ["vpn"],
+                },
+            )
+            self.assertEqual(status, "201 Created")
+            payload = json.loads(body)
+            self.assertEqual(payload["object_id"], "kb-api-created-object")
 
 
 if __name__ == "__main__":

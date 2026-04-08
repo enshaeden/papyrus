@@ -269,6 +269,106 @@ def knowledge_queue(
         connection.close()
 
 
+def search_knowledge_objects(
+    query: str,
+    *,
+    limit: int = 50,
+    database_path: str | Path = DB_PATH,
+) -> list[dict[str, Any]]:
+    connection = require_runtime_connection(database_path)
+    try:
+        has_fts = connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='knowledge_search'"
+        ).fetchone()
+        if has_fts:
+            rows = connection.execute(
+                """
+                SELECT
+                    d.object_id,
+                    d.title,
+                    d.object_type,
+                    d.status,
+                    d.owner,
+                    d.team,
+                    d.path,
+                    d.trust_state,
+                    d.approval_state,
+                    d.freshness_rank,
+                    d.citation_health_rank,
+                    d.ownership_rank
+                FROM knowledge_search AS s
+                JOIN search_documents AS d ON d.object_id = s.object_id
+                WHERE knowledge_search MATCH ?
+                ORDER BY
+                    CASE d.trust_state
+                        WHEN 'stale' THEN 0
+                        WHEN 'weak_evidence' THEN 1
+                        WHEN 'suspect' THEN 2
+                        ELSE 3
+                    END,
+                    d.citation_health_rank DESC,
+                    d.freshness_rank DESC,
+                    bm25(knowledge_search),
+                    d.title
+                LIMIT ?
+                """,
+                (query, limit),
+            ).fetchall()
+        else:
+            like_query = f"%{query}%"
+            rows = connection.execute(
+                """
+                SELECT
+                    object_id,
+                    title,
+                    object_type,
+                    status,
+                    owner,
+                    team,
+                    path,
+                    trust_state,
+                    approval_state,
+                    freshness_rank,
+                    citation_health_rank,
+                    ownership_rank
+                FROM search_documents
+                WHERE search_text LIKE ?
+                ORDER BY
+                    CASE trust_state
+                        WHEN 'stale' THEN 0
+                        WHEN 'weak_evidence' THEN 1
+                        WHEN 'suspect' THEN 2
+                        ELSE 3
+                    END,
+                    citation_health_rank DESC,
+                    freshness_rank DESC,
+                    title
+                LIMIT ?
+                """,
+                (like_query, limit),
+            ).fetchall()
+        return [
+            {
+                "object_id": str(row["object_id"]),
+                "title": str(row["title"]),
+                "object_type": str(row["object_type"]),
+                "status": str(row["status"]),
+                "owner": str(row["owner"]),
+                "team": str(row["team"]),
+                "path": str(row["path"]),
+                "trust_state": str(row["trust_state"]),
+                "approval_state": str(row["approval_state"]),
+                "freshness_rank": int(row["freshness_rank"]),
+                "citation_health_rank": int(row["citation_health_rank"]),
+                "ownership_rank": int(row["ownership_rank"]),
+                "reasons": _queue_reasons(row),
+            }
+            for row in rows
+        ]
+    finally:
+        connection.close()
+
+
 def knowledge_object_detail(
     object_id: str,
     *,
@@ -656,6 +756,63 @@ def service_detail(
         connection.close()
 
 
+def service_catalog(
+    *,
+    database_path: str | Path = DB_PATH,
+) -> list[dict[str, Any]]:
+    connection = require_runtime_connection(database_path)
+    try:
+        rows = connection.execute(
+            """
+            SELECT
+                s.service_id,
+                s.service_name,
+                s.status,
+                s.service_criticality,
+                s.owner,
+                s.team,
+                s.canonical_object_id,
+                COUNT(DISTINCT r.source_entity_id) AS linked_object_count
+            FROM services AS s
+            LEFT JOIN relationships AS r
+              ON r.target_entity_type = 'service'
+             AND r.target_entity_id = s.service_id
+            GROUP BY
+                s.service_id,
+                s.service_name,
+                s.status,
+                s.service_criticality,
+                s.owner,
+                s.team,
+                s.canonical_object_id
+            ORDER BY
+                CASE s.service_criticality
+                    WHEN 'critical' THEN 0
+                    WHEN 'high' THEN 1
+                    WHEN 'moderate' THEN 2
+                    WHEN 'low' THEN 3
+                    ELSE 4
+                END,
+                s.service_name
+            """
+        ).fetchall()
+        return [
+            {
+                "service_id": str(row["service_id"]),
+                "service_name": str(row["service_name"]),
+                "status": str(row["status"]),
+                "service_criticality": str(row["service_criticality"]),
+                "owner": str(row["owner"]) if row["owner"] is not None else "",
+                "team": str(row["team"]) if row["team"] is not None else "",
+                "canonical_object_id": str(row["canonical_object_id"]) if row["canonical_object_id"] is not None else None,
+                "linked_object_count": int(row["linked_object_count"] or 0),
+            }
+            for row in rows
+        ]
+    finally:
+        connection.close()
+
+
 def trust_dashboard(
     *,
     database_path: str | Path = DB_PATH,
@@ -714,6 +871,294 @@ def trust_dashboard(
             "queue": knowledge_queue(limit=25, database_path=database_path),
             "validation_runs": validation_runs,
         }
+    finally:
+        connection.close()
+
+
+def manage_queue(
+    *,
+    limit: int = 200,
+    database_path: str | Path = DB_PATH,
+) -> dict[str, Any]:
+    connection = require_runtime_connection(database_path)
+    try:
+        rows = connection.execute(
+            """
+            SELECT
+                o.object_id,
+                o.object_type,
+                o.title,
+                o.status,
+                o.owner,
+                o.team,
+                o.canonical_path,
+                o.trust_state,
+                o.current_revision_id,
+                COALESCE(r.revision_id, '') AS revision_id,
+                COALESCE(r.revision_number, 0) AS revision_number,
+                COALESCE(r.revision_state, 'none') AS revision_state,
+                COALESCE(r.imported_at, '') AS imported_at,
+                COALESCE(r.change_summary, '') AS change_summary,
+                COALESCE(d.approval_state, CASE
+                    WHEN r.revision_state = 'in_review' THEN 'in_review'
+                    WHEN r.revision_state = 'draft' THEN 'draft'
+                    WHEN r.revision_state = 'rejected' THEN 'rejected'
+                    WHEN r.revision_state = 'approved' THEN 'approved'
+                    ELSE 'unknown'
+                END) AS approval_state,
+                COALESCE(d.freshness_rank, 0) AS freshness_rank,
+                COALESCE(d.citation_health_rank, 0) AS citation_health_rank,
+                COALESCE(d.ownership_rank, CASE WHEN TRIM(o.owner) = '' THEN 1 ELSE 0 END) AS ownership_rank,
+                COALESCE(d.path, o.canonical_path) AS path
+            FROM knowledge_objects AS o
+            LEFT JOIN knowledge_revisions AS r ON r.revision_id = o.current_revision_id
+            LEFT JOIN search_documents AS d ON d.object_id = o.object_id
+            ORDER BY
+                CASE COALESCE(r.revision_state, 'none')
+                    WHEN 'in_review' THEN 0
+                    WHEN 'draft' THEN 1
+                    WHEN 'rejected' THEN 2
+                    WHEN 'none' THEN 3
+                    ELSE 4
+                END,
+                CASE o.trust_state
+                    WHEN 'stale' THEN 0
+                    WHEN 'weak_evidence' THEN 1
+                    WHEN 'suspect' THEN 2
+                    ELSE 3
+                END,
+                freshness_rank DESC,
+                citation_health_rank DESC,
+                o.title
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        assignment_rows = connection.execute(
+            """
+            SELECT revision_id, reviewer, state, assigned_at, due_at, notes
+            FROM review_assignments
+            WHERE revision_id IS NOT NULL
+            ORDER BY assigned_at DESC
+            """
+        ).fetchall()
+        assignment_map: dict[str, dict[str, Any]] = {}
+        for row in assignment_rows:
+            revision_id = str(row["revision_id"])
+            if revision_id in assignment_map:
+                continue
+            assignment_map[revision_id] = {
+                "reviewer": str(row["reviewer"]),
+                "state": str(row["state"]),
+                "assigned_at": str(row["assigned_at"]),
+                "due_at": str(row["due_at"]) if row["due_at"] is not None else None,
+                "notes": str(row["notes"]) if row["notes"] is not None else None,
+            }
+
+        items: list[dict[str, Any]] = []
+        for row in rows:
+            item = {
+                "object_id": str(row["object_id"]),
+                "object_type": str(row["object_type"]),
+                "title": str(row["title"]),
+                "status": str(row["status"]),
+                "owner": str(row["owner"]),
+                "team": str(row["team"]),
+                "path": str(row["path"]),
+                "trust_state": str(row["trust_state"]),
+                "approval_state": str(row["approval_state"]),
+                "freshness_rank": int(row["freshness_rank"]),
+                "citation_health_rank": int(row["citation_health_rank"]),
+                "ownership_rank": int(row["ownership_rank"]),
+                "current_revision_id": str(row["current_revision_id"]) if row["current_revision_id"] is not None else None,
+                "revision_id": str(row["revision_id"]) or None,
+                "revision_number": int(row["revision_number"] or 0),
+                "revision_state": str(row["revision_state"]),
+                "change_summary": str(row["change_summary"]) if row["change_summary"] else None,
+                "imported_at": str(row["imported_at"]) if row["imported_at"] else None,
+                "assignment": assignment_map.get(str(row["revision_id"])),
+                "reasons": [],
+            }
+            if item["current_revision_id"] is None:
+                item["reasons"].append("no_revision")
+            if item["revision_state"] in {"draft", "rejected"}:
+                item["reasons"].append(f"revision:{item['revision_state']}")
+            if item["revision_state"] == "in_review":
+                item["reasons"].append("awaiting_review")
+            if item["approval_state"] != "approved":
+                item["reasons"].append(f"approval:{item['approval_state']}")
+            if item["freshness_rank"] > 0:
+                item["reasons"].append("review_due")
+            if item["citation_health_rank"] > 0:
+                item["reasons"].append(f"citation:{citation_health_label(item['citation_health_rank'])}")
+            if item["ownership_rank"] > 0 or not item["owner"].strip():
+                item["reasons"].append("ownership_unclear")
+            if item["trust_state"] != "trusted":
+                item["reasons"].append(f"trust:{item['trust_state']}")
+            items.append(item)
+
+        return {
+            "items": items,
+            "review_required": [item for item in items if item["revision_state"] == "in_review"],
+            "stale_items": [item for item in items if item["freshness_rank"] > 0],
+            "suspect_items": [item for item in items if item["trust_state"] != "trusted" or item["approval_state"] != "approved"],
+            "weak_evidence_items": [item for item in items if item["citation_health_rank"] > 0],
+            "ownership_items": [item for item in items if item["ownership_rank"] > 0 or not item["owner"].strip()],
+            "draft_items": [item for item in items if item["current_revision_id"] is None or item["revision_state"] in {"draft", "rejected"}],
+        }
+    finally:
+        connection.close()
+
+
+def review_detail(
+    object_id: str,
+    revision_id: str,
+    *,
+    database_path: str | Path = DB_PATH,
+) -> dict[str, Any]:
+    connection = require_runtime_connection(database_path)
+    try:
+        detail = knowledge_object_detail(object_id, database_path=database_path)
+        history = revision_history(object_id, database_path=database_path)
+        revision = next((item for item in history["revisions"] if item["revision_id"] == revision_id), None)
+        if revision is None:
+            raise KnowledgeObjectNotFoundError(f"revision not found for {object_id}: {revision_id}")
+        revision_row = connection.execute(
+            """
+            SELECT revision_id, object_id, revision_number, revision_state, imported_at, change_summary, body_markdown, normalized_payload_json
+            FROM knowledge_revisions
+            WHERE revision_id = ?
+            """,
+            (revision_id,),
+        ).fetchone()
+        if revision_row is None:
+            raise KnowledgeObjectNotFoundError(f"revision not found for {object_id}: {revision_id}")
+        citations = [
+            {
+                "citation_id": str(row["citation_id"]),
+                "source_title": str(row["source_title"]),
+                "source_type": str(row["source_type"]),
+                "source_ref": str(row["source_ref"]),
+                "note": str(row["note"]) if row["note"] is not None else None,
+                "validity_status": str(row["validity_status"]),
+            }
+            for row in connection.execute(
+                """
+                SELECT citation_id, source_title, source_type, source_ref, note, validity_status
+                FROM citations
+                WHERE revision_id = ?
+                ORDER BY citation_id
+                """,
+                (revision_id,),
+            ).fetchall()
+        ]
+        revision_audit = [
+            {
+                "event_type": str(row["event_type"]),
+                "occurred_at": str(row["occurred_at"]),
+                "actor": str(row["actor"]),
+                "details": _json_dict(row["details_json"]),
+            }
+            for row in connection.execute(
+                """
+                SELECT event_type, occurred_at, actor, details_json
+                FROM audit_events
+                WHERE object_id = ? AND revision_id = ?
+                ORDER BY occurred_at DESC
+                LIMIT 25
+                """,
+                (object_id, revision_id),
+            ).fetchall()
+        ]
+        return {
+            "object": detail["object"],
+            "current_revision": detail["current_revision"],
+            "revision": {
+                **revision,
+                "body_markdown": str(revision_row["body_markdown"]),
+                "metadata": _json_dict(revision_row["normalized_payload_json"]),
+            },
+            "assignments": revision["review_assignments"],
+            "citations": citations,
+            "audit_events": revision_audit,
+        }
+    finally:
+        connection.close()
+
+
+def audit_view(
+    *,
+    object_id: str | None = None,
+    limit: int = 100,
+    database_path: str | Path = DB_PATH,
+) -> list[dict[str, Any]]:
+    connection = require_runtime_connection(database_path)
+    try:
+        if object_id:
+            rows = connection.execute(
+                """
+                SELECT event_id, event_type, occurred_at, actor, object_id, revision_id, details_json
+                FROM audit_events
+                WHERE object_id = ?
+                ORDER BY occurred_at DESC
+                LIMIT ?
+                """,
+                (object_id, limit),
+            ).fetchall()
+        else:
+            rows = connection.execute(
+                """
+                SELECT event_id, event_type, occurred_at, actor, object_id, revision_id, details_json
+                FROM audit_events
+                ORDER BY occurred_at DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        return [
+            {
+                "event_id": str(row["event_id"]),
+                "event_type": str(row["event_type"]),
+                "occurred_at": str(row["occurred_at"]),
+                "actor": str(row["actor"]),
+                "object_id": str(row["object_id"]) if row["object_id"] is not None else None,
+                "revision_id": str(row["revision_id"]) if row["revision_id"] is not None else None,
+                "details": _json_dict(row["details_json"]),
+            }
+            for row in rows
+        ]
+    finally:
+        connection.close()
+
+
+def validation_run_history(
+    *,
+    limit: int = 50,
+    database_path: str | Path = DB_PATH,
+) -> list[dict[str, Any]]:
+    connection = require_runtime_connection(database_path)
+    try:
+        rows = connection.execute(
+            """
+            SELECT run_id, run_type, started_at, completed_at, status, finding_count, details_json
+            FROM validation_runs
+            ORDER BY completed_at DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        return [
+            {
+                "run_id": str(row["run_id"]),
+                "run_type": str(row["run_type"]),
+                "started_at": str(row["started_at"]),
+                "completed_at": str(row["completed_at"]),
+                "status": str(row["status"]),
+                "finding_count": int(row["finding_count"]),
+                "details": _json_dict(row["details_json"]),
+            }
+            for row in rows
+        ]
     finally:
         connection.close()
 

@@ -1,0 +1,31 @@
+.metric-value {
+  font-size: 2.5rem;
+  margin: 0;
+  font-family: var(--font-serif);
+}
+.section-card-body h3 {
+  margin-bottom: var(--space-2);
+  font-size: 1rem;
+}
+.section-card-body > *:first-child { margin-top: 0; }
+.section-card-body > *:last-child { margin-bottom: 0; }
+.cell-meta,
+.section-footer { margin: var(--space-1) 0 0; font-size: 0.88rem; }
+.trust-strip .panel-summary,
+.page-intro,
+.field-hint {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.empty-state { text-align: center; padding: var(--space-6); }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
