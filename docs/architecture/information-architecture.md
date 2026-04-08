@@ -1,45 +1,42 @@
 # Information Architecture
 
-Papyrus separates canonical content from explanatory docs and derived outputs.
+Papyrus separates canonical authored source, runtime logic, runtime state, and derived exports.
 
 ## Directory Contract
 
-- `knowledge/`: active canonical knowledge articles only.
-- `archive/knowledge/`: archived canonical knowledge articles with preserved metadata.
-- `taxonomies/`: controlled vocabularies referenced by schema and validation.
-- `schemas/`: article schema and repository-policy definitions.
-- `templates/`: approved reusable content templates only.
-- `migration/`: sanitized migration plans, manifests, and supporting inputs. Never canonical article source.
-- `reports/`: sanitized migration and review reports. Never canonical article source.
-- `docs/`: explanatory documentation about the repository, workflow, governance, and architecture.
-- `decisions/`: ADR-style records for structural changes.
-- `generated/`: derived site-source pages created by build scripts.
-- `build/`: derived local data such as the search index.
-- `site/`: rendered site output.
+- `knowledge/`: active canonical authored knowledge source files.
+- `archive/knowledge/`: archived canonical authored knowledge source files.
+- `docs/`: explanatory architecture, governance, and workflow documentation.
+- `decisions/`: ADR-style structural rationale.
+- `src/papyrus/`: application package. This is where domain, application, infrastructure, interface, and job logic belongs.
+- `schemas/`: repository policy and source-schema definitions.
+- `taxonomies/`: controlled vocabularies.
+- `templates/`: approved source templates only.
+- `scripts/`: thin operator entrypoints and compatibility shims.
+- `generated/`: derived export inputs.
+- `build/`: rebuildable local runtime artifacts.
+- `site/`: rendered static export output.
 
-## User-Facing Areas
+## Runtime Boundary
 
-The generated site separates repository content into three user-facing areas:
+Papyrus now distinguishes:
 
-- Knowledge Base: canonical operator-facing procedures and references sourced from `knowledge/` and `archive/knowledge/`
-- System & Design Docs: explanatory repository, schema, taxonomy, generator, and workflow documentation sourced from `docs/`
-- Governance & Decisions: policy and ADR-style structural rationale sourced from `decisions/` with supporting governance references from `docs/`
+- authored source
+- application logic
+- runtime projections
+- export surfaces
 
-This separation is a browse-layer concern only. It does not change the repository source-of-truth model.
+The repository previously centered the runtime around Markdown articles plus script-local helper code. That center of gravity is being replaced with a knowledge-object-oriented application package under `src/papyrus/`.
 
 ## Placement Rubric
 
-- Put content in `knowledge/` when it tells operators how to do the work.
-- Put content in `docs/` when it explains how the knowledge system or repository design works.
-- Put content in `decisions/` when it records a durable structural choice with rationale and tradeoffs.
+- Put operator-executed knowledge in `knowledge/` or `archive/knowledge/`.
+- Put control-plane architecture and contributor guidance in `docs/`.
+- Put structural rationale and migration decisions in `decisions/`.
+- Put durable reusable runtime logic in `src/papyrus/`, not in ad hoc scripts.
 
-## Discoverability Strategy
+## Derived Artifact Rule
 
-- Use controlled `systems`, `services`, and `tags` vocabularies.
-- Prefer cross-links and generated indexes over duplicate summary documents.
-- Use generated start-here and by-service, by-system, and by-tag views to improve findability.
-- Cross-link between knowledge, docs, and decisions where useful without copying canonical article content into `docs/`.
-
-## Canonical Path Rule
-
-Every article declares `canonical_path`, and validation enforces that it matches the repository path. This prevents copies from masquerading as canonical content.
+- Generated pages under `generated/`, SQLite files under `build/`, and rendered output under `site/` are derived artifacts.
+- Derived artifacts must remain reproducible from source and the application package.
+- Generated artifacts are inspectable and useful, but they are never authoritative.

@@ -1,34 +1,39 @@
 # Governance
 
-Papyrus uses a strict source-of-truth model to prevent documentation sprawl and derived-artifact drift.
+Papyrus uses a strict source-of-truth model so the control plane stays auditable, local-first, and rebuildable.
 
-## Core Rules
+## Governance Boundaries
 
-- Canonical articles live only in `knowledge/` and `archive/knowledge/`.
-- Explanatory documentation lives only in `docs/`.
+- Canonical authored knowledge lives only in `knowledge/` and `archive/knowledge/`.
+- Explanatory architecture and workflow documentation lives only in `docs/`.
 - Structural decisions live only in `decisions/`.
-- Sanitized migration inputs live only in `migration/`.
-- Sanitized review artifacts live only in `reports/`.
-- Derived pages, indexes, and rendered site output are not authoritative.
+- Application runtime code lives in `src/papyrus/`.
+- Generated artifacts under `generated/`, `build/`, and `site/` are derived and non-authoritative.
+
+## Canonical Source Versus Runtime State
+
+- Markdown source is the authoritative authored record.
+- Runtime state is a rebuildable local projection used for validation, search, reporting, and governance workflows.
+- Export surfaces, including MkDocs output, must be derivable from source plus application logic.
+- If runtime state or exported output disagrees with source, source wins and the projection must be rebuilt.
 
 ## Change Control
 
 - Schema or taxonomy changes require rationale in `decisions/`.
 - New top-level folders require rationale in `decisions/`.
-- Validation is the completion gate for content, schema, taxonomy, template, migration, and build changes.
-- Deprecated or archived content must retain metadata and lifecycle history instead of being silently replaced.
+- Validation is the completion gate for content, schema, taxonomy, runtime, and export changes.
+- Deprecated or archived source must retain lifecycle history instead of being silently replaced.
 
-## Anti-Sprawl Policy
+## Anti-Sprawl Rules
 
-- Do not duplicate canonical article content in `docs/`.
-- Do not create overlapping templates for the same use case.
-- Do not create parallel taxonomy files for the same concept.
-- Prefer extending the existing schema, taxonomy, template set, or report structure over adding a fork.
-- Review `python3 scripts/report_content_health.py --section knowledge-like-docs` when `docs/` pages begin to look procedural.
+- Do not duplicate canonical knowledge in `docs/`.
+- Do not keep extending a universal flat article model as the primary domain model.
+- Do not create parallel schemas, templates, or taxonomies without an explicit migration bridge and deprecation path.
+- Do not let generated exports or browse views become the primary product surface.
+- Do not leave durable business logic trapped in ad hoc scripts when it belongs in the application package.
 
-## Generated Artifact Policy
+## Static Export Policy
 
-- `generated/` holds derived site-source pages only.
-- `build/` holds derived local data.
-- `site/` holds rendered static site output.
-- If a generated artifact is stale or incorrect, rebuild it. Do not patch it manually.
+- MkDocs and generated site content are optional export surfaces.
+- Export content may help with publishing and browsing, but it is secondary to authored source and application runtime behavior.
+- If export output is stale or incorrect, rebuild it. Do not patch generated files by hand.

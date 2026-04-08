@@ -1,37 +1,59 @@
 # Papyrus
 
-Papyrus is a local-first knowledge management database for IT support and systems operations. Canonical content lives in portable Markdown with YAML front matter under `knowledge/`. Validation, indexing, reporting, and the browseable site layer are all derived from those source files and can be rebuilt locally.
+Papyrus is a local-first governed operational knowledge control plane for IT support and systems operations.
 
-## Goals
+Canonical authored knowledge remains in portable Markdown with YAML front matter under `knowledge/` and `archive/knowledge/`. Runtime state, validation, search, reporting, and future review workflows are being moved into an application package under `src/papyrus/`. Generated artifacts remain rebuildable and non-authoritative.
 
-- Keep operational knowledge in human-readable source files.
-- Keep the content model portable and vendor-neutral.
-- Rebuild all derived artifacts from source at any time.
-- Minimize drift through schema, taxonomy, and repository-policy validation.
-- Keep migration inputs auditable without treating them as canonical content.
+## What Papyrus Must Answer
+
+- What do we know?
+- Why do we believe it?
+- Who reviewed or approved it?
+- What changed that may invalidate it?
+- What other knowledge becomes suspect when one thing changes?
+
+## Current Refactor Boundary
+
+Phase 1 and Phase 2 establish the architectural spine for the control-plane model.
+
+- The repository framing is now knowledge-object centric instead of article centric.
+- Canonical authored source is still Markdown under `knowledge/` and `archive/knowledge/`.
+- The `src/papyrus/` package now owns reusable runtime logic instead of `scripts/kb_common.py`.
+- CLI scripts remain first-class operator entrypoints, but they are wrappers over application services.
+- MkDocs, `generated/`, and `site/` remain derived export concerns, not the primary product surface.
+
+[Unverified] Phase 3 and later phases will replace the current flat SQLite projection and universal article schema with typed object schemas and a governance-aware relational runtime.
 
 ## Repository Layout
 
-- `knowledge/`: active canonical knowledge articles.
-- `archive/knowledge/`: archived canonical knowledge articles.
-- `taxonomies/`: controlled vocabularies used by validation and reporting.
-- `schemas/`: schema and repository-policy definitions.
-- `templates/`: approved article templates only.
-- `migration/`: sanitized migration inputs and manifests; never canonical article source.
-- `reports/`: sanitized migration and review reports.
-- `docs/`: explanatory system, design, workflow, and repository documentation.
+- `knowledge/`: active canonical authored knowledge source files.
+- `archive/knowledge/`: archived canonical authored knowledge source files.
+- `docs/`: explanatory architecture, workflow, and governance documentation.
 - `decisions/`: ADR-style structural decisions.
-- `scripts/`: validation, indexing, search, reporting, and site helpers.
-- `generated/`: derived site-source files.
-- `build/`: derived local data such as the knowledge index.
-- `site/`: rendered static site output.
-- `tests/`: lightweight regression tests.
+- `src/papyrus/`: application package for domain, application, infrastructure, interface, and job layers.
+- `schemas/`: repository policy and current source-schema definitions.
+- `taxonomies/`: controlled vocabularies used by validation and reporting.
+- `templates/`: approved source templates only.
+- `scripts/`: operator-facing CLI entrypoints and compatibility shims.
+- `migration/`: sanitized migration inputs and manifests; never canonical source.
+- `reports/`: sanitized review and migration reports.
+- `generated/`: derived export inputs.
+- `build/`: derived local runtime artifacts such as SQLite projections.
+- `site/`: rendered static export output.
+- `tests/`: regression coverage.
 
-## Content Model
+## Operating Model
 
-Each article is a Markdown file with YAML front matter. Front matter stores the structured fields that drive validation, search, review reporting, and migration traceability. Required metadata is defined in [schemas/article.yml](schemas/article.yml).
+Papyrus distinguishes three layers:
 
-Repository governance and directory policy are defined in [AGENTS.md](AGENTS.md), [schemas/repository_policy.yml](schemas/repository_policy.yml), and the architecture notes under [docs/architecture](docs/architecture/).
+1. Canonical authored source
+   Source of truth under `knowledge/` and `archive/knowledge/`.
+2. Operational runtime state
+   Local, rebuildable application state used for validation, search, reporting, and later governance workflows.
+3. Derived exports
+   Static site output, generated pages, and other rebuildable views.
+
+If source and a derived artifact disagree, the source wins.
 
 ## Quick Start
 
@@ -41,19 +63,19 @@ Bootstrap a local environment:
 ./scripts/bootstrap.sh
 ```
 
-Run validation:
+Validate canonical source and repository policy:
 
 ```bash
 python3 scripts/validate.py
 ```
 
-Build derived artifacts:
+Build the current local SQLite projection:
 
 ```bash
-./scripts/build.sh
+python3 scripts/build_index.py
 ```
 
-Search the local index:
+Search the local projection:
 
 ```bash
 python3 scripts/search.py vpn
@@ -65,71 +87,37 @@ Report review due dates:
 python3 scripts/report_stale.py
 ```
 
-Report duplicate, orphaned, broken-link, and isolation signals:
+Report duplicates, link failures, isolation, and metadata gaps:
 
 ```bash
 python3 scripts/report_content_health.py
 ```
 
-Report discovery metadata gaps:
-
-```bash
-python3 scripts/report_content_health.py --section missing-services --section missing-systems --section missing-tags
-```
-
-Create a new article scaffold:
+Create a new canonical source scaffold:
 
 ```bash
 python3 scripts/new_article.py --type runbook --title "Example Procedure"
 ```
 
-List valid taxonomy values before scaffolding:
-
-```bash
-python3 scripts/new_article.py --list-taxonomy services
-python3 scripts/new_article.py --list-taxonomy systems
-python3 scripts/new_article.py --list-taxonomy tags
-```
-
-Serve the local site:
+Serve the derived static export:
 
 ```bash
 ./scripts/serve.sh
 ```
 
-## Contributor Workflow
+## Source Of Truth Rules
 
-Placement rubric:
+- Canonical authored knowledge lives only under `knowledge/` and `archive/knowledge/`.
+- Generated artifacts under `generated/`, `build/`, and `site/` are never authoritative.
+- Validation is the completion gate.
+- Structural changes to schemas, taxonomies, or top-level directories require a decision record.
+- Static site output is secondary to the authored source and application runtime.
 
-- `knowledge/` = how to do the work
-- `docs/` = how the knowledge system and repository design work
-- `decisions/` = why structural choices were made
+## Key Documents
 
-1. Create or update canonical content under `knowledge/`.
-2. Move retired content to `archive/knowledge/` instead of overwriting it.
-3. Reuse the approved templates under `templates/`.
-4. Keep taxonomy values aligned with `taxonomies/*.yml`.
-5. Record structural changes in `decisions/`.
-6. Run `python3 scripts/validate.py`.
-7. Run `python3 scripts/report_content_health.py`.
-8. Run `python3 scripts/report_stale.py`.
-9. Run `python3 -m unittest discover -s tests -v` before finalizing substantial changes.
-
-If `docs/` starts to accumulate operator-facing procedures, review:
-
-```bash
-python3 scripts/report_content_health.py --section knowledge-like-docs
-```
-
-Derived files under `generated/site_docs/`, `build/`, and `site/` are never authoritative. Rebuild them from source instead of editing them directly.
-
-The generated site includes role-based entry points for support, authors, and managers, plus a faceted explorer, content-health view, coverage matrix, and knowledge-tree audit surface rebuilt entirely from canonical metadata.
-
-## Governance
-
-- Repository rules: [AGENTS.md](AGENTS.md)
+- Control-plane architecture: [docs/architecture/control-plane-architecture.md](docs/architecture/control-plane-architecture.md)
 - Governance policy: [docs/architecture/governance.md](docs/architecture/governance.md)
-- Lifecycle policy: [docs/architecture/content-lifecycle.md](docs/architecture/content-lifecycle.md)
-- Directory contract: [docs/architecture/information-architecture.md](docs/architecture/information-architecture.md)
+- Knowledge object lifecycle: [docs/architecture/content-lifecycle.md](docs/architecture/content-lifecycle.md)
+- Information architecture: [docs/architecture/information-architecture.md](docs/architecture/information-architecture.md)
 - Contributor workflow: [docs/contributor-workflow.md](docs/contributor-workflow.md)
-- Decisions: [decisions/index.md](decisions/index.md)
+- Refactor ADR: [decisions/0004-knowledge-object-control-plane-refactor.md](decisions/0004-knowledge-object-control-plane-refactor.md)

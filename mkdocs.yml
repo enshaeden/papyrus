@@ -1,5 +1,5 @@
 site_name: Papyrus
-site_description: Local-first knowledge system for IT support and systems operations
+site_description: Local-first governed operational knowledge control plane for IT support and systems operations
 site_url: http://127.0.0.1:8000/
 docs_dir: generated/site_docs
 site_dir: site
@@ -32,10 +32,11 @@ nav:
       - Archive: archive/index.md
   - System & Design Docs:
       - Overview: system-design-docs/index.md
+      - Control-Plane Architecture: system-design-docs/architecture/control-plane-architecture.md
       - Contributor Workflow: system-design-docs/contributor-workflow.md
       - Information Architecture: system-design-docs/architecture/information-architecture.md
-      - Content Lifecycle: system-design-docs/architecture/content-lifecycle.md
-      - Knowledge Discovery Plan: system-design-docs/knowledge-discovery-improvement-plan.md
+      - Knowledge Object Lifecycle: system-design-docs/architecture/content-lifecycle.md
+      - Phase-Zero Discovery Plan: system-design-docs/knowledge-discovery-improvement-plan.md
       - Migration Rationale: system-design-docs/migration/seed-migration-rationale.md
   - Governance & Decisions:
       - Overview: decisions/index.md
@@ -43,3 +44,4 @@ nav:
       - 0001 Source Of Truth And Anti-Drift Policy: decisions/0001-source-of-truth-and-anti-drift-policy.md
       - 0002 Seed Migration Workspace And Sanitized Provenance: decisions/0002-seed-migration-workspace-and-provenance.md
       - 0003 Sanitized Reports And Public Seed Artifacts: decisions/0003-sanitized-reports-and-public-seed-artifacts.md
+      - 0004 Knowledge-Object Control Plane Refactor: decisions/0004-knowledge-object-control-plane-refactor.md

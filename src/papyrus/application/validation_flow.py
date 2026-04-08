@@ -1,0 +1,503 @@
+from __future__ import annotations
+
+import re
+from typing import Any, Iterable
+
+from papyrus.application.impact_flow import find_possible_duplicate_documents
+from papyrus.domain.entities import KnowledgeDocument, ValidationIssue
+from papyrus.infrastructure.markdown.parser import (
+    collect_broken_markdown_links,
+    collect_broken_rendered_site_links,
+    extract_markdown_title,
+)
+from papyrus.infrastructure.markdown.serializer import ensure_iso_date, parse_iso_date, similarity_ratio
+from papyrus.infrastructure.paths import (
+    ADDRESS_PATTERN,
+    BRANDED_ADMIN_PATTERNS,
+    BUILD_DIR,
+    DOMAIN_PATTERN,
+    EMAIL_PATTERN,
+    GENERATED_DIR,
+    GENERATED_SITE_DOCS_DIR,
+    GENERIC_BRAND_ALLOWLIST,
+    IP_PATTERN,
+    LEGACY_GENERATED_DOCS_DIR,
+    LIKELY_BRANDED_PRODUCT_PATTERN,
+    PHONE_PATTERN,
+    REPORTS_DIR,
+    ROOT,
+    SECRET_PATTERNS,
+    SITE_DIR,
+    TAXONOMY_DIR,
+    TEMPLATE_DIR,
+    relative_path,
+)
+from papyrus.infrastructure.repositories.knowledge_repo import (
+    collect_article_paths,
+    collect_decision_paths,
+    collect_docs_source_paths,
+    collect_root_markdown_paths,
+    collect_sanitization_paths,
+    load_knowledge_documents,
+    load_policy,
+    load_schema,
+    load_taxonomies,
+)
+from papyrus.infrastructure.search.indexer import site_knowledge_output_path, site_relative_path_for_repo_path
+
+
+def validate_field(
+    path: str,
+    field_name: str,
+    value: Any,
+    spec: dict[str, Any],
+    taxonomies: dict[str, dict[str, Any]],
+) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    kind = spec.get("kind")
+
+    if kind == "string":
+        if not isinstance(value, str) or not value.strip():
+            issues.append(ValidationIssue(path, "must be a non-empty string", field_name))
+        pattern = spec.get("pattern")
+        if pattern and isinstance(value, str) and not re.match(pattern, value):
+            issues.append(ValidationIssue(path, f"must match pattern {pattern}", field_name))
+    elif kind == "string_or_null":
+        if value is not None and (not isinstance(value, str) or not value.strip()):
+            issues.append(ValidationIssue(path, "must be null or a non-empty string", field_name))
+    elif kind == "date":
+        if not ensure_iso_date(value):
+            issues.append(ValidationIssue(path, "must be an ISO 8601 date (YYYY-MM-DD)", field_name))
+    elif kind == "list[string]":
+        if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
+            issues.append(ValidationIssue(path, "must be a list of non-empty strings", field_name))
+    elif kind == "list[object]":
+        if not isinstance(value, list) or any(not isinstance(item, dict) for item in value):
+            issues.append(ValidationIssue(path, "must be a list of objects", field_name))
+        else:
+            required_keys = set(spec.get("required_keys", []))
+            allowed_keys = set(spec.get("allowed_keys", []))
+            for index, item in enumerate(value, start=1):
+                missing = required_keys.difference(item.keys())
+                unknown = set(item.keys()).difference(allowed_keys)
+                if missing:
+                    issues.append(
+                        ValidationIssue(
+                            path,
+                            f"entry {index} is missing keys: {', '.join(sorted(missing))}",
+                            field_name,
+                        )
+                    )
+                if unknown:
+                    issues.append(
+                        ValidationIssue(
+                            path,
+                            f"entry {index} contains unknown keys: {', '.join(sorted(unknown))}",
+                            field_name,
+                        )
+                    )
+                if "date" in item and not ensure_iso_date(item["date"]):
+                    issues.append(
+                        ValidationIssue(
+                            path,
+                            f"entry {index} has a non-ISO date value",
+                            field_name,
+                        )
+                    )
+    else:
+        issues.append(ValidationIssue(path, f"unsupported schema kind: {kind}", field_name))
+
+    taxonomy_name = spec.get("taxonomy")
+    if taxonomy_name and taxonomy_name in taxonomies:
+        allowed = set(taxonomies[taxonomy_name]["allowed_values"])
+        if kind == "string" and isinstance(value, str) and value not in allowed:
+            issues.append(
+                ValidationIssue(
+                    path,
+                    f"value '{value}' is not in taxonomy '{taxonomy_name}'",
+                    field_name,
+                )
+            )
+        if kind == "list[string]" and isinstance(value, list):
+            for item in value:
+                if isinstance(item, str) and item not in allowed:
+                    issues.append(
+                        ValidationIssue(
+                            path,
+                            f"value '{item}' is not in taxonomy '{taxonomy_name}'",
+                            field_name,
+                        )
+                    )
+
+    return issues
+
+
+def validate_sanitization(paths: Iterable) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        rel_path = relative_path(path)
+
+        if re.search(r"https?://|mailto:", text):
+            issues.append(ValidationIssue(rel_path, "contains a raw URL or mailto link; use placeholders or local links"))
+        if EMAIL_PATTERN.search(text):
+            issues.append(ValidationIssue(rel_path, "contains an email address"))
+        if PHONE_PATTERN.search(text):
+            issues.append(ValidationIssue(rel_path, "contains a phone number"))
+        if IP_PATTERN.search(text):
+            issues.append(ValidationIssue(rel_path, "contains an IP address or subnet"))
+        if ADDRESS_PATTERN.search(text):
+            issues.append(ValidationIssue(rel_path, "contains a physical address"))
+        if DOMAIN_PATTERN.search(text):
+            issues.append(ValidationIssue(rel_path, "contains a domain or hostname"))
+        if any(pattern.search(text) for pattern in SECRET_PATTERNS):
+            issues.append(ValidationIssue(rel_path, "contains a credential-like value"))
+        if any(pattern.search(text) for pattern in BRANDED_ADMIN_PATTERNS):
+            issues.append(ValidationIssue(rel_path, "contains branded admin-console terminology"))
+        for match in LIKELY_BRANDED_PRODUCT_PATTERN.finditer(text):
+            tokens = match.group(0).replace("-", " ").split()
+            if not all(token in GENERIC_BRAND_ALLOWLIST for token in tokens[:-1]):
+                issues.append(ValidationIssue(rel_path, "contains a likely branded product term"))
+                break
+
+    return issues
+
+
+def validate_directory_contract(policy: dict[str, Any]) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    directory_policy = policy["directories"]
+    allowed_dirs = set(directory_policy["allowed_top_level_directories"])
+    ignored_dirs = set(directory_policy["ignored_top_level_directories"])
+    allowed_files = set(directory_policy["allowed_top_level_files"])
+
+    for path in sorted(ROOT.iterdir()):
+        if path.is_dir():
+            if path.name in allowed_dirs or path.name in ignored_dirs:
+                continue
+            if path.name.startswith("."):
+                continue
+            issues.append(ValidationIssue(path.name, "unexpected top-level directory"))
+        elif path.is_file():
+            if path.name in allowed_files or path.name.startswith("."):
+                continue
+            issues.append(ValidationIssue(path.name, "unexpected top-level file"))
+
+    template_root = ROOT / directory_policy["template_root"]
+    actual_template_files = sorted(path.name for path in template_root.glob("*.md"))
+    expected_template_files = sorted(policy["templates"]["approved_files"])
+    if actual_template_files != expected_template_files:
+        issues.append(
+            ValidationIssue(
+                relative_path(template_root),
+                f"approved template set mismatch: expected {expected_template_files}, found {actual_template_files}",
+            )
+        )
+
+    if LEGACY_GENERATED_DOCS_DIR.exists():
+        legacy_files = [path for path in LEGACY_GENERATED_DOCS_DIR.rglob("*") if path.is_file()]
+        if legacy_files:
+            issues.append(
+                ValidationIssue(
+                    relative_path(LEGACY_GENERATED_DOCS_DIR),
+                    "legacy generated docs path contains files; derived site docs must live under generated/",
+                )
+            )
+
+    build_files = []
+    if BUILD_DIR.exists():
+        build_files = [relative_path(path) for path in BUILD_DIR.iterdir() if path.is_file()]
+    allowed_build_files = {
+        "build/knowledge.db",
+        "build/knowledge.db-shm",
+        "build/knowledge.db-wal",
+    }
+    for item in build_files:
+        if item not in allowed_build_files:
+            issues.append(ValidationIssue(item, "unexpected build artifact"))
+
+    if GENERATED_DIR.exists():
+        allowed_generated_roots = {relative_path(GENERATED_SITE_DOCS_DIR)}
+        for path in GENERATED_DIR.iterdir():
+            if relative_path(path) not in allowed_generated_roots:
+                issues.append(ValidationIssue(relative_path(path), "unexpected generated artifact root"))
+
+    return issues
+
+
+def expected_site_doc_paths(documents: list[KnowledgeDocument]) -> set[str]:
+    expected: set[str] = set()
+
+    for path in collect_docs_source_paths():
+        site_relative = site_relative_path_for_repo_path(relative_path(path))
+        if site_relative is not None:
+            expected.add(relative_path(GENERATED_SITE_DOCS_DIR / site_relative))
+    for path in collect_decision_paths():
+        site_relative = site_relative_path_for_repo_path(relative_path(path))
+        if site_relative is not None:
+            expected.add(relative_path(GENERATED_SITE_DOCS_DIR / site_relative))
+
+    from papyrus.infrastructure.paths import GENERATED_SITE_INDEX_PATHS
+
+    expected.update(relative_path(GENERATED_SITE_DOCS_DIR / path) for path in GENERATED_SITE_INDEX_PATHS)
+
+    for document in documents:
+        expected.add(relative_path(site_knowledge_output_path(document)))
+
+    return expected
+
+
+def validate_generated_site_docs(documents: list[KnowledgeDocument]) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    if not GENERATED_SITE_DOCS_DIR.exists():
+        return issues
+    expected = expected_site_doc_paths(documents)
+    actual = {
+        relative_path(path)
+        for path in GENERATED_SITE_DOCS_DIR.rglob("*")
+        if path.is_file()
+    }
+    for path in sorted(actual.difference(expected)):
+        issues.append(ValidationIssue(path, "unexpected generated site source file"))
+    for path in sorted(expected.difference(actual)):
+        issues.append(ValidationIssue(path, "missing generated site source file"))
+    return issues
+
+
+def validate_docs_duplication(
+    documents: list[KnowledgeDocument],
+    policy: dict[str, Any],
+) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    threshold = float(policy["duplicate_detection"]["doc_duplication_threshold"])
+    for doc_path in collect_docs_source_paths():
+        if doc_path.suffix != ".md":
+            continue
+        doc_text = doc_path.read_text(encoding="utf-8")
+        doc_title = extract_markdown_title(doc_path)
+        for document in documents:
+            title_similarity = similarity_ratio(doc_title, document.metadata.get("title", ""))
+            body_similarity = similarity_ratio(doc_text, document.body)
+            if title_similarity >= threshold and body_similarity >= threshold:
+                issues.append(
+                    ValidationIssue(
+                        relative_path(doc_path),
+                        f"appears to duplicate canonical content in {document.relative_path}",
+                    )
+                )
+    return issues
+
+
+def validate_knowledge_documents(
+    documents: list[KnowledgeDocument],
+    schema: dict[str, Any],
+    taxonomies: dict[str, dict[str, Any]],
+    policy: dict[str, Any],
+) -> list[ValidationIssue]:
+    issues: list[ValidationIssue] = []
+    fields = schema.get("fields", {})
+    seen_ids: dict[str, str] = {}
+    known_ids = {document.knowledge_object_id for document in documents if document.knowledge_object_id}
+
+    for document in documents:
+        metadata = document.metadata
+        path = document.relative_path
+
+        if not document.body:
+            issues.append(ValidationIssue(path, "body content is empty"))
+
+        for field_name, spec in fields.items():
+            required = bool(spec.get("required"))
+            if required and field_name not in metadata:
+                issues.append(ValidationIssue(path, "missing required field", field_name))
+
+        for field_name in metadata:
+            if field_name not in fields:
+                issues.append(ValidationIssue(path, "unknown field", field_name))
+
+        object_id = metadata.get("id")
+        if isinstance(object_id, str):
+            previous_path = seen_ids.get(object_id)
+            if previous_path:
+                issues.append(
+                    ValidationIssue(
+                        path,
+                        f"duplicate id already used by {previous_path}",
+                        "id",
+                    )
+                )
+            seen_ids[object_id] = path
+
+        for field_name, spec in fields.items():
+            if field_name not in metadata:
+                continue
+            value = metadata[field_name]
+            issues.extend(validate_field(path, field_name, value, spec, taxonomies))
+
+        created = metadata.get("created")
+        updated = metadata.get("updated")
+        last_reviewed = metadata.get("last_reviewed")
+        if all(ensure_iso_date(item) for item in [created, updated, last_reviewed]):
+            created_date = parse_iso_date(created)
+            updated_date = parse_iso_date(updated)
+            reviewed_date = parse_iso_date(last_reviewed)
+            if updated_date < created_date:
+                issues.append(ValidationIssue(path, "updated cannot be earlier than created", "updated"))
+            if reviewed_date < created_date:
+                issues.append(ValidationIssue(path, "last_reviewed cannot be earlier than created", "last_reviewed"))
+
+        if metadata.get("canonical_path") != path:
+            issues.append(ValidationIssue(path, "canonical_path must match the article path", "canonical_path"))
+
+        if path.startswith("archive/knowledge/") and metadata.get("status") != "archived":
+            issues.append(ValidationIssue(path, "archived paths must use status 'archived'", "status"))
+
+        if path.startswith("knowledge/") and metadata.get("status") == "archived":
+            issues.append(ValidationIssue(path, "archived articles must live under archive/knowledge/", "status"))
+
+        replaced_by = metadata.get("replaced_by")
+        retirement_reason = metadata.get("retirement_reason")
+        status = metadata.get("status")
+        if status == "deprecated" and not (replaced_by or retirement_reason):
+            issues.append(
+                ValidationIssue(
+                    path,
+                    "deprecated content must declare replaced_by or retirement_reason",
+                    "status",
+                )
+            )
+        if status == "archived" and not retirement_reason:
+            issues.append(
+                ValidationIssue(
+                    path,
+                    "archived content must declare retirement_reason",
+                    "status",
+                )
+            )
+        if replaced_by:
+            if replaced_by == object_id:
+                issues.append(ValidationIssue(path, "replaced_by cannot reference itself", "replaced_by"))
+            elif replaced_by not in known_ids:
+                issues.append(ValidationIssue(path, f"replacement article not found: {replaced_by}", "replaced_by"))
+
+        for related in metadata.get("related_articles", []):
+            if related not in known_ids:
+                issues.append(
+                    ValidationIssue(
+                        path,
+                        f"related article id not found: {related}",
+                        "related_articles",
+                    )
+                )
+
+        for reference in metadata.get("references", []):
+            article_ref = reference.get("article_id")
+            if article_ref and article_ref not in known_ids:
+                issues.append(
+                    ValidationIssue(
+                        path,
+                        f"reference article id not found: {article_ref}",
+                        "references",
+                    )
+                )
+            reference_path = reference.get("path")
+            if reference_path:
+                repo_target = ROOT / reference_path
+                if not repo_target.exists():
+                    issues.append(
+                        ValidationIssue(
+                            path,
+                            f"reference path does not exist: {reference_path}",
+                            "references",
+                        )
+                    )
+
+    duplicates = find_possible_duplicate_documents(
+        documents,
+        float(policy["duplicate_detection"]["title_similarity_threshold"]),
+    )
+    for duplicate in duplicates:
+        issues.append(
+            ValidationIssue(
+                duplicate.left_path,
+                (
+                    f"title is highly similar to {duplicate.right_path} "
+                    f"({duplicate.similarity:.2f}) without explicit linkage"
+                ),
+                "title",
+            )
+        )
+
+    return issues
+
+
+def validate_repository(include_rendered_site: bool = False) -> list[ValidationIssue]:
+    policy = load_policy()
+    schema = load_schema()
+    taxonomies = load_taxonomies()
+    documents = load_knowledge_documents(policy)
+    issues: list[ValidationIssue] = []
+    issues.extend(validate_directory_contract(policy))
+    issues.extend(validate_knowledge_documents(documents, schema, taxonomies, policy))
+    issues.extend(validate_docs_duplication(documents, policy))
+    issues.extend(validate_generated_site_docs(documents))
+
+    markdown_paths = (
+        collect_root_markdown_paths()
+        + collect_docs_source_paths()
+        + collect_decision_paths()
+        + collect_article_paths(policy)
+    )
+    for broken_link in collect_broken_markdown_links(markdown_paths):
+        issues.append(
+            ValidationIssue(
+                broken_link.source_path,
+                f"broken link '{broken_link.target}': {broken_link.reason}",
+            )
+        )
+
+    if include_rendered_site:
+        if not SITE_DIR.exists():
+            issues.append(
+                ValidationIssue(
+                    relative_path(SITE_DIR),
+                    "rendered site validation requested but site/ does not exist; run mkdocs build first",
+                )
+            )
+        else:
+            for broken_link in collect_broken_rendered_site_links():
+                issues.append(
+                    ValidationIssue(
+                        broken_link.source_path,
+                        f"broken rendered link '{broken_link.target}': {broken_link.reason}",
+                    )
+                )
+
+    issues.extend(validate_sanitization(collect_sanitization_paths(policy)))
+    return issues
+
+
+def orphaned_files(policy: dict[str, Any], documents: list[KnowledgeDocument]) -> list[str]:
+    findings: list[str] = []
+    if LEGACY_GENERATED_DOCS_DIR.exists():
+        for path in sorted(LEGACY_GENERATED_DOCS_DIR.rglob("*")):
+            if path.is_file():
+                findings.append(relative_path(path))
+
+    for document in documents:
+        if document.relative_path.startswith("archive/knowledge/") and document.metadata.get("status") != "archived":
+            findings.append(document.relative_path)
+        if document.relative_path.startswith("knowledge/") and document.metadata.get("status") == "archived":
+            findings.append(document.relative_path)
+
+    if GENERATED_SITE_DOCS_DIR.exists():
+        expected = expected_site_doc_paths(documents)
+        actual = {
+            relative_path(path)
+            for path in GENERATED_SITE_DOCS_DIR.rglob("*")
+            if path.is_file()
+        }
+        findings.extend(sorted(actual.difference(expected)))
+
+    return sorted(set(findings))
+

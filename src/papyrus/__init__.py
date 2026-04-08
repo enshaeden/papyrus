@@ -1,0 +1,2 @@
+"""Papyrus application package."""
+

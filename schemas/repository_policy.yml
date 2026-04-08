@@ -24,6 +24,7 @@ directories:
     - schemas
     - scripts
     - site
+    - src
     - taxonomies
     - templates
     - tests
