@@ -27,4 +27,5 @@ class IngestionFlowTests(unittest.TestCase):
             self.assertEqual(detail["filename"], "sample.md")
             self.assertEqual(detail["status"], "mapped")
             self.assertEqual(detail["normalized_content"]["title"], "VPN Recovery")
-            self.assertGreaterEqual(len(detail["artifacts"]), 1)
+            artifact_types = {artifact["artifact_type"] for artifact in detail["artifacts"]}
+            self.assertTrue({"uploaded", "parsed", "normalized", "classified", "sections", "stage_progress"}.issubset(artifact_types))

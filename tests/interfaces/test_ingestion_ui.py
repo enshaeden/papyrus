@@ -61,9 +61,23 @@ class IngestionUiTests(unittest.TestCase):
             status, _, body = call_wsgi(application, detail_path)
             self.assertEqual(status, "200 OK")
             self.assertIn("Mapping summary", body)
+            self.assertIn("Upload", body)
+            self.assertIn("Classify", body)
             self.assertIn("Review mapping", body)
 
             review_path = detail_path.split("?", 1)[0].rstrip("/") + "/review"
             status, _, review_body = call_wsgi(application, review_path)
             self.assertEqual(status, "200 OK")
+            self.assertIn("Missing required sections", review_body)
             self.assertIn("Convert to draft", review_body)
+
+    def test_ingestion_entry_shows_inline_error_when_no_source_is_provided(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+
+            status, _, body = call_wsgi(application, "/ingest", method="POST", form={})
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Import blockers", body)
+            self.assertIn("Select a file upload or provide a local source path", body)

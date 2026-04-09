@@ -44,6 +44,24 @@ def _artifact_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:12]}"
 
 
+def _record_artifact(
+    connection: sqlite3.Connection,
+    *,
+    ingestion_id: str,
+    artifact_type: str,
+    content: dict[str, Any],
+    created_at: str,
+) -> None:
+    insert_ingestion_artifact(
+        connection,
+        artifact_id=_artifact_id("artifact"),
+        ingestion_id=ingestion_id,
+        artifact_type=artifact_type,
+        content_json=json_dump(content),
+        created_at=created_at,
+    )
+
+
 def _ingestion_root() -> Path:
     return BUILD_DIR / "ingestions"
 
@@ -197,12 +215,54 @@ def ingest_file(
             created_at=now.isoformat(),
             updated_at=now.isoformat(),
         )
-        insert_ingestion_artifact(
+        _record_artifact(
             connection,
-            artifact_id=_artifact_id("artifact"),
+            ingestion_id=ingestion_id,
+            artifact_type="uploaded",
+            content={
+                "filename": path.name,
+                "source_path": stored_path.as_posix(),
+                "media_type": media_type,
+            },
+            created_at=now.isoformat(),
+        )
+        _record_artifact(
+            connection,
+            ingestion_id=ingestion_id,
+            artifact_type="parsed",
+            content=parsed,
+            created_at=now.isoformat(),
+        )
+        _record_artifact(
+            connection,
+            ingestion_id=ingestion_id,
+            artifact_type="normalized",
+            content=normalized,
+            created_at=now.isoformat(),
+        )
+        _record_artifact(
+            connection,
+            ingestion_id=ingestion_id,
+            artifact_type="classified",
+            content=classification,
+            created_at=now.isoformat(),
+        )
+        _record_artifact(
+            connection,
             ingestion_id=ingestion_id,
             artifact_type="sections",
-            content_json=json_dump({"sections": extracted}),
+            content={"sections": extracted},
+            created_at=now.isoformat(),
+        )
+        _record_artifact(
+            connection,
+            ingestion_id=ingestion_id,
+            artifact_type="stage_progress",
+            content={
+                "completed_stages": ["upload", "parse", "classify", "map"],
+                "current_stage": "review",
+                "next_action": "Review the mapping before converting this file into a governed draft.",
+            },
             created_at=now.isoformat(),
         )
         connection.commit()
@@ -288,13 +348,32 @@ def update_ingestion_mapping(
 ) -> None:
     connection = _connection(Path(database_path))
     try:
+        created_at = _now_utc().isoformat()
         update_ingestion_job(
             connection,
             ingestion_id=ingestion_id,
             status=status,
             mapping_result_json=json_dump(mapping_result),
             blueprint_id=blueprint_id,
-            updated_at=_now_utc().isoformat(),
+            updated_at=created_at,
+        )
+        _record_artifact(
+            connection,
+            ingestion_id=ingestion_id,
+            artifact_type="mapping_result",
+            content=mapping_result,
+            created_at=created_at,
+        )
+        _record_artifact(
+            connection,
+            ingestion_id=ingestion_id,
+            artifact_type="stage_progress",
+            content={
+                "completed_stages": ["upload", "parse", "classify", "map"],
+                "current_stage": "review",
+                "next_action": "Review missing sections, low-confidence matches, and unmapped content before conversion.",
+            },
+            created_at=created_at,
         )
         connection.commit()
     except Exception:
@@ -313,13 +392,35 @@ def mark_ingestion_converted(
 ) -> None:
     connection = _connection(Path(database_path))
     try:
+        created_at = _now_utc().isoformat()
         update_ingestion_job(
             connection,
             ingestion_id=ingestion_id,
             status=IngestionStatus.REVIEWED.value,
             converted_object_id=object_id,
             converted_revision_id=revision_id,
-            updated_at=_now_utc().isoformat(),
+            updated_at=created_at,
+        )
+        _record_artifact(
+            connection,
+            ingestion_id=ingestion_id,
+            artifact_type="conversion_result",
+            content={
+                "object_id": object_id,
+                "revision_id": revision_id,
+            },
+            created_at=created_at,
+        )
+        _record_artifact(
+            connection,
+            ingestion_id=ingestion_id,
+            artifact_type="stage_progress",
+            content={
+                "completed_stages": ["upload", "parse", "classify", "map", "review", "convert"],
+                "current_stage": "convert",
+                "next_action": "Continue the structured draft in the normal write and review workflow.",
+            },
+            created_at=created_at,
         )
         connection.commit()
     except Exception:
