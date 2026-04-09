@@ -1,6 +1,6 @@
 # Manage Playbook
 
-Use this playbook when you review revisions, audit trust posture, or govern the knowledge corpus.
+Use this playbook when you review revisions, make lifecycle decisions, monitor knowledge health, or inspect the consequence trail behind a change.
 
 ## Refresh The Runtime Before Review
 
@@ -15,7 +15,7 @@ Failure signals:
 - runtime build errors
 - stale queue or trust data after source changes
 
-## Review The Queue
+## Start With Review Or Knowledge Health
 
 Open the runtime-backed queue:
 
@@ -23,22 +23,28 @@ Open the runtime-backed queue:
 python3 scripts/serve_web.py
 python3 scripts/serve_api.py
 python3 scripts/operator_view.py manage-queue --db build/knowledge.db
-python3 scripts/operator_view.py dashboard --db build/knowledge.db
+python3 scripts/operator_view.py health --db build/knowledge.db
+python3 scripts/operator_view.py activity --db build/knowledge.db
 ```
 
-- Web queue route: `/queue`
-- API queue route: `/queue`
+- Web review route: `/review`
+- Web knowledge health route: `/health`
+- Web activity route: `/activity`
 
-Use the queue to prioritize items with non-approved state, weak evidence, missing ownership, or suspect trust posture.
+Use these surfaces by purpose:
+
+- `Review / Approvals`: ready for review, needs decision, drafts and rework
+- `Knowledge Health`: stale guidance, weak evidence, suspect objects, superseded but still relied-on guidance
+- `Activity / History`: recent consequences, validation outcomes, and writeback/audit recovery context
 
 ## Approve Or Reject Revisions
 
 Review in this order:
 
 1. open object detail
-2. inspect revision history
+2. inspect what changed
 3. verify evidence, owner, and review cadence
-4. inspect impact when related objects or services may be affected
+4. inspect writeback preview and downstream impact when related objects or services may be affected
 
 Useful routes:
 
@@ -54,14 +60,15 @@ Current repository boundary:
 - the repository exposes governed operator actions through the shared application layer and thin CLI, API, and web surfaces
 - reviewer assignment, approval, rejection, supersession, suspect marking, and validation-run recording all leave audit evidence
 
-## Inspect Audit And Revision History
+## Inspect Activity, Audit, And Revision History
 
-Use object detail and revision history to answer:
+Use object detail, activity history, and revision history to answer:
 
 - what changed
 - who submitted or reviewed it
 - whether prior approved revisions were superseded
 - whether the current trust posture was degraded by later change
+- what should be revalidated or reviewed next
 
 If the trail is unclear, do not approve the revision until the author updates the source and change summary.
 
@@ -93,11 +100,11 @@ Treat these as escalation conditions:
 - objects with no owner or no clear responsible team
 - current guidance that is active but overdue for review
 
-Use the trust dashboard for trend and queue visibility:
+Use knowledge health for trend and stewardship visibility:
 
-- Web trust dashboard route: `/dashboard/trust`
+- Web knowledge health route: `/health`
 - API trust dashboard route: `/dashboard/trust`
-- CLI trust dashboard: `python3 scripts/operator_view.py dashboard --db build/knowledge.db`
+- CLI knowledge health: `python3 scripts/operator_view.py health --db build/knowledge.db`
 
 Additional governed manage routes:
 
@@ -105,6 +112,17 @@ Additional governed manage routes:
 - `/manage/objects/{object_id}/supersede`
 - `/manage/validation-runs/new`
 
-## Use Papyrus As A Governance Surface
+## Recover Or Inspect Canonical Writeback
 
-Papyrus is the place to judge whether knowledge is current, owned, reviewed, and supported by evidence. Use canonical Markdown for authored content, and use the runtime queue, trust, revision, service, and impact views to govern that content as an operational system.
+If a reviewer needs to understand or recover canonical source state:
+
+```bash
+python3 scripts/source_sync.py preview --object <object_id>
+python3 scripts/source_sync.py restore-last --object <object_id>
+```
+
+Use these commands when the writeback needs explicit inspection or rollback. Do not recover by manually editing generated output.
+
+## Use Papyrus As A Stewardship Surface
+
+Papyrus is the place to judge whether guidance is current, owned, reviewed, supported by evidence, and still safe after change. Use canonical Markdown for authored content, and use review, knowledge health, activity, service, and impact views to shepherd that content through its lifecycle.

@@ -86,6 +86,12 @@ class GovernanceWorkflowTests(unittest.TestCase):
             database_path = Path(temp_dir) / "workflow.db"
             build_search_projection(database_path)
             source_root = Path(temp_dir) / "repo"
+            seeded_source = source_root / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
+            seeded_source.parent.mkdir(parents=True, exist_ok=True)
+            seeded_source.write_text(
+                (ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
             workflow = GovernanceWorkflow(database_path, source_root=source_root)
 
             document = parse_knowledge_document(ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md")
@@ -115,7 +121,7 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 object_id=payload["id"],
                 revision_id=revision.revision_id,
                 reviewer="reviewer_a",
-                actor="tests",
+                actor="local.reviewer",
                 notes="Approved during test execution.",
             )
 
@@ -226,7 +232,7 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 object_id=object_b.object_id,
                 revision_id=revision_b.revision_id,
                 reviewer="reviewer_b",
-                actor="tests",
+                actor="local.reviewer",
                 notes="Approved during workflow testing.",
             )
 

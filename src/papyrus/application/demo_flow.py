@@ -244,7 +244,7 @@ def _approve_revision(
         object_id=object_id,
         revision_id=revision.revision_id,
         reviewer=reviewer,
-        actor=actor,
+        actor=reviewer,
         notes="Approved for the operator-readiness demo.",
     )
     return revision.revision_id

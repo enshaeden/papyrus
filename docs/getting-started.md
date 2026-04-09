@@ -1,6 +1,6 @@
 # Getting Started
 
-Use this path when you need a working Papyrus runtime quickly.
+Use this path when you need a working Papyrus runtime quickly and want the lifecycle-guided operator path, not just the underlying repository surfaces.
 
 ## 1. Prepare The Environment
 
@@ -29,13 +29,19 @@ python3 scripts/run.py --operator
 - API entrypoint: local API health route `/health`
 - Runtime DB: `build/knowledge.db`
 
+What to expect:
+- `/` is the lifecycle-guided home page.
+- The home page shows likely next actions, work-area counts, recent activity, and the lifecycle model.
+- Navigation is organized as `Read`, `Write`, `Review / Approvals`, `Knowledge Health`, `Services`, and `Activity / History`.
+
 For terminal-first work:
 
 ```bash
 python3 scripts/operator_view.py queue --db build/knowledge.db
-python3 scripts/operator_view.py dashboard --db build/knowledge.db
+python3 scripts/operator_view.py health --db build/knowledge.db
 python3 scripts/operator_view.py object kb-troubleshooting-vpn-connectivity --db build/knowledge.db
-python3 scripts/operator_view.py events --db build/knowledge.db --format json
+python3 scripts/operator_view.py review <object_id> <revision_id> --db build/knowledge.db
+python3 scripts/operator_view.py activity --db build/knowledge.db --format json
 ```
 
 For a fast demo/runtime review path:
@@ -44,6 +50,7 @@ For a fast demo/runtime review path:
 python3 scripts/run.py --demo
 python3 scripts/run_scenario.py service-degradation
 python3 scripts/operator_view.py queue --db build/demo-knowledge.db
+python3 scripts/operator_view.py health --db build/demo-knowledge.db
 ```
 
 For advanced surface-specific startup:
@@ -60,9 +67,9 @@ Guardrail:
 
 ## 3. Pick The Right Playbook
 
-- Need to find or verify guidance: [Read](playbooks/read.md)
-- Need to create or revise canonical source: [Write](playbooks/write.md)
-- Need to review, audit, or govern the corpus: [Manage](playbooks/manage.md)
+- Need to find or verify current guidance safely: [Read](playbooks/read.md)
+- Need to create or revise lifecycle-managed guidance: [Write](playbooks/write.md)
+- Need to make review or stewardship decisions: [Manage](playbooks/manage.md)
 
 ## 4. Use The Right Source
 
@@ -71,3 +78,4 @@ Guardrail:
 - Operator and reference docs live in `docs/`.
 - Derived output in `generated/`, `build/`, and `site/` is rebuildable and not authoritative.
 - Approved revisions write back deterministically to canonical Markdown through the governed application layer.
+- Writeback is inspectable: use review pages or `scripts/source_sync.py preview` before approval or explicit source sync, and use `scripts/source_sync.py restore-last` when you need to recover the previous canonical state.

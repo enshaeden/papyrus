@@ -62,3 +62,4 @@ def register(router, runtime) -> None:
         )
 
     router.add(["GET"], "/queue", queue_page)
+    router.add(["GET"], "/read", queue_page)

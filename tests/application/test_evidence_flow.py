@@ -108,7 +108,7 @@ class EvidenceFlowTests(unittest.TestCase):
                 object_id=created.object_id,
                 revision_id=revision.revision_id,
                 reviewer="reviewer_a",
-                actor="tests",
+                actor="local.reviewer",
                 notes="Approved for evidence lifecycle coverage.",
             )
 

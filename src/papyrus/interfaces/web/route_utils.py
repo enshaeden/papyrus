@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from papyrus.domain.actor import Actor
+from papyrus.domain.actor import Actor, actor_registry, default_actor_id, resolve_actor
 
 
 @dataclass(frozen=True)
@@ -29,72 +29,72 @@ class ActorShellConfig:
     quick_links: tuple[ShellLink, ...]
 
 
-DEFAULT_WEB_ACTOR = Actor(actor_id="local.operator", display_name="Local Operator", role_hint="operator")
-READ_LINK = ShellLink("read", "Knowledge Queue", "/queue", match_prefixes=("/queue", "/objects/"))
-WRITE_LINK = ShellLink("write", "Write Draft", "/write/objects/new", match_prefixes=("/write/",))
-REVIEW_LINK = ShellLink("review", "Review Queue", "/manage/queue", match_prefixes=("/manage/queue", "/manage/reviews/"))
-TRUST_LINK = ShellLink("manage", "Trust Dashboard", "/dashboard/trust", match_prefixes=("/dashboard/trust", "/manage/objects/"))
+DEFAULT_WEB_ACTOR = resolve_actor(default_actor_id())
+READ_LINK = ShellLink("read", "Read", "/read", match_prefixes=("/read", "/queue", "/objects/"))
+WRITE_LINK = ShellLink("write", "Write", "/write/objects/new", match_prefixes=("/write/",))
+REVIEW_LINK = ShellLink("review", "Review / Approvals", "/review", match_prefixes=("/review", "/manage/queue", "/manage/reviews/"))
+TRUST_LINK = ShellLink("health", "Knowledge Health", "/health", match_prefixes=("/health", "/dashboard/trust", "/manage/objects/", "/impact/"))
 SERVICES_LINK = ShellLink("services", "Services", "/services", match_prefixes=("/services",))
-VALIDATION_LINK = ShellLink("validation", "Validation Runs", "/manage/validation-runs", match_prefixes=("/manage/validation-runs",))
-AUDIT_LINK = ShellLink("audit", "Audit Trail", "/manage/audit", match_prefixes=("/manage/audit",))
+AUDIT_LINK = ShellLink("activity", "Activity / History", "/activity", match_prefixes=("/activity", "/manage/audit", "/manage/validation-runs"))
+LIFECYCLE_LINKS = (READ_LINK, WRITE_LINK, REVIEW_LINK, TRUST_LINK, SERVICES_LINK, AUDIT_LINK)
 
 WEB_ACTOR_SHELLS = (
     ActorShellConfig(
         actor=DEFAULT_WEB_ACTOR,
-        home_path="/queue",
-        summary="Read approved guidance, inspect service context, and draft updates when frontline work exposes a gap.",
+        home_path="/",
+        summary="Use current guidance, revise gaps you find, and keep work moving through the next safe lifecycle step.",
         nav_sections=(
             ShellSection(
-                title="Frontline Read",
-                description="Start with trusted knowledge and service context.",
-                items=(READ_LINK, SERVICES_LINK),
+                title="Lifecycle",
+                description="Move from use to revision, review, health checks, and history without leaving the operator shell.",
+                items=LIFECYCLE_LINKS,
             ),
             ShellSection(
-                title="Authoring",
-                description="Create or extend governed knowledge when the queue exposes a gap.",
-                items=(WRITE_LINK,),
+                title="Start Here",
+                description="Frontline work starts with guided use and only pivots into authoring when the current guidance is not enough.",
+                items=(READ_LINK, WRITE_LINK, SERVICES_LINK),
             ),
         ),
-        quick_links=(READ_LINK, SERVICES_LINK, WRITE_LINK),
+        quick_links=(READ_LINK, WRITE_LINK, SERVICES_LINK),
     ),
     ActorShellConfig(
-        actor=Actor(actor_id="local.reviewer", display_name="Local Reviewer", role_hint="reviewer"),
-        home_path="/manage/queue",
-        summary="Inspect submitted revisions, verify evidence posture, and record review decisions with explicit audit context.",
+        actor=resolve_actor("local.reviewer"),
+        home_path="/",
+        summary="Steward submitted revisions, make explicit decisions, and keep weak evidence or stale guidance from reaching operators silently.",
         nav_sections=(
             ShellSection(
-                title="Review Workflow",
-                description="Prioritize in-review items before broader governance work.",
-                items=(REVIEW_LINK, TRUST_LINK),
+                title="Lifecycle",
+                description="The same lifecycle frame stays visible while you move from review to health and activity history.",
+                items=LIFECYCLE_LINKS,
             ),
             ShellSection(
-                title="Evidence Checks",
-                description="Keep validation history and audit evidence close to each decision.",
-                items=(VALIDATION_LINK, AUDIT_LINK),
+                title="Start Here",
+                description="Reviewers should begin with pending decisions, then fall back to health and activity for supporting context.",
+                items=(REVIEW_LINK, TRUST_LINK, AUDIT_LINK),
             ),
         ),
-        quick_links=(REVIEW_LINK, TRUST_LINK, VALIDATION_LINK),
+        quick_links=(REVIEW_LINK, TRUST_LINK, AUDIT_LINK),
     ),
     ActorShellConfig(
-        actor=Actor(actor_id="local.manager", display_name="Local Manager", role_hint="approver"),
-        home_path="/dashboard/trust",
-        summary="Oversee trust posture, workload, and governance signals across the corpus without dropping into authoring first.",
+        actor=resolve_actor("local.manager"),
+        home_path="/",
+        summary="Shepherd knowledge health, review pressure, and recent change consequences without dropping straight into raw queues.",
         nav_sections=(
             ShellSection(
-                title="Corpus Oversight",
-                description="Track trust, queue pressure, and governance events across the whole system.",
-                items=(TRUST_LINK, REVIEW_LINK, AUDIT_LINK),
+                title="Lifecycle",
+                description="Use the lifecycle map to move between operational use, stewardship decisions, and consequence history.",
+                items=LIFECYCLE_LINKS,
             ),
             ShellSection(
-                title="Operational Controls",
-                description="Inspect supporting service and validation posture when escalation is needed.",
-                items=(VALIDATION_LINK, SERVICES_LINK),
+                title="Start Here",
+                description="Managers usually begin with health and review load, then drill into services and activity when risk is rising.",
+                items=(TRUST_LINK, REVIEW_LINK, AUDIT_LINK, SERVICES_LINK),
             ),
         ),
         quick_links=(TRUST_LINK, REVIEW_LINK, AUDIT_LINK),
     ),
 )
-WEB_ACTOR_OPTIONS = tuple(config.actor for config in WEB_ACTOR_SHELLS)
+WEB_ACTOR_OPTIONS = actor_registry()
 _WEB_ACTOR_SHELLS_BY_ID = {config.actor.actor_id: config for config in WEB_ACTOR_SHELLS}
 
 
@@ -124,5 +124,5 @@ def actor_home_path(actor_id: str) -> str:
 
 
 def actor_for_request(request) -> str:
-    actor = request.cookie_value("papyrus_actor", DEFAULT_WEB_ACTOR.actor_id).strip()
+    actor = request.cookie_value("papyrus_actor", default_actor_id()).strip()
     return actor_shell_for_id(actor).actor.actor_id

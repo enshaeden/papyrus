@@ -297,6 +297,24 @@
   margin: 0;
 }
 
+.lifecycle-stage + .lifecycle-stage {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-default);
+}
+
+.lifecycle-stage-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.lifecycle-stage-detail {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
 @media (max-width: 960px) {
   .workflow-top {
     flex-direction: column;

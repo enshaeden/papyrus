@@ -90,6 +90,7 @@ class PageRenderer:
             {
                 "actor_display_name": escape(role_config.actor.display_name),
                 "actor_role_summary": escape(role_config.summary),
+                "actor_role_hint": escape(role_config.actor.role_hint.replace("_", " ")),
                 "nav_sections_html": nav_sections_html,
             },
         )

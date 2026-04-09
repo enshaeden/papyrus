@@ -79,10 +79,10 @@ def present_object_impact(renderer: TemplateRenderer, *, impact: dict[str, Any])
     return {
         "page_template": "pages/impact_object.html",
         "page_title": f"Impact {entity['title']}",
-        "headline": f"Impact: {entity['title']}",
-        "kicker": "Impact",
-        "intro": "Affected objects, citation dependents, and services are separated so operators can trace blast radius quickly.",
-        "active_nav": "manage",
+        "headline": f"Change Consequences: {entity['title']}",
+        "kicker": "Health",
+        "intro": "See what changed, what is affected, and what should be reviewed or revalidated next before the consequence becomes stale context.",
+        "active_nav": "health",
         "aside_html": "",
         "page_context": {"summary_html": summary_html, "impacts_html": impacts_html},
     }
@@ -136,10 +136,10 @@ def present_service_impact(renderer: TemplateRenderer, *, impact: dict[str, Any]
     return {
         "page_template": "pages/impact_service.html",
         "page_title": f"Impact {entity['service_name']}",
-        "headline": f"Impact: {entity['service_name']}",
-        "kicker": "Impact",
-        "intro": "Service impact keeps the affected knowledge set legible before any governed change is approved.",
-        "active_nav": "manage",
+        "headline": f"Change Consequences: {entity['service_name']}",
+        "kicker": "Health",
+        "intro": "Use the service consequence view to see what changed, what knowledge is affected, and what should be reviewed next.",
+        "active_nav": "health",
         "aside_html": "",
         "page_context": {"summary_html": summary_html, "impacts_html": impacts_html},
     }

@@ -15,7 +15,9 @@ from papyrus.infrastructure.paths import ROOT
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build a demo runtime with realistic operator-readiness tension.")
+    parser = argparse.ArgumentParser(
+        description="Build a demo runtime with lifecycle tension across read, write, review, health, and activity flows."
+    )
     parser.add_argument(
         "--db",
         default=str(ROOT / "build" / "demo-knowledge.db"),

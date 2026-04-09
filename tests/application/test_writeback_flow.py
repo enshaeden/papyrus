@@ -14,7 +14,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.application.review_flow import GovernanceWorkflow
-from papyrus.application.writeback_flow import render_revision_markdown, write_object_to_source
+from papyrus.application.writeback_flow import (
+    preview_revision_writeback,
+    render_revision_markdown,
+    restore_last_writeback,
+    write_object_to_source,
+)
 from papyrus.infrastructure.markdown.serializer import json_dump
 from papyrus.infrastructure.paths import FRONT_MATTER_PATTERN
 
@@ -137,7 +142,7 @@ class WritebackFlowTests(unittest.TestCase):
                 object_id=created.object_id,
                 revision_id=revision.revision_id,
                 reviewer="reviewer_a",
-                actor="tests",
+                actor="local.reviewer",
                 notes="Approved for writeback coverage.",
             )
 
@@ -179,8 +184,179 @@ class WritebackFlowTests(unittest.TestCase):
 
             self.assertIsNotNone(audit_row)
             self.assertEqual(audit_row["event_type"], "source_writeback")
-            self.assertEqual(audit_row["actor"], "tests")
+            self.assertEqual(audit_row["actor"], "local.reviewer")
             self.assertIn("knowledge/runbooks/writeback-approved.md", str(audit_row["details_json"]))
+
+    def test_preview_reports_changed_sections_and_detects_conflict(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_root = Path(temp_dir) / "repo"
+            target_path = source_root / "knowledge" / "runbooks" / "writeback-preview.md"
+            target_path.parent.mkdir(parents=True)
+            database_path = Path(temp_dir) / "runtime.db"
+            workflow = GovernanceWorkflow(database_path, source_root=source_root)
+
+            created = workflow.create_object(
+                object_id="kb-writeback-preview",
+                object_type="runbook",
+                title="Writeback Preview",
+                summary="Preview integration object.",
+                owner="workflow_owner",
+                team="IT Operations",
+                canonical_path="knowledge/runbooks/writeback-preview.md",
+                actor="local.operator",
+            )
+            initial_payload = runbook_payload(created.object_id, created.canonical_path, created.title)
+            initial_revision = workflow.create_revision(
+                object_id=created.object_id,
+                normalized_payload=initial_payload,
+                body_markdown="## Use When\n\nUse the original guidance.\n",
+                actor="local.operator",
+                change_summary="Seed approved revision.",
+            )
+            workflow.submit_for_review(object_id=created.object_id, revision_id=initial_revision.revision_id, actor="local.operator")
+            workflow.assign_reviewer(
+                object_id=created.object_id,
+                revision_id=initial_revision.revision_id,
+                reviewer="reviewer_a",
+                actor="local.operator",
+            )
+            workflow.approve_revision(
+                object_id=created.object_id,
+                revision_id=initial_revision.revision_id,
+                reviewer="reviewer_a",
+                actor="local.reviewer",
+                notes="Approved seed revision.",
+            )
+
+            updated_payload = runbook_payload(created.object_id, created.canonical_path, created.title)
+            updated_payload["summary"] = "Preview the changed guidance before approval."
+            preview_revision = workflow.create_revision(
+                object_id=created.object_id,
+                normalized_payload=updated_payload,
+                body_markdown="## Use When\n\nUse the updated guidance.\n",
+                actor="local.operator",
+                change_summary="Preview changed guidance.",
+            )
+
+            preview = preview_revision_writeback(
+                database_path=database_path,
+                object_id=created.object_id,
+                revision_id=preview_revision.revision_id,
+                root_path=source_root,
+            )
+            self.assertIn("summary", preview.changed_fields)
+            self.assertIn("Use When", preview.changed_sections)
+            self.assertFalse(preview.conflict_detected)
+
+            target_path.write_text("manual conflict\n", encoding="utf-8")
+            conflicted_preview = preview_revision_writeback(
+                database_path=database_path,
+                object_id=created.object_id,
+                revision_id=preview_revision.revision_id,
+                root_path=source_root,
+            )
+            self.assertTrue(conflicted_preview.conflict_detected)
+            self.assertIn("Canonical source changed unexpectedly", str(conflicted_preview.conflict_reason))
+
+    def test_restore_last_writeback_recovers_previous_canonical_text(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_root = Path(temp_dir) / "repo"
+            target_path = (source_root / "knowledge" / "runbooks" / "writeback-restore.md").resolve()
+            target_path.parent.mkdir(parents=True)
+            database_path = Path(temp_dir) / "runtime.db"
+            workflow = GovernanceWorkflow(database_path, source_root=source_root)
+
+            created = workflow.create_object(
+                object_id="kb-writeback-restore",
+                object_type="runbook",
+                title="Writeback Restore",
+                summary="Restore integration object.",
+                owner="workflow_owner",
+                team="IT Operations",
+                canonical_path="knowledge/runbooks/writeback-restore.md",
+                actor="local.operator",
+            )
+            first_payload = runbook_payload(created.object_id, created.canonical_path, created.title)
+            first_body = "## Use When\n\nUse revision one.\n"
+            first_revision = workflow.create_revision(
+                object_id=created.object_id,
+                normalized_payload=first_payload,
+                body_markdown=first_body,
+                actor="local.operator",
+                change_summary="Approved revision one.",
+            )
+            workflow.submit_for_review(object_id=created.object_id, revision_id=first_revision.revision_id, actor="local.operator")
+            workflow.assign_reviewer(
+                object_id=created.object_id,
+                revision_id=first_revision.revision_id,
+                reviewer="reviewer_a",
+                actor="local.operator",
+            )
+            workflow.approve_revision(
+                object_id=created.object_id,
+                revision_id=first_revision.revision_id,
+                reviewer="reviewer_a",
+                actor="local.reviewer",
+                notes="Approved first revision.",
+            )
+            first_text = target_path.read_text(encoding="utf-8")
+
+            second_payload = runbook_payload(created.object_id, created.canonical_path, created.title)
+            second_payload["summary"] = "Second approved guidance."
+            second_body = "## Use When\n\nUse revision two.\n"
+            second_revision = workflow.create_revision(
+                object_id=created.object_id,
+                normalized_payload=second_payload,
+                body_markdown=second_body,
+                actor="local.operator",
+                change_summary="Approved revision two.",
+            )
+            workflow.submit_for_review(object_id=created.object_id, revision_id=second_revision.revision_id, actor="local.operator")
+            workflow.assign_reviewer(
+                object_id=created.object_id,
+                revision_id=second_revision.revision_id,
+                reviewer="reviewer_a",
+                actor="local.operator",
+            )
+            workflow.approve_revision(
+                object_id=created.object_id,
+                revision_id=second_revision.revision_id,
+                reviewer="reviewer_a",
+                actor="local.reviewer",
+                notes="Approved second revision.",
+            )
+            self.assertNotEqual(target_path.read_text(encoding="utf-8"), first_text)
+
+            restore_result = restore_last_writeback(
+                database_path=database_path,
+                object_id=created.object_id,
+                actor="local.manager",
+                root_path=source_root,
+            )
+            self.assertEqual(target_path.read_text(encoding="utf-8"), first_text)
+            self.assertIsNotNone(restore_result.backup_path)
+            self.assertFalse(restore_result.restored_to_missing)
+
+            connection = sqlite3.connect(database_path)
+            connection.row_factory = sqlite3.Row
+            try:
+                restored_row = connection.execute(
+                    """
+                    SELECT event_type, actor, details_json
+                    FROM audit_events
+                    WHERE object_id = ? AND event_type = 'source_writeback_restored'
+                    ORDER BY occurred_at DESC
+                    LIMIT 1
+                    """,
+                    (created.object_id,),
+                ).fetchone()
+            finally:
+                connection.close()
+
+            self.assertIsNotNone(restored_row)
+            self.assertEqual(restored_row["event_type"], "source_writeback_restored")
+            self.assertEqual(restored_row["actor"], "local.manager")
+            self.assertIn("knowledge/runbooks/writeback-restore.md", str(restored_row["details_json"]))
 
 
 if __name__ == "__main__":

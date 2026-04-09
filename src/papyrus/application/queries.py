@@ -398,10 +398,13 @@ def _queue_projection_select() -> str:
             o.object_id,
             o.current_revision_id,
             o.title,
+            o.summary,
             o.object_type,
             o.status,
             o.owner,
             o.team,
+            o.last_reviewed,
+            o.review_cadence,
             COALESCE(d.path, o.canonical_path) AS path,
             o.trust_state,
             COALESCE(
@@ -430,10 +433,13 @@ def _queue_item_from_projection_row(row: sqlite3.Row) -> dict[str, Any]:
     return {
         "object_id": str(row["object_id"]),
         "title": str(row["title"]),
+        "summary": str(row["summary"]),
         "object_type": str(row["object_type"]),
         "status": str(row["status"]),
         "owner": str(row["owner"]),
         "team": str(row["team"]),
+        "last_reviewed": str(row["last_reviewed"]),
+        "review_cadence": str(row["review_cadence"]),
         "path": str(row["path"]),
         "trust_state": str(row["trust_state"]),
         "approval_state": str(row["approval_state"]),
@@ -1225,9 +1231,12 @@ def manage_queue(
                 o.object_id,
                 o.object_type,
                 o.title,
+                o.summary,
                 o.status,
                 o.owner,
                 o.team,
+                o.last_reviewed,
+                o.review_cadence,
                 o.canonical_path,
                 o.trust_state,
                 o.current_revision_id,
@@ -1299,9 +1308,12 @@ def manage_queue(
                 "object_id": str(row["object_id"]),
                 "object_type": str(row["object_type"]),
                 "title": str(row["title"]),
+                "summary": str(row["summary"]),
                 "status": str(row["status"]),
                 "owner": str(row["owner"]),
                 "team": str(row["team"]),
+                "last_reviewed": str(row["last_reviewed"]),
+                "review_cadence": str(row["review_cadence"]),
                 "path": str(row["path"]),
                 "trust_state": str(row["trust_state"]),
                 "approval_state": str(row["approval_state"]),
@@ -1336,14 +1348,56 @@ def manage_queue(
             items.append(item)
         _augment_queue_items(connection, items)
 
+        def unique_by_object_id(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            seen: set[str] = set()
+            ordered: list[dict[str, Any]] = []
+            for entry in entries:
+                object_id = str(entry["object_id"])
+                if object_id in seen:
+                    continue
+                seen.add(object_id)
+                ordered.append(entry)
+            return ordered
+
+        review_required = [item for item in items if item["revision_state"] == "in_review"]
+        ready_for_review = [item for item in review_required if item["assignment"] is None]
+        needs_decision = [item for item in review_required if item["assignment"] is not None]
+        stale_items = [item for item in items if item["freshness_rank"] > 0]
+        weak_evidence_items = [item for item in items if item["citation_health_rank"] > 0]
+        ownership_items = [item for item in items if item["ownership_rank"] > 0 or not item["owner"].strip()]
+        draft_items = [item for item in items if item["current_revision_id"] is None or item["revision_state"] in {"draft", "rejected"}]
+        suspect_items = [item for item in items if item["trust_state"] != "trusted" or item["approval_state"] != "approved"]
+        needs_revalidation = unique_by_object_id(
+            stale_items + weak_evidence_items + [item for item in items if item["trust_state"] in {"suspect", "stale"}]
+        )
+        recently_changed = sorted(
+            [item for item in items if item["imported_at"]],
+            key=lambda item: str(item["imported_at"]),
+            reverse=True,
+        )
+        superseded_items = [
+            item
+            for item in items
+            if item["status"] == "deprecated"
+            or item["approval_state"] == "superseded"
+            or item["revision_state"] == "superseded"
+        ]
+        needs_attention = unique_by_object_id(review_required + needs_revalidation + ownership_items)
+
         return {
             "items": items,
-            "review_required": [item for item in items if item["revision_state"] == "in_review"],
-            "stale_items": [item for item in items if item["freshness_rank"] > 0],
-            "suspect_items": [item for item in items if item["trust_state"] != "trusted" or item["approval_state"] != "approved"],
-            "weak_evidence_items": [item for item in items if item["citation_health_rank"] > 0],
-            "ownership_items": [item for item in items if item["ownership_rank"] > 0 or not item["owner"].strip()],
-            "draft_items": [item for item in items if item["current_revision_id"] is None or item["revision_state"] in {"draft", "rejected"}],
+            "review_required": review_required,
+            "ready_for_review": ready_for_review,
+            "needs_decision": needs_decision,
+            "stale_items": stale_items,
+            "suspect_items": suspect_items,
+            "weak_evidence_items": weak_evidence_items,
+            "ownership_items": ownership_items,
+            "draft_items": draft_items,
+            "needs_revalidation": needs_revalidation,
+            "recently_changed": recently_changed,
+            "superseded_items": superseded_items,
+            "needs_attention": needs_attention,
         }
     finally:
         connection.close()
@@ -1502,6 +1556,67 @@ def validation_run_history(
         connection.close()
 
 
+def _event_group(event_type: str, payload: dict[str, Any]) -> str:
+    if event_type == "service_change":
+        return "service_changes"
+    if event_type.startswith("evidence_"):
+        return "evidence_degradation"
+    if event_type.startswith("validation_") or event_type == "validation_run_recorded":
+        status = str(payload.get("status") or "").strip()
+        return "validation_failures" if status in {"failed", "error"} or event_type == "validation_failure" else "validation_activity"
+    if event_type == "object_marked_suspect_due_to_change":
+        return "manual_suspect_marks"
+    if event_type.startswith("revision_") or event_type == "reviewer_assigned":
+        return "review_activity"
+    if event_type in {"source_writeback", "source_writeback_restored"}:
+        return "writeback_activity"
+    return "other"
+
+
+def _event_summary(event_type: str, *, entity_type: str, entity_id: str, payload: dict[str, Any]) -> str:
+    summary = str(payload.get("summary") or "").strip()
+    if summary:
+        return summary
+    if event_type == "service_change":
+        return f"Service change recorded for {entity_id}."
+    if event_type == "object_marked_suspect_due_to_change":
+        return f"Guidance for {entity_id} was marked suspect."
+    if event_type == "revision_submitted_for_review":
+        return f"Revision for {entity_id} was submitted for review."
+    if event_type == "revision_approved":
+        return f"Revision for {entity_id} was approved and became canonical guidance."
+    if event_type == "revision_rejected":
+        return f"Revision for {entity_id} was rejected."
+    if event_type == "validation_run_recorded":
+        return f"Validation run recorded for {entity_type}:{entity_id}."
+    if event_type == "source_writeback":
+        return f"Canonical source writeback completed for {entity_id}."
+    if event_type == "source_writeback_restored":
+        return f"Canonical source was restored for {entity_id}."
+    reason = str(payload.get("reason") or "").strip()
+    if reason:
+        return reason
+    return f"{event_type.replace('_', ' ')} for {entity_type}:{entity_id}."
+
+
+def _event_next_action(group: str, *, entity_type: str, entity_id: str) -> str:
+    if group == "service_changes":
+        return f"Review the service path for {entity_id} and revalidate linked guidance."
+    if group == "evidence_degradation":
+        return f"Revalidate evidence for {entity_type}:{entity_id} before relying on it."
+    if group == "validation_failures":
+        return f"Inspect the validation failure for {entity_type}:{entity_id} before approving changes."
+    if group == "validation_activity":
+        return f"Review the recorded validation outcome for {entity_type}:{entity_id}."
+    if group == "manual_suspect_marks":
+        return f"Treat {entity_type}:{entity_id} as unsafe until the reason is reviewed or revised."
+    if group == "review_activity":
+        return f"Open the review context for {entity_type}:{entity_id} and move it to the next lifecycle step."
+    if group == "writeback_activity":
+        return f"Inspect canonical source state for {entity_type}:{entity_id} and confirm the live guidance is the intended version."
+    return f"Inspect the latest activity for {entity_type}:{entity_id}."
+
+
 def event_history(
     *,
     limit: int = 100,
@@ -1544,9 +1659,23 @@ def event_history(
                 "entity_id": str(row["entity_id"]),
                 "occurred_at": str(row["occurred_at"]),
                 "actor": str(row["actor"]),
-                "payload": _json_dict(row["payload_json"]),
+                "payload": payload,
+                "group": group,
+                "what_happened": _event_summary(
+                    str(row["event_type"]),
+                    entity_type=str(row["entity_type"]),
+                    entity_id=str(row["entity_id"]),
+                    payload=payload,
+                ),
+                "next_action": _event_next_action(
+                    group,
+                    entity_type=str(row["entity_type"]),
+                    entity_id=str(row["entity_id"]),
+                ),
             }
             for row in rows
+            for payload in [_json_dict(row["payload_json"])]
+            for group in [_event_group(str(row["event_type"]), payload)]
         ]
     finally:
         connection.close()
@@ -1582,9 +1711,23 @@ def _recent_events(
             "entity_id": str(row["entity_id"]),
             "occurred_at": str(row["occurred_at"]),
             "actor": str(row["actor"]),
-            "payload": _json_dict(row["payload_json"]),
+            "payload": payload,
+            "group": group,
+            "what_happened": _event_summary(
+                str(row["event_type"]),
+                entity_type=str(row["entity_type"]),
+                entity_id=str(row["entity_id"]),
+                payload=payload,
+            ),
+            "next_action": _event_next_action(
+                group,
+                entity_type=str(row["entity_type"]),
+                entity_id=str(row["entity_id"]),
+            ),
         }
         for row in rows
+        for payload in [_json_dict(row["payload_json"])]
+        for group in [_event_group(str(row["event_type"]), payload)]
     ]
 
 

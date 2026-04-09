@@ -38,6 +38,26 @@ class SourceWritebackCommandResult:
 
 
 @dataclass(frozen=True)
+class SourceWritebackPreviewCommandResult:
+    object_id: str
+    revision_id: str
+    file_path: Path
+    changed_fields: list[str]
+    changed_sections: list[str]
+    conflict_detected: bool
+
+
+@dataclass(frozen=True)
+class SourceWritebackRestoreCommandResult:
+    object_id: str
+    revision_id: str | None
+    file_path: Path
+    restored_event_id: str
+    backup_path: Path | None
+    restored_to_missing: bool
+
+
+@dataclass(frozen=True)
 class EventIngestCommandResult:
     event_id: str
     event_type: str
@@ -165,6 +185,55 @@ def writeback_all_command(
         )
         for result in results
     ]
+
+
+def preview_writeback_command(
+    *,
+    database_path: Path = DB_PATH,
+    object_id: str,
+    revision_id: str,
+    source_root: Path | None = None,
+) -> SourceWritebackPreviewCommandResult:
+    result = writeback_flow.preview_revision_writeback(
+        database_path=database_path,
+        object_id=object_id,
+        revision_id=revision_id,
+        root_path=source_root or ROOT,
+    )
+    return SourceWritebackPreviewCommandResult(
+        object_id=result.object_id,
+        revision_id=result.revision_id,
+        file_path=result.file_path,
+        changed_fields=result.changed_fields,
+        changed_sections=result.changed_sections,
+        conflict_detected=result.conflict_detected,
+    )
+
+
+def restore_writeback_command(
+    *,
+    database_path: Path = DB_PATH,
+    object_id: str,
+    actor: str,
+    revision_id: str | None = None,
+    source_root: Path | None = None,
+) -> SourceWritebackRestoreCommandResult:
+    actor = require_actor_id(actor)
+    result = writeback_flow.restore_last_writeback(
+        database_path=database_path,
+        object_id=object_id,
+        revision_id=revision_id,
+        actor=actor,
+        root_path=source_root or ROOT,
+    )
+    return SourceWritebackRestoreCommandResult(
+        object_id=result.object_id,
+        revision_id=result.revision_id,
+        file_path=result.file_path,
+        restored_event_id=result.restored_event_id,
+        backup_path=result.backup_path,
+        restored_to_missing=result.restored_to_missing,
+    )
 
 
 def ingest_event_command(

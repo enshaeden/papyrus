@@ -16,7 +16,7 @@ from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.rendering import PageRenderer
 from papyrus.interfaces.web.route_utils import actor_for_request, actor_home_path, actor_shell_for_id
 from papyrus.interfaces.web.runtime import WebRuntime
-from papyrus.interfaces.web.routes import dashboard, impact, manage, objects, queue, services, write
+from papyrus.interfaces.web.routes import dashboard, home, impact, manage, objects, queue, services, write
 from papyrus.interfaces.startup_guard import resolve_operator_source_root
 
 
@@ -109,6 +109,7 @@ def app(
         taxonomies=load_taxonomies(),
     )
     router = Router()
+    home.register(router, runtime)
     queue.register(router, runtime)
     objects.register(router, runtime)
     services.register(router, runtime)
@@ -128,8 +129,6 @@ def app(
                     headers=[("Set-Cookie", f"papyrus_actor={actor}; Path=/; SameSite=Lax")],
                 )
                 return response.as_wsgi(start_response)
-            if request.path == "/":
-                return redirect_response(actor_home_path(actor_for_request(request))).as_wsgi(start_response)
             if request.path.startswith("/static/"):
                 relative_path = request.path.removeprefix("/static/")
                 asset = runtime.page_renderer.load_static_asset(relative_path)

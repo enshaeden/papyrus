@@ -1,279 +1,120 @@
 # Operator Readiness
 
-This document records the operator-readiness hardening pass that moved Papyrus from a well-structured prototype to an operator-facing local-first system with explicit workflow outcomes, calibrated trust signals, parity checks, closed-loop source writeback, structured change ingestion, and a realistic demo/runtime path.
+This document records the v1.5 lifecycle-guided pass. Papyrus remains a governed local-first operational knowledge control plane, but the product framing now emphasizes guided work, next actions, lifecycle progression, and stewardship instead of presenting governance metadata as the primary experience.
 
-## Purpose And Scope
+## What This Pass Accomplished
 
-- Harden operator workflows without rewriting the object model or adding AI-specific features.
-- Keep all read, write, and manage behavior anchored in the shared application layer.
-- Provide one clear local happy path and one clear demo/review path.
-- Make trust degradation explicit, inspectable, and useful in real operator hands.
-- Keep governed source, runtime governance, and consequence propagation in one accountable loop.
+- Reframed the product model around the lifecycle of operational knowledge:
+  - draft
+  - revise
+  - review
+  - approve
+  - use
+  - revalidate
+  - supersede or archive
+- Added a real home page with:
+  - primary work areas
+  - outstanding work counts
+  - recent activity
+  - actor-specific next actions
+- Changed top-level navigation to:
+  - `Read`
+  - `Write`
+  - `Review / Approvals`
+  - `Knowledge Health`
+  - `Services`
+  - `Activity / History`
+- Reworked read surfaces so object detail and search results answer:
+  - what this is
+  - when to use it
+  - whether it is safe now
+  - what changed recently
+  - what to do next if it is not safe or current
+- Reworked write surfaces so guided authoring shows:
+  - progress through the draft flow
+  - required versus optional work
+  - validation blockers versus warnings
+  - lifecycle context and publication outcome
+- Reworked review and manage surfaces so stewardship work is grouped as:
+  - ready for review
+  - needs decision
+  - needs revalidation
+  - weak evidence
+  - recently changed
+  - superseded guidance still in view
+- Added writeback preview and conflict detection to make canonical publication inspectable before approval.
+- Added writeback recovery support through governed backup restoration.
+- Reframed event and impact history around operational consequences instead of raw payload inspection.
+- Expanded local actor handling with registry-backed display names, role hints, default actor selection, explicit actor propagation, and self-approval prevention.
+- Aligned CLI language with the lifecycle-guided model so queue, health, review, object detail, activity, and validation output describe next actions instead of only raw state.
 
-## Technical Approach
+## Product Decisions
 
-- Added a shared posture model in `src/papyrus/application/posture.py` so CLI, API, and web surfaces expose the same trust and approval reasoning.
-- Extended manage/operator workflows with governed web and API actions for:
-  - superseding an object
-  - marking an object suspect with explicit rationale
-  - recording a validation run
-- Added a thin parity CLI in `scripts/operator_view.py` for queue, dashboard, object detail, review detail, manage queue, and validation-run inspection.
-- Added governed source writeback, event ingestion, evidence lifecycle handling, and actor enforcement through the shared application layer.
-- Added `scripts/run.py` for one-command operator and demo startup.
-- Added `scripts/demo_runtime.py`, `scripts/run_scenario.py`, and `src/papyrus/application/demo_flow.py` to build a realistic local demo/runtime with:
-  - a healthy service and trusted runbook
-  - a degraded service
-  - a stale runbook
-  - a weak-evidence known error
-  - an in-review revision
-  - a change-triggered suspect object
-  - evidence snapshot, evidence-stale, and revalidation activity
-- Kept static export secondary and untouched as the approved-content surface.
+- Governance remains visible as a guardrail, not the lead headline on every primary screen.
+- Read surfaces lead with safe use, freshness, service context, and recent change.
+- Write surfaces lead with progress and readiness to submit.
+- Review surfaces lead with decision support and downstream effect.
+- Knowledge health is separate from approval work.
+- Activity and history explain what happened, what it affected, and what should happen next.
+- Source writeback is explicit, inspectable, and recoverable.
+- Actor attribution is lightweight and local-first. This pass does not introduce enterprise authentication.
 
-## Boundary Reference
+## Recovery And Inspection
 
-The normative operator-ready v1 boundary now lives in [Operator Governance And Decisions](../../decisions/index.md). Use this document for the implementation hardening details behind that boundary: workflow exposure, trust calibration, parity coverage, demo/runtime support, and the findings that drove this pass.
-
-## Dependencies Introduced Or Modified
-
-- No new third-party dependencies were introduced.
-- Runtime behavior continues to rely on the standard-library WSGI stack, SQLite, and existing repository taxonomies/schemas.
-
-## Security, Observability, And Performance Review
-
-- Security:
-  Governed API actions now require an explicit actor, internal error responses are sanitized, and operator-facing errors avoid leaking stack traces or raw exception internals.
-- Observability:
-  Governance actions surface as audit events with details, object detail pages expose recent audit metadata, structured events are queryable through `GET /events`, and validation-run history remains inspectable through web, API, and CLI surfaces.
-- Performance:
-  This pass kept the existing SQLite projection model and reused shared query helpers rather than adding new infrastructure. Ranking work stays in SQL plus lightweight Python ordering over bounded result sets.
-
-## Demo Scenario Coverage
-
-- Healthy service: `kb-demo-remote-access-service-record`
-- Healthy runbook: `kb-demo-vpn-recovery-runbook`
-- Degraded service: `kb-demo-identity-service-record`
-- Stale runbook: `kb-demo-identity-fallback-runbook`
-- Weak evidence: `kb-demo-evidence-gap-known-error`
-- Change-triggered suspect object: `kb-demo-identity-token-known-error`
-- Pending review: `kb-demo-password-reset-runbook`
-
-Build and review it with:
+- Inspect a pending or approved writeback:
 
 ```bash
-python3 scripts/run.py --demo
-python3 scripts/run_scenario.py service-degradation
-python3 scripts/operator_view.py queue --db build/demo-knowledge.db
+python3 scripts/source_sync.py preview --object <object_id>
 ```
 
-## Failure Modes And Rollback
+- Apply explicit source writeback:
 
-- Runtime unavailable:
-  Run `python3 scripts/build_index.py` or rebuild the demo DB with `python3 scripts/demo_runtime.py`.
-- Operator startup pointed at a non-canonical source root:
-  `scripts/run.py --operator`, `scripts/serve_web.py`, and `scripts/serve_api.py` now reject that configuration by default. The same guardrail is enforced when the web or API WSGI app is constructed directly. Use the canonical repository root, switch to `--demo`, or explicitly opt in only for sandboxed demo/test roots.
-- Invalid governed action:
-  Fix the request payload or workflow state; Papyrus now returns explicit 400 responses and web error pages.
-- Demo/runtime rollback:
-  Stop pointing the web/API/CLI at `build/demo-knowledge.db` and return to `build/knowledge.db`.
-- Code rollback:
-  Revert this pass and rebuild the runtime. The changes are additive and do not require irreversible source migrations.
+```bash
+python3 scripts/source_sync.py writeback --object <object_id>
+```
 
-## Known Limitations And Tradeoffs
+- Restore the most recent backed-up canonical state:
 
-- Papyrus now writes approved revisions back to canonical Markdown, but authoring still begins in structured runtime forms rather than raw Markdown edits.
-- The CLI is an inspection/parity surface, not a full authoring surface.
-- Authentication, RBAC, notifications, realtime updates, and collaborative multi-user editing remain deferred.
-- Static export remains approval-gated and secondary; it is intentionally not a live governance surface.
+```bash
+python3 scripts/source_sync.py restore-last --object <object_id>
+```
 
-## Structured Findings
+- Review recent operational consequences:
 
-----------------------------------------
-TYPE: Workflow gap
-SEVERITY: High
+```bash
+python3 scripts/operator_view.py activity --db build/knowledge.db
+```
 
-DESCRIPTION:
-Supersession, suspect marking, and validation-run recording existed below the application layer but were not exposed as complete operator workflows in the web or API surfaces.
+## Current Boundary
 
-IMPACT:
-Operators could not complete critical governance actions end-to-end without dropping into code or ad-hoc database workflows.
+In scope after this pass:
 
-AFFECTED COMPONENTS:
-Web manage surface, JSON API, audit visibility
+- lifecycle-guided web UX
+- lifecycle-aligned CLI wording
+- stewardship-oriented review and knowledge-health surfaces
+- inspectable writeback preview, conflict detection, and recovery
+- consequence-oriented event and impact presentation
+- lightweight local actor accountability
 
-ROOT CAUSE:
-The first read/write/manage pass exposed only the most common review actions.
+Still deferred after this pass:
 
-RECOMMENDED RESOLUTION:
-Expose the missing governed actions through thin web/API layers with rationale capture, redirect-after-post handling, and audit evidence.
+- enterprise auth and RBAC
+- realtime collaboration
+- notifications and subscriptions
+- advanced diffs
+- external integrations
+- connectors to external systems
+- LLM, AI, embeddings, or vector infrastructure
 
-STATUS:
-RESOLVED
-----------------------------------------
+## Dependencies And Operational Risk
 
-----------------------------------------
-TYPE: Trust calibration issue
-SEVERITY: High
+- No new third-party dependencies were introduced.
+- Source of truth remains canonical Markdown under `knowledge/` and `archive/knowledge/`.
+- Derived output remains non-authoritative.
+- Business logic remains in the shared application layer rather than being duplicated in the web or CLI surfaces.
 
-DESCRIPTION:
-Ownership placeholders dominated the trust state and made nearly the entire runtime look uniformly suspect, which hid the more important freshness and evidence signals.
+## Rollback Reference
 
-IMPACT:
-Operators could not quickly separate healthy, weak-evidence, stale, and change-triggered suspect content.
-
-AFFECTED COMPONENTS:
-Trust model, queue ordering, dashboard visibility, object detail views
-
-ROOT CAUSE:
-Ownership ambiguity was treated as a primary trust-state downgrade rather than a secondary operational warning.
-
-RECOMMENDED RESOLUTION:
-Keep ownership ambiguity visible, but let freshness, evidence quality, and explicit suspect events drive the primary trust posture.
-
-STATUS:
-RESOLVED
-----------------------------------------
-
-----------------------------------------
-TYPE: Search/retrieval weakness
-SEVERITY: High
-
-DESCRIPTION:
-Search and queue ordering did not reliably put the most trustworthy operational answer first, and service linkage was not visible in result lists.
-
-IMPACT:
-Support operators had to click through multiple results before judging whether a result was safe and relevant.
-
-AFFECTED COMPONENTS:
-Queue query, search query, queue presenter, dashboard presenter
-
-ROOT CAUSE:
-Ranking leaned toward coarse runtime posture without explicit operator-answer prioritization or cross-navigation signals.
-
-RECOMMENDED RESOLUTION:
-Promote approved, trustworthy, service-linked, and connected content first; demote weak/stale/isolated content while keeping the reason visible in-line.
-
-STATUS:
-RESOLVED
-----------------------------------------
-
-----------------------------------------
-TYPE: Bug
-SEVERITY: High
-
-DESCRIPTION:
-FTS-backed search could miss runtime-created or newly governed objects until the runtime projection was rebuilt, even though queue/detail surfaces already reflected the updated state.
-
-IMPACT:
-Operators could complete a workflow and still fail to retrieve the new or updated object through direct search, which undermined trust in the system during active governance work.
-
-AFFECTED COMPONENTS:
-Search query path, CLI/API/web retrieval parity
-
-ROOT CAUSE:
-The search path preferred the `knowledge_search` FTS index when present, but runtime workflow mutations updated `search_documents` more immediately than the FTS table.
-
-RECOMMENDED RESOLUTION:
-Supplement FTS matches with live `search_documents` retrieval and deduplicate results so runtime-governed objects remain searchable without forcing an immediate rebuild.
-
-STATUS:
-RESOLVED
-----------------------------------------
-
-----------------------------------------
-TYPE: Demo/sample-data gap
-SEVERITY: High
-
-DESCRIPTION:
-Source-sync data alone did not demonstrate pending review, change-triggered suspect posture, or realistic governance tension.
-
-IMPACT:
-Papyrus could look well-architected but still fail to prove real operator workflows under stress.
-
-AFFECTED COMPONENTS:
-Demo path, trust dashboard, queue, service detail, revision history
-
-ROOT CAUSE:
-Canonical repository source naturally syncs into mostly approved runtime state and does not on its own create review-queue tension.
-
-RECOMMENDED RESOLUTION:
-Build a deterministic local demo/runtime that layers governed scenario objects and audit activity on top of the synced source.
-
-STATUS:
-RESOLVED
-----------------------------------------
-
-----------------------------------------
-TYPE: Degraded-mode design issue
-SEVERITY: Medium
-
-DESCRIPTION:
-Runtime-unavailable, bad-request, and internal-error responses were too generic and exposed raw exception details in some surfaces.
-
-IMPACT:
-Operators could not reliably tell whether the next step was rebuilding the runtime, fixing a request, or asking for deeper admin help.
-
-AFFECTED COMPONENTS:
-WSGI web app, JSON API
-
-ROOT CAUSE:
-Earlier error handling focused on correctness rather than operator actionability and information hygiene.
-
-RECOMMENDED RESOLUTION:
-Return categorized, actionable error responses and sanitize internal failures.
-
-STATUS:
-RESOLVED
-----------------------------------------
-
-----------------------------------------
-TYPE: Workflow inefficiency
-SEVERITY: Medium
-
-DESCRIPTION:
-There was no parity CLI for queue, dashboard, or detail inspection.
-
-IMPACT:
-Surface parity checks depended on HTML scraping or direct SQLite inspection.
-
-AFFECTED COMPONENTS:
-CLI/operator tooling, parity regression testing
-
-ROOT CAUSE:
-The original CLI focused on validation/search utilities rather than operator-state inspection.
-
-RECOMMENDED RESOLUTION:
-Add a thin shared-query CLI surface for queue, dashboard, object, review, manage queue, and validation history.
-
-STATUS:
-RESOLVED
-----------------------------------------
-
-----------------------------------------
-TYPE: Deferred capability
-SEVERITY: Low
-
-DESCRIPTION:
-Papyrus still lacks enterprise auth/RBAC, notifications, realtime updates, collaborative editing, and advanced diff tooling.
-
-IMPACT:
-Papyrus is operator-ready for local-first governed use, but not enterprise-complete.
-
-AFFECTED COMPONENTS:
-Deployment framing, future roadmap
-
-ROOT CAUSE:
-These capabilities are intentionally outside the operator-ready v1 cut line.
-
-RECOMMENDED RESOLUTION:
-Treat them as explicit post-v1 roadmap items rather than leaking them into the current pass.
-
-STATUS:
-UNRESOLVED
-
-IF UNRESOLVED:
-- Reason it was not fixed:
-  Out of scope for operator-ready v1 and would expand the pass into auth, collaboration, and notification infrastructure.
-- What is required to resolve later:
-  Separate roadmap and ADRs for auth boundaries, multi-user coordination, and realtime/eventing.
-----------------------------------------
+- If the runtime is unavailable, rebuild it with `python3 scripts/build_index.py`.
+- If a revision should not become canonical, do not bypass the workflow; use rejection or do not approve it.
+- If canonical writeback needs recovery after approval, use `scripts/source_sync.py restore-last` so the restore is recorded in audit history.

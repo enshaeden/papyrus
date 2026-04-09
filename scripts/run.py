@@ -39,7 +39,9 @@ def _serve_in_thread(server, label: str) -> threading.Thread:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Start Papyrus in operator or demo mode with both local web and API surfaces.")
+    parser = argparse.ArgumentParser(
+        description="Start Papyrus in operator or demo mode with lifecycle-guided web and API surfaces."
+    )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--demo", action="store_true", help="Build the demo runtime, then start both local surfaces.")
     mode.add_argument("--operator", action="store_true", help="Rebuild the operator runtime, then start both local surfaces.")
@@ -87,10 +89,12 @@ def main() -> int:
 
     mode_name = "demo" if args.demo else "operator"
     print(f"Papyrus {mode_name} mode is running.")
+    print(f"Home: http://{args.host}:{args.web_port}/")
     print(f"Web: http://{args.host}:{args.web_port}")
     print(f"API: http://{args.host}:{args.api_port}")
     print(f"Runtime DB: {database_path}")
     print(f"Source root: {source_root}")
+    print("Start with Home to see next actions, lifecycle work areas, and recent operational activity.")
     try:
         web_thread.join()
         api_thread.join()

@@ -5,6 +5,7 @@ import datetime as dt
 import json
 import sqlite3
 import sys
+from pathlib import Path
 
 from papyrus.application.commands import build_projection_command, validate_repository_command
 from papyrus.application.queries import (
@@ -20,6 +21,7 @@ from papyrus.application.queries import (
     trust_dashboard,
     validation_run_history,
 )
+from papyrus.application.writeback_flow import preview_revision_writeback
 from papyrus.domain.policies import searchable_statuses
 from papyrus.infrastructure.markdown.serializer import parse_iso_date
 from papyrus.infrastructure.paths import DB_PATH
@@ -169,8 +171,30 @@ def _emit_payload(payload: object, *, output_format: str) -> int:
     return 0
 
 
+def _safe_to_use_text(*, approval_state: str | None, trust_state: str | None) -> str:
+    approval = str(approval_state or "").strip()
+    trust = str(trust_state or "").strip()
+    if approval == "approved" and trust == "trusted":
+        return "safe to use now"
+    if approval in {"draft", "rejected"}:
+        return "complete or revise before use"
+    if approval == "in_review":
+        return "review decision pending before use"
+    if trust == "weak_evidence":
+        return "verify evidence before use"
+    if trust == "stale":
+        return "revalidate freshness before use"
+    if trust == "suspect":
+        return "do not rely on this until reviewed"
+    return "inspect the lifecycle posture before use"
+
+
+def _line_block(*lines: str) -> list[str]:
+    return [line for line in lines if line]
+
+
 def operator_main() -> int:
-    parser = argparse.ArgumentParser(description="Inspect Papyrus operator surfaces from the terminal.")
+    parser = argparse.ArgumentParser(description="Inspect Papyrus lifecycle, stewardship, and consequence surfaces from the terminal.")
     parser.add_argument("--db", default=str(DB_PATH), help="Path to the runtime SQLite database.")
     parser.add_argument("--format", choices=("text", "json"), default="text", help="Output format.")
     common = argparse.ArgumentParser(add_help=False)
@@ -178,26 +202,36 @@ def operator_main() -> int:
     common.add_argument("--format", choices=("text", "json"), default=None, help=argparse.SUPPRESS)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    queue_parser = subparsers.add_parser("queue", help="Show the read queue.", parents=[common])
+    queue_parser = subparsers.add_parser("queue", help="Show guided read results.", parents=[common])
     queue_parser.add_argument("--limit", type=int, default=25, help="Maximum queue items.")
 
-    dashboard_parser = subparsers.add_parser("dashboard", help="Show the trust dashboard.", parents=[common])
+    dashboard_parser = subparsers.add_parser(
+        "dashboard",
+        aliases=["health"],
+        help="Show knowledge health and stewardship signals.",
+        parents=[common],
+    )
     dashboard_parser.add_argument("--limit", type=int, default=25, help="Maximum queue items in text mode.")
 
-    object_parser = subparsers.add_parser("object", help="Show a knowledge object detail.", parents=[common])
+    object_parser = subparsers.add_parser("object", help="Show guided object detail.", parents=[common])
     object_parser.add_argument("object_id", help="Knowledge object ID.")
 
     review_parser = subparsers.add_parser("review", help="Show review detail for a revision.", parents=[common])
     review_parser.add_argument("object_id", help="Knowledge object ID.")
     review_parser.add_argument("revision_id", help="Revision ID.")
 
-    events_parser = subparsers.add_parser("events", help="Show structured change, validation, and evidence events.", parents=[common])
+    events_parser = subparsers.add_parser(
+        "events",
+        aliases=["activity"],
+        help="Show operational activity and consequence history.",
+        parents=[common],
+    )
     events_parser.add_argument("--limit", type=int, default=25, help="Maximum events to return.")
     events_parser.add_argument("--entity-type", default=None, help="Optional entity type filter.")
     events_parser.add_argument("--entity-id", default=None, help="Optional entity ID filter.")
     events_parser.add_argument("--event-type", default=None, help="Optional event type filter.")
 
-    subparsers.add_parser("manage-queue", help="Show the manage queue.", parents=[common])
+    subparsers.add_parser("manage-queue", help="Show review and stewardship buckets.", parents=[common])
     subparsers.add_parser("validation-runs", help="Show validation run history.", parents=[common])
 
     args = parser.parse_args()
@@ -208,24 +242,32 @@ def operator_main() -> int:
         payload = knowledge_queue(limit=args.limit, database_path=database_path)
         if output_format == "json":
             return _emit_payload({"queue": payload}, output_format=output_format)
-        lines = [
-            f"{item['object_id']} | {item['title']} | trust={item['trust_state']} | approval={item['approval_state']} | why={item['posture']['trust_summary']}"
-            for item in payload
-        ]
+        lines = ["Read guidance", f"results={len(payload)}"]
+        for item in payload:
+            linked_services = ", ".join(service["service_name"] for service in item.get("linked_services", [])) or "no linked services"
+            lines.extend(
+                _line_block(
+                    f"{item['object_id']} | {item['title']}",
+                    f"  use_now={_safe_to_use_text(approval_state=item.get('approval_state'), trust_state=item.get('trust_state'))}",
+                    f"  trust={item['trust_state']} | approval={item['approval_state']} | services={linked_services}",
+                    f"  next={item['posture']['trust_summary']}",
+                )
+            )
         return _emit_payload(lines, output_format="text")
 
-    if args.command == "dashboard":
+    if args.command in {"dashboard", "health"}:
         payload = trust_dashboard(database_path=database_path)
         if output_format == "json":
             return _emit_payload(payload, output_format=output_format)
         lines = [
+            "Knowledge health",
             f"objects={payload['object_count']}",
             "trust=" + ", ".join(f"{key}={value}" for key, value in sorted(payload["trust_counts"].items())),
             "approval=" + ", ".join(f"{key}={value}" for key, value in sorted(payload["approval_counts"].items())),
             "validation=" + payload["validation_posture"]["summary"],
         ]
         lines.extend(
-            f"queue | {item['object_id']} | trust={item['trust_state']} | approval={item['approval_state']} | why={item['posture']['trust_summary']}"
+            f"needs_attention | {item['object_id']} | trust={item['trust_state']} | approval={item['approval_state']} | next={item['posture']['trust_summary']}"
             for item in payload["queue"][: args.limit]
         )
         return _emit_payload(lines, output_format="text")
@@ -234,11 +276,27 @@ def operator_main() -> int:
         payload = knowledge_object_detail(args.object_id, database_path=database_path)
         if output_format == "json":
             return _emit_payload(payload, output_format=output_format)
+        current_revision = payload.get("current_revision") or {}
+        audit_events = payload.get("audit_events") or []
+        latest_event = audit_events[0] if audit_events else None
         lines = [
             f"{payload['object']['object_id']} | {payload['object']['title']}",
-            f"trust={payload['object']['trust_state']} | approval={payload['object']['approval_state']}",
-            payload["posture"]["trust_summary"] + " | " + payload["posture"]["trust_detail"],
+            f"use_now={_safe_to_use_text(approval_state=payload['object']['approval_state'], trust_state=payload['object']['trust_state'])}",
+            f"trust={payload['object']['trust_state']} | approval={payload['object']['approval_state']} | owner={payload['object']['owner']}",
+            f"last_reviewed={payload['object'].get('last_reviewed') or 'unknown'} | cadence={payload['object'].get('review_cadence') or 'unknown'}",
+            "guidance=" + str(payload["posture"]["trust_summary"]),
+            "detail=" + str(payload["posture"]["trust_detail"]),
         ]
+        if current_revision:
+            lines.append(
+                "current_revision="
+                + f"{current_revision['revision_id']} | state={current_revision['revision_state']} | change={current_revision.get('change_summary') or 'no change summary'}"
+            )
+        if latest_event:
+            lines.append(
+                "recent_change="
+                + f"{latest_event['event_type']} at {latest_event['occurred_at']} by {latest_event['actor']}"
+            )
         lines.extend(
             f"service | {service['service_name']} | {service['status']}"
             for service in payload["related_services"]
@@ -249,9 +307,23 @@ def operator_main() -> int:
         payload = review_detail(args.object_id, args.revision_id, database_path=database_path)
         if output_format == "json":
             return _emit_payload(payload, output_format=output_format)
+        preview = preview_revision_writeback(
+            database_path=Path(database_path),
+            object_id=args.object_id,
+            revision_id=args.revision_id,
+        )
         lines = [
             f"{payload['object']['object_id']} | revision={payload['revision']['revision_id']} | state={payload['revision']['revision_state']}",
             f"approval={payload['object']['approval_state']} | trust={payload['object']['trust_state']}",
+            f"citations={len(payload['citations'])} | assignments={len(payload['assignments'])}",
+            "writeback_preview="
+            + (
+                "conflict detected"
+                if preview.conflict_detected
+                else "ready to become canonical guidance"
+            ),
+            "changed_fields=" + (", ".join(preview.changed_fields) if preview.changed_fields else "none"),
+            "changed_sections=" + (", ".join(preview.changed_sections) if preview.changed_sections else "none"),
         ]
         lines.extend(
             f"assignment | reviewer={assignment['reviewer']} | state={assignment['state']}"
@@ -259,7 +331,7 @@ def operator_main() -> int:
         )
         return _emit_payload(lines, output_format="text")
 
-    if args.command == "events":
+    if args.command in {"events", "activity"}:
         payload = event_history(
             limit=args.limit,
             entity_type=args.entity_type,
@@ -270,7 +342,7 @@ def operator_main() -> int:
         if output_format == "json":
             return _emit_payload({"events": payload}, output_format=output_format)
         lines = [
-            f"{item['occurred_at']} | {item['event_type']} | {item['entity_type']}={item['entity_id']} | actor={item['actor']} | source={item['source']}"
+            f"{item['occurred_at']} | {item['group']} | {item['what_happened']} | affected={item['entity_type']}:{item['entity_id']} | next={item['next_action']}"
             for item in payload
         ]
         return _emit_payload(lines or ["no events found"], output_format="text")
@@ -280,14 +352,16 @@ def operator_main() -> int:
         if output_format == "json":
             return _emit_payload(payload, output_format=output_format)
         lines = [
-            f"review_required={len(payload['review_required'])}",
-            f"stale={len(payload['stale_items'])}",
+            "Review and stewardship work",
+            f"ready_for_review={len(payload['ready_for_review'])}",
+            f"needs_decision={len(payload['needs_decision'])}",
+            f"needs_revalidation={len(payload['needs_revalidation'])}",
             f"weak_evidence={len(payload['weak_evidence_items'])}",
-            f"ownership_gaps={len(payload['ownership_items'])}",
+            f"stale={len(payload['stale_items'])}",
         ]
         lines.extend(
-            f"review | {item['object_id']} | revision={item['revision_id']} | why={item['posture']['trust_summary']}"
-            for item in payload["review_required"]
+            f"decision | {item['object_id']} | revision={item['revision_id']} | next={item['posture']['trust_summary']}"
+            for item in payload["review_required"][:10]
         )
         return _emit_payload(lines, output_format="text")
 

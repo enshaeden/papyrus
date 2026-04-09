@@ -134,6 +134,8 @@ class InterfaceSurfaceTests(unittest.TestCase):
         events_payload = json.loads(body)
         self.assertTrue(events_payload["events"])
         self.assertEqual(events_payload["events"][0]["event_type"], "service_change")
+        self.assertIn("what_happened", events_payload["events"][0])
+        self.assertIn("next_action", events_payload["events"][0])
 
         status, _, body = call_wsgi(application, "/services")
         self.assertEqual(status, "200 OK")
@@ -153,9 +155,14 @@ class InterfaceSurfaceTests(unittest.TestCase):
     def test_web_surface_exposes_required_phase8_views(self) -> None:
         application = web_app(self.database_path)
 
+        status, _, body = call_wsgi(application, "/")
+        self.assertEqual(status, "200 OK")
+        self.assertIn("Guided Operational Knowledge", body)
+        self.assertIn("Knowledge lifecycle", body)
+
         status, _, body = call_wsgi(application, "/queue")
         self.assertEqual(status, "200 OK")
-        self.assertIn("Knowledge Queue", body)
+        self.assertIn("Read Operational Guidance", body)
         self.assertIn("/objects/", body)
         self.assertIn("Evidence is weak or unverified", body)
 
@@ -163,7 +170,7 @@ class InterfaceSurfaceTests(unittest.TestCase):
         self.assertEqual(status, "200 OK")
         self.assertIn("VPN Troubleshooting", body)
         self.assertIn("Revision history", body)
-        self.assertIn("Supporting citations", body)
+        self.assertIn("Supporting evidence", body)
 
         status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity/revisions")
         self.assertEqual(status, "200 OK")
@@ -175,24 +182,24 @@ class InterfaceSurfaceTests(unittest.TestCase):
 
         status, _, body = call_wsgi(application, "/dashboard/trust")
         self.assertEqual(status, "200 OK")
-        self.assertIn("Trust Dashboard", body)
+        self.assertIn("Knowledge Health", body)
 
         status, _, body = call_wsgi(application, "/services")
         self.assertEqual(status, "200 OK")
-        self.assertIn("Service catalog", body)
+        self.assertIn("Service entry points", body)
 
         status, _, body = call_wsgi(application, "/manage/queue")
         self.assertEqual(status, "200 OK")
-        self.assertIn("Review Queue", body)
+        self.assertIn("Review And Approval Work", body)
 
         status, _, body = call_wsgi(application, "/manage/audit")
         self.assertEqual(status, "200 OK")
-        self.assertIn("Audit And Governance", body)
-        self.assertIn("Structured events", body)
+        self.assertIn("Activity And History", body)
+        self.assertIn("Governed audit trail", body)
 
         status, _, body = call_wsgi(application, "/impact/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
-        self.assertIn("Impact", body)
+        self.assertIn("Change Consequences", body)
 
     def test_static_theme_assets_expose_governed_brand_tokens(self) -> None:
         application = web_app(self.database_path)

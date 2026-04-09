@@ -1,6 +1,6 @@
 # Read Playbook
 
-Use this playbook when you need the right operational guidance and need to know whether it is safe to rely on.
+Use this playbook when you need the right operational guidance, need to know whether it is safe to rely on, and need a clear next step if it is not.
 
 ## Build Or Refresh The Runtime
 
@@ -22,6 +22,7 @@ Terminal:
 ```bash
 python3 scripts/search.py vpn
 python3 scripts/operator_view.py queue --db build/knowledge.db
+python3 scripts/operator_view.py health --db build/knowledge.db
 python3 scripts/operator_view.py object kb-troubleshooting-vpn-connectivity --db build/knowledge.db
 ```
 
@@ -32,17 +33,19 @@ python3 scripts/serve_web.py
 python3 scripts/serve_api.py
 ```
 
-- Web queue route: `/queue`
-- Web trust dashboard route: `/dashboard/trust`
+- Web home route: `/`
+- Web read route: `/read`
+- Web knowledge health route: `/health`
 - API queue route: `/queue`
 
-Use search when you know the topic. Use the queue, trust dashboard, or service detail views when you need to browse by operational posture.
+Use search when you know the topic. Use the home page, read surface, service detail, or knowledge-health view when you need to browse by lifecycle or operational posture.
 
 Use the operator CLI when you need parity checks without opening the browser:
 
 - `python3 scripts/operator_view.py queue --db build/knowledge.db`
-- `python3 scripts/operator_view.py dashboard --db build/knowledge.db`
+- `python3 scripts/operator_view.py health --db build/knowledge.db`
 - `python3 scripts/operator_view.py object <object_id> --db build/knowledge.db`
+- `python3 scripts/operator_view.py activity --db build/knowledge.db`
 
 ## Check Trust Posture Before Acting
 
@@ -70,16 +73,17 @@ Failure signals:
 
 From the runtime-backed surfaces, inspect:
 
-- Object detail for summary, status, owner, and service fit.
+- Object detail for safe-to-use posture, last review, service fit, and what changed recently.
 - Revision history for what changed and who approved it.
-- Citations for the evidence behind the claims.
-- Related objects and impact views for dependencies and follow-on work.
+- Supporting evidence for the claims behind the guidance.
+- Related objects, service detail, activity history, and impact views for dependencies and follow-on work.
 
 Useful routes:
 
 - Web object detail: `/objects/{object_id}`
 - Web revision history: `/objects/{object_id}/revisions`
 - Web service detail: `/services/{service_id}`
+- Web activity history: `/activity`
 - Web impact view: `/impact/object/{object_id}`
 - API equivalents under the same route names on the local API server
 
@@ -90,13 +94,14 @@ When starting from a service issue:
 1. Open the service detail view.
 2. Read the linked runbook for the operational procedure.
 3. Check related known errors for symptom-specific failures.
-4. Open impact views if the issue may affect dependent objects or services.
+4. Open activity or impact views if the issue may affect dependent objects or services.
 
 When starting from a known error:
 
 1. Read the symptom and evidence first.
 2. Follow linked runbooks for the approved operator action.
 3. Check revision history if the workaround or fix looks recent or disputed.
+4. If safety or freshness is degraded, move to review or knowledge health instead of relying on the guidance immediately.
 
 ## Flag Stale Or Suspect Knowledge
 

@@ -1,32 +1,165 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.rendering import TemplateRenderer
-from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, render_list, tone_for_approval, tone_for_health, tone_for_trust
+from papyrus.interfaces.web.view_helpers import (
+    escape,
+    format_timestamp,
+    join_html,
+    link,
+    quoted_path,
+    render_list,
+    tone_for_approval,
+    tone_for_health,
+    tone_for_trust,
+)
+
+
+SECTION_PATTERN = re.compile(r"^## (?P<title>.+?)\n\n(?P<body>.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL)
+
+
+def _body_sections(body_markdown: str) -> dict[str, str]:
+    return {
+        match.group("title").strip(): match.group("body").strip()
+        for match in SECTION_PATTERN.finditer(str(body_markdown or "").strip())
+    }
+
+
+def _safe_to_use_summary(item: dict[str, Any]) -> str:
+    approval_state = str(item.get("approval_state") or "")
+    trust_state = str(item.get("trust_state") or "")
+    if approval_state == "approved" and trust_state == "trusted":
+        return "Safe to use now if the linked service context still matches the situation."
+    if approval_state == "in_review":
+        return "Do not treat this revision as canonical guidance yet. Use the last approved guidance or escalate."
+    if approval_state in {"draft", "rejected"}:
+        return "This guidance is not ready for operational use yet."
+    if trust_state == "weak_evidence":
+        return "Use cautiously and verify the evidence trail before relying on it."
+    if trust_state == "stale":
+        return "Revalidate freshness before relying on this guidance."
+    if trust_state == "suspect":
+        return "Treat this guidance as unsafe until the suspect reason is reviewed."
+    return "Inspect the trust and approval context before relying on this guidance."
+
+
+def _next_action(posture: dict[str, Any]) -> str:
+    approval = posture.get("approval") or {}
+    return str(approval.get("action") or "Inspect the detail, review, or health surfaces before acting.")
+
+
+def _runbook_guidance(components: ComponentPresenter, metadata: dict[str, Any], sections: dict[str, str]) -> list[str]:
+    return [
+        components.section_card(
+            title="When to use this",
+            eyebrow="Guidance",
+            body_html=f"<p>{escape(sections.get('Use When') or 'No trigger guidance recorded.')}</p>",
+        ),
+        components.section_card(
+            title="Preconditions",
+            eyebrow="Guidance",
+            body_html=render_list([escape(item) for item in metadata.get("prerequisites", [])], css_class="panel-list")
+            or '<p class="empty-state-copy">No prerequisites recorded.</p>',
+        ),
+        components.section_card(
+            title="Verification",
+            eyebrow="Guidance",
+            body_html=render_list([escape(item) for item in metadata.get("verification", [])], css_class="panel-list")
+            or '<p class="empty-state-copy">No verification steps recorded.</p>',
+        ),
+        components.section_card(
+            title="If this fails / next escalation",
+            eyebrow="Guidance",
+            body_html=f"<p>{escape(sections.get('Boundaries And Escalation') or 'No escalation boundary recorded.')}</p>",
+        ),
+    ]
+
+
+def _known_error_guidance(components: ComponentPresenter, metadata: dict[str, Any], sections: dict[str, str]) -> list[str]:
+    return [
+        components.section_card(
+            title="When this applies",
+            eyebrow="Guidance",
+            body_html=(
+                f"<p><strong>Symptoms:</strong> {escape(', '.join(metadata.get('symptoms', [])) or 'None recorded.')}</p>"
+                f"<p><strong>Scope:</strong> {escape(metadata.get('scope') or 'None recorded.')}</p>"
+            ),
+        ),
+        components.section_card(
+            title="Diagnostic checks",
+            eyebrow="Guidance",
+            body_html=render_list([escape(item) for item in metadata.get("diagnostic_checks", [])], css_class="panel-list")
+            or '<p class="empty-state-copy">No diagnostic checks recorded.</p>',
+        ),
+        components.section_card(
+            title="Mitigations",
+            eyebrow="Guidance",
+            body_html=render_list([escape(item) for item in metadata.get("mitigations", [])], css_class="panel-list")
+            or '<p class="empty-state-copy">No mitigations recorded.</p>',
+        ),
+        components.section_card(
+            title="If this fails / next escalation",
+            eyebrow="Guidance",
+            body_html=f"<p>{escape(sections.get('Escalation Threshold') or 'No escalation threshold recorded.')}</p>",
+        ),
+    ]
+
+
+def _service_record_guidance(components: ComponentPresenter, metadata: dict[str, Any], sections: dict[str, str]) -> list[str]:
+    return [
+        components.section_card(
+            title="Operational scope",
+            eyebrow="Guidance",
+            body_html=f"<p>{escape(sections.get('Scope') or 'No scope notes recorded.')}</p>",
+        ),
+        components.section_card(
+            title="Dependencies",
+            eyebrow="Guidance",
+            body_html=render_list([escape(item) for item in metadata.get("dependencies", [])], css_class="panel-list")
+            or '<p class="empty-state-copy">No dependencies recorded.</p>',
+        ),
+        components.section_card(
+            title="Support entrypoints",
+            eyebrow="Guidance",
+            body_html=render_list([escape(item) for item in metadata.get("support_entrypoints", [])], css_class="panel-list")
+            or '<p class="empty-state-copy">No support entrypoints recorded.</p>',
+        ),
+        components.section_card(
+            title="If this fails / next escalation",
+            eyebrow="Guidance",
+            body_html=f"<p>{escape(sections.get('Operational Notes') or 'No operational notes recorded.')}</p>",
+        ),
+    ]
+
+
+def _guidance_cards(
+    components: ComponentPresenter,
+    *,
+    item: dict[str, Any],
+    metadata: dict[str, Any],
+    sections: dict[str, str],
+) -> list[str]:
+    object_type = str(item["object_type"])
+    if object_type == "runbook":
+        return _runbook_guidance(components, metadata, sections)
+    if object_type == "known_error":
+        return _known_error_guidance(components, metadata, sections)
+    return _service_record_guidance(components, metadata, sections)
 
 
 def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     item = detail["object"]
     revision = detail["current_revision"]
-    posture = detail.get("posture") or {
-        "trust_detail": "Object trust, approval, and evidence health stay visible while the operator reads the content.",
-        "blocking_failures": [],
-        "serious_warnings": [],
-        "informational_warnings": [],
-        "approval": {
-            "summary": str(item.get("approval_state") or "unknown"),
-            "detail": "Approval detail is not available in this presenter payload.",
-            "action": "Inspect the object detail query payload for approval guidance.",
-        },
-    }
-    evidence_status = detail.get("evidence_status") or {
-        "summary": "No evidence summary available.",
-        "missing_snapshot_count": 0,
-        "stale_count": 0,
-    }
+    metadata = detail.get("metadata") or {}
+    posture = detail.get("posture") or {}
+    evidence_status = detail.get("evidence_status") or {}
+    body_sections = _body_sections(revision["body_markdown"] if revision is not None else "")
+    latest_audit = detail["audit_events"][0] if detail["audit_events"] else None
+
     header_html = components.object_header(
         object_type=item["object_type"],
         object_id=item["object_id"],
@@ -36,155 +169,119 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
             components.badge(label="Trust", value=item["trust_state"], tone=tone_for_trust(item["trust_state"])),
             components.badge(label="Approval", value=item["approval_state"] or "unknown", tone=tone_for_approval(item["approval_state"])),
             components.badge(label="Freshness", value=item["freshness_rank"], tone=tone_for_health(item["freshness_rank"])),
-            components.badge(label="Citation health", value=item["citation_health_rank"], tone=tone_for_health(item["citation_health_rank"])),
+            components.badge(label="Evidence", value=item["citation_health_rank"], tone=tone_for_health(item["citation_health_rank"])),
         ],
         actions_html=join_html(
             [
                 link("Revision history", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
-                link("New revision", f"/write/objects/{quoted_path(item['object_id'])}/revisions/new", css_class="button button-primary"),
+                link("Revise guidance", f"/write/objects/{quoted_path(item['object_id'])}/revisions/new", css_class="button button-primary"),
                 link("Impact view", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
                 link("Mark suspect", f"/manage/objects/{quoted_path(item['object_id'])}/suspect", css_class="button button-secondary"),
-                link("Supersede", f"/manage/objects/{quoted_path(item['object_id'])}/supersede", css_class="button button-secondary"),
             ],
             " ",
         ),
     )
-    content_cards = [
+
+    top_cards = [
         components.section_card(
-            title="Structured content",
-            eyebrow="Read",
-            body_html=join_html(
-                [
-                    f"<h3>Prerequisites</h3>{render_list([escape(item) for item in detail['metadata'].get('prerequisites', [])], css_class='panel-list') or '<p class=\"empty-state-copy\">None recorded.</p>'}",
-                    f"<h3>Steps</h3>{render_list([escape(item) for item in detail['metadata'].get('steps', [])], css_class='panel-list') or '<p class=\"empty-state-copy\">None recorded.</p>'}",
-                    f"<h3>Verification</h3>{render_list([escape(item) for item in detail['metadata'].get('verification', [])], css_class='panel-list') or '<p class=\"empty-state-copy\">None recorded.</p>'}",
-                    f"<h3>Rollback</h3>{render_list([escape(item) for item in detail['metadata'].get('rollback', [])], css_class='panel-list') or '<p class=\"empty-state-copy\">None recorded.</p>'}",
-                ]
+            title="Safe to use now?",
+            eyebrow="Use",
+            tone="approved" if item["approval_state"] == "approved" and item["trust_state"] == "trusted" else "warning",
+            body_html=(
+                f"<p>{escape(_safe_to_use_summary(item))}</p>"
+                f"<p><strong>Last reviewed:</strong> {escape(item['last_reviewed'])} · <strong>Cadence:</strong> {escape(item['review_cadence'])}</p>"
+                f"<p><strong>Next action:</strong> {escape(_next_action(posture))}</p>"
             ),
         ),
         components.section_card(
-            title="Revision body",
-            eyebrow="Current revision",
+            title="Linked service context",
+            eyebrow="Use",
             body_html=(
-                f'<pre class="prose-block">{escape(revision["body_markdown"])}</pre>'
-                if revision is not None
-                else '<p class="empty-state-copy">No current revision is attached to this object.</p>'
+                render_list(
+                    [
+                        f"{link(service['service_name'], f'/services/{quoted_path(service['service_id'])}')}"
+                        f'<span class="list-meta">{escape(service["service_criticality"])} · {escape(service["status"])}</span>'
+                        for service in detail["related_services"]
+                    ],
+                    css_class="panel-list",
+                )
+                or '<p class="empty-state-copy">No linked service context is recorded.</p>'
             ),
-            footer_html=(
-                f'<p class="section-footer">Revision #{revision["revision_number"]} · {escape(revision["revision_state"])} · {escape(format_timestamp(revision["imported_at"]))}</p>'
-                if revision is not None
-                else ""
+        ),
+        components.section_card(
+            title="What changed recently",
+            eyebrow="Change",
+            body_html=(
+                f"<p>{escape(revision['change_summary'] or 'No revision change summary recorded.')}</p>"
+                + (
+                    f"<p><strong>Latest audit:</strong> {escape(latest_audit['event_type'])} at {escape(format_timestamp(latest_audit['occurred_at']))} by {escape(latest_audit['actor'])}</p>"
+                    if latest_audit
+                    else "<p>No recent audit activity is recorded.</p>"
+                )
             ),
         ),
     ]
+
+    guidance_html = join_html(
+        top_cards
+        + _guidance_cards(
+            components,
+            item=item,
+            metadata=metadata,
+            sections=body_sections,
+        )
+        + [
+            components.section_card(
+                title="Core steps and recovery",
+                eyebrow="Guidance",
+                body_html=join_html(
+                    [
+                        f"<h3>Steps</h3>{render_list([escape(step) for step in metadata.get('steps', [])], css_class='panel-list') or '<p class=\"empty-state-copy\">No steps recorded.</p>'}",
+                        f"<h3>Rollback</h3>{render_list([escape(step) for step in metadata.get('rollback', [])], css_class='panel-list') or '<p class=\"empty-state-copy\">No rollback recorded.</p>'}",
+                    ]
+                ),
+            ),
+            components.section_card(
+                title="Revision narrative",
+                eyebrow="Change",
+                body_html=(
+                    f'<pre class="prose-block">{escape(revision["body_markdown"])}</pre>'
+                    if revision is not None
+                    else '<p class="empty-state-copy">No current revision is attached to this object.</p>'
+                ),
+                footer_html=(
+                    f'<p class="section-footer">Revision #{revision["revision_number"]} · {escape(revision["revision_state"])} · {escape(format_timestamp(revision["imported_at"]))}</p>'
+                    if revision is not None
+                    else ""
+                ),
+            ),
+        ]
+    )
+
     related_sections_html = join_html(
         [
             components.citations_panel(
-                title="Supporting citations",
+                title="Supporting evidence",
                 items=[
                     (
                         f"<strong>{escape(citation['source_title'])}</strong>"
                         f"<span class=\"list-meta\">{escape(citation['source_ref'])} · {escape(citation['validity_status'])}</span>"
                         f"<span class=\"list-meta\">snapshot: {escape(citation.get('evidence_snapshot_path') or 'missing')}</span>"
-                        f"<span class=\"list-meta\">expires: {escape(citation.get('evidence_expiry_at') or 'not set')}</span>"
                     )
                     for citation in detail["citations"]
                 ],
-                empty_label="No citations attached to the current revision.",
+                empty_label="No citations are attached to the current revision.",
             ),
             components.relationships_panel(
-                title="Related services",
-                items=[
-                    f"{link(service['service_name'], f'/services/{quoted_path(service['service_id'])}')}"
-                    f'<span class="list-meta">{escape(service["service_criticality"])} · {escape(service["status"])}</span>'
-                    for service in detail["related_services"]
-                ],
-                empty_label="No related services linked.",
-            ),
-            components.relationships_panel(
-                title="Outbound relationships",
+                title="Related knowledge",
                 items=[
                     f"{escape(relationship['relationship_type'])}: {link(relationship['title'], f'/objects/{quoted_path(relationship['object_id'])}')}"
-                    for relationship in detail["outbound_relationships"]
+                    for relationship in detail["outbound_relationships"] + detail["inbound_relationships"]
                 ],
-                empty_label="No outbound relationships linked.",
-            ),
-            components.relationships_panel(
-                title="Inbound relationships",
-                items=[
-                    f"{escape(relationship['relationship_type'])}: {link(relationship['title'], f'/objects/{quoted_path(relationship['object_id'])}')}"
-                    for relationship in detail["inbound_relationships"]
-                ],
-                empty_label="No inbound relationships linked.",
-            ),
-            components.relationships_panel(
-                title="Missing linked targets",
-                items=[
-                    f"{escape(relationship['relationship_type'])}: {escape(relationship['target_entity_type'])} {escape(relationship['target_entity_id'])}"
-                    for relationship in detail.get("unresolved_relationships", [])
-                ],
-                empty_label="No broken linked services or knowledge objects were detected.",
-            ),
-        ]
-    )
-    aside_html = join_html(
-        [
-            components.trust_summary(
-                title="Trust posture",
-                badges=[
-                    components.badge(label="Trust", value=item["trust_state"], tone=tone_for_trust(item["trust_state"])),
-                    components.badge(label="Approval", value=item["approval_state"] or "unknown", tone=tone_for_approval(item["approval_state"])),
-                    components.badge(label="Current revision", value=revision["revision_state"] if revision else "none", tone=tone_for_approval(revision["revision_state"] if revision else "draft")),
-                ],
-                summary=posture["trust_detail"],
-            ),
-            components.validation_summary(
-                title="Trust reasons",
-                findings=[
-                    *[reason["summary"] + ": " + reason["detail"] for reason in posture["blocking_failures"]],
-                    *[reason["summary"] + ": " + reason["detail"] for reason in posture["serious_warnings"]],
-                    *[reason["summary"] + ": " + reason["detail"] for reason in posture["informational_warnings"]],
-                ],
-                empty_label="No active trust warnings.",
-            ),
-            components.section_card(
-                title="Evidence status",
-                eyebrow="Evidence",
-                body_html=(
-                    f"<p>{escape(evidence_status['summary'])}</p>"
-                    f"<p><strong>Missing snapshots:</strong> {escape(evidence_status['missing_snapshot_count'])}</p>"
-                    f"<p><strong>Stale or broken evidence:</strong> {escape(evidence_status['stale_count'])}</p>"
-                ),
-                footer_html=link(
-                    "Revalidate Evidence",
-                    f"/manage/objects/{quoted_path(item['object_id'])}/evidence/revalidate",
-                    css_class="button button-secondary",
-                ),
-            ),
-            components.section_card(
-                title="Approval posture",
-                eyebrow="Governance",
-                body_html=(
-                    f"<p><strong>{escape(posture['approval']['summary'])}</strong></p>"
-                    f"<p>{escape(posture['approval']['detail'])}</p>"
-                    f"<p class=\"section-footer\">Next action: {escape(posture['approval']['action'])}</p>"
-                ),
-            ),
-            components.metadata_list(
-                title="Object metadata",
-                rows=[
-                    ("Owner", escape(item["owner"])),
-                    ("Team", escape(item["team"])),
-                    ("Status", escape(item["status"])),
-                    ("Last reviewed", escape(item["last_reviewed"])),
-                    ("Review cadence", escape(item["review_cadence"])),
-                    ("Canonical path", escape(item["canonical_path"])),
-                    ("Systems", escape(", ".join(item["systems"]))),
-                    ("Tags", escape(", ".join(item["tags"]))),
-                ],
+                empty_label="No related knowledge links were recorded.",
             ),
             components.audit_panel(
-                title="Recent audit",
+                title="Recent audit trail",
                 items=[
                     (
                         f"{escape(format_timestamp(event['occurred_at']))} · {escape(event['event_type'])} · {escape(event['actor'])}"
@@ -200,17 +297,56 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
             ),
         ]
     )
+
+    aside_html = join_html(
+        [
+            components.trust_summary(
+                title="Safety and lifecycle",
+                badges=[
+                    components.badge(label="Trust", value=item["trust_state"], tone=tone_for_trust(item["trust_state"])),
+                    components.badge(label="Approval", value=item["approval_state"] or "unknown", tone=tone_for_approval(item["approval_state"])),
+                    components.badge(label="Status", value=item["status"], tone="context"),
+                ],
+                summary=str(posture.get("trust_detail") or "Inspect trust, approval, and lifecycle cues before relying on the guidance."),
+            ),
+            components.section_card(
+                title="Evidence follow-up",
+                eyebrow="Evidence",
+                body_html=(
+                    f"<p>{escape(evidence_status.get('summary') or 'No evidence summary available.')}</p>"
+                    f"<p><strong>Missing snapshots:</strong> {escape(evidence_status.get('missing_snapshot_count', 0))}</p>"
+                    f"<p><strong>Needs revalidation:</strong> {escape(evidence_status.get('revalidation_count', 0))}</p>"
+                ),
+                footer_html=link(
+                    "Request evidence revalidation",
+                    f"/manage/objects/{quoted_path(item['object_id'])}/evidence/revalidate",
+                    css_class="button button-secondary",
+                ),
+            ),
+            components.metadata_list(
+                title="Reference metadata",
+                rows=[
+                    ("Owner", escape(item["owner"])),
+                    ("Team", escape(item["team"])),
+                    ("Canonical path", escape(item["canonical_path"])),
+                    ("Systems", escape(", ".join(item["systems"]))),
+                    ("Tags", escape(", ".join(item["tags"]))),
+                ],
+            ),
+        ]
+    )
+
     return {
         "page_template": "pages/object_detail.html",
         "page_title": item["title"],
         "headline": item["title"],
-        "kicker": "Read",
-        "intro": "Operational content is separated from evidence, relationships, and audit posture so trust is readable at a glance.",
+        "kicker": "Use",
+        "intro": "Use the current guidance with visible safety, freshness, service context, and change history before you act.",
         "active_nav": "read",
         "aside_html": aside_html,
         "page_context": {
             "header_html": header_html,
-            "content_sections_html": join_html(content_cards),
+            "content_sections_html": guidance_html,
             "related_sections_html": related_sections_html,
         },
     }

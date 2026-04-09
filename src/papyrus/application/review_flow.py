@@ -120,6 +120,22 @@ def _audit_event(
     )
 
 
+def _revision_author_actor(connection: sqlite3.Connection, revision_id: str) -> str | None:
+    row = connection.execute(
+        """
+        SELECT actor
+        FROM audit_events
+        WHERE revision_id = ? AND event_type = 'revision_created'
+        ORDER BY occurred_at ASC
+        LIMIT 1
+        """,
+        (revision_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return str(row["actor"]).strip() or None
+
+
 class GovernanceWorkflow:
     def __init__(self, database_path: Path = DB_PATH, source_root: Path = ROOT):
         self.database_path = Path(database_path)
@@ -530,6 +546,9 @@ class GovernanceWorkflow:
             revision_row = self._require_revision(connection, object_id=object_id, revision_id=revision_id)
             if revision_row["revision_state"] != RevisionReviewStatus.IN_REVIEW.value:
                 raise ValueError(f"revision {revision_id} must be in_review before approval")
+            revision_author = _revision_author_actor(connection, revision_id)
+            if revision_author and revision_author == actor:
+                raise ValueError("self-approval is not allowed; another actor must approve this revision")
 
             active_assignment = self._require_assignment(connection, revision_id=revision_id, reviewer=reviewer)
             assignments = list_review_assignments_for_revision(connection, revision_id)
@@ -581,8 +600,13 @@ class GovernanceWorkflow:
                 "reviewer": reviewer,
                 "assignment_id": active_assignment["assignment_id"],
                 "notes": notes,
-                "previous_revision_id": object_row["current_revision_id"],
+                "previous_revision_id": writeback_result.previous_revision_id,
                 "source_writeback_path": writeback_result.file_path.relative_to(self.source_root).as_posix(),
+                "writeback_backup_path": (
+                    writeback_result.backup_path.relative_to(self.source_root).as_posix()
+                    if writeback_result.backup_path is not None
+                    else None
+                ),
             }
             insert_audit_event(
                 connection,

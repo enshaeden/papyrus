@@ -176,12 +176,15 @@ class WebOperatorUiTests(unittest.TestCase):
             status, _, decision_body = call_wsgi(application, decision_path)
             self.assertEqual(status, "200 OK")
             self.assertIn("Approve revision", decision_body)
+            self.assertIn("Writeback preview", decision_body)
+            self.assertIn("Likely downstream effect", decision_body)
 
             status, headers, _ = call_wsgi(
                 application,
                 decision_path,
                 method="POST",
                 form={"decision": "approve", "reviewer": "reviewer_a", "notes": "Approved in test."},
+                cookies={"papyrus_actor": "local.reviewer"},
             )
             self.assertEqual(status, "303 See Other")
             self.assertIn("/objects/kb-operator-ui-approve", headers["Location"])
@@ -630,36 +633,35 @@ class WebOperatorUiTests(unittest.TestCase):
                 form={"actor": "local.reviewer"},
             )
             self.assertEqual(status, "303 See Other")
-            self.assertEqual(headers["Location"], "/manage/queue")
+            self.assertEqual(headers["Location"], "/")
             self.assertIn("papyrus_actor=local.reviewer", headers["Set-Cookie"])
 
-            status, headers, _ = call_wsgi(application, "/", cookies={"papyrus_actor": "local.manager"})
-            self.assertEqual(status, "303 See Other")
-            self.assertEqual(headers["Location"], "/dashboard/trust")
+            status, _, home_body = call_wsgi(application, "/", cookies={"papyrus_actor": "local.manager"})
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Guided Operational Knowledge", home_body)
+            self.assertIn("Local Manager", home_body)
+            self.assertIn("Knowledge lifecycle", home_body)
 
             status, _, operator_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.operator"})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local Operator", operator_body)
-            self.assertIn("Frontline Read", operator_body)
+            self.assertIn("Current actor", operator_body)
+            self.assertIn("Start Here", operator_body)
             self.assertIn('href="/write/objects/new"', operator_body)
-            self.assertNotIn("Corpus Oversight", operator_body)
-            self.assertNotIn("Switch View", operator_body)
             self.assertIn("You have unsaved changes on this page. Switch views and discard them?", operator_body)
 
             status, _, reviewer_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.reviewer"})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local Reviewer", reviewer_body)
-            self.assertIn("Review Workflow", reviewer_body)
-            self.assertIn('href="/manage/queue"', reviewer_body)
-            self.assertIn('href="/manage/validation-runs"', reviewer_body)
-            self.assertNotIn("Write Draft", reviewer_body)
+            self.assertIn("Steward submitted revisions", reviewer_body)
+            self.assertIn('href="/review"', reviewer_body)
+            self.assertIn('href="/activity"', reviewer_body)
 
             status, _, manager_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.manager"})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local Manager", manager_body)
-            self.assertIn("Corpus Oversight", manager_body)
-            self.assertIn('href="/manage/audit"', manager_body)
-            self.assertNotIn("Write Draft", manager_body)
+            self.assertIn("Shepherd knowledge health", manager_body)
+            self.assertIn('href="/health"', manager_body)
             self.assertNotIn("Papyrus Demo", operator_body)
             self.assertNotIn("Papyrus Demo", reviewer_body)
             self.assertNotIn("Papyrus Demo", manager_body)

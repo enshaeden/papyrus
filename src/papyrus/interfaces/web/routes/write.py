@@ -12,7 +12,7 @@ from papyrus.interfaces.web.http import Request, html_response, json_response, r
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
-from papyrus.interfaces.web.view_helpers import escape, link, parse_multiline, quoted_path
+from papyrus.interfaces.web.view_helpers import escape, join_html, link, parse_multiline, quoted_path
 
 
 def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[str]], *, form_action: str) -> dict[str, str]:
@@ -105,14 +105,15 @@ def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[
         + "</form>"
     )
     guidance_html = components.section_card(
-        title="Governed authorship guidance",
+        title="Authoring guidance",
         eyebrow="Write",
         body_html=(
-            "<p>Create the object shell first, then move directly into a structured revision draft. This keeps source-path intent visible without forcing raw Markdown as the starting point.</p>"
+            "<p>Start by choosing the type, defining the purpose, and recording the accountable owner. Papyrus then carries that object shell forward into guided revision drafting.</p>"
         ),
     )
     return {
         "validation_html": validation_html,
+        "progress_html": _object_progress_html(components, values=values, errors=errors),
         "form_html": components.section_card(title="Create knowledge object", eyebrow="Write", body_html=body_html),
         "guidance_html": guidance_html,
     }
@@ -121,16 +122,107 @@ def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[
 def _common_revision_aside(runtime, detail) -> str:
     components = ComponentPresenter(runtime.template_renderer)
     item = detail["object"]
-    return (
-        components.trust_summary(
-            title="Current object posture",
-            badges=[
-                components.badge(label="Trust", value=item["trust_state"], tone="approved" if item["trust_state"] == "trusted" else "warning"),
-                components.badge(label="Approval", value=item["approval_state"] or "unknown", tone="approved" if item["approval_state"] == "approved" else "pending"),
-                components.badge(label="Owner", value=item["owner"], tone="muted"),
-            ],
-            summary="Trust-relevant metadata remains visible while the author drafts the next revision.",
-        )
+    current_revision = detail.get("current_revision")
+    return join_html(
+        [
+            components.trust_summary(
+                title="Current object posture",
+                badges=[
+                    components.badge(label="Trust", value=item["trust_state"], tone="approved" if item["trust_state"] == "trusted" else "warning"),
+                    components.badge(label="Approval", value=item["approval_state"] or "unknown", tone="approved" if item["approval_state"] == "approved" else "pending"),
+                    components.badge(label="Owner", value=item["owner"], tone="muted"),
+                ],
+                summary="Lifecycle guardrails stay visible while the author moves work toward review.",
+            ),
+            components.section_card(
+                title="Current revision context",
+                eyebrow="Lifecycle",
+                body_html=(
+                    f"<p><strong>Current attached revision:</strong> {escape(current_revision['revision_state'])} · #{escape(current_revision['revision_number'])}</p>"
+                    if current_revision
+                    else "<p>No revision is attached yet. The first approved revision becomes the first canonical guidance for this object.</p>"
+                )
+                + f"<p><strong>Canonical path:</strong> {escape(item['canonical_path'])}</p>"
+                + "<p><strong>If approved:</strong> this revision becomes canonical guidance for operators.</p>",
+            ),
+            components.section_card(
+                title="Next steward role",
+                eyebrow="Lifecycle",
+                body_html="<p>After submission, the next explicit step is reviewer assignment and a recorded approval or rejection decision.</p>",
+            ),
+        ]
+    )
+
+
+def _completion_ratio(values: dict[str, str], fields: list[str]) -> tuple[int, int]:
+    total = len(fields)
+    completed = sum(1 for field in fields if values.get(field, "").strip())
+    return completed, total
+
+
+def _progress_card(components, *, title: str, completed: int, total: int, detail: str, tone: str = "default") -> str:
+    return components.section_card(
+        title=title,
+        eyebrow="Progress",
+        tone=tone,
+        body_html=(
+            f'<p class="metric-value">{escape(f"{completed}/{total}")}</p>'
+            f"<p>{escape(detail)}</p>"
+        ),
+    )
+
+
+def _object_progress_html(components, *, values: dict[str, str], errors: dict[str, list[str]]) -> str:
+    purpose_completed, purpose_total = _completion_ratio(values, ["object_type", "title", "summary"])
+    stewardship_completed, stewardship_total = _completion_ratio(values, ["owner", "team", "review_cadence", "status"])
+    source_completed, source_total = _completion_ratio(values, ["object_id", "canonical_path"])
+    blockers = sum(len(messages) for messages in errors.values())
+    return join_html(
+        [
+            _progress_card(components, title="Choose type and purpose", completed=purpose_completed, total=purpose_total, detail="Define what this knowledge object is for and how readers will recognize it.", tone="brand"),
+            _progress_card(components, title="Record stewardship", completed=stewardship_completed, total=stewardship_total, detail="Owner, team, cadence, and lifecycle status keep the object accountable."),
+            _progress_card(components, title="Set durable source placement", completed=source_completed, total=source_total, detail="The shell needs a stable ID and canonical Markdown path."),
+            components.section_card(
+                title="Readiness",
+                eyebrow="Progress",
+                tone="warning" if blockers else "approved",
+                body_html=(
+                    f"<p><strong>Blocking fields:</strong> {escape(blockers)}</p>"
+                    "<p>Create the shell once the required purpose, stewardship, and source fields are complete.</p>"
+                ),
+            ),
+        ]
+    )
+
+
+def _revision_progress_html(components, *, object_type: str, values: dict[str, str], errors: dict[str, list[str]], findings: list[str] | None) -> str:
+    purpose_completed, purpose_total = _completion_ratio(values, ["title", "summary", "owner", "team", "status"])
+    linkage_completed, linkage_total = _completion_ratio(values, ["review_cadence", "audience", "related_services", "related_object_ids", "change_summary"])
+    evidence_completed, evidence_total = _completion_ratio(values, ["citation_1_source_title", "citation_1_source_ref"])
+    type_specific_fields = {
+        "runbook": ["prerequisites", "steps", "verification", "rollback", "use_when", "boundaries_and_escalation"],
+        "known_error": ["symptoms", "scope", "cause", "diagnostic_checks", "mitigations", "detection_notes", "escalation_threshold"],
+        "service_record": ["service_name", "dependencies", "support_entrypoints", "common_failure_modes", "scope_notes", "operational_notes"],
+    }[object_type]
+    content_completed, content_total = _completion_ratio(values, type_specific_fields)
+    blockers = sum(len(messages) for messages in errors.values())
+    warnings = len(findings or [])
+    return join_html(
+        [
+            _progress_card(components, title="Purpose and scope", completed=purpose_completed, total=purpose_total, detail="Make the reader-facing purpose explicit before filling in deeper structure.", tone="brand"),
+            _progress_card(components, title="Core structured content", completed=content_completed, total=content_total, detail="Capture the steps, checks, or service structure that will become the live guidance."),
+            _progress_card(components, title="Links and evidence", completed=linkage_completed + evidence_completed, total=linkage_total + evidence_total, detail="Related services, related knowledge, and citations improve review and downstream use."),
+            components.section_card(
+                title="Submission readiness",
+                eyebrow="Progress",
+                tone="warning" if blockers else "approved",
+                body_html=(
+                    f"<p><strong>Validation blockers:</strong> {escape(blockers)}</p>"
+                    f"<p><strong>Warnings to review:</strong> {escape(warnings)}</p>"
+                    "<p>Save the draft once blockers are clear. Submit it when the warnings are understood and acceptable to reviewers.</p>"
+                ),
+            ),
+        ]
     )
 
 
@@ -467,17 +559,18 @@ def _render_revision_form(
         + "</form>"
     )
     guidance_html = components.section_card(
-        title="Authorship guidance",
+        title="Guided authoring",
         eyebrow="Write",
         body_html=(
-            "<p>The object shell is already created. Complete the revision fields below to author the first governed content for this object.</p>"
+            "<p>The object shell is already created. Use the sections below to define purpose, add structured guidance, attach evidence, and prepare the draft for review.</p>"
             if is_first_revision
-            else "<p>Structured fields feed trust, discovery, and governance surfaces directly. Narrative sections support operator judgment without hiding the metadata.</p>"
+            else "<p>Structured fields feed read, review, and health surfaces directly. Narrative sections support operator judgment without hiding the lifecycle state.</p>"
         )
         + "<p>Evidence note: citations to existing governed Papyrus articles are accepted as internal references. External or manual evidence stays weak until later follow-up records timing and integrity metadata.</p>",
     )
     return {
         "validation_html": validation_html,
+        "progress_html": _revision_progress_html(components, object_type=object_type, values=values, errors=errors, findings=findings),
         "form_html": f'<div id="revision-form">{components.section_card(title="Draft first revision" if is_first_revision else "Create revision", eyebrow="Write", body_html=body_html)}</div>',
         "guidance_html": guidance_html + _evidence_guidance_section(components, title="How evidence gets strengthened"),
     }
@@ -510,9 +603,19 @@ def _render_submit_page(runtime, detail, findings: list[str], form_errors: dict[
             f"<p><strong>Revision:</strong> #{escape(revision['revision_number'])} · {escape(revision['revision_state'])}</p>"
             f"<p><strong>Change summary:</strong> {escape(revision['change_summary'] or 'No change summary recorded.')}</p>"
             f"<p><strong>Citations:</strong> {escape(len(detail['citations']))}</p>"
+            f"<p><strong>If approved:</strong> this revision becomes canonical guidance at {escape(detail['object']['canonical_path'])}</p>"
         ),
     )
     findings_html = components.validation_findings(title="Pre-submit validation", items=[escape(item) for item in findings] or ["No blocking findings detected."], tone="warning" if findings else "approved")
+    progress_html = components.section_card(
+        title="Submission readiness",
+        eyebrow="Progress",
+        tone="warning" if findings else "approved",
+        body_html=(
+            f"<p><strong>Warnings to review:</strong> {escape(len(findings))}</p>"
+            "<p>Submit once the warnings are understood and the reviewer can make a clear decision from the attached evidence and change summary.</p>"
+        ),
+    )
     guidance_html = ""
     if any("weak-evidence posture" in item for item in findings):
         guidance_html = _evidence_guidance_section(
@@ -523,6 +626,7 @@ def _render_submit_page(runtime, detail, findings: list[str], form_errors: dict[
         )
     return {
         "summary_html": summary_html,
+        "progress_html": progress_html,
         "findings_html": findings_html,
         "guidance_html": guidance_html,
         "form_html": form_html,
@@ -559,9 +663,9 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/write_object_new.html",
                 page_title="Create knowledge object",
-                headline="Create Knowledge Object",
+                headline="Start A Guided Draft",
                 kicker="Write",
-                intro="Start with a governed object shell, then move directly into a structured revision draft.",
+                intro="Choose the type, define the purpose, and set the durable source path for the new knowledge object before drafting the first revision.",
                 active_nav="write",
                 flash_html=page_flash_html,
                 actor_id=actor_for_request(request),
@@ -627,9 +731,9 @@ def register(router, runtime) -> None:
                 headline="Step 2: Draft First Revision" if is_first_revision else "Create Revision",
                 kicker="Write",
                 intro=(
-                    "Shell creation is complete. Draft the first governed revision below."
+                    "Shell creation is complete. Draft the first revision with guided progress, linked context, and explicit evidence cues."
                     if is_first_revision
-                    else "Draft governed revisions with structured fields first, then narrative sections and evidence."
+                    else "Revise the current guidance with structured content first, then linked context, evidence, and submission readiness."
                 ),
                 active_nav="write",
                 flash_html=page_flash_html,
@@ -720,7 +824,7 @@ def register(router, runtime) -> None:
                 page_title="Submit for review",
                 headline="Submit For Review",
                 kicker="Write",
-                intro="Inspect readiness before review. Missing structure or weak evidence should be explicit before handoff.",
+                intro="Check readiness before handoff so reviewers can see the lifecycle state, the evidence posture, and what will become canonical if approved.",
                 active_nav="write",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),

@@ -25,44 +25,58 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
     overview_html = join_html(
         [
             components.section_card(
-                title="Operational profile",
-                eyebrow="Service",
+                title="When to use this service context",
+                eyebrow="Services",
                 body_html=join_html(
                     [
-                        f"<p><strong>Owner:</strong> {escape(service['owner'] or 'None')}</p>",
-                        f"<p><strong>Team:</strong> {escape(service['team'] or 'None')}</p>",
+                        "<p>Open this service view when you need the canonical service record, the linked operational guidance path, or the service-level blast radius before acting.</p>",
                         f"<p><strong>Support entrypoints:</strong> {escape(', '.join(service['support_entrypoints']) or 'None')}</p>",
                         f"<p><strong>Dependencies:</strong> {escape(', '.join(service['dependencies']) or 'None')}</p>",
                         f"<p><strong>Common failure modes:</strong> {escape(', '.join(service['common_failure_modes']) or 'None')}</p>",
-                        f"<p><strong>Linked objects requiring attention:</strong> {escape(detail['service_posture']['degraded_count'])}</p>",
                     ]
                 ),
             ),
             components.section_card(
-                title="Canonical record",
-                eyebrow="Source",
+                title="Start with the canonical record",
+                eyebrow="Services",
                 body_html=(
                     link(detail["canonical_object"]["title"], f"/objects/{quoted_path(detail['canonical_object']['object_id'])}")
                     if detail["canonical_object"] is not None
                     else "<p class=\"empty-state-copy\">No canonical service record is linked.</p>"
                 ),
             ),
+            components.section_card(
+                title="What needs attention",
+                eyebrow="Services",
+                body_html=(
+                    f"<p><strong>Linked guidance:</strong> {escape(detail['service_posture']['linked_object_count'])}</p>"
+                    f"<p><strong>Non-approved items:</strong> {escape(detail['service_posture']['non_approved_count'])}</p>"
+                    f"<p><strong>Degraded items:</strong> {escape(detail['service_posture']['degraded_count'])}</p>"
+                ),
+            ),
         ]
     )
     linked_objects_html = components.section_card(
-        title="Linked knowledge objects",
+        title="Guidance path for this service",
         eyebrow="Read",
-        body_html=join_html(
-            [
-                f'<div class="linked-object-row">{link(item["title"], f"/objects/{quoted_path(item["object_id"])}")}<span class="list-meta">{escape(item["relationship_type"])} · trust {escape(item["trust_state"])} · approval {escape(item["approval_state"] or "unknown")}</span></div>'
+        body_html=components.queue_table(
+            headers=["Guidance", "When to open it", "Safe now?", "Relationship"],
+            rows=[
+                [
+                    link(item["title"], f"/objects/{quoted_path(item['object_id'])}"),
+                    escape("Use this item when you need the service-specific operational answer."),
+                    escape(f"{item['trust_state']} / {item['approval_state'] or 'unknown'}"),
+                    escape(item["relationship_type"]),
+                ]
                 for item in detail["linked_objects"]
-            ]
-        ) or '<p class="empty-state-copy">No knowledge objects are linked to this service.</p>',
+            ],
+            table_id="service-guidance-path",
+        ) if detail["linked_objects"] else '<p class="empty-state-copy">No knowledge objects are linked to this service.</p>',
     )
     aside_html = join_html(
         [
             components.metadata_list(
-                title="Service metadata",
+                title="Service reference",
                 rows=[
                     ("Service ID", escape(service["service_id"])),
                     ("Status", escape(service["status"])),
@@ -78,7 +92,7 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
         "page_title": service["service_name"],
         "headline": service["service_name"],
         "kicker": "Services",
-        "intro": "Service detail keeps criticality, support posture, dependencies, and linked knowledge visible in one operator view.",
+        "intro": "Move from a service issue into the right operational guidance path with service context, dependencies, and linked knowledge kept together.",
         "active_nav": "services",
         "aside_html": aside_html,
         "page_context": {
@@ -103,10 +117,10 @@ def present_service_catalog(renderer: TemplateRenderer, *, services: list[dict[s
         for service in services
     ]
     services_html = components.section_card(
-        title="Service catalog",
+        title="Service entry points",
         eyebrow="Services",
         body_html=components.queue_table(
-            headers=["Service", "Criticality", "Status", "Owner", "Team", "Linked objects"],
+            headers=["Service", "Criticality", "Status", "Owner", "Team", "Linked guidance"],
             rows=rows,
             table_id="service-catalog",
         ),
@@ -116,14 +130,14 @@ def present_service_catalog(renderer: TemplateRenderer, *, services: list[dict[s
         "page_title": "Services",
         "headline": "Services",
         "kicker": "Services",
-        "intro": "Canonical service records and their linked operational knowledge stay close to the rest of the operator shell.",
+        "intro": "Use services as an operational starting point when the incident, request, or review begins with service context instead of a known document.",
         "active_nav": "services",
         "aside_html": components.validation_summary(
-            title="Service cues",
+            title="How to use services",
             findings=[
-                "Critical services should have an obvious canonical record.",
-                "Linked object counts help spot thin documentation coverage.",
-                "Ownership gaps surface quickly in the shared shell.",
+                "Open the service first when the problem is clearly service-scoped.",
+                "Linked guidance counts help spot thin or missing knowledge coverage.",
+                "Use the service path to move into the right runbook, known error, or service record.",
             ],
         ),
         "page_context": {"services_html": services_html},

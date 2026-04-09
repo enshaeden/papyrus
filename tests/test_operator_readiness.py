@@ -323,7 +323,7 @@ class OperatorReadinessTests(unittest.TestCase):
             self.assertEqual(api_status, "200 OK")
             web_status, _, body = call_wsgi(web_application, "/queue")
             self.assertEqual(web_status, "200 OK")
-            self.assertIn("Knowledge Queue", body)
+            self.assertIn("Read Operational Guidance", body)
 
     def test_degraded_surfaces_return_actionable_runtime_unavailable_responses(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

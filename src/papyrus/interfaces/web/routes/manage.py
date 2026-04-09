@@ -12,7 +12,9 @@ from papyrus.application.commands import (
     reject_revision_command,
     supersede_object_command,
 )
-from papyrus.application.queries import audit_view, event_history, knowledge_object_detail, manage_queue, review_detail, validation_run_history
+from papyrus.application.queries import audit_view, event_history, impact_view_for_object, knowledge_object_detail, manage_queue, review_detail, validation_run_history
+from papyrus.application.writeback_flow import preview_revision_writeback
+from papyrus.interfaces.web.forms.revision_forms import build_submission_findings
 from papyrus.interfaces.web.forms.review_forms import (
     validate_assignment_form,
     validate_decision_form,
@@ -24,7 +26,7 @@ from papyrus.interfaces.web.http import Request, html_response, redirect_respons
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
-from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, tone_for_approval, tone_for_trust
+from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, render_list, tone_for_approval, tone_for_trust
 
 
 def _manage_item_detail_href(item: dict[str, object]) -> str:
@@ -70,9 +72,8 @@ def _manage_table(components, title: str, items: list[dict[str, object]], *, sho
         rows.append(
             [
                 link(str(item["title"]), _manage_item_detail_href(item)),
-                escape(item["revision_state"]),
-                f'{escape(item["trust_state"])}<p class="cell-meta">{escape(item["posture"]["trust_summary"])}</p>',
-                f'{escape(item["approval_state"])}<p class="cell-meta">{escape(item["posture"]["approval"]["summary"])}</p>',
+                f'{escape(item["revision_state"])}<p class="cell-meta">{escape(item.get("change_summary") or item.get("summary") or "No recent summary recorded.")}</p>',
+                f'{escape(item["trust_state"])} / {escape(item["approval_state"])}<p class="cell-meta">{escape(item["posture"]["trust_summary"])}</p>',
                 escape(", ".join(item["reasons"])),
                 escape(item["owner"]),
                 _manage_item_actions(item),
@@ -80,9 +81,9 @@ def _manage_table(components, title: str, items: list[dict[str, object]], *, sho
         )
     return components.section_card(
         title=title,
-        eyebrow="Manage",
+        eyebrow="Stewardship",
         body_html=components.queue_table(
-            headers=["Title", "Revision", "Trust", "Approval", "Reasons", "Owner", "Actions"],
+            headers=["Guidance", "Lifecycle stage", "Safe now?", "Why now", "Steward", "Actions"],
             rows=rows,
             table_id=title.lower().replace(" ", "-"),
         ) if rows else '<p class="empty-state-copy">No items in this queue.</p>',
@@ -94,22 +95,23 @@ def register(router, runtime) -> None:
         queue = manage_queue(database_path=runtime.database_path)
         components = ComponentPresenter(runtime.template_renderer)
         overview_html = components.trust_summary(
-            title="Manage queue posture",
+            title="Stewardship workload",
             badges=[
-                components.badge(label="Review required", value=len(queue["review_required"]), tone="pending"),
-                components.badge(label="Stale", value=len(queue["stale_items"]), tone="warning"),
-                components.badge(label="Weak evidence", value=len(queue["weak_evidence_items"]), tone="warning"),
-                components.badge(label="Ownership gaps", value=len(queue["ownership_items"]), tone="danger"),
+                components.badge(label="Ready for review", value=len(queue["ready_for_review"]), tone="pending"),
+                components.badge(label="Needs decision", value=len(queue["needs_decision"]), tone="pending"),
+                components.badge(label="Needs revalidation", value=len(queue["needs_revalidation"]), tone="warning"),
+                components.badge(label="Recently changed", value=len(queue["recently_changed"]), tone="brand"),
             ],
-            summary="Review work, evidence weakness, stale content, and ownership ambiguity are grouped for direct action.",
+            summary="Stewardship work is grouped by the next decision or follow-up step instead of a flat wall of governance states.",
         )
         tables_html = join_html(
             [
-                _manage_table(components, "Review required", queue["review_required"], show_actions=True),
-                _manage_table(components, "Drafts and rejected", queue["draft_items"]),
-                _manage_table(components, "Stale items", queue["stale_items"]),
-                _manage_table(components, "Weak evidence", queue["weak_evidence_items"]),
-                _manage_table(components, "Ownership gaps", queue["ownership_items"]),
+                _manage_table(components, "Ready for review", queue["ready_for_review"], show_actions=True),
+                _manage_table(components, "Needs decision", queue["needs_decision"], show_actions=True),
+                _manage_table(components, "Needs revalidation", queue["needs_revalidation"]),
+                _manage_table(components, "Drafts and rework", queue["draft_items"]),
+                _manage_table(components, "Recently changed", queue["recently_changed"][:10]),
+                _manage_table(components, "Superseded or deprecated guidance", queue["superseded_items"]),
             ]
         )
         body = runtime.template_renderer.render(
@@ -119,11 +121,11 @@ def register(router, runtime) -> None:
         return html_response(
             runtime.page_renderer.render_page(
                 page_template="pages/manage_queue.html",
-                page_title="Manage queue",
-                headline="Review Queue",
-                kicker="Manage",
-                intro="Governance work is grouped by review state, staleness, evidence weakness, and ownership ambiguity.",
-                active_nav="manage",
+                page_title="Review / Approvals",
+                headline="Review And Approval Work",
+                kicker="Stewardship",
+                intro="Steward revisions, revalidation work, and recent changes with grouped buckets that lead to concrete decisions.",
+                active_nav="review",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
@@ -193,10 +195,10 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_object_form.html",
                 page_title="Supersede object",
-                headline="Supersede Object",
-                kicker="Manage",
-                intro="Supersession is a governed action. Capture the replacement and rationale so operators can follow the transition safely.",
-                active_nav="manage",
+                headline="Supersede Guidance",
+                kicker="Health",
+                intro="Retire or replace guidance with a clear replacement path so operators know what to use next.",
+                active_nav="health",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
@@ -273,10 +275,10 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_object_form.html",
                 page_title="Mark object suspect",
-                headline="Mark Object Suspect",
-                kicker="Manage",
+                headline="Mark Guidance Suspect",
+                kicker="Health",
                 intro="Use suspect posture when a dependency or upstream change may invalidate the guidance before a full revision is ready.",
-                active_nav="manage",
+                active_nav="health",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
@@ -331,7 +333,7 @@ def register(router, runtime) -> None:
                 headline="Revalidate Evidence",
                 kicker="Evidence",
                 intro="Request explicit evidence follow-up when snapshots, expiry windows, or supporting proofs need confirmation.",
-                active_nav="manage",
+                active_nav="health",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
@@ -401,10 +403,10 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/review_assignment.html",
                 page_title="Assign reviewer",
-                headline="Review Assignment",
-                kicker="Manage",
-                intro="Inspect revision metadata and trust posture before sending review work to a specific operator.",
-                active_nav="manage",
+                headline="Assign Reviewer",
+                kicker="Review",
+                intro="Route the revision to the next reviewer with the right context instead of leaving it stranded in review.",
+                active_nav="review",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
@@ -417,6 +419,17 @@ def register(router, runtime) -> None:
         object_id = request.route_value("object_id")
         revision_id = request.route_value("revision_id")
         detail = review_detail(object_id, revision_id, database_path=runtime.database_path)
+        impact = impact_view_for_object(object_id, database_path=runtime.database_path)
+        preview = preview_revision_writeback(
+            database_path=runtime.database_path,
+            object_id=object_id,
+            revision_id=revision_id,
+            root_path=runtime.source_root,
+        )
+        findings = build_submission_findings(
+            object_type=detail["object"]["object_type"],
+            payload=detail["revision"]["metadata"],
+        )
         forms = FormPresenter(runtime.template_renderer)
         components = ComponentPresenter(runtime.template_renderer)
         approve_values = {
@@ -424,47 +437,97 @@ def register(router, runtime) -> None:
             "notes": request.form_value("notes"),
         }
         errors: dict[str, list[str]] = {}
+        page_flash_html = flash_html_for_request(runtime, request) if request.method != "POST" else ""
         if request.method == "POST":
             action = request.form_value("decision")
             result = validate_decision_form(approve_values, require_notes=action == "reject")
+            errors = dict(result.errors)
             if result.is_valid:
-                if action == "approve":
-                    approve_revision_command(
+                try:
+                    if action == "approve":
+                        approve_revision_command(
+                            database_path=runtime.database_path,
+                            source_root=runtime.source_root,
+                            object_id=object_id,
+                            revision_id=revision_id,
+                            reviewer=str(result.cleaned_data["reviewer"]),
+                            actor=actor_for_request(request),
+                            notes=result.cleaned_data["notes"],
+                        )
+                        return redirect_response(
+                            f"/objects/{quoted_path(object_id)}?notice={quote_plus('Revision approved')}"
+                        )
+                    reject_revision_command(
                         database_path=runtime.database_path,
                         source_root=runtime.source_root,
                         object_id=object_id,
                         revision_id=revision_id,
                         reviewer=str(result.cleaned_data["reviewer"]),
                         actor=actor_for_request(request),
-                        notes=result.cleaned_data["notes"],
+                        notes=str(result.cleaned_data["notes"]),
                     )
                     return redirect_response(
-                        f"/objects/{quoted_path(object_id)}?notice={quote_plus('Revision approved')}"
+                        f"/manage/reviews/{quoted_path(object_id)}/{quoted_path(revision_id)}?notice={quote_plus('Revision rejected')}"
                     )
-                reject_revision_command(
-                    database_path=runtime.database_path,
-                    source_root=runtime.source_root,
-                    object_id=object_id,
-                    revision_id=revision_id,
-                    reviewer=str(result.cleaned_data["reviewer"]),
-                    actor=actor_for_request(request),
-                    notes=str(result.cleaned_data["notes"]),
-                )
-                return redirect_response(
-                    f"/manage/reviews/{quoted_path(object_id)}/{quoted_path(revision_id)}?notice={quote_plus('Revision rejected')}"
-                )
-            errors = result.errors
+                except ValueError as exc:
+                    errors.setdefault("notes", []).append(str(exc))
+                    page_flash_html = forms.flash(
+                        title="Attention",
+                        body=str(exc),
+                        tone="warning",
+                    )
         summary_html = components.section_card(
             title="Decision context",
-            eyebrow="Manage",
+            eyebrow="Review",
             body_html=(
                 f"<p><strong>{escape(detail['object']['title'])}</strong> · revision #{escape(detail['revision']['revision_number'])}</p>"
                 f"<p>Current state: {escape(detail['revision']['revision_state'])}</p>"
-                f"<p>Assignments: {escape(len(detail['assignments']))} · citations: {escape(len(detail['citations']))}</p>"
+                f"<p>Assignments: {escape(len(detail['assignments']))} · citations: {escape(len(detail['citations']))} · downstream objects: {escape(len(impact['impacted_objects']))}</p>"
             ),
         )
         decisions_html = join_html(
             [
+                components.section_card(
+                    title="What changed",
+                    eyebrow="Review",
+                    body_html=(
+                        f"<p><strong>Change summary:</strong> {escape(detail['revision']['change_summary'] or 'No change summary recorded.')}</p>"
+                        f"<p><strong>Changed fields:</strong> {escape(', '.join(preview.changed_fields) or 'None')}</p>"
+                        f"<p><strong>Changed sections:</strong> {escape(', '.join(preview.changed_sections) or 'None')}</p>"
+                    ),
+                ),
+                components.section_card(
+                    title="Evidence and unresolved work",
+                    eyebrow="Review",
+                    tone="warning" if findings else "approved",
+                    body_html=(
+                        f"<p><strong>Supporting citations:</strong> {escape(len(detail['citations']))}</p>"
+                        + (
+                            render_list([escape(item) for item in findings], css_class="validation-findings")
+                            if findings
+                            else "<p>No unresolved validation warnings are currently recorded.</p>"
+                        )
+                    ),
+                ),
+                components.section_card(
+                    title="Writeback preview",
+                    eyebrow="Writeback",
+                    tone="danger" if preview.conflict_detected else "default",
+                    body_html=(
+                        f"<p><strong>Canonical path:</strong> {escape(preview.file_path)}</p>"
+                        f"<p><strong>Previous approved revision:</strong> {escape(preview.previous_revision_id or 'None')}</p>"
+                        f"<p><strong>Conflict status:</strong> {escape(preview.conflict_reason or 'No writeback conflict detected.')}</p>"
+                        "<p><strong>Recovery:</strong> if approval writes new canonical text, the previous source text is backed up under <code>build/writeback-backups/</code>.</p>"
+                    ),
+                ),
+                components.section_card(
+                    title="Likely downstream effect",
+                    eyebrow="Impact",
+                    body_html=(
+                        f"<p><strong>Impacted objects:</strong> {escape(len(impact['impacted_objects']))}</p>"
+                        f"<p><strong>What to review next:</strong> {escape(' | '.join(impact['current_impact']['revalidate']))}</p>"
+                    ),
+                ),
                 components.audit_panel(
                     title="Revision audit",
                     items=[
@@ -475,11 +538,11 @@ def register(router, runtime) -> None:
                 ),
                 components.section_card(
                     title="Approve or reject",
-                    eyebrow="Manage",
+                    eyebrow="Review",
                     body_html=(
                         '<form class="governed-form" method="post">'
                         + forms.field(field_id="reviewer", label="Reviewer", control_html=forms.input(field_id="reviewer", name="reviewer", value=approve_values["reviewer"]), errors=errors.get("reviewer"))
-                        + forms.field(field_id="notes", label="Decision notes", control_html=forms.textarea(field_id="notes", name="notes", value=approve_values["notes"], rows=4), hint="Required for rejection; optional for approval.", errors=errors.get("notes"))
+                        + forms.field(field_id="notes", label="Decision notes", control_html=forms.textarea(field_id="notes", name="notes", value=approve_values["notes"], rows=4), hint="Required for rejection; optional for approval. Use notes to explain the decision or the reason for a block.", errors=errors.get("notes"))
                         + '<div class="button-row">'
                         + '<button class="button button-primary" type="submit" name="decision" value="approve">Approve revision</button>'
                         + '<button class="button button-danger" type="submit" name="decision" value="reject">Reject revision</button>'
@@ -492,11 +555,11 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_review_decision.html",
                 page_title="Review decision",
-                headline="Approval And Rejection",
-                kicker="Manage",
-                intro="Action consequences stay explicit: reviewers decide with audit context, assignment state, and evidence posture in view.",
-                active_nav="manage",
-                flash_html=flash_html_for_request(runtime, request),
+                headline="Review Decision",
+                kicker="Review",
+                intro="Decide with change context, evidence posture, downstream effect, and source writeback impact visible before approval.",
+                active_nav="review",
+                flash_html=page_flash_html,
                 actor_id=actor_for_request(request),
                 current_path=request.path,
                 aside_html="",
@@ -506,17 +569,43 @@ def register(router, runtime) -> None:
 
     def audit_page(request: Request):
         object_id = request.query_value("object_id") or None
+        selected_group = request.query_value("group").strip()
         events = audit_view(object_id=object_id, database_path=runtime.database_path)
         structured_events = event_history(
             entity_id=object_id,
             limit=20,
             database_path=runtime.database_path,
         )
+        if selected_group:
+            structured_events = [event for event in structured_events if event["group"] == selected_group]
         validation_runs = validation_run_history(database_path=runtime.database_path)
         components = ComponentPresenter(runtime.template_renderer)
+        filter_controls_html = (
+            '<form class="filter-form" method="get" action="/activity">'
+            f'<input type="text" name="object_id" placeholder="Filter object ID" value="{escape(object_id or "")}" />'
+            '<select name="group">'
+            f'<option value=""{" selected" if not selected_group else ""}>All activity groups</option>'
+            f'<option value="service_changes"{" selected" if selected_group == "service_changes" else ""}>Service changes</option>'
+            f'<option value="evidence_degradation"{" selected" if selected_group == "evidence_degradation" else ""}>Evidence degradation</option>'
+            f'<option value="validation_failures"{" selected" if selected_group == "validation_failures" else ""}>Validation failures</option>'
+            f'<option value="manual_suspect_marks"{" selected" if selected_group == "manual_suspect_marks" else ""}>Manual suspect marks</option>'
+            "</select>"
+            '<button class="button button-secondary" type="submit">Apply</button>'
+            "</form>"
+        )
+        summary_html = components.trust_summary(
+            title="Activity overview",
+            badges=[
+                components.badge(label="Service changes", value=sum(1 for event in structured_events if event["group"] == "service_changes"), tone="warning"),
+                components.badge(label="Evidence issues", value=sum(1 for event in structured_events if event["group"] == "evidence_degradation"), tone="warning"),
+                components.badge(label="Validation failures", value=sum(1 for event in structured_events if event["group"] == "validation_failures"), tone="danger"),
+                components.badge(label="Suspect marks", value=sum(1 for event in structured_events if event["group"] == "manual_suspect_marks"), tone="pending"),
+            ],
+            summary="Activity should explain operational consequences, not force operators to interpret raw event payloads.",
+        )
         audit_html = components.section_card(
-            title="Audit history",
-            eyebrow="Manage",
+            title="Governed audit trail",
+            eyebrow="History",
             body_html=components.queue_table(
                 headers=["Time", "Event", "Actor", "Object", "Revision", "Details"],
                 rows=[
@@ -533,35 +622,46 @@ def register(router, runtime) -> None:
                 table_id="audit-history",
             ),
         )
-        event_html = components.section_card(
-            title="Structured events",
-            eyebrow="Events",
-            body_html=components.queue_table(
-                headers=["Time", "Type", "Entity", "Actor", "Source", "Summary"],
-                rows=[
-                    [
-                        escape(format_timestamp(event["occurred_at"])),
-                        escape(event["event_type"]),
-                        escape(f"{event['entity_type']}:{event['entity_id']}"),
-                        escape(event["actor"]),
-                        escape(event["source"]),
-                        escape(
-                            str(
-                                event["payload"].get("summary")
-                                or event["payload"].get("reason")
-                                or event["payload"].get("trust_state")
-                                or ""
-                            )
-                        ),
-                    ]
-                    for event in structured_events
-                ],
-                table_id="structured-events",
-            ) if structured_events else '<p class="empty-state-copy">No structured events recorded.</p>',
+        grouped_labels = (
+            ("service_changes", "Service changes"),
+            ("evidence_degradation", "Evidence degradation"),
+            ("validation_failures", "Validation failures"),
+            ("manual_suspect_marks", "Manual suspect marks"),
+            ("review_activity", "Review activity"),
+            ("other", "Other activity"),
+        )
+        event_sections: list[str] = []
+        for group_key, label in grouped_labels:
+            group_events = [event for event in structured_events if event["group"] == group_key]
+            if not group_events:
+                continue
+            event_sections.append(
+                components.section_card(
+                    title=label,
+                    eyebrow="Activity",
+                    body_html=components.queue_table(
+                        headers=["When", "What happened", "Affected", "Actor", "Next action"],
+                        rows=[
+                            [
+                                escape(format_timestamp(event["occurred_at"])),
+                                escape(event["what_happened"]),
+                                escape(f"{event['entity_type']}:{event['entity_id']}"),
+                                escape(event["actor"]),
+                                escape(event["next_action"]),
+                            ]
+                            for event in group_events
+                        ],
+                        table_id=f"activity-{group_key}",
+                    ),
+                )
+            )
+        event_html = join_html(event_sections) or components.empty_state(
+            title="No matching activity",
+            description="Adjust the activity filter or wait for the next recorded event.",
         )
         validation_html = components.section_card(
             title="Validation runs",
-            eyebrow="Manage",
+            eyebrow="History",
             body_html=components.queue_table(
                 headers=["Completed", "Run type", "Status", "Findings", "Run ID"],
                 rows=[
@@ -580,16 +680,22 @@ def register(router, runtime) -> None:
         return html_response(
             runtime.page_renderer.render_page(
                 page_template="pages/manage_audit.html",
-                page_title="Audit and governance",
-                headline="Audit And Governance",
-                kicker="Manage",
-                intro="Governance-relevant history and validation outcomes are available without dropping to a CLI workflow.",
-                active_nav="manage",
+                page_title="Activity / History",
+                headline="Activity And History",
+                kicker="Activity",
+                intro="Understand what changed, what it affected, and what should be reviewed or revalidated next without reading raw event payloads.",
+                active_nav="activity",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
                 aside_html="",
-                page_context={"audit_html": audit_html, "event_html": event_html, "validation_html": validation_html},
+                page_context={
+                    "summary_html": summary_html,
+                    "filter_bar_html": components.filter_bar(title="Activity filters", controls_html=filter_controls_html),
+                    "audit_html": audit_html,
+                    "event_html": event_html,
+                    "validation_html": validation_html,
+                },
             )
         )
 
@@ -621,10 +727,10 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_validation_runs.html",
                 page_title="Validation runs",
-                headline="Validation Runs",
-                kicker="Validation",
-                intro="Recent validation outcomes stay accessible inside the operator shell for traceable governance review.",
-                active_nav="validation",
+                headline="Validation History",
+                kicker="Activity",
+                intro="Keep recent validation outcomes close to review and health work so operators can trace what was checked and when.",
+                active_nav="activity",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
@@ -682,9 +788,9 @@ def register(router, runtime) -> None:
                 page_template="pages/manage_validation_run_new.html",
                 page_title="Record validation run",
                 headline="Record Validation Run",
-                kicker="Validation",
-                intro="Validation outcomes are governance events too. Record what ran, what it found, and when it happened.",
-                active_nav="validation",
+                kicker="Activity",
+                intro="Record what was validated, what it found, and when it happened so future stewardship decisions stay inspectable.",
+                active_nav="activity",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
@@ -694,11 +800,13 @@ def register(router, runtime) -> None:
         )
 
     router.add(["GET"], "/manage/queue", manage_queue_page)
+    router.add(["GET"], "/review", manage_queue_page)
     router.add(["GET", "POST"], "/manage/objects/{object_id}/supersede", object_supersede_page)
     router.add(["GET", "POST"], "/manage/objects/{object_id}/suspect", object_suspect_page)
     router.add(["GET", "POST"], "/manage/objects/{object_id}/evidence/revalidate", evidence_revalidation_page)
     router.add(["GET", "POST"], "/manage/reviews/{object_id}/{revision_id}/assign", review_assignment_page)
     router.add(["GET", "POST"], "/manage/reviews/{object_id}/{revision_id}", review_decision_page)
     router.add(["GET"], "/manage/audit", audit_page)
+    router.add(["GET"], "/activity", audit_page)
     router.add(["GET"], "/manage/validation-runs", validation_runs_page)
     router.add(["GET", "POST"], "/manage/validation-runs/new", validation_run_new_page)

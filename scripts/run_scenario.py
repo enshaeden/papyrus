@@ -27,7 +27,9 @@ def _reset_runtime_artifacts(database_path: Path, source_root: Path) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run a Papyrus operator pressure scenario against a fresh local demo runtime.")
+    parser = argparse.ArgumentParser(
+        description="Run a Papyrus scenario that creates concrete review, health, and activity consequences in a fresh local demo runtime."
+    )
     parser.add_argument("scenario", choices=[name.replace("_", "-") for name in OPERATOR_SCENARIOS], help="Scenario to execute.")
     parser.add_argument("--db", default=str(ROOT / "build" / "scenario-knowledge.db"), help="Path to the scenario SQLite runtime database.")
     parser.add_argument("--source-root", default=str(ROOT / "build" / "scenario-source"), help="Writable source root used for scenario writeback and evidence snapshots.")

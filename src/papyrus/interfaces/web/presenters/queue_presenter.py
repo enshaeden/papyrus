@@ -13,6 +13,38 @@ def _queue_item_href(item: dict[str, Any]) -> str:
     return f"/write/objects/{quoted_path(item['object_id'])}/revisions/new#revision-form"
 
 
+def _use_when_text(item: dict[str, Any]) -> str:
+    summary = str(item.get("summary") or "").strip()
+    if summary:
+        return summary
+    object_type = str(item.get("object_type") or "")
+    if object_type == "runbook":
+        return "Use when you need a step-by-step operational procedure."
+    if object_type == "known_error":
+        return "Use when you need symptom-driven troubleshooting guidance."
+    if object_type == "service_record":
+        return "Use when you need service context, dependencies, or support ownership."
+    return "Use when this item is the best available operational fit."
+
+
+def _next_action_text(item: dict[str, Any]) -> str:
+    approval_state = str(item.get("approval_state") or "")
+    trust_state = str(item.get("trust_state") or "")
+    if approval_state == "approved" and trust_state == "trusted":
+        return "Safe to use now."
+    if approval_state in {"draft", "rejected"}:
+        return "Complete or revise this guidance before relying on it."
+    if approval_state == "in_review":
+        return "Use the last approved guidance and route this revision through review."
+    if trust_state == "weak_evidence":
+        return "Verify the supporting evidence before use."
+    if trust_state == "stale":
+        return "Revalidate freshness before use."
+    if trust_state == "suspect":
+        return "Escalate or review the object before use."
+    return "Inspect the detail page for the next safe step."
+
+
 def present_queue_page(
     renderer: TemplateRenderer,
     *,
@@ -30,18 +62,19 @@ def present_queue_page(
         normalized.setdefault("linked_services", [])
         normalized_items.append(normalized)
     summary_html = components.trust_summary(
-        title="Queue posture",
+        title="Read posture",
         badges=[
             components.badge(label="Items", value=len(normalized_items), tone="brand"),
-            components.badge(label="Approval pending", value=sum(1 for item in normalized_items if item["approval_state"] != "approved"), tone="pending"),
+            components.badge(label="Safe to use", value=sum(1 for item in normalized_items if item["approval_state"] == "approved" and item["trust_state"] == "trusted"), tone="approved"),
+            components.badge(label="Review before use", value=sum(1 for item in normalized_items if item["approval_state"] != "approved" or item["trust_state"] != "trusted"), tone="pending"),
             components.badge(label="Weak evidence", value=sum(1 for item in normalized_items if item["citation_health_rank"] > 0), tone="warning"),
-            components.badge(label="Stale", value=sum(1 for item in normalized_items if item["freshness_rank"] > 0), tone="danger"),
+            components.badge(label="Needs freshness check", value=sum(1 for item in normalized_items if item["freshness_rank"] > 0), tone="danger"),
         ],
-        summary="Trust metadata stays visible in queue triage so operators can judge fitness before opening an article.",
+        summary="Papyrus surfaces the best current answer first, then tells you when to verify, review, or escalate before acting.",
     )
     filter_controls_html = (
-        '<form class="filter-form" method="get" action="/queue">'
-        f'<input type="search" name="query" placeholder="Filter queue" value="{escape(query)}" data-filter-input="true" />'
+        '<form class="filter-form" method="get" action="/read">'
+        f'<input type="search" name="query" placeholder="Search guidance" value="{escape(query)}" data-filter-input="true" />'
         '<select name="object_type">'
         f'<option value=""{" selected" if not selected_type else ""}>All types</option>'
         f'<option value="runbook"{" selected" if selected_type == "runbook" else ""}>Runbooks</option>'
@@ -68,70 +101,75 @@ def present_queue_page(
     rows = [
         [
             f"{link(item['title'], _queue_item_href(item))}"
-            f'<p class="cell-meta">{escape(item["object_id"])} · {escape(item["path"])}</p>',
-            escape(item["object_type"]),
-            components.badge(label="Trust", value=item["trust_state"], tone="approved" if item["trust_state"] == "trusted" else "warning"),
-            components.badge(label="Approval", value=item["approval_state"], tone="approved" if item["approval_state"] == "approved" else "pending"),
-            escape(item["posture"]["trust_summary"]),
+            f'<p class="cell-meta">{escape(item["object_type"])} · {escape(item["object_id"])}</p>'
+            f'<p class="cell-meta">{escape(item["path"])}</p>',
+            f"{escape(_use_when_text(item))}<p class=\"cell-meta\">Last reviewed {escape(item.get('last_reviewed') or 'unknown')} · cadence {escape(item.get('review_cadence') or 'unknown')}</p>",
+            " ".join(
+                [
+                    components.badge(label="Trust", value=item["trust_state"], tone="approved" if item["trust_state"] == "trusted" else "warning"),
+                    components.badge(label="Approval", value=item["approval_state"], tone="approved" if item["approval_state"] == "approved" else "pending"),
+                ]
+            )
+            + f'<p class="cell-meta">{escape(item["posture"]["trust_summary"])}</p>',
             (
                 ", ".join(
                     link(service["service_name"], f"/services/{quoted_path(service['service_id'])}")
                     for service in item["linked_services"]
                 )
                 if item["linked_services"]
-                else '<span class="cell-meta">isolated</span>'
+                else '<span class="cell-meta">No linked service context.</span>'
             ),
-            escape(item["owner"]),
+            escape(_next_action_text(item)),
         ]
         for item in normalized_items
     ]
     queue_html = (
         components.section_card(
-            title="Knowledge queue",
+            title="Guidance results",
             eyebrow="Read",
             body_html=components.queue_table(
-                headers=["Title", "Type", "Trust", "Approval", "Why", "Services", "Owner"],
+                headers=["Guidance", "When to use it", "Safe now?", "Affects / services", "Next action"],
                 rows=rows,
-                table_id="knowledge-queue",
+                table_id="read-guidance",
             ),
-            footer_html='<p class="section-footer">Ordered to surface the most trustworthy and best-connected operational answer before weaker or isolated content.</p>',
+            footer_html='<p class="section-footer">Results are ordered to surface the safest current operational answer before weaker, stale, or isolated guidance.</p>',
         )
         if rows
         else components.empty_state(
-            title="No matching queue items",
-            description="Adjust filters or search terms to widen the queue scope.",
+            title="No matching guidance",
+            description="Adjust filters or search terms to widen the read scope.",
         )
     )
     secondary_html = components.section_card(
-        title="Operator guidance",
+        title="How to use read results",
         eyebrow="Read",
         body_html=(
-            "<p>Use the queue for rapid triage. Trust state, approval state, and reasons stay in-line so the first click is informed, not blind.</p>"
+            "<p>Read starts with the current operational answer, not the metadata. Governance remains visible as a guardrail so the next click is informed, not blind.</p>"
         ),
     )
     aside_html = join_html(
         [
             summary_html,
             components.validation_summary(
-                title="What to look for",
+                title="Read checklist",
                 findings=[
-                    "Prefer approved and service-linked content before isolated drafts.",
-                    "Read the explicit trust reason, not just the headline trust badge.",
-                    "Treat stale or weak-evidence items as prompts to verify, not silent soft-failures.",
+                    "Start with items that are both approved and trusted.",
+                    "If trust or approval is degraded, follow the next-action cue before using the guidance.",
+                    "Use linked services to stay inside the right operational context.",
                 ],
             ),
         ]
     )
     return {
         "page_template": "pages/queue.html",
-        "page_title": "Knowledge Queue",
-        "headline": "Knowledge Queue",
+        "page_title": "Read Guidance",
+        "headline": "Read Operational Guidance",
         "kicker": "Read",
-        "intro": "Find the right operational knowledge quickly, with visible trust posture and governance signals.",
+        "intro": "Find the right operational guidance quickly, understand when to use it, and see what to do next if it is not yet safe to rely on.",
         "active_nav": "read",
         "aside_html": aside_html,
         "page_context": {
-            "filter_bar_html": components.filter_bar(title="Queue filters", controls_html=filter_controls_html),
+            "filter_bar_html": components.filter_bar(title="Read filters", controls_html=filter_controls_html),
             "summary_html": summary_html,
             "queue_html": queue_html,
             "secondary_html": secondary_html,

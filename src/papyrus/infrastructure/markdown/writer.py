@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import os
 import tempfile
 from dataclasses import dataclass
@@ -15,11 +16,18 @@ OBJECT_TYPE_DEFAULT_DIRS = {
     "service_record": "services",
 }
 
+
+class SourceWriteConflictError(ValueError):
+    """Raised when the canonical source does not match the expected pre-write state."""
+
+
 @dataclass(frozen=True)
 class MarkdownWriteResult:
     file_path: Path
     previous_text: str | None
     new_text: str
+    backup_path: Path | None
+    changed: bool
 
 
 class MarkdownWriter:
@@ -32,6 +40,10 @@ class MarkdownWriter:
             (self.root_path / "knowledge").resolve(),
             (self.root_path / "archive" / "knowledge").resolve(),
         )
+
+    @property
+    def backup_root(self) -> Path:
+        return (self.root_path / "build" / "writeback-backups").resolve()
 
     def resolve_path(
         self,
@@ -53,6 +65,34 @@ class MarkdownWriter:
         self._ensure_canonical_root(candidate)
         return candidate
 
+    def read_current_text(
+        self,
+        *,
+        object_type: str,
+        canonical_path: str | None,
+        object_id: str,
+        title: str,
+    ) -> tuple[Path, str | None]:
+        file_path = self.resolve_path(
+            object_type=object_type,
+            canonical_path=canonical_path,
+            object_id=object_id,
+            title=title,
+        )
+        current_text = file_path.read_text(encoding="utf-8") if file_path.exists() else None
+        return file_path, current_text
+
+    def would_conflict(
+        self,
+        *,
+        current_text: str | None,
+        expected_previous_text: str | None,
+        new_text: str,
+    ) -> bool:
+        if current_text == new_text:
+            return False
+        return current_text != expected_previous_text
+
     def write_text(
         self,
         *,
@@ -61,20 +101,40 @@ class MarkdownWriter:
         object_id: str,
         title: str,
         text: str,
+        expected_previous_text: str | None = None,
     ) -> MarkdownWriteResult:
-        file_path = self.resolve_path(
+        file_path, current_text = self.read_current_text(
             object_type=object_type,
             canonical_path=canonical_path,
             object_id=object_id,
             title=title,
         )
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        previous_text = file_path.read_text(encoding="utf-8") if file_path.exists() else None
+        if self.would_conflict(
+            current_text=current_text,
+            expected_previous_text=expected_previous_text,
+            new_text=text,
+        ):
+            raise SourceWriteConflictError(
+                f"canonical source changed unexpectedly for {object_id}: {file_path}"
+            )
+        if current_text == text:
+            return MarkdownWriteResult(
+                file_path=file_path,
+                previous_text=current_text,
+                new_text=text,
+                backup_path=None,
+                changed=False,
+            )
+
+        backup_path = self._write_backup(object_id=object_id, file_path=file_path, previous_text=current_text)
         self._atomic_write(file_path, text)
         return MarkdownWriteResult(
             file_path=file_path,
-            previous_text=previous_text,
+            previous_text=current_text,
             new_text=text,
+            backup_path=backup_path,
+            changed=True,
         )
 
     def restore(self, *, file_path: Path, previous_text: str | None) -> None:
@@ -85,6 +145,16 @@ class MarkdownWriter:
             self._cleanup_empty_parents(file_path.parent)
             return
         self._atomic_write(file_path, previous_text)
+
+    def _write_backup(self, *, object_id: str, file_path: Path, previous_text: str | None) -> Path | None:
+        if previous_text is None:
+            return None
+        backup_dir = self.backup_root / slugify(object_id)
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        backup_path = backup_dir / f"{timestamp}-{file_path.name}"
+        self._atomic_write(backup_path, previous_text)
+        return backup_path
 
     def _atomic_write(self, file_path: Path, text: str) -> None:
         fd, temp_name = tempfile.mkstemp(prefix=".papyrus-writeback-", suffix=".tmp", dir=str(file_path.parent))

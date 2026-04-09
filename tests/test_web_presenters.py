@@ -39,9 +39,9 @@ class WebPresenterTests(unittest.TestCase):
             selected_trust="suspect",
             selected_approval="in_review",
         )
-        self.assertEqual(page["page_title"], "Knowledge Queue")
-        self.assertIn("Queue posture", page["aside_html"])
-        self.assertIn("Queue filters", page["page_context"]["filter_bar_html"])
+        self.assertEqual(page["page_title"], "Read Guidance")
+        self.assertIn("Read posture", page["aside_html"])
+        self.assertIn("Read filters", page["page_context"]["filter_bar_html"])
         self.assertIn("approval:in_review", page["page_context"]["queue_html"])
 
     def test_object_presenter_surfaces_citations_relationships_and_audit(self) -> None:
@@ -102,9 +102,10 @@ class WebPresenterTests(unittest.TestCase):
                 "audit_events": [{"event_type": "revision_approved", "actor": "reviewer", "occurred_at": "2026-04-07T01:00:00+00:00", "details": {}}],
             },
         )
-        self.assertIn("Supporting citations", page["page_context"]["related_sections_html"])
-        self.assertIn("Related services", page["page_context"]["related_sections_html"])
-        self.assertIn("Recent audit", page["aside_html"])
+        self.assertIn("Supporting evidence", page["page_context"]["related_sections_html"])
+        self.assertIn("Recent audit trail", page["page_context"]["related_sections_html"])
+        self.assertIn("Linked service context", page["page_context"]["content_sections_html"])
+        self.assertIn("Safety and lifecycle", page["aside_html"])
 
 
 if __name__ == "__main__":

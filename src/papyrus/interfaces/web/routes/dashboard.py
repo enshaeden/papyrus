@@ -21,3 +21,4 @@ def register(router, runtime) -> None:
         )
 
     router.add(["GET"], "/dashboard/trust", trust_dashboard_page)
+    router.add(["GET"], "/health", trust_dashboard_page)

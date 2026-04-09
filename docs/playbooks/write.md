@@ -1,6 +1,16 @@
 # Write Playbook
 
-Use this playbook when you are creating or revising canonical knowledge.
+Use this playbook when you are creating or revising canonical knowledge and need to move it cleanly through the lifecycle from draft to review.
+
+## Start With The Guided Authoring Flow
+
+The primary web path is now:
+
+1. create object shell
+2. draft or revise the structured guidance
+3. validate and submit for review
+
+Use the write surface when you want Papyrus to show progress, required versus optional work, evidence gaps, and what will happen if the revision is approved.
 
 ## Create A Canonical Source Object
 
@@ -21,6 +31,7 @@ python3 scripts/new_article.py --list-taxonomy tags
 
 Outcome:
 - A new canonical Markdown source file is created under `knowledge/`.
+- In the guided web flow, the shell becomes step 1 of 3 and Papyrus sends you directly into revision drafting.
 
 Failure signals:
 - The type or taxonomy value is not approved.
@@ -28,9 +39,9 @@ Failure signals:
 
 ## Revise An Existing Object
 
-1. Edit the canonical file under `knowledge/` or `archive/knowledge/`.
+1. Keep the existing object identity and canonical path stable unless a governed structural change requires otherwise.
 2. Update the body, metadata, and change log together.
-3. Keep the existing object identity and canonical path stable unless a governed structural change requires otherwise.
+3. Use the runtime-backed revision flow when you want lifecycle progress, citation cues, and reviewer handoff context.
 
 Do not create a parallel source file when the work is a revision of an existing object.
 
@@ -75,6 +86,7 @@ python3 scripts/report_content_health.py --section citation-health
 Outcome:
 - Source passes repository policy checks.
 - Runtime search and trust views reflect the revision.
+- The guided submit step shows validation blockers, warnings, and whether the revision is ready for review.
 
 Failure signals:
 - validation errors on metadata, taxonomy, links, citations, or canonical paths
@@ -91,12 +103,20 @@ At minimum, hand off:
 - the validation result
 - any citation or trust caveats the reviewer should inspect
 
+Reviewer-facing decision support now includes:
+
+- what changed
+- what evidence supports it
+- what remains unresolved
+- what the canonical writeback would change if approved
+
 Use the runtime-backed queue and revision history surfaces during review so the revision is judged as a tracked object revision, not as a detached Markdown diff.
 
 Current repository boundary:
 
 - inspection happens through the runtime-backed queue, revision, CLI parity, and object detail views
 - approval-state changes are tracked in the governance workflow layer rather than through ad-hoc file or database edits
+- approved revisions become canonical guidance through explicit writeback preview and approval flow, not through hidden source mutation
 
 ## Handle Rejection Or Follow-Up Revision
 
@@ -108,3 +128,16 @@ If review rejects or questions the revision:
 4. resubmit with a clear change summary
 
 Do not bypass review by patching generated output or by copying the content into `docs/`.
+
+## Inspect Or Recover Source Writeback
+
+Use the governed source-sync commands when you need to inspect or recover canonical writeback:
+
+```bash
+python3 scripts/source_sync.py preview --object <object_id>
+python3 scripts/source_sync.py writeback --object <object_id>
+python3 scripts/source_sync.py restore-last --object <object_id>
+```
+
+- `preview` shows the changed fields, changed sections, and whether the canonical source has drifted unexpectedly.
+- `restore-last` restores the most recent backed-up canonical state and records the recovery in the audit trail.

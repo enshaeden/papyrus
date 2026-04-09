@@ -1,9 +1,9 @@
 <header class="topbar">
   <div class="identity-block">
-    <a class="identity-mark" href="/queue">Papyrus</a>
-    <p class="identity-copy">Governed operational knowledge</p>
+    <a class="identity-mark" href="/">Papyrus</a>
+    <p class="identity-copy">Guided operational knowledge lifecycle</p>
   </div>
-  <form class="search-form" action="/queue" method="get">
+  <form class="search-form" action="/read" method="get">
     <label class="sr-only" for="global-search">Search Papyrus</label>
     <input id="global-search" name="query" type="search" placeholder="Search operational knowledge" value="{{ search_value }}" />
     <button class="button button-secondary" type="submit">Search</button>
@@ -54,7 +54,7 @@
       }
       nextPath.value = select.value === value
         ? window.location.pathname + window.location.search
-        : (selected.dataset.home || "/queue");
+        : (selected.dataset.home || "/");
     };
     syncNextPath();
     select.addEventListener("change", () => {
