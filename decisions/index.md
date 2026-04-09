@@ -43,6 +43,7 @@ Papyrus is a local-first operational knowledge control plane for IT support and 
 - Generated and build outputs belong only in `generated/`, `build/`, or `site/`.
 - Generated files must never be edited by hand.
 - If a generated artifact is wrong, fix the source or generator and rebuild.
+- `build/` is derived local state for runtime databases, ingestion workbench artifacts, and disposable demo data; it must not be treated as canonical repository source.
 - A top-level `migration/` workspace is allowed for sanitized seed plans, manifests, and migration-only validation inputs.
 - A top-level `reports/` workspace is allowed for sanitized review artifacts only.
 

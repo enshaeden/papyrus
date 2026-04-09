@@ -412,6 +412,7 @@ POLICY_BLUEPRINT = Blueprint(
             display_name="Exceptions",
             description="Exceptions, waivers, or boundary conditions.",
             section_type=SectionType.LONG_TEXT,
+            required=False,
             fields=(
                 _field("exceptions", "Exceptions", kind="long_text"),
             ),
@@ -423,7 +424,7 @@ POLICY_BLUEPRINT = Blueprint(
     required_sections=("identity", "stewardship", "policy_scope", "controls", "evidence"),
     ordering=("identity", "stewardship", "policy_scope", "controls", "exceptions", "evidence", "relationships"),
     evidence_requirements={"minimum_citations": 1},
-    lifecycle_defaults={"status": "draft", "review_cadence": "yearly"},
+    lifecycle_defaults={"status": "draft", "review_cadence": "annual"},
 )
 
 SYSTEM_DESIGN_BLUEPRINT = Blueprint(

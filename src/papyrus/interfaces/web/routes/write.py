@@ -7,6 +7,7 @@ from papyrus.application.authoring_flow import compute_completion_state, create_
 from papyrus.application.blueprint_registry import get_blueprint, list_blueprints
 from papyrus.application.commands import create_object_command, create_revision_command, submit_for_review_command
 from papyrus.application.queries import knowledge_object_detail, review_detail, search_knowledge_objects
+from papyrus.domain.evidence import summarize_evidence_posture
 from papyrus.interfaces.web.forms.object_forms import default_object_values, validate_object_form
 from papyrus.interfaces.web.forms.revision_forms import build_revision_defaults, build_submission_findings, validate_revision_form
 from papyrus.interfaces.web.forms.review_forms import validate_submit_form
@@ -206,11 +207,16 @@ def _revision_progress_html(components, *, object_type: str, values: dict[str, s
     purpose_completed, purpose_total = _completion_ratio(values, ["title", "summary", "owner", "team", "status"])
     linkage_completed, linkage_total = _completion_ratio(values, ["review_cadence", "audience", "related_services", "related_object_ids", "change_summary"])
     evidence_completed, evidence_total = _completion_ratio(values, ["citation_1_source_title", "citation_1_source_ref"])
+    evidence_posture = _evidence_posture_from_form_values(values)
     type_specific_fields = {
         "runbook": ["prerequisites", "steps", "verification", "rollback", "use_when", "boundaries_and_escalation"],
         "known_error": ["symptoms", "scope", "cause", "diagnostic_checks", "mitigations", "detection_notes", "escalation_threshold"],
         "service_record": ["service_name", "dependencies", "support_entrypoints", "common_failure_modes", "scope_notes", "operational_notes"],
-    }[object_type]
+        "policy": ["policy_scope", "controls"],
+        "system_design": ["architecture", "dependencies", "interfaces", "common_failure_modes", "operational_notes"],
+    }
+    if object_type not in type_specific_fields:
+        raise ValueError(f"unsupported object type for revision progress: {object_type}")
     content_completed, content_total = _completion_ratio(values, type_specific_fields)
     blockers = sum(len(messages) for messages in errors.values())
     warnings = len(findings or [])
@@ -218,7 +224,13 @@ def _revision_progress_html(components, *, object_type: str, values: dict[str, s
         [
             _progress_card(components, title="Purpose and scope", completed=purpose_completed, total=purpose_total, detail="Make the reader-facing purpose explicit before filling in deeper structure.", tone="brand"),
             _progress_card(components, title="Core structured content", completed=content_completed, total=content_total, detail="Capture the steps, checks, or service structure that will become the live guidance."),
-            _progress_card(components, title="Links and evidence", completed=linkage_completed + evidence_completed, total=linkage_total + evidence_total, detail="Related services, related knowledge, and citations improve review and downstream use."),
+            _progress_card(
+                components,
+                title="Links and evidence posture",
+                completed=linkage_completed + evidence_completed,
+                total=linkage_total + evidence_total,
+                detail=_revision_evidence_progress_detail(evidence_posture),
+            ),
             components.section_card(
                 title="Submission readiness",
                 eyebrow="Progress",
@@ -280,6 +292,60 @@ def _citation_search_status(title: str, reference: str) -> str:
     return "Search existing knowledge objects by title, tag, or object ID. Selecting a result fills the fields below."
 
 
+def _evidence_posture_from_form_values(values: dict[str, str]) -> dict[str, object]:
+    citations: list[dict[str, str | None]] = []
+    for index in range(1, 4):
+        source_title = values.get(f"citation_{index}_source_title", "").strip()
+        source_ref = values.get(f"citation_{index}_source_ref", "").strip()
+        note = values.get(f"citation_{index}_note", "").strip() or None
+        if not any([source_title, source_ref, note]):
+            continue
+        citations.append(
+            {
+                "source_title": source_title,
+                "source_ref": source_ref,
+                "note": note,
+                "captured_at": None,
+                "integrity_hash": None,
+            }
+        )
+    return summarize_evidence_posture(citations)
+
+
+def _revision_evidence_progress_detail(evidence_posture: dict[str, object]) -> str:
+    if int(evidence_posture.get("weak_external_evidence_count") or 0):
+        return (
+            f"{evidence_posture['summary']}. External/manual evidence entered here stays weak until manage-side follow-up "
+            "records capture time, integrity metadata, and any needed snapshot."
+        )
+    if int(evidence_posture.get("internal_reference_count") or 0):
+        return (
+            f"{evidence_posture['summary']}. Governed Papyrus references support traceability and review context, "
+            "not captured external evidence."
+        )
+    return "Related services, related knowledge, and evidence posture stay visible. Citations entered here do not automatically mean strong evidence."
+
+
+def _submit_evidence_posture_detail(evidence_posture: dict[str, object]) -> str:
+    if int(evidence_posture.get("weak_external_evidence_count") or 0):
+        return (
+            "External/manual evidence remains weak until manage-side follow-up records capture time, "
+            "integrity metadata, and any needed snapshot."
+        )
+    if int(evidence_posture.get("captured_external_evidence_count") or 0) and int(
+        evidence_posture.get("internal_reference_count") or 0
+    ):
+        return (
+            "Governed Papyrus references remain lightweight internal references. Captured external/manual evidence "
+            "provides the stronger support recorded so far."
+        )
+    if int(evidence_posture.get("captured_external_evidence_count") or 0):
+        return "Captured external/manual evidence has stronger support metadata recorded."
+    if int(evidence_posture.get("internal_reference_count") or 0):
+        return "Governed Papyrus references remain lightweight internal references for traceability and review context."
+    return "No evidence references are recorded yet."
+
+
 def _evidence_guidance_section(
     components,
     *,
@@ -297,8 +363,9 @@ def _evidence_guidance_section(
         title=title,
         eyebrow="Evidence",
         body_html=(
-            "<p>Citations to governed local Papyrus content are treated as internal references. External, migration, or other manual evidence remains weak until follow-up records when the evidence was captured and stores an integrity-backed snapshot.</p>"
-            "<p>Current web boundary: the write form does not attach evidence snapshots directly.</p>"
+            "<p>This write form can link governed Papyrus articles as lightweight internal references and can record a manual source title, reference, and note for external/manual evidence.</p>"
+            "<p>Current web boundary: the write form does not record capture time, integrity hash, expiry metadata, or evidence snapshots directly.</p>"
+            "<p>External, migration, or other manual evidence stays weak until the manage-side follow-up path records that stronger evidence metadata.</p>"
             + action_html
         ),
         tone="default",
@@ -513,6 +580,8 @@ def _next_action_panel_html(components, *, blueprint, completion: dict[str, obje
     next_section_id = str(completion.get("next_section_id") or "")
     next_label = blueprint.section(next_section_id).display_name if next_section_id else "Review readiness"
     tone = "warning" if completion["draft_state"] != "ready_for_review" else "approved"
+    evidence_posture = completion.get("evidence_posture") or {}
+    evidence_summary = str(evidence_posture.get("summary") or "No evidence references recorded yet.")
     return components.section_card(
         title="Next action",
         eyebrow="Guidance",
@@ -520,9 +589,52 @@ def _next_action_panel_html(components, *, blueprint, completion: dict[str, obje
         body_html=(
             f"<p><strong>Current draft state:</strong> {escape(completion['draft_state'])}</p>"
             f"<p><strong>Continue with:</strong> {escape(next_label)}</p>"
+            f"<p><strong>Evidence posture:</strong> {escape(evidence_summary)}</p>"
             "<p>Required sections unlock sequentially through the visible progress bar. Review stays blocked until blockers are cleared.</p>"
         ),
     )
+
+
+def _fallback_revision_href(*, object_id: str, revision_id: str) -> str:
+    return f"/write/objects/{quoted_path(object_id)}/revisions/fallback?revision_id={quoted_path(revision_id)}"
+
+
+def _guided_fallback_html(components, *, object_id: str, revision_id: str) -> str:
+    return components.section_card(
+        title="Operator fallback",
+        eyebrow="Fallback",
+        tone="context",
+        body_html=(
+            "<p>Guided section editing is the primary authoring path. Use the separate bulk draft fallback only when you need cross-section editing, citation lookup, or searchable multi-select helpers.</p>"
+            f'<p>{link("Open bulk draft fallback", _fallback_revision_href(object_id=object_id, revision_id=revision_id), css_class="button button-secondary")}</p>'
+        ),
+    )
+
+
+def _load_draft_context(runtime, *, object_id: str, actor_id: str, requested_revision_id: str | None) -> dict[str, object]:
+    initial_detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+    draft = create_draft_from_blueprint(
+        object_id=object_id,
+        blueprint_id=initial_detail["object"]["object_type"],
+        actor=actor_id,
+        database_path=runtime.database_path,
+        source_root=runtime.source_root,
+    )
+    revision_id = requested_revision_id or str(draft["revision_id"])
+    draft_status = validate_draft_progress(
+        object_id=object_id,
+        revision_id=revision_id,
+        database_path=runtime.database_path,
+        source_root=runtime.source_root,
+    )
+    detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+    return {
+        "initial_detail": initial_detail,
+        "detail": detail,
+        "draft_status": draft_status,
+        "revision_id": revision_id,
+        "is_first_revision": initial_detail["current_revision"] is None,
+    }
 
 
 def _section_fields_html(runtime, *, blueprint, section, values: dict[str, str], errors: dict[str, list[str]]) -> str:
@@ -651,16 +763,6 @@ def _render_guided_revision_page(
         )
         + "</div></form>"
     )
-    compatibility_values = build_revision_defaults(object_detail)
-    compatibility_form_html = _render_revision_form(
-        runtime,
-        object_detail,
-        compatibility_values,
-        {},
-        [],
-        form_action=f"/write/objects/{quoted_path(object_detail['object']['object_id'])}/revisions/new",
-        is_first_revision=is_first_revision,
-    )["form_html"]
     return {
         "stage_label_html": (
             '<p class="page-kicker">Step 2: Draft First Revision</p>'
@@ -679,18 +781,15 @@ def _render_guided_revision_page(
             },
         ),
         "next_action_html": _next_action_panel_html(components, blueprint=blueprint, completion=completion),
-        "compatibility_html": (
-            '<details class="section-card tone-default">'
-            '<summary class="section-card-body"><strong>Bulk edit and search tools</strong><p>'
-            "Guided section editing remains the primary path. Open this only when you need the legacy multi-field form, citation lookup, or searchable multi-select helpers."
-            "</p></summary>"
-            f"{compatibility_form_html}"
-            "</details>"
+        "fallback_html": _guided_fallback_html(
+            components,
+            object_id=str(object_detail["object"]["object_id"]),
+            revision_id=revision_id,
         ),
     }
 
 
-def _render_revision_form(
+def _render_fallback_revision_form(
     runtime,
     detail,
     values: dict[str, str],
@@ -794,7 +893,7 @@ def _render_revision_form(
                 multiline_field("evidence_notes", "Evidence notes", "Any evidence handling notes relevant to operators or reviewers."),
             ]
         )
-    else:
+    elif object_type == "service_record":
         sections.extend(
             [
                 forms.field(field_id="service_name", label="Service name", control_html=forms.input(field_id="service_name", name="service_name", value=values["service_name"]), errors=errors.get("service_name")),
@@ -809,6 +908,27 @@ def _render_revision_form(
                 multiline_field("evidence_notes", "Evidence notes", "Evidence caveats or capture instructions."),
             ]
         )
+    elif object_type == "policy":
+        sections.extend(
+            [
+                multiline_field("policy_scope", "Policy scope", "Narrative purpose and boundary of the policy."),
+                multiline_field("controls", "Controls", "One control or mandatory requirement per line."),
+                multiline_field("exceptions", "Exceptions", "Optional waiver, exception, or boundary notes."),
+            ]
+        )
+    elif object_type == "system_design":
+        sections.extend(
+            [
+                multiline_field("architecture", "Architecture", "High-level design and component intent."),
+                multiline_field("dependencies", "Dependencies", "One dependency per line."),
+                multiline_field("interfaces", "Interfaces", "One interface or integration per line."),
+                multiline_field("common_failure_modes", "Common failure modes", "One operational failure mode per line."),
+                multiline_field("support_entrypoints", "Support entrypoints", "Optional support channels or handoff paths."),
+                multiline_field("operational_notes", "Operational notes", "Support posture, caveats, and operating model."),
+            ]
+        )
+    else:
+        raise ValueError(f"unsupported object type for revision form rendering: {object_type}")
 
     citation_fields = []
     for index in range(1, 4):
@@ -816,7 +936,7 @@ def _render_revision_form(
             f'<section class="citation-entry" data-citation-picker data-citation-index="{index}" '
             f'data-search-url="/write/citations/search" data-exclude-object-id="{escape(object_info["object_id"])}">'
             f"<h4>Citation {index}</h4>"
-            '<p class="citation-entry-intro">Reference an existing knowledge article first. Manual fields remain available below when the source is not already in Papyrus.</p>'
+            '<p class="citation-entry-intro">Reference an existing Papyrus article first for lightweight internal traceability. Use the manual fields below only when the supporting source is external or otherwise outside Papyrus.</p>'
             + forms.field(
                 field_id=f"citation_{index}_lookup",
                 label=f"Citation {index} source search",
@@ -828,25 +948,25 @@ def _render_revision_form(
                 field_id=f"citation_{index}_source_title",
                 label=f"Citation {index} selected title",
                 control_html=forms.input(field_id=f"citation_{index}_source_title", name=f"citation_{index}_source_title", value=values.get(f"citation_{index}_source_title", "")),
-                hint="Filled from the selected knowledge object. Edit only for manual evidence entry.",
+                hint="Filled from a selected Papyrus article, or enter the source title for manual/external evidence.",
             )
             + forms.field(
                 field_id=f"citation_{index}_source_type",
                 label=f"Citation {index} type",
                 control_html=forms.input(field_id=f"citation_{index}_source_type", name=f"citation_{index}_source_type", value=values.get(f"citation_{index}_source_type", "document")),
-                hint="document, url, or system reference.",
+                hint="document, url, ticket, or system reference.",
             )
             + forms.field(
                 field_id=f"citation_{index}_source_ref",
                 label=f"Citation {index} selected reference",
                 control_html=forms.input(field_id=f"citation_{index}_source_ref", name=f"citation_{index}_source_ref", value=values.get(f"citation_{index}_source_ref", "")),
-                hint="Filled from the selected knowledge object path. Edit only for manual evidence entry.",
+                hint="Papyrus path or manual/external reference. The write form does not capture snapshots or integrity metadata here.",
             )
             + forms.field(
                 field_id=f"citation_{index}_note",
                 label=f"Citation {index} note",
                 control_html=forms.textarea(field_id=f"citation_{index}_note", name=f"citation_{index}_note", value=values.get(f"citation_{index}_note", ""), rows=2),
-                hint="Why this evidence supports the draft.",
+                hint="Why this reference supports the draft and what a reviewer should inspect.",
             )
             + "</section>"
         )
@@ -869,28 +989,35 @@ def _render_revision_form(
         + forms.button(label="Save first draft revision" if is_first_revision else "Save draft revision")
         + "</form>"
     )
+    current_revision = detail.get("current_revision") or {}
+    guided_return_href = (
+        f"/write/objects/{quoted_path(object_info['object_id'])}/revisions/new?revision_id={quoted_path(str(current_revision.get('revision_id') or ''))}#revision-form"
+    )
     guidance_html = components.section_card(
-        title="Guided authoring",
-        eyebrow="Write",
+        title="Bulk draft fallback",
+        eyebrow="Fallback",
+        tone="context",
         body_html=(
-            "<p>The object shell is already created. Use the sections below to define purpose, add structured guidance, attach evidence, and prepare the draft for review.</p>"
+            "<p>This separate fallback keeps the older bulk draft form available when you need cross-section editing, citation lookup, or searchable multi-select helpers.</p>"
             if is_first_revision
-            else "<p>Structured fields feed read, review, and health surfaces directly. Narrative sections support operator judgment without hiding the lifecycle state.</p>"
+            else "<p>This fallback still writes the same governed draft, but guided section editing remains the primary route for day-to-day authoring.</p>"
         )
-        + "<p>Evidence note: citations to existing governed Papyrus articles are accepted as internal references. External or manual evidence stays weak until later follow-up records timing and integrity metadata.</p>",
+        + f'<p>{link("Return to guided section flow", guided_return_href, css_class="button button-secondary")}</p>'
+        + "<p>Evidence note: governed Papyrus citations are lightweight internal references. External or manual evidence stays weak until later follow-up records capture time, integrity metadata, and any needed snapshot.</p>",
     )
     return {
         "validation_html": validation_html,
         "progress_html": _revision_progress_html(components, object_type=object_type, values=values, errors=errors, findings=findings),
-        "form_html": f'<div id="revision-form">{components.section_card(title="Draft first revision" if is_first_revision else "Create revision", eyebrow="Write", body_html=body_html)}</div>',
+        "form_html": components.section_card(title="Bulk draft fallback", eyebrow="Fallback", body_html=body_html, tone="context"),
         "guidance_html": guidance_html + _evidence_guidance_section(components, title="How evidence gets strengthened"),
     }
 
 
-def _render_submit_page(runtime, detail, findings: list[str], form_errors: dict[str, list[str]], values: dict[str, str]) -> dict[str, str]:
+def _render_submit_page(runtime, detail, completion: dict[str, object], findings: list[str], form_errors: dict[str, list[str]], values: dict[str, str]) -> dict[str, str]:
     forms = FormPresenter(runtime.template_renderer)
     components = ComponentPresenter(runtime.template_renderer)
     revision = detail["revision"]
+    evidence_posture = completion.get("evidence_posture") or summarize_evidence_posture(detail.get("citations", []))
     form_html = components.section_card(
         title="Submit for review",
         eyebrow="Write",
@@ -914,6 +1041,8 @@ def _render_submit_page(runtime, detail, findings: list[str], form_errors: dict[
             f"<p><strong>Revision:</strong> #{escape(revision['revision_number'])} · {escape(revision['revision_state'])}</p>"
             f"<p><strong>Change summary:</strong> {escape(revision['change_summary'] or 'No change summary recorded.')}</p>"
             f"<p><strong>Citations:</strong> {escape(len(detail['citations']))}</p>"
+            f"<p><strong>Evidence posture:</strong> {escape(evidence_posture['summary'])}</p>"
+            f"<p><strong>Evidence note:</strong> {escape(_submit_evidence_posture_detail(evidence_posture))}</p>"
             f"<p><strong>If approved:</strong> this revision becomes canonical guidance at {escape(detail['object']['canonical_path'])}</p>"
         ),
     )
@@ -924,11 +1053,11 @@ def _render_submit_page(runtime, detail, findings: list[str], form_errors: dict[
         tone="warning" if findings else "approved",
         body_html=(
             f"<p><strong>Warnings to review:</strong> {escape(len(findings))}</p>"
-            "<p>Submit once the warnings are understood and the reviewer can make a clear decision from the attached evidence and change summary.</p>"
+            "<p>Submit once the warnings are understood and the reviewer can make a clear decision from the linked references, any evidence caveats, and the change summary.</p>"
         ),
     )
     guidance_html = ""
-    if any("weak-evidence posture" in item for item in findings):
+    if any("Evidence posture:" in item for item in findings):
         guidance_html = _evidence_guidance_section(
             components,
             title="How to strengthen weak evidence",
@@ -991,21 +1120,16 @@ def register(router, runtime) -> None:
     def create_revision_page(request: Request):
         object_id = request.route_value("object_id")
         actor_id = actor_for_request(request)
-        initial_detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
-        draft = create_draft_from_blueprint(
+        draft_context = _load_draft_context(
+            runtime,
             object_id=object_id,
-            blueprint_id=initial_detail["object"]["object_type"],
-            actor=actor_id,
-            database_path=runtime.database_path,
-            source_root=runtime.source_root,
+            actor_id=actor_id,
+            requested_revision_id=request.query_value("revision_id") or None,
         )
-        revision_id = request.query_value("revision_id") or str(draft["revision_id"])
-        draft_status = validate_draft_progress(
-            object_id=object_id,
-            revision_id=revision_id,
-            database_path=runtime.database_path,
-        )
-        detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        initial_detail = draft_context["initial_detail"]
+        detail = draft_context["detail"]
+        draft_status = draft_context["draft_status"]
+        revision_id = str(draft_context["revision_id"])
         section_id = request.query_value("section") or str(draft_status["completion"]["next_section_id"])
         blueprint = draft_status["blueprint"]
         page_flash_html = flash_html_for_request(runtime, request) if request.method != "POST" else ""
@@ -1051,7 +1175,6 @@ def register(router, runtime) -> None:
                         current_path=request.path,
                         header_detail_html=_write_timeline_html(stage="revision", is_first_revision=initial_detail["current_revision"] is None),
                         aside_html=_common_revision_aside(runtime, detail),
-                        scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
                         page_context=page_context,
                     )
                 )
@@ -1074,67 +1197,8 @@ def register(router, runtime) -> None:
             return redirect_response(f"{redirect_target}&notice={quote_plus(notice)}")
 
         if request.method == "POST":
-            is_first_revision = detail["current_revision"] is None
-            values = build_revision_defaults(detail)
-            values.update({key: request.form_value(key) for key in values})
-            errors: dict[str, list[str]] = {}
-            findings: list[str] | None = None
-            result = validate_revision_form(
-                values=values,
-                object_detail=detail,
-                taxonomies=runtime.taxonomies,
-                actor=actor_id,
-            )
-            findings = result.cleaned_data["validation_findings"]
-            if result.is_valid:
-                revision = create_revision_command(
-                    database_path=runtime.database_path,
-                    source_root=runtime.source_root,
-                    object_id=object_id,
-                    normalized_payload=result.cleaned_data["normalized_payload"],
-                    body_markdown=result.cleaned_data["body_markdown"],
-                    actor=actor_id,
-                    legacy_metadata=detail.get("metadata") or {},
-                    change_summary=result.cleaned_data["change_summary"],
-                )
-                return redirect_response(
-                    f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision.revision_id)}&notice={quote_plus('Draft revision saved')}"
-                )
-            errors = result.errors
-            page_flash_html = FormPresenter(runtime.template_renderer).flash(
-                title="Attention",
-                body="Draft not saved. Fix the blocking fields below.",
-                tone="warning",
-            )
-            page_context = _render_revision_form(
-                runtime,
-                detail,
-                values,
-                errors,
-                findings,
-                form_action=request.path,
-                is_first_revision=is_first_revision,
-            )
-            return html_response(
-                runtime.page_renderer.render_page(
-                    page_template="pages/write_revision_new.html",
-                    page_title="Step 2: Draft first revision" if is_first_revision else "Create revision",
-                    headline="Step 2: Draft First Revision" if is_first_revision else "Create Revision",
-                    kicker="Write",
-                    intro=(
-                        "Shell creation is complete. Draft the first revision with guided progress, linked context, and explicit evidence cues."
-                        if is_first_revision
-                        else "Revise the current guidance with structured content first, then linked context, evidence, and submission readiness."
-                    ),
-                    active_nav="write",
-                    flash_html=page_flash_html,
-                    actor_id=actor_id,
-                    current_path=request.path,
-                    header_detail_html=_write_timeline_html(stage="revision", is_first_revision=is_first_revision),
-                    aside_html=_common_revision_aside(runtime, detail),
-                    scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
-                    page_context=page_context,
-                )
+            return redirect_response(
+                f"{_fallback_revision_href(object_id=object_id, revision_id=revision_id)}&notice={quote_plus('Bulk draft fallback moved to its own route. Continue there if you need the older cross-section editor.')}"
             )
 
         page_context = _render_guided_revision_page(
@@ -1158,6 +1222,108 @@ def register(router, runtime) -> None:
                 actor_id=actor_id,
                 current_path=request.path,
                 header_detail_html=_write_timeline_html(stage="revision", is_first_revision=initial_detail["current_revision"] is None),
+                aside_html=_common_revision_aside(runtime, detail),
+                page_context=page_context,
+            )
+        )
+
+    def fallback_revision_page(request: Request):
+        object_id = request.route_value("object_id")
+        actor_id = actor_for_request(request)
+        draft_context = _load_draft_context(
+            runtime,
+            object_id=object_id,
+            actor_id=actor_id,
+            requested_revision_id=request.query_value("revision_id") or None,
+        )
+        detail = draft_context["detail"]
+        revision_id = str(draft_context["revision_id"])
+        is_first_revision = bool(draft_context["is_first_revision"])
+        page_flash_html = flash_html_for_request(runtime, request) if request.method != "POST" else ""
+        current_revision = detail.get("current_revision") or {}
+
+        if request.method == "POST":
+            values = build_revision_defaults(detail)
+            values.update({key: request.form_value(key) for key in values})
+            result = validate_revision_form(
+                values=values,
+                object_detail=detail,
+                taxonomies=runtime.taxonomies,
+                actor=actor_id,
+            )
+            findings = result.cleaned_data["validation_findings"]
+            if result.is_valid:
+                revision = create_revision_command(
+                    database_path=runtime.database_path,
+                    source_root=runtime.source_root,
+                    object_id=object_id,
+                    normalized_payload=result.cleaned_data["normalized_payload"],
+                    body_markdown=result.cleaned_data["body_markdown"],
+                    actor=actor_id,
+                    legacy_metadata=detail.get("metadata") or {},
+                    change_summary=result.cleaned_data["change_summary"],
+                )
+                return redirect_response(
+                    f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision.revision_id)}&notice={quote_plus('Bulk draft fallback saved')}"
+                )
+            page_flash_html = FormPresenter(runtime.template_renderer).flash(
+                title="Attention",
+                body="Draft not saved. Fix the blocking fields below.",
+                tone="warning",
+            )
+            page_context = _render_fallback_revision_form(
+                runtime,
+                detail,
+                values,
+                result.errors,
+                findings,
+                form_action=_fallback_revision_href(object_id=object_id, revision_id=revision_id),
+                is_first_revision=is_first_revision,
+            )
+            return html_response(
+                runtime.page_renderer.render_page(
+                    page_template="pages/write_revision_new.html",
+                    page_title="Bulk draft fallback",
+                    headline="Bulk Draft Fallback",
+                    kicker="Write",
+                    intro="Use this separate fallback only when you need cross-section editing, citation lookup, or searchable multi-select helpers. Guided section editing remains the primary authoring path.",
+                    active_nav="write",
+                    flash_html=page_flash_html,
+                    actor_id=actor_id,
+                    current_path=request.path,
+                    header_detail_html=_write_timeline_html(stage="revision", is_first_revision=is_first_revision),
+                    aside_html=_common_revision_aside(runtime, detail),
+                    scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
+                    page_context=page_context,
+                )
+            )
+
+        values = build_revision_defaults(detail)
+        findings = build_submission_findings(
+            object_type=detail["object"]["object_type"],
+            payload=current_revision.get("metadata") or detail.get("metadata") or {},
+        )
+        page_context = _render_fallback_revision_form(
+            runtime,
+            detail,
+            values,
+            {},
+            findings,
+            form_action=_fallback_revision_href(object_id=object_id, revision_id=revision_id),
+            is_first_revision=is_first_revision,
+        )
+        return html_response(
+            runtime.page_renderer.render_page(
+                page_template="pages/write_revision_new.html",
+                page_title="Bulk draft fallback",
+                headline="Bulk Draft Fallback",
+                kicker="Write",
+                intro="Use this separate fallback only when you need cross-section editing, citation lookup, or searchable multi-select helpers. Guided section editing remains the primary authoring path.",
+                active_nav="write",
+                flash_html=page_flash_html,
+                actor_id=actor_id,
+                current_path=request.path,
+                header_detail_html=_write_timeline_html(stage="revision", is_first_revision=is_first_revision),
                 aside_html=_common_revision_aside(runtime, detail),
                 scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
                 page_context=page_context,
@@ -1228,6 +1394,7 @@ def register(router, runtime) -> None:
             object_id=object_id,
             revision_id=revision_id,
             database_path=runtime.database_path,
+            source_root=runtime.source_root,
         )
         findings = [
             *draft_status["completion"]["blockers"],
@@ -1254,7 +1421,7 @@ def register(router, runtime) -> None:
             form_errors = result.errors
             if draft_status["completion"]["blockers"]:
                 form_errors.setdefault("notes", []).append("Clear the draft blockers before submitting for review.")
-        page_context = _render_submit_page(runtime, detail, findings, form_errors, values)
+        page_context = _render_submit_page(runtime, detail, draft_status["completion"], findings, form_errors, values)
         return html_response(
             runtime.page_renderer.render_page(
                 page_template="pages/review_submit.html",
@@ -1276,4 +1443,5 @@ def register(router, runtime) -> None:
     router.add(["GET"], "/write/citations/search", citation_search_endpoint)
     router.add(["GET"], "/write/objects/search", related_object_search_endpoint)
     router.add(["GET", "POST"], "/write/objects/{object_id}/revisions/new", create_revision_page)
+    router.add(["GET", "POST"], "/write/objects/{object_id}/revisions/fallback", fallback_revision_page)
     router.add(["GET", "POST"], "/write/objects/{object_id}/submit", submit_revision_page)

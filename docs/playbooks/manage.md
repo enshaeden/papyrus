@@ -37,7 +37,7 @@ Use these surfaces by purpose:
 - `Knowledge Health`: stale guidance, weak evidence, suspect objects, superseded but still relied-on guidance
 - `Activity / History`: recent consequences, validation outcomes, and writeback/audit recovery context
 
-Imported drafts and native drafts use the same review and approval path after the import workbench converts the mapping into a draft revision.
+Imported drafts and native drafts use the same review and approval path only after the import workbench conversion step. Parser warnings, degraded extraction, mapping conflicts, low-confidence matches, and unmapped content stay in the import review stage and should not be hidden during draft conversion.
 
 ## Approve Or Reject Revisions
 
@@ -56,6 +56,12 @@ Useful routes:
 - `/services/{service_id}`
 
 Approval should mean the current revision is operationally usable and adequately supported. Reject when the object is materially wrong, weakly evidenced, poorly scoped, or missing governance metadata.
+
+Evidence review boundary:
+
+- governed Papyrus references are lightweight internal references for traceability and review context
+- external or manual citations without capture time, integrity metadata, and any required snapshot remain weak evidence posture
+- do not treat "citation entered" as proof that the revision is strongly evidenced
 
 Current repository boundary:
 

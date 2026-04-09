@@ -3,9 +3,6 @@
 .venv/
 __pycache__/
 *.pyc
-build/*.db
-build/*.db-shm
-build/*.db-wal
-build/*.log
-generated/
-site/
+/build/
+/generated/
+/site/

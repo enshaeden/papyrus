@@ -63,6 +63,10 @@ def request_path_without_fragment(path: str) -> str:
     return path.split("#", 1)[0]
 
 
+def fallback_revision_path(path: str) -> str:
+    return request_path_without_fragment(path).replace("/revisions/new", "/revisions/fallback", 1)
+
+
 def read_row(database_path: Path, query: str, parameters: tuple = ()) -> sqlite3.Row | None:
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
@@ -107,7 +111,7 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, headers, body = call_wsgi(
                 application,
-                request_path_without_fragment(revision_form_path),
+                fallback_revision_path(revision_form_path),
                 method="POST",
                 form={
                     "title": "Operator UI Approval Flow",
@@ -145,9 +149,10 @@ class WebOperatorUiTests(unittest.TestCase):
             status, _, submit_body = call_wsgi(application, submit_path)
             self.assertEqual(status, "200 OK")
             self.assertIn("Pre-submit validation", submit_body)
-            self.assertIn("do not yet record when the evidence was captured or a source integrity hash", submit_body)
+            self.assertIn("external/manual citation(s) remain weak", submit_body)
+            self.assertIn("write form only records title, reference, and note", submit_body)
             self.assertIn("How to strengthen weak evidence", submit_body)
-            self.assertIn("write form does not attach evidence snapshots directly", submit_body)
+            self.assertIn("does not record capture time, integrity hash, expiry metadata, or evidence snapshots directly", submit_body)
             self.assertIn("/manage/objects/kb-operator-ui-approve/evidence/revalidate", submit_body)
             self.assertIn("Request evidence revalidation", submit_body)
 
@@ -272,7 +277,7 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, body = call_wsgi(
                 application,
-                request_path_without_fragment(revision_form_path),
+                fallback_revision_path(revision_form_path),
                 method="POST",
                 form={
                     "title": "Operator UI Rejection Flow",
@@ -311,7 +316,7 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, headers, _ = call_wsgi(
                 application,
-                request_path_without_fragment(revision_form_path),
+                fallback_revision_path(revision_form_path),
                 method="POST",
                 form={
                     "title": "Operator UI Rejection Flow",
@@ -409,7 +414,7 @@ class WebOperatorUiTests(unittest.TestCase):
             revision_form_path = headers["Location"]
             status, headers, _ = call_wsgi(
                 application,
-                request_path_without_fragment(revision_form_path),
+                fallback_revision_path(revision_form_path),
                 method="POST",
                 form={
                     "title": "Operator UI Manage Flow",
@@ -544,7 +549,7 @@ class WebOperatorUiTests(unittest.TestCase):
             revision_form_path = headers["Location"]
             status, headers, _ = call_wsgi(
                 application,
-                request_path_without_fragment(revision_form_path),
+                fallback_revision_path(revision_form_path),
                 method="POST",
                 form={
                     "title": "Operator UI Evidence Flow",
@@ -707,11 +712,17 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertIn('class="workflow-top"', body)
             self.assertIn("Create object shell", body)
             self.assertIn("Step 2: Draft First Revision", body)
-            self.assertIn("Save first draft revision", body)
+            self.assertIn("Save section", body)
             self.assertIn("Current step", body)
             self.assertIn("Submit for review", body)
             self.assertIn('id="revision-form"', body)
-            self.assertIn('method="post" action="/write/objects/kb-operator-ui-shell-search/revisions/new"', body)
+            self.assertIn('method="post" action="/write/objects/kb-operator-ui-shell-search/revisions/new?revision_id=', body)
+            self.assertIn("&section=", body)
+            self.assertIn("Open bulk draft fallback", body)
+            self.assertIn("/write/objects/kb-operator-ui-shell-search/revisions/fallback?revision_id=", body)
+            self.assertNotIn("Bulk edit and search tools", body)
+            self.assertNotIn("/static/js/citation_picker.js", body)
+            self.assertNotIn("/static/js/multi_value_picker.js", body)
 
             status, _, body = call_wsgi(
                 application,
@@ -762,7 +773,7 @@ class WebOperatorUiTests(unittest.TestCase):
             revision_form_path = request_path_without_fragment(headers["Location"])
             status, headers, _ = call_wsgi(
                 application,
-                revision_form_path,
+                fallback_revision_path(revision_form_path),
                 method="POST",
                 form={
                     "title": "Manage Queue Shell",
@@ -832,9 +843,11 @@ class WebOperatorUiTests(unittest.TestCase):
             )
             self.assertEqual(status, "303 See Other")
             revision_form_path = request_path_without_fragment(headers["Location"])
+            fallback_path = fallback_revision_path(revision_form_path)
 
-            status, _, body = call_wsgi(application, revision_form_path)
+            status, _, body = call_wsgi(application, fallback_path)
             self.assertEqual(status, "200 OK")
+            self.assertIn("Bulk Draft Fallback", body)
             self.assertIn("Citation 1 source search", body)
             self.assertIn("Search by title, tag, or object ID", body)
             self.assertIn("/static/js/citation_picker.js", body)
@@ -846,7 +859,7 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, headers, _ = call_wsgi(
                 application,
-                revision_form_path,
+                fallback_path,
                 method="POST",
                 form={
                     "title": "Citation Search Runbook",
@@ -881,7 +894,9 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, submit_body = call_wsgi(application, submit_path)
             self.assertEqual(status, "200 OK")
-            self.assertNotIn("weak-evidence posture", submit_body)
+            self.assertIn("governed Papyrus reference", submit_body)
+            self.assertIn("lightweight internal reference", submit_body)
+            self.assertNotIn("external/manual citation(s) remain weak", submit_body)
 
             citation_row = read_row(
                 database_path,
@@ -948,9 +963,11 @@ class WebOperatorUiTests(unittest.TestCase):
             )
             self.assertEqual(status, "303 See Other")
             revision_form_path = request_path_without_fragment(headers["Location"])
+            fallback_path = fallback_revision_path(revision_form_path)
 
-            status, _, body = call_wsgi(application, revision_form_path)
+            status, _, body = call_wsgi(application, fallback_path)
             self.assertEqual(status, "200 OK")
+            self.assertIn("Bulk Draft Fallback", body)
             self.assertIn("/static/js/multi_value_picker.js", body)
             self.assertIn("Search and select one or more controlled tags.", body)
             self.assertIn("Search and select one or more related services.", body)

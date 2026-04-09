@@ -26,6 +26,10 @@ def _use_when_text(item: dict[str, Any]) -> str:
         return "Use when you need symptom-driven troubleshooting guidance."
     if object_type == "service_record":
         return "Use when you need service context, dependencies, or support ownership."
+    if object_type == "policy":
+        return "Use when you need governed controls, scope, and exception handling."
+    if object_type == "system_design":
+        return "Use when you need architecture, interfaces, and operational design context."
     return "Use when this item is the best available operational fit."
 
 
@@ -82,6 +86,8 @@ def present_queue_page(
         f'<option value="runbook"{" selected" if selected_type == "runbook" else ""}>Runbooks</option>'
         f'<option value="known_error"{" selected" if selected_type == "known_error" else ""}>Known errors</option>'
         f'<option value="service_record"{" selected" if selected_type == "service_record" else ""}>Service records</option>'
+        f'<option value="policy"{" selected" if selected_type == "policy" else ""}>Policies</option>'
+        f'<option value="system_design"{" selected" if selected_type == "system_design" else ""}>System designs</option>'
         "</select>"
         '<select name="trust">'
         f'<option value=""{" selected" if not selected_trust else ""}>All trust</option>'

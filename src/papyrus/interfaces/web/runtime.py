@@ -11,6 +11,7 @@ from papyrus.interfaces.web.rendering import PageRenderer
 class WebRuntime:
     database_path: Path
     source_root: Path
+    allow_web_ingest_local_paths: bool
     page_renderer: PageRenderer
     taxonomies: dict[str, dict[str, Any]]
 

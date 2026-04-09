@@ -54,8 +54,8 @@ This change does not rework repository schemas, canonical source layout, or the 
 - Draft objects and draft revisions remain runtime-governed records; the UI does not write canonical Markdown source files.
 - Revision history is comparison-friendly, but it does not yet implement a true side-by-side diff view.
 - The interface is still intended for local or otherwise trusted operator environments; it does not introduce an authentication or CSRF layer.
-- Form structure is typed and guided. Revision evidence entry now includes a search-backed citation picker for existing knowledge objects while preserving manual source entry for non-Papyrus evidence.
-- Revision metadata entry for tags, related services, and related object IDs now uses searchable multi-select controls while preserving manual newline entry as a fallback.
+- Form structure is typed and guided. Guided section editing is the primary revision path.
+- The separate bulk draft fallback route carries the search-backed citation picker and searchable multi-select helpers when an operator intentionally needs the older cross-section editor.
 - Weak-evidence warnings on write and submit screens now distinguish between governed local Papyrus references and external/manual evidence, and point operators to the manage-side evidence follow-up flow when capture metadata is still required.
 
 ## Operational Notes
@@ -71,6 +71,7 @@ This change does not rework repository schemas, canonical source layout, or the 
   - Local Manager: trust dashboard, review oversight, audit, and validation
 - Read surfaces preserve queue, object detail, revision history, service detail, dashboard, and impact coverage while improving trust visibility.
 - Shell-only objects created through the write flow remain discoverable in `/queue` before their first revision exists. Queue hits for those shells route back into `/write/objects/{object_id}/revisions/new#revision-form`, and write screens now render a top-of-page step timeline so the current workflow stage is visible during object creation, revision drafting, and review submission.
+- The guided revision route remains the primary write path. `/write/objects/{object_id}/revisions/fallback` is an explicit operator fallback for cross-section editing, citation lookup, and searchable multi-select controls.
 - Invalid object-shell creation attempts now render a warning flash and blocking validation summary at the top of the page so missing or malformed required fields are visible without hunting through the full form.
 - Invalid revision saves now post back to the clean revision URL instead of preserving the original shell-created success notice, and the page renders a top-of-form blocking validation summary so operators can see why the draft was not saved.
 - Write and manage flows now use redirect-after-post patterns so operator actions are explicit and inspectable.

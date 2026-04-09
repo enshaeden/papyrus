@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 from dataclasses import dataclass
 from typing import Any
 
+from papyrus.domain.evidence import (
+    default_citation_validity_status,
+    summarize_evidence_posture,
+)
 from papyrus.interfaces.web.view_helpers import parse_csvish, parse_multiline
 
 
@@ -22,12 +27,7 @@ COMMON_FIELDS = (
     "change_summary",
 )
 
-LOCAL_GOVERNED_CITATION_PREFIXES = (
-    "knowledge/",
-    "archive/knowledge/",
-    "docs/",
-    "decisions/",
-)
+BODY_SECTION_PATTERN = re.compile(r"^## (?P<title>.+?)\n\n(?P<body>.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL)
 
 
 @dataclass(frozen=True)
@@ -50,26 +50,35 @@ def _metadata_value(metadata: dict[str, Any], key: str, fallback: str = "") -> s
     return str(value)
 
 
-def _citation_is_local_governed_reference(source_ref: str) -> bool:
-    normalized = source_ref.strip()
-    return normalized.startswith(LOCAL_GOVERNED_CITATION_PREFIXES)
+def _body_sections(body_markdown: str) -> dict[str, str]:
+    return {
+        match.group("title").strip(): match.group("body").strip()
+        for match in BODY_SECTION_PATTERN.finditer(str(body_markdown or "").strip())
+    }
 
 
-def _citation_requires_capture_metadata(source_ref: str) -> bool:
-    normalized = source_ref.strip()
-    if normalized.startswith("migration/"):
-        return True
-    return not _citation_is_local_governed_reference(normalized)
+def _list_field(section_content: dict[str, Any], section_id: str, field_name: str, fallback: str = "") -> str:
+    section = section_content.get(section_id, {})
+    if isinstance(section, dict) and isinstance(section.get(field_name), list):
+        return "\n".join(str(item) for item in section.get(field_name, []) if str(item).strip())
+    return fallback
 
 
-def _default_citation_validity_status(source_ref: str) -> str:
-    return "verified" if _citation_is_local_governed_reference(source_ref) else "unverified"
+def _text_field(section_content: dict[str, Any], section_id: str, field_name: str, fallback: str = "") -> str:
+    section = section_content.get(section_id, {})
+    if isinstance(section, dict):
+        value = section.get(field_name)
+        if value is not None:
+            return str(value)
+    return fallback
 
 
 def build_revision_defaults(detail: dict[str, Any]) -> dict[str, str]:
     object_info = detail["object"]
     metadata = detail.get("metadata") or {}
     revision = detail.get("current_revision")
+    section_content = revision.get("section_content", {}) if isinstance(revision, dict) else {}
+    body_sections = _body_sections(str(revision.get("body_markdown") or "")) if isinstance(revision, dict) else {}
     values = {
         "title": _metadata_value(metadata, "title", object_info["title"]),
         "summary": _metadata_value(metadata, "summary", object_info["summary"]),
@@ -83,31 +92,70 @@ def build_revision_defaults(detail: dict[str, Any]) -> dict[str, str]:
         "related_services": _metadata_value(metadata, "related_services"),
         "related_object_ids": _metadata_value(metadata, "related_object_ids"),
         "change_summary": "",
-        "prerequisites": _metadata_value(metadata, "prerequisites"),
-        "steps": _metadata_value(metadata, "steps"),
-        "verification": _metadata_value(metadata, "verification"),
-        "rollback": _metadata_value(metadata, "rollback"),
-        "use_when": "",
-        "boundaries_and_escalation": "",
-        "related_knowledge_notes": "",
-        "symptoms": _metadata_value(metadata, "symptoms"),
-        "scope": _metadata_value(metadata, "scope"),
-        "cause": _metadata_value(metadata, "cause"),
-        "diagnostic_checks": _metadata_value(metadata, "diagnostic_checks"),
-        "mitigations": _metadata_value(metadata, "mitigations"),
+        "prerequisites": _list_field(section_content, "prerequisites", "prerequisites", _metadata_value(metadata, "prerequisites")),
+        "steps": _list_field(section_content, "procedure", "steps", _metadata_value(metadata, "steps")),
+        "verification": _list_field(section_content, "verification", "verification", _metadata_value(metadata, "verification")),
+        "rollback": _list_field(section_content, "rollback", "rollback", _metadata_value(metadata, "rollback")),
+        "use_when": _text_field(section_content, "purpose", "use_when", body_sections.get("Use When", "")),
+        "boundaries_and_escalation": _text_field(
+            section_content,
+            "boundaries",
+            "boundaries_and_escalation",
+            body_sections.get("Boundaries And Escalation", ""),
+        ),
+        "related_knowledge_notes": _text_field(
+            section_content,
+            "boundaries",
+            "related_knowledge_notes",
+            body_sections.get("Related Knowledge Notes", ""),
+        ),
+        "symptoms": _list_field(section_content, "diagnosis", "symptoms", _metadata_value(metadata, "symptoms")),
+        "scope": _text_field(section_content, "diagnosis", "scope", _metadata_value(metadata, "scope")),
+        "cause": _text_field(section_content, "diagnosis", "cause", _metadata_value(metadata, "cause")),
+        "diagnostic_checks": _list_field(
+            section_content,
+            "diagnostic_checks",
+            "diagnostic_checks",
+            _metadata_value(metadata, "diagnostic_checks"),
+        ),
+        "mitigations": _list_field(section_content, "mitigations", "mitigations", _metadata_value(metadata, "mitigations")),
         "permanent_fix_status": _metadata_value(metadata, "permanent_fix_status", "unknown"),
-        "detection_notes": "",
-        "escalation_threshold": "",
-        "evidence_notes": "",
-        "service_name": _metadata_value(metadata, "service_name", object_info["title"]),
+        "detection_notes": _text_field(section_content, "escalation", "detection_notes", body_sections.get("Detection Notes", "")),
+        "escalation_threshold": _text_field(
+            section_content,
+            "escalation",
+            "escalation_threshold",
+            body_sections.get("Escalation Threshold", ""),
+        ),
+        "evidence_notes": _text_field(section_content, "escalation", "evidence_notes", body_sections.get("Evidence Notes", "")),
+        "service_name": _text_field(section_content, "service_profile", "service_name", _metadata_value(metadata, "service_name", object_info["title"])),
         "service_criticality": _metadata_value(metadata, "service_criticality", "not_classified"),
-        "dependencies": _metadata_value(metadata, "dependencies"),
-        "support_entrypoints": _metadata_value(metadata, "support_entrypoints"),
-        "common_failure_modes": _metadata_value(metadata, "common_failure_modes"),
-        "related_runbooks": _metadata_value(metadata, "related_runbooks"),
-        "related_known_errors": _metadata_value(metadata, "related_known_errors"),
-        "scope_notes": "",
-        "operational_notes": "",
+        "dependencies": _list_field(section_content, "dependencies", "dependencies", _metadata_value(metadata, "dependencies")),
+        "support_entrypoints": _list_field(
+            section_content,
+            "support_entrypoints",
+            "support_entrypoints",
+            _list_field(section_content, "operations", "support_entrypoints", _metadata_value(metadata, "support_entrypoints")),
+        ),
+        "common_failure_modes": _list_field(
+            section_content,
+            "failure_modes",
+            "common_failure_modes",
+            _metadata_value(metadata, "common_failure_modes"),
+        ),
+        "related_runbooks": _list_field(section_content, "operations", "related_runbooks", _metadata_value(metadata, "related_runbooks")),
+        "related_known_errors": _list_field(
+            section_content,
+            "operations",
+            "related_known_errors",
+            _metadata_value(metadata, "related_known_errors"),
+        ),
+        "scope_notes": _text_field(section_content, "service_profile", "scope_notes", body_sections.get("Scope", "")),
+        "operational_notes": _text_field(section_content, "operations", "operational_notes", body_sections.get("Operational Notes", "")),
+        "policy_scope": _text_field(section_content, "policy_scope", "policy_scope", body_sections.get("Policy Scope", _metadata_value(metadata, "policy_scope"))),
+        "controls": _list_field(section_content, "controls", "controls", _metadata_value(metadata, "controls")),
+        "exceptions": _text_field(section_content, "exceptions", "exceptions", body_sections.get("Exceptions", _metadata_value(metadata, "exceptions"))),
+        "architecture": _text_field(section_content, "architecture", "architecture", body_sections.get("Architecture", _metadata_value(metadata, "architecture"))),
         "citation_1_source_title": "",
         "citation_1_source_type": "document",
         "citation_1_source_ref": "",
@@ -131,8 +179,6 @@ def build_revision_defaults(detail: dict[str, Any]) -> dict[str, str]:
         values[f"citation_{index}_source_ref"] = str(citation["source_ref"])
         values[f"citation_{index}_note"] = str(citation["note"] or "")
         values[f"citation_{index}_lookup"] = str(citation["source_title"])
-    if revision and revision["body_markdown"]:
-        values["use_when"] = revision["body_markdown"]
     return values
 
 
@@ -154,7 +200,7 @@ def _citation_entries(values: dict[str, str]) -> list[dict[str, Any]]:
                 "claim_anchor": None,
                 "excerpt": None,
                 "captured_at": None,
-                "validity_status": _default_citation_validity_status(source_ref),
+                "validity_status": default_citation_validity_status(source_ref),
                 "integrity_hash": None,
             }
         )
@@ -180,14 +226,30 @@ def _serialize_body(object_type: str, values: dict[str, str]) -> str:
             + "\n\n## Evidence Notes\n\n"
             + values["evidence_notes"].strip()
         ).strip()
-    return (
-        "## Scope\n\n"
-        + values["scope_notes"].strip()
-        + "\n\n## Operational Notes\n\n"
-        + values["operational_notes"].strip()
-        + "\n\n## Evidence Notes\n\n"
-        + values["evidence_notes"].strip()
-    ).strip()
+    if object_type == "service_record":
+        return (
+            "## Scope\n\n"
+            + values["scope_notes"].strip()
+            + "\n\n## Operational Notes\n\n"
+            + values["operational_notes"].strip()
+            + "\n\n## Evidence Notes\n\n"
+            + values["evidence_notes"].strip()
+        ).strip()
+    if object_type == "policy":
+        return (
+            "## Policy Scope\n\n"
+            + values["policy_scope"].strip()
+            + "\n\n## Exceptions\n\n"
+            + values["exceptions"].strip()
+        ).strip()
+    if object_type == "system_design":
+        return (
+            "## Architecture\n\n"
+            + values["architecture"].strip()
+            + "\n\n## Operational Notes\n\n"
+            + values["operational_notes"].strip()
+        ).strip()
+    raise ValueError(f"unsupported object type for revision form serialization: {object_type}")
 
 
 def validate_revision_form(
@@ -235,12 +297,22 @@ def validate_revision_form(
                 add_error(field, "This field is required.")
         if values.get("permanent_fix_status", "") not in taxonomies["permanent_fix_status"]["allowed_values"]:
             add_error("permanent_fix_status", "Choose a valid permanent fix status.")
-    else:
+    elif object_type == "service_record":
         for field in ("service_name", "dependencies", "support_entrypoints", "common_failure_modes", "scope_notes", "operational_notes"):
             if not values.get(field, "").strip():
                 add_error(field, "This field is required.")
         if values.get("service_criticality", "") not in taxonomies["service_criticality"]["allowed_values"]:
             add_error("service_criticality", "Choose a valid service criticality.")
+    elif object_type == "policy":
+        for field in ("policy_scope", "controls"):
+            if not values.get(field, "").strip():
+                add_error(field, "This field is required.")
+    elif object_type == "system_design":
+        for field in ("architecture", "dependencies", "interfaces", "common_failure_modes", "operational_notes"):
+            if not values.get(field, "").strip():
+                add_error(field, "This field is required.")
+    else:
+        add_error("_form", "Unsupported object type for revision editing.")
 
     metadata = object_detail.get("metadata") or {}
     today = dt.date.today().isoformat()
@@ -305,7 +377,7 @@ def validate_revision_form(
                 "permanent_fix_status": values["permanent_fix_status"].strip(),
             }
         )
-    else:
+    elif object_type == "service_record":
         payload.update(
             {
                 "service_name": values["service_name"].strip(),
@@ -315,6 +387,24 @@ def validate_revision_form(
                 "common_failure_modes": parse_multiline(values["common_failure_modes"]),
                 "related_runbooks": parse_multiline(values["related_runbooks"]),
                 "related_known_errors": parse_multiline(values["related_known_errors"]),
+            }
+        )
+    elif object_type == "policy":
+        payload.update(
+            {
+                "policy_scope": values["policy_scope"].strip(),
+                "controls": parse_multiline(values["controls"]),
+                "exceptions": values["exceptions"].strip(),
+            }
+        )
+    elif object_type == "system_design":
+        payload.update(
+            {
+                "architecture": values["architecture"].strip(),
+                "dependencies": parse_multiline(values["dependencies"]),
+                "interfaces": parse_multiline(values["interfaces"]),
+                "common_failure_modes": parse_multiline(values["common_failure_modes"]),
+                "support_entrypoints": parse_multiline(values["support_entrypoints"]),
             }
         )
 
@@ -329,23 +419,26 @@ def validate_revision_form(
 
 def build_submission_findings(*, object_type: str, payload: dict[str, Any]) -> list[str]:
     findings: list[str] = []
-    if not payload.get("citations"):
+    citations = list(payload.get("citations") or [])
+    evidence_posture = summarize_evidence_posture(citations)
+    if not citations:
         findings.append("Missing supporting citations.")
-    else:
-        weak_count = sum(
-            1
-            for citation in payload["citations"]
-            if _citation_requires_capture_metadata(str(citation.get("source_ref") or ""))
-            and (not citation.get("captured_at") or not citation.get("integrity_hash"))
+    weak_count = int(evidence_posture["weak_external_evidence_count"])
+    if weak_count:
+        findings.append(
+            f"Evidence posture: {weak_count} external/manual citation(s) remain weak because the write form only records title, reference, and note. Capture time, integrity hash, and evidence snapshots need manage-side follow-up."
         )
-        if weak_count:
-            findings.append(
-                f"{weak_count} citation(s) are still in weak-evidence posture because they do not yet record when the evidence was captured or a source integrity hash."
-            )
     if object_type in {"runbook", "known_error"} and not payload.get("related_services"):
         findings.append("Related service links are missing.")
     if object_type == "service_record" and not payload.get("dependencies"):
         findings.append("Dependencies have not been documented.")
+    if object_type == "policy" and not payload.get("controls"):
+        findings.append("Policy controls have not been documented.")
+    if object_type == "system_design":
+        if not payload.get("dependencies"):
+            findings.append("Dependencies have not been documented.")
+        if not payload.get("interfaces"):
+            findings.append("Interfaces have not been documented.")
     if not payload.get("related_object_ids"):
         findings.append("No related knowledge objects were linked for impact tracing.")
     return findings

@@ -50,6 +50,11 @@ def main() -> int:
     parser.add_argument("--api-port", type=int, default=8081, help="API port. Defaults to 8081.")
     parser.add_argument("--db", default=None, help="Override the runtime SQLite database path.")
     parser.add_argument("--source-root", default=None, help="Override the source root used for writeback and evidence snapshots.")
+    parser.add_argument(
+        "--allow-web-ingest-local-paths",
+        action="store_true",
+        help="Allow the /ingest web form to read an absolute local file path from the machine running Papyrus.",
+    )
     args = parser.parse_args()
 
     if args.demo:
@@ -73,6 +78,7 @@ def main() -> int:
             database_path,
             source_root,
             allow_noncanonical_source_root=args.demo,
+            allow_web_ingest_local_paths=args.allow_web_ingest_local_paths,
         ),
     )
     api_server = make_server(

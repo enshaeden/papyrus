@@ -8,9 +8,10 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from papyrus.application.revision_runtime import RevisionRuntimeServices
 from papyrus.application import writeback_flow
 from papyrus.domain.actor import require_actor_id
-from papyrus.domain.entities import AuditEvent, KnowledgeDocument, KnowledgeObject, KnowledgeRevision, ReviewAssignment
+from papyrus.domain.entities import AuditEvent, KnowledgeObject, KnowledgeRevision, ReviewAssignment
 from papyrus.domain.policies import runtime_trust_state
 from papyrus.domain.value_objects import (
     KnowledgeLifecycleStatus,
@@ -19,14 +20,12 @@ from papyrus.domain.value_objects import (
     TrustState,
 )
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
-from papyrus.infrastructure.markdown.parser import normalize_object_metadata
 from papyrus.infrastructure.markdown.serializer import json_dump
 from papyrus.infrastructure.markdown.writer import MarkdownWriter
 from papyrus.infrastructure.migrations import apply_runtime_schema
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
 from papyrus.infrastructure.repositories.knowledge_repo import (
-    delete_search_document,
     find_revision_by_content_hash,
     get_knowledge_object,
     get_knowledge_revision,
@@ -44,9 +43,7 @@ from papyrus.infrastructure.repositories.review_repo import (
     update_review_assignment,
 )
 from papyrus.infrastructure.search.indexer import fts5_available
-from papyrus.jobs.citation_scan import scan_citations
-from papyrus.jobs.stale_scan import cadence_to_days
-from papyrus.application.runtime_projection import persist_revision_artifacts, refresh_current_object_projection
+from papyrus.application.runtime_projection import persist_revision_artifacts
 
 
 def _now_utc() -> dt.datetime:
@@ -140,7 +137,7 @@ class GovernanceWorkflow:
     def __init__(self, database_path: Path = DB_PATH, source_root: Path = ROOT):
         self.database_path = Path(database_path)
         self.source_root = Path(source_root).resolve()
-        self.taxonomies = None
+        self.runtime = RevisionRuntimeServices(source_root=self.source_root)
 
     def _connection(self) -> sqlite3.Connection:
         connection = open_runtime_database(self.database_path, minimum_schema_version=RUNTIME_SCHEMA_VERSION)
@@ -150,13 +147,6 @@ class GovernanceWorkflow:
             (RUNTIME_SCHEMA_VERSION, _now_utc().isoformat()),
         )
         return connection
-
-    def _taxonomies(self) -> dict[str, dict[str, Any]]:
-        if self.taxonomies is None:
-            from papyrus.infrastructure.repositories.knowledge_repo import load_taxonomies
-
-            self.taxonomies = load_taxonomies()
-        return self.taxonomies
 
     def _require_object(self, connection: sqlite3.Connection, object_id: str) -> sqlite3.Row:
         row = get_knowledge_object(connection, object_id)
@@ -190,44 +180,6 @@ class GovernanceWorkflow:
             if assignment["reviewer"] == reviewer and assignment["state"] == ReviewAssignmentState.ASSIGNED.value:
                 return assignment
         raise ValueError(f"no active review assignment for reviewer {reviewer} on revision {revision_id}")
-
-    def _build_document(self, metadata: dict[str, Any], body_markdown: str) -> KnowledgeDocument:
-        canonical_path = str(metadata.get("canonical_path") or "")
-        return KnowledgeDocument(
-            source_path=self.source_root / canonical_path if canonical_path else self.source_root,
-            relative_path=canonical_path,
-            metadata=dict(metadata),
-            body=body_markdown,
-        )
-
-    def _parsed_revision(self, metadata: dict[str, Any], body_markdown: str):
-        document = self._build_document(metadata, body_markdown)
-        cadence_days = cadence_to_days(str(metadata["review_cadence"]), self._taxonomies())
-        return normalize_object_metadata(
-            document,
-            review_cadence_days=cadence_days,
-            as_of=dt.date.today(),
-        )
-
-    def _refresh_search_projection(self, connection: sqlite3.Connection, object_id: str) -> None:
-        object_row = self._require_object(connection, object_id)
-        current_revision_id = object_row["current_revision_id"]
-        if not current_revision_id:
-            delete_search_document(connection, object_id)
-            return
-        scan_citations(
-            connection,
-            taxonomies=self._taxonomies(),
-            as_of=dt.date.today(),
-            object_ids=[object_id],
-            persist=True,
-        )
-        refresh_current_object_projection(
-            connection,
-            object_id=object_id,
-            taxonomies=self._taxonomies(),
-            as_of=dt.date.today(),
-        )
 
     def create_object(
         self,
@@ -318,7 +270,7 @@ class GovernanceWorkflow:
         now = _now_utc()
         try:
             object_row = self._require_object(connection, object_id)
-            parsed = self._parsed_revision(normalized_payload, body_markdown)
+            parsed = self.runtime.parse_revision(normalized_payload, body_markdown)
             if str(parsed.metadata["id"]) != object_id:
                 raise ValueError(f"revision payload id does not match knowledge object {object_id}")
             if parsed.object_type != object_row["object_type"]:
@@ -378,7 +330,7 @@ class GovernanceWorkflow:
                 revision_id=revision_id,
                 relationship_provenance="workflow_projection",
             )
-            self._refresh_search_projection(connection, object_id)
+            self.runtime.refresh_object_projection(connection, object_id=object_id)
 
             event_id = _event_id("revision-created")
             details = {
@@ -438,7 +390,7 @@ class GovernanceWorkflow:
                 current_revision_id=revision_id,
                 trust_state=TrustState.SUSPECT.value,
             )
-            self._refresh_search_projection(connection, object_id)
+            self.runtime.refresh_object_projection(connection, object_id=object_id)
 
             event_id = _event_id("revision-submitted")
             details = {"notes": notes}
@@ -578,7 +530,7 @@ class GovernanceWorkflow:
                 revision_state=RevisionReviewStatus.APPROVED.value,
             )
             payload = json.loads(revision_row["normalized_payload_json"])
-            parsed = self._parsed_revision(payload, revision_row["body_markdown"])
+            parsed = self.runtime.parse_revision(payload, revision_row["body_markdown"])
             update_knowledge_object_runtime_state(
                 connection,
                 object_id=object_id,
@@ -590,7 +542,7 @@ class GovernanceWorkflow:
                 ),
                 current_revision_id=revision_id,
             )
-            self._refresh_search_projection(connection, object_id)
+            self.runtime.refresh_object_projection(connection, object_id=object_id)
             writeback_result = writeback_flow.write_revision_to_source(
                 connection,
                 object_id=object_id,
@@ -681,7 +633,7 @@ class GovernanceWorkflow:
                 current_revision_id=revision_id,
                 trust_state=TrustState.SUSPECT.value,
             )
-            self._refresh_search_projection(connection, object_id)
+            self.runtime.refresh_object_projection(connection, object_id=object_id)
 
             event_id = _event_id("revision-rejected")
             details = {
@@ -753,7 +705,7 @@ class GovernanceWorkflow:
                 status=KnowledgeLifecycleStatus.DEPRECATED.value,
                 trust_state=TrustState.SUSPECT.value,
             )
-            self._refresh_search_projection(connection, object_id)
+            self.runtime.refresh_object_projection(connection, object_id=object_id)
 
             event_id = _event_id("object-superseded")
             details = {
@@ -799,7 +751,7 @@ def mark_object_suspect_due_to_change(
             object_id=object_id,
             trust_state=TrustState.SUSPECT.value,
         )
-        workflow._refresh_search_projection(connection, object_id)
+        workflow.runtime.refresh_object_projection(connection, object_id=object_id)
 
         event_id = _event_id("object-suspect")
         details = {

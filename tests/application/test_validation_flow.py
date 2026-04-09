@@ -149,6 +149,115 @@ class BlueprintValidationTests(unittest.TestCase):
             [issue.message for issue in issues],
         )
 
+    def test_native_policy_without_required_blueprint_sections_still_fails(self) -> None:
+        document = KnowledgeDocument(
+            source_path=ROOT / "knowledge" / "tests" / "native-policy.md",
+            relative_path="knowledge/tests/native-policy.md",
+            metadata={
+                "id": "kb-tests-native-policy",
+                "title": "Native Policy",
+                "canonical_path": "knowledge/tests/native-policy.md",
+                "summary": "Govern remote access changes.",
+                "knowledge_object_type": "policy",
+                "legacy_article_type": None,
+                "status": "active",
+                "owner": "service_owner",
+                "source_type": "native",
+                "source_system": "repository",
+                "source_title": "Native Policy",
+                "team": "IT Operations",
+                "systems": ["<VPN_SERVICE>"],
+                "tags": ["vpn"],
+                "created": "2026-04-08",
+                "updated": "2026-04-08",
+                "last_reviewed": "2026-04-08",
+                "review_cadence": "annual",
+                "audience": "service_desk",
+                "citations": _citation(),
+                "related_object_ids": [],
+                "policy_scope": "",
+                "controls": [],
+                "exceptions": "",
+                "superseded_by": None,
+                "replaced_by": None,
+                "retirement_reason": None,
+                "services": [],
+                "related_articles": [],
+                "references": [{"title": "Write playbook", "path": "docs/playbooks/write.md", "note": "Local governed reference."}],
+                "change_log": [{"date": "2026-04-08", "summary": "Created native policy.", "author": "tests"}],
+            },
+            body="## Policy Scope\n\n",
+        )
+
+        issues = validate_knowledge_documents(
+            [document],
+            self.object_schemas,
+            self.legacy_schema,
+            self.taxonomies,
+            self.policy,
+        )
+
+        messages = [issue.message for issue in issues]
+        self.assertIn("required blueprint section is incomplete: Scope", messages)
+        self.assertIn("required blueprint section is incomplete: Controls", messages)
+
+    def test_native_system_design_without_required_blueprint_sections_still_fails(self) -> None:
+        document = KnowledgeDocument(
+            source_path=ROOT / "knowledge" / "tests" / "native-system-design.md",
+            relative_path="knowledge/tests/native-system-design.md",
+            metadata={
+                "id": "kb-tests-native-system-design",
+                "title": "Native System Design",
+                "canonical_path": "knowledge/tests/native-system-design.md",
+                "summary": "Describe the identity platform architecture.",
+                "knowledge_object_type": "system_design",
+                "legacy_article_type": None,
+                "status": "active",
+                "owner": "service_owner",
+                "source_type": "native",
+                "source_system": "repository",
+                "source_title": "Native System Design",
+                "team": "IT Operations",
+                "systems": ["<IDENTITY_PROVIDER>"],
+                "tags": ["identity"],
+                "created": "2026-04-08",
+                "updated": "2026-04-08",
+                "last_reviewed": "2026-04-08",
+                "review_cadence": "after_change",
+                "audience": "service_desk",
+                "citations": _citation(),
+                "related_object_ids": [],
+                "dependencies": [],
+                "interfaces": [],
+                "common_failure_modes": [],
+                "support_entrypoints": [],
+                "architecture": "",
+                "superseded_by": None,
+                "replaced_by": None,
+                "retirement_reason": None,
+                "services": [],
+                "related_articles": [],
+                "references": [{"title": "Write playbook", "path": "docs/playbooks/write.md", "note": "Local governed reference."}],
+                "change_log": [{"date": "2026-04-08", "summary": "Created native system design.", "author": "tests"}],
+            },
+            body="## Architecture\n\n",
+        )
+
+        issues = validate_knowledge_documents(
+            [document],
+            self.object_schemas,
+            self.legacy_schema,
+            self.taxonomies,
+            self.policy,
+        )
+
+        messages = [issue.message for issue in issues]
+        self.assertIn("required blueprint section is incomplete: Architecture", messages)
+        self.assertIn("required blueprint section is incomplete: Dependencies", messages)
+        self.assertIn("required blueprint section is incomplete: Interfaces", messages)
+        self.assertIn("required blueprint section is incomplete: Failure Modes", messages)
+        self.assertIn("required blueprint section is incomplete: Operations", messages)
+
 
 if __name__ == "__main__":
     unittest.main()

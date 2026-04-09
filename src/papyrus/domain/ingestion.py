@@ -14,6 +14,30 @@ class IngestionStatus(str, Enum):
     REVIEWED = "reviewed"
 
 
+def has_mapping_result(mapping_result: dict[str, Any] | None) -> bool:
+    if not isinstance(mapping_result, dict) or not mapping_result:
+        return False
+    sections = mapping_result.get("sections")
+    blueprint_id = str(mapping_result.get("blueprint_id") or "").strip()
+    return bool(blueprint_id) and isinstance(sections, dict) and bool(sections)
+
+
+def truthful_ingestion_status(
+    *,
+    stored_status: str | IngestionStatus,
+    mapping_result: dict[str, Any] | None,
+    converted_revision_id: str | None,
+) -> IngestionStatus:
+    status = IngestionStatus(str(stored_status))
+    if converted_revision_id:
+        return IngestionStatus.REVIEWED
+    if has_mapping_result(mapping_result):
+        return IngestionStatus.MAPPED
+    if status in {IngestionStatus.CLASSIFIED, IngestionStatus.MAPPED, IngestionStatus.REVIEWED}:
+        return IngestionStatus.CLASSIFIED
+    return status
+
+
 @dataclass(frozen=True)
 class IngestionArtifact:
     artifact_id: str

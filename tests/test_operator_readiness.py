@@ -295,6 +295,34 @@ class OperatorReadinessTests(unittest.TestCase):
             self.assertEqual(api_result.returncode, 1)
             self.assertIn("operator mode requires the canonical source root", api_result.stderr)
 
+            cli_result = run_script(
+                "scripts/operator_view.py",
+                "queue",
+                "--db",
+                str(database_path),
+                "--format",
+                "json",
+                "--source-root",
+                str(invalid_root),
+            )
+            self.assertEqual(cli_result.returncode, 1)
+            self.assertIn("operator mode requires the canonical source root", cli_result.stderr)
+
+            cli_opt_in_result = run_script(
+                "scripts/operator_view.py",
+                "queue",
+                "--db",
+                str(database_path),
+                "--format",
+                "json",
+                "--source-root",
+                str(invalid_root),
+                "--allow-noncanonical-source-root",
+            )
+            self.assertEqual(cli_opt_in_result.returncode, 0, msg=cli_opt_in_result.stderr)
+            cli_payload = json.loads(cli_opt_in_result.stdout)
+            self.assertIn("queue", cli_payload)
+
     def test_programmatic_surfaces_reject_noncanonical_source_root_without_explicit_opt_in(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"

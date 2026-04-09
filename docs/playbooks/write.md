@@ -11,7 +11,7 @@ The primary web path is now:
 3. complete the guided section flow
 4. validate and submit for review
 
-Use the write surface when you want Papyrus to show progress, required versus optional work, evidence gaps, and what will happen if the revision is approved.
+Use the write surface when you want Papyrus to show progress, required versus optional work, evidence posture, and what will happen if the revision is approved.
 
 Current primary authoring rules:
 
@@ -19,6 +19,8 @@ Current primary authoring rules:
 - Papyrus stores structured section data and derives the Markdown body from that structure.
 - Blueprints define required sections, ordering, validation, evidence expectations, and lifecycle defaults.
 - The visible next action should always be the next required section or the submit step.
+- Guided section editing is the primary web authoring path.
+- The separate bulk draft fallback route exists only for cross-section editing, citation lookup, and searchable multi-select helpers that do not belong in the primary guided route.
 
 Current first-class blueprints:
 
@@ -94,14 +96,14 @@ Failure signals:
 
 ## Import External Documents Through The Workbench
 
-Use the import workbench when the source starts as Markdown, DOCX, or PDF and must be normalized before it becomes Papyrus knowledge.
+Use the import workbench when the source starts as Markdown, DOCX, or a text-based PDF and must be normalized before it becomes Papyrus knowledge.
 
 Web path:
 
 1. open `/ingest`
-2. upload the file or provide a local path
-3. inspect parse and classification output
-4. review the blueprint mapping
+2. upload the file, or provide a local host path only on a trusted local operator web surface with explicit opt-in
+3. inspect parse output, parser warnings, and extraction quality
+4. review the blueprint mapping, including conflicts, low-confidence matches, and unmapped content
 5. confirm conversion to a governed draft
 6. continue editing in the normal write flow
 
@@ -121,9 +123,13 @@ python3 scripts/operator_view.py convert-ingestion <ingestion_id> \
 
 Guardrails:
 
+- browser upload is the standard web ingest path
+- browser-submitted local file paths are disabled unless the local operator explicitly enables `--allow-web-ingest-local-paths`; when enabled, the path must be absolute and is read from the machine running Papyrus
+- Markdown and DOCX ingest locally; PDF import is limited to text-based PDFs, and scanned, image-only, encrypted, or heavily font-encoded PDFs require external OCR or preprocessing
 - import does not create canonical knowledge automatically
 - import does not bypass review
-- mapping gaps and low-confidence matches must stay visible before conversion
+- parser warnings and degraded extraction must stay visible before conversion
+- mapping gaps, conflicts, low-confidence matches, and unmapped content must stay visible before conversion
 - converted content becomes the same structured draft model used by native authoring
 
 ## Revise An Existing Object
@@ -145,9 +151,12 @@ For each material claim:
 
 Current web authoring boundary:
 
-- citations that point to existing governed local Papyrus content are treated as internal references
-- external, migration, or other manual evidence remains weak until follow-up records when the evidence was captured and attaches an integrity-backed snapshot
-- the web write form does not currently attach evidence snapshots directly; use the manage-side evidence follow-up path after the revision exists
+- guided section editing at `/write/objects/{object_id}/revisions/new` is the primary web path
+- the bulk draft fallback at `/write/objects/{object_id}/revisions/fallback` is an explicit operator fallback, not a second equal authoring model
+- citations that point to existing governed local Papyrus content are lightweight internal references for traceability and review context
+- external, migration, or other manual evidence entered through the write form remains weak until follow-up records when the evidence was captured, stores an integrity hash, and attaches any required snapshot
+- the web write form can record source title, source reference, source type, and note only
+- the web write form does not currently record `captured_at`, `integrity_hash`, expiry metadata, or evidence snapshots directly; use the manage-side evidence follow-up path after the revision exists
 
 Failure signals:
 
@@ -196,7 +205,7 @@ At minimum, hand off:
 Reviewer-facing decision support now includes:
 
 - what changed
-- what evidence supports it
+- what evidence posture supports it
 - what remains unresolved
 - what the canonical writeback would change if approved
 

@@ -96,6 +96,7 @@ def app(
     source_root: str | Path = ROOT,
     *,
     allow_noncanonical_source_root: bool = False,
+    allow_web_ingest_local_paths: bool = False,
 ) -> Callable:
     resolved_database_path = Path(database_path)
     resolved_source_root = resolve_operator_source_root(
@@ -105,6 +106,7 @@ def app(
     runtime = WebRuntime(
         database_path=resolved_database_path,
         source_root=resolved_source_root,
+        allow_web_ingest_local_paths=allow_web_ingest_local_paths,
         page_renderer=PageRenderer(Path(__file__).resolve().parent),
         taxonomies=load_taxonomies(),
     )
@@ -188,6 +190,11 @@ def main() -> int:
         action="store_true",
         help="Allow a non-repository source root for advanced sandbox or demo use.",
     )
+    parser.add_argument(
+        "--allow-web-ingest-local-paths",
+        action="store_true",
+        help="Allow the /ingest web form to read an absolute local file path from the machine running Papyrus.",
+    )
     args = parser.parse_args()
 
     try:
@@ -195,6 +202,7 @@ def main() -> int:
             args.db,
             args.source_root,
             allow_noncanonical_source_root=args.allow_noncanonical_source_root,
+            allow_web_ingest_local_paths=args.allow_web_ingest_local_paths,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)

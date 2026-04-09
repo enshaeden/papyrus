@@ -201,7 +201,9 @@ def _guidance_cards(
         return _service_record_guidance(components, metadata, sections)
     if object_type == "policy":
         return _policy_guidance(components, metadata, sections)
-    return _system_design_guidance(components, metadata, sections)
+    if object_type == "system_design":
+        return _system_design_guidance(components, metadata, sections)
+    return []
 
 
 def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]) -> dict[str, Any]:

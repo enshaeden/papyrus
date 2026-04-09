@@ -28,8 +28,9 @@ from papyrus.application.queries import (
 from papyrus.application.writeback_flow import preview_revision_writeback
 from papyrus.domain.policies import searchable_statuses
 from papyrus.infrastructure.markdown.serializer import parse_iso_date
-from papyrus.infrastructure.paths import DB_PATH
+from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.infrastructure.repositories.knowledge_repo import load_policy
+from papyrus.interfaces.startup_guard import resolve_operator_source_root
 
 
 def validate_main() -> int:
@@ -217,6 +218,16 @@ def operator_main() -> int:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--db", default=None, help=argparse.SUPPRESS)
     common.add_argument("--format", choices=("text", "json"), default=None, help=argparse.SUPPRESS)
+    common.add_argument(
+        "--source-root",
+        default=str(ROOT),
+        help="Canonical source root for governed writeback, previews, and draft validation.",
+    )
+    common.add_argument(
+        "--allow-noncanonical-source-root",
+        action="store_true",
+        help="Allow a non-repository source root for sandboxed authoring or test workflows.",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     queue_parser = subparsers.add_parser("queue", help="Show guided read results.", parents=[common])
@@ -294,6 +305,14 @@ def operator_main() -> int:
     args = parser.parse_args()
     database_path = args.db or str(DB_PATH)
     output_format = args.format or "text"
+    try:
+        source_root = resolve_operator_source_root(
+            args.source_root,
+            allow_noncanonical=args.allow_noncanonical_source_root,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
 
     if args.command == "queue":
         payload = knowledge_queue(limit=args.limit, database_path=database_path)
@@ -315,6 +334,7 @@ def operator_main() -> int:
     if args.command == "create-draft":
         create_object_command(
             database_path=Path(database_path),
+            source_root=source_root,
             object_id=args.object_id,
             object_type=args.blueprint_id,
             title=args.title,
@@ -331,6 +351,7 @@ def operator_main() -> int:
             blueprint_id=args.blueprint_id,
             actor=args.actor,
             database_path=Path(database_path),
+            source_root=source_root,
         )
         return _emit_payload(
             {
@@ -349,6 +370,7 @@ def operator_main() -> int:
             values=_parse_field_assignments(args.field),
             actor=args.actor,
             database_path=Path(database_path),
+            source_root=source_root,
         )
         return _emit_payload(
             {
@@ -364,6 +386,7 @@ def operator_main() -> int:
             object_id=args.object_id,
             revision_id=args.revision_id,
             database_path=Path(database_path),
+            source_root=source_root,
         )
         return _emit_payload(payload, output_format=output_format)
 
@@ -389,6 +412,7 @@ def operator_main() -> int:
             audience=args.audience,
             actor=args.actor,
             database_path=Path(database_path),
+            source_root=source_root,
         )
         return _emit_payload(payload, output_format=output_format)
 
@@ -448,6 +472,7 @@ def operator_main() -> int:
             database_path=Path(database_path),
             object_id=args.object_id,
             revision_id=args.revision_id,
+            root_path=source_root,
         )
         lines = [
             f"{payload['object']['object_id']} | revision={payload['revision']['revision_id']} | state={payload['revision']['revision_state']}",
