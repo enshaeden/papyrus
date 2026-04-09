@@ -37,6 +37,8 @@ Use these surfaces by purpose:
 - `Knowledge Health`: stale guidance, weak evidence, suspect objects, superseded but still relied-on guidance
 - `Activity / History`: recent consequences, validation outcomes, and writeback/audit recovery context
 
+Imported drafts and native drafts use the same review and approval path after the import workbench converts the mapping into a draft revision.
+
 ## Approve Or Reject Revisions
 
 Review in this order:

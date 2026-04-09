@@ -16,7 +16,7 @@ from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.rendering import PageRenderer
 from papyrus.interfaces.web.route_utils import actor_for_request, actor_home_path, actor_shell_for_id
 from papyrus.interfaces.web.runtime import WebRuntime
-from papyrus.interfaces.web.routes import dashboard, home, impact, manage, objects, queue, services, write
+from papyrus.interfaces.web.routes import dashboard, home, impact, ingest, manage, objects, queue, services, write
 from papyrus.interfaces.startup_guard import resolve_operator_source_root
 
 
@@ -116,6 +116,7 @@ def app(
     dashboard.register(router, runtime)
     impact.register(router, runtime)
     write.register(router, runtime)
+    ingest.register(router, runtime)
     manage.register(router, runtime)
 
     def application(environ, start_response):

@@ -422,6 +422,10 @@ class GovernanceWorkflow:
                 RevisionReviewStatus.REJECTED.value,
             }:
                 raise ValueError(f"revision {revision_id} cannot be submitted from state {revision_row['revision_state']}")
+            if str(revision_row["draft_state"] or "ready_for_review") != "ready_for_review":
+                raise ValueError(
+                    f"revision {revision_id} is not ready for review; current draft_state is {revision_row['draft_state']}"
+                )
 
             update_knowledge_revision_state(
                 connection,

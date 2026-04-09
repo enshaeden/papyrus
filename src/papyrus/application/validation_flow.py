@@ -6,10 +6,13 @@ from typing import Any, Iterable
 
 from papyrus.application.export_flow import ExportRuntimeUnavailableError, filter_approved_export_documents
 from papyrus.application.impact_flow import find_possible_duplicate_documents
+from papyrus.application.authoring_flow import compute_completion_state, derive_section_content
+from papyrus.application.blueprint_registry import get_blueprint
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.entities import KnowledgeDocument, ValidationIssue
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.parser import (
+    LEGACY_FIELD_NOTE_PREFIX,
     collect_broken_markdown_links,
     collect_broken_rendered_site_links,
     extract_markdown_title,
@@ -56,6 +59,32 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
 )
 from papyrus.infrastructure.repositories.validation_repo import insert_validation_run
 from papyrus.infrastructure.search.indexer import fts5_available, site_knowledge_output_path, site_relative_path_for_repo_path
+
+MARKDOWN_SECTION_PATTERN = re.compile(r"^## (?P<title>.+?)\n+(?P<body>.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL)
+BLUEPRINT_SECTION_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "purpose": ("purpose", "overview", "summary", "use when"),
+    "prerequisites": ("prerequisite", "before", "access"),
+    "procedure": ("step", "procedure", "workflow"),
+    "verification": ("verify", "validation", "confirm"),
+    "rollback": ("rollback", "undo", "recovery"),
+    "boundaries": ("boundary", "escalation", "scope"),
+    "diagnosis": ("symptom", "scope", "cause", "overview"),
+    "diagnostic_checks": ("diagnostic", "check"),
+    "mitigations": ("mitigation", "workaround"),
+    "escalation": ("escalation", "detection"),
+    "service_profile": ("service", "scope", "criticality"),
+    "dependencies": ("dependency", "depends"),
+    "support_entrypoints": ("support", "entrypoint", "contact"),
+    "failure_modes": ("failure", "issue", "degradation"),
+    "operations": ("operation", "notes"),
+    "policy_scope": ("policy", "scope"),
+    "controls": ("control", "requirement", "must", "shall"),
+    "exceptions": ("exception", "waiver"),
+    "architecture": ("architecture", "design", "component"),
+    "interfaces": ("interface", "integration", "api"),
+    "evidence": ("source", "reference", "evidence", "citation"),
+    "relationships": ("related", "dependency", "reference"),
+}
 
 
 def validate_field(
@@ -204,6 +233,126 @@ def validate_field(
                     )
 
     return issues
+
+
+def _markdown_sections(body_markdown: str) -> dict[str, str]:
+    return {
+        match.group("title").strip(): match.group("body").strip()
+        for match in MARKDOWN_SECTION_PATTERN.finditer(str(body_markdown or "").strip())
+    }
+
+
+def _meaningful_text(value: Any) -> bool:
+    text = str(value or "").strip()
+    return bool(text) and not text.startswith(LEGACY_FIELD_NOTE_PREFIX)
+
+
+def _meaningful_list(value: Any) -> bool:
+    if not isinstance(value, list):
+        return False
+    return any(_meaningful_text(item) for item in value)
+
+
+def _meaningful_value(kind: str, value: Any) -> bool:
+    if kind == "references":
+        return isinstance(value, list) and any(
+            isinstance(item, dict)
+            and (_meaningful_text(item.get("source_title")) or _meaningful_text(item.get("source_ref")))
+            for item in value
+        )
+    if kind == "list":
+        return _meaningful_list(value)
+    if kind == "select":
+        return False
+    return _meaningful_text(value)
+
+
+def _contains_legacy_placeholder(value: Any) -> bool:
+    if isinstance(value, list):
+        return any(_contains_legacy_placeholder(item) for item in value)
+    if isinstance(value, dict):
+        return any(_contains_legacy_placeholder(item) for item in value.values())
+    return str(value or "").strip().startswith(LEGACY_FIELD_NOTE_PREFIX)
+
+
+def _uses_legacy_blueprint_fallback(
+    *,
+    metadata: dict[str, Any],
+    section_content: dict[str, dict[str, Any]],
+) -> bool:
+    if str(metadata.get("legacy_article_type") or "").strip():
+        return True
+    if str(metadata.get("source_type") or "").strip() in {"imported", "derived"}:
+        return True
+    return any(_contains_legacy_placeholder(values) for values in section_content.values())
+
+
+def _legacy_body_supports_section(
+    *,
+    section_id: str,
+    display_name: str,
+    body_headings: tuple[str, ...],
+    body_markdown: str,
+    metadata: dict[str, Any],
+) -> bool:
+    markdown_sections = _markdown_sections(body_markdown)
+    normalized_body = str(body_markdown or "").lower()
+    keywords = {
+        section_id.replace("_", " ").lower(),
+        display_name.lower(),
+        *(heading.lower() for heading in body_headings),
+        *BLUEPRINT_SECTION_KEYWORDS.get(section_id, ()),
+    }
+
+    for heading, section_body in markdown_sections.items():
+        normalized_heading = heading.lower()
+        normalized_section_body = section_body.lower()
+        if any(keyword and keyword in normalized_heading for keyword in keywords):
+            return True
+        if any(len(keyword) > 3 and keyword in normalized_section_body for keyword in keywords):
+            return True
+
+    if section_id in {"purpose", "policy_scope"} and _meaningful_text(metadata.get("summary")):
+        return True
+    if section_id in {"boundaries", "escalation"} and "escalat" in normalized_body:
+        return True
+    if section_id == "operations" and bool(markdown_sections):
+        return True
+    return False
+
+
+def _legacy_section_complete(
+    *,
+    section,
+    section_values: dict[str, Any],
+    metadata: dict[str, Any],
+    body_markdown: str,
+) -> bool:
+    if section.section_id == "evidence":
+        return _meaningful_value("references", section_values.get("citations", []))
+
+    meaningful_required_fields = 0
+    for field in section.fields:
+        if not bool(field.get("required", True)):
+            continue
+        kind = str(field.get("kind") or "text")
+        value = section_values.get(str(field["name"]))
+        if _meaningful_value(kind, value):
+            meaningful_required_fields += 1
+
+    if meaningful_required_fields:
+        return True
+
+    if _legacy_body_supports_section(
+        section_id=section.section_id,
+        display_name=section.display_name,
+        body_headings=section.body_headings,
+        body_markdown=body_markdown,
+        metadata=metadata,
+    ):
+        return True
+
+    return bool(str(body_markdown or "").strip())
 
 
 def validate_sanitization(paths: Iterable) -> list[ValidationIssue]:
@@ -388,10 +537,12 @@ def validate_knowledge_documents(
 
     for document in documents:
         path = document.relative_path
+        blueprint = None
         try:
             normalized = normalize_object_metadata(document)
             metadata = normalized.metadata
             schema = object_schemas[normalized.object_type]
+            blueprint = get_blueprint(normalized.object_type)
         except Exception:
             metadata = document.metadata
             schema = legacy_schema
@@ -539,6 +690,41 @@ def validate_knowledge_documents(
                         path,
                         f"evidence snapshot expired at {evidence_expiry_at}",
                         "citations",
+                    )
+                )
+
+        if blueprint is not None:
+            section_content = derive_section_content(
+                blueprint_id=blueprint.blueprint_id,
+                metadata=metadata,
+                body_markdown=document.body,
+            )
+            allow_legacy_fallback = _uses_legacy_blueprint_fallback(
+                metadata=metadata,
+                section_content=section_content,
+            )
+            completion = compute_completion_state(
+                blueprint=blueprint,
+                section_content=section_content,
+                taxonomies=taxonomies,
+            )
+            for section_id in blueprint.required_sections:
+                section_progress = completion["section_completion_map"].get(section_id)
+                if section_progress and section_progress["completed"]:
+                    continue
+                section = blueprint.section(section_id)
+                if allow_legacy_fallback and _legacy_section_complete(
+                    section=section,
+                    section_values=section_content.get(section_id, {}),
+                    metadata=metadata,
+                    body_markdown=document.body,
+                ):
+                    continue
+                issues.append(
+                    ValidationIssue(
+                        path,
+                        f"required blueprint section is incomplete: {section.display_name}",
+                        section_id,
                     )
                 )
 

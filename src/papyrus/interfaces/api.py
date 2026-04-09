@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import json
 import sys
@@ -9,6 +10,7 @@ from typing import Callable
 from urllib.parse import parse_qs, unquote
 from wsgiref.simple_server import make_server
 
+from papyrus.application.authoring_flow import create_draft_from_blueprint, update_section
 from papyrus.application.commands import (
     approve_revision_command,
     assign_reviewer_command,
@@ -21,6 +23,7 @@ from papyrus.application.commands import (
     submit_for_review_command,
     supersede_object_command,
 )
+from papyrus.application.ingestion_flow import ingest_file, ingestion_detail, list_ingestions
 from papyrus.application.queries import (
     KnowledgeObjectNotFoundError,
     RuntimeUnavailableError,
@@ -41,6 +44,7 @@ from papyrus.application.queries import (
 )
 from papyrus.domain.actor import require_actor_id
 from papyrus.infrastructure.paths import DB_PATH, ROOT
+from papyrus.infrastructure.repositories.knowledge_repo import get_knowledge_revision
 from papyrus.interfaces.startup_guard import resolve_operator_source_root
 
 
@@ -281,6 +285,83 @@ def app(
                     ),
                 )
 
+            if method == "POST" and path == "/drafts":
+                actor = _actor_from_payload(request_payload, require_explicit=True)
+                object_id = str(request_payload["object_id"])
+                try:
+                    knowledge_object_detail(object_id, database_path=resolved_database_path)
+                except KnowledgeObjectNotFoundError:
+                    create_object_command(
+                        database_path=resolved_database_path,
+                        source_root=resolved_source_root,
+                        actor=actor,
+                        object_id=object_id,
+                        object_type=str(request_payload["blueprint_id"]),
+                        title=str(request_payload["title"]),
+                        summary=str(request_payload["summary"]),
+                        owner=str(request_payload["owner"]),
+                        team=str(request_payload["team"]),
+                        canonical_path=str(request_payload["canonical_path"]),
+                        review_cadence=str(request_payload.get("review_cadence") or "quarterly"),
+                        status=str(request_payload.get("status") or "draft"),
+                        systems=list(request_payload.get("systems") or []),
+                        tags=list(request_payload.get("tags") or []),
+                    )
+                created = create_draft_from_blueprint(
+                    object_id=object_id,
+                    blueprint_id=str(request_payload["blueprint_id"]),
+                    actor=actor,
+                    database_path=resolved_database_path,
+                    source_root=resolved_source_root,
+                )
+                return _json_response(
+                    start_response,
+                    "201 Created",
+                    {
+                        "message": "Structured draft created.",
+                        "actor": actor,
+                        "object_id": object_id,
+                        "revision_id": created["revision_id"],
+                        "completion": created["completion"],
+                        "links": _links_for_object(object_id, created["revision_id"]),
+                    },
+                )
+
+            if method == "GET" and path == "/ingestions":
+                return _json_response(
+                    start_response,
+                    "200 OK",
+                    {"ingestions": list_ingestions(database_path=resolved_database_path)},
+                )
+
+            if method == "POST" and path == "/ingest":
+                actor = _actor_from_payload(request_payload, require_explicit=False) or "local.operator"
+                _ = actor  # actor is kept for parity with other governed endpoints.
+                source_path = str(request_payload.get("source_path") or "").strip()
+                content_base64 = str(request_payload.get("content_base64") or "").strip()
+                filename = str(request_payload.get("filename") or "").strip()
+                if not source_path and not (content_base64 and filename):
+                    raise ValueError("source_path or filename plus content_base64 is required for /ingest")
+                result = (
+                    ingest_file(file_path=source_path, database_path=resolved_database_path)
+                    if source_path
+                    else ingest_file(
+                        file_path=filename,
+                        payload=base64.b64decode(content_base64.encode("ascii")),
+                        database_path=resolved_database_path,
+                    )
+                )
+                return _json_response(
+                    start_response,
+                    "201 Created",
+                    {
+                        "message": "File ingested and normalized.",
+                        "ingestion_id": result["ingestion_id"],
+                        "classification": result["classification"],
+                        "links": {"detail": f"/ingestions/{result['ingestion_id']}"},
+                    },
+                )
+
             if path.startswith("/objects/"):
                 parts = [unquote(part) for part in path.strip("/").split("/")]
                 if method == "GET" and len(parts) == 2:
@@ -360,6 +441,42 @@ def app(
                         "details": result.event.details,
                     }
                     return _json_response(start_response, "200 OK", payload)
+
+            if path.startswith("/drafts/"):
+                parts = [unquote(part) for part in path.strip("/").split("/")]
+                if method == "PATCH" and len(parts) == 3 and parts[2] == "section":
+                    actor = _actor_from_payload(request_payload, require_explicit=True)
+                    revision_id = parts[1]
+                    object_id = str(request_payload["object_id"])
+                    updated = update_section(
+                        object_id=object_id,
+                        revision_id=revision_id,
+                        section_id=str(request_payload["section_id"]),
+                        values=dict(request_payload.get("values") or {}),
+                        actor=actor,
+                        database_path=resolved_database_path,
+                        source_root=resolved_source_root,
+                    )
+                    return _json_response(
+                        start_response,
+                        "200 OK",
+                        {
+                            "message": "Draft section updated.",
+                            "actor": actor,
+                            "object_id": object_id,
+                            "revision_id": revision_id,
+                            "completion": updated["completion"],
+                        },
+                    )
+
+            if path.startswith("/ingestions/"):
+                parts = [unquote(part) for part in path.strip("/").split("/")]
+                if method == "GET" and len(parts) == 2:
+                    return _json_response(
+                        start_response,
+                        "200 OK",
+                        ingestion_detail(ingestion_id=parts[1], database_path=resolved_database_path),
+                    )
 
             if method == "GET" and path.startswith("/services/"):
                 parts = [unquote(part) for part in path.strip("/").split("/")]
@@ -520,15 +637,15 @@ def app(
                     },
                 )
 
-            if method not in {"GET", "POST"}:
+            if method not in {"GET", "POST", "PATCH"}:
                 return _json_response(
                     start_response,
                     "405 Method Not Allowed",
                     _error_payload(
                         error="method_not_allowed",
                         title="Method not allowed",
-                        detail="This endpoint only supports the documented GET or POST operator flow.",
-                        action="Retry with GET for reads or POST for governed mutations.",
+                        detail="This endpoint only supports the documented GET, POST, or PATCH operator flow.",
+                        action="Retry with GET for reads, POST for creation, or PATCH for section updates.",
                         category="user_action_needed",
                     ),
                 )

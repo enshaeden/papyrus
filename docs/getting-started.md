@@ -32,7 +32,9 @@ python3 scripts/run.py --operator
 What to expect:
 - `/` is the lifecycle-guided home page.
 - The home page shows likely next actions, work-area counts, recent activity, and the lifecycle model.
-- Navigation is organized as `Read`, `Write`, `Review / Approvals`, `Knowledge Health`, `Services`, and `Activity / History`.
+- Navigation is organized as `Read`, `Write`, `Import`, `Review / Approvals`, `Knowledge Health`, `Services`, and `Activity / History`.
+- `/write` starts blueprint-driven section authoring.
+- `/ingest` starts the upload, parse, classify, map, review, and convert flow for external files.
 
 For terminal-first work:
 
@@ -42,6 +44,17 @@ python3 scripts/operator_view.py health --db build/knowledge.db
 python3 scripts/operator_view.py object kb-troubleshooting-vpn-connectivity --db build/knowledge.db
 python3 scripts/operator_view.py review <object_id> <revision_id> --db build/knowledge.db
 python3 scripts/operator_view.py activity --db build/knowledge.db --format json
+```
+
+For structured drafting and import from the terminal:
+
+```bash
+python3 scripts/operator_view.py create-draft --type runbook --object-id kb-example --title "Example" --summary "Example" --owner service_owner --team "IT Operations" --canonical-path knowledge/examples/example.md
+python3 scripts/operator_view.py edit-section --object kb-example --revision <revision_id> --section purpose --field use_when="Use this when the blueprint applies."
+python3 scripts/operator_view.py show-progress --object kb-example --revision <revision_id>
+python3 scripts/ingest.py path/to/source.docx
+python3 scripts/operator_view.py list-ingestions --db build/knowledge.db
+python3 scripts/operator_view.py review-ingestion <ingestion_id> --db build/knowledge.db
 ```
 
 For a fast demo/runtime review path:
@@ -68,7 +81,7 @@ Guardrail:
 ## 3. Pick The Right Playbook
 
 - Need to find or verify current guidance safely: [Read](playbooks/read.md)
-- Need to create or revise lifecycle-managed guidance: [Write](playbooks/write.md)
+- Need to create, import, or revise lifecycle-managed guidance: [Write](playbooks/write.md)
 - Need to make review or stewardship decisions: [Manage](playbooks/manage.md)
 
 ## 4. Use The Right Source
@@ -78,4 +91,5 @@ Guardrail:
 - Operator and reference docs live in `docs/`.
 - Derived output in `generated/`, `build/`, and `site/` is rebuildable and not authoritative.
 - Approved revisions write back deterministically to canonical Markdown through the governed application layer.
+- Papyrus constructs drafts from blueprints and converts imported files into the same draft model after review.
 - Writeback is inspectable: use review pages or `scripts/source_sync.py preview` before approval or explicit source sync, and use `scripts/source_sync.py restore-last` when you need to recover the previous canonical state.

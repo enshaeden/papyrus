@@ -1,20 +1,75 @@
 # Write Playbook
 
-Use this playbook when you are creating or revising canonical knowledge and need to move it cleanly through the lifecycle from draft to review.
+Use this playbook when you are creating, importing, or revising canonical knowledge and need to move it cleanly through the lifecycle from draft to review.
 
-## Start With The Guided Authoring Flow
+## Start With The Guided Blueprint Flow
 
 The primary web path is now:
 
 1. create object shell
-2. draft or revise the structured guidance
-3. validate and submit for review
+2. choose or confirm the blueprint
+3. complete the guided section flow
+4. validate and submit for review
 
 Use the write surface when you want Papyrus to show progress, required versus optional work, evidence gaps, and what will happen if the revision is approved.
 
+Current primary authoring rules:
+
+- Papyrus does not use a generic rich-text editor as the primary authoring surface.
+- Papyrus stores structured section data and derives the Markdown body from that structure.
+- Blueprints define required sections, ordering, validation, evidence expectations, and lifecycle defaults.
+- The visible next action should always be the next required section or the submit step.
+
+Current first-class blueprints:
+
+- `runbook`
+- `known_error`
+- `service_record`
+- `policy`
+- `system_design`
+
+## Understand Blueprints Versus Templates
+
+Blueprints are the authoritative runtime structure for authoring and ingestion. They define:
+
+- which sections exist
+- which sections are required
+- how completion is measured
+- what evidence is required before review
+- what lifecycle defaults a new draft starts with
+
+Approved Markdown templates still exist for repository-side source scaffolding and controlled file generation. They are not the primary authoring experience. If Papyrus is guiding a draft in the web UI, CLI, or API, the blueprint is the source of structure and validation.
+
 ## Create A Canonical Source Object
 
-Start with the approved scaffold:
+For the guided CLI path, start with a blueprint-backed draft:
+
+```bash
+python3 scripts/operator_view.py create-draft \
+  --type runbook \
+  --object-id kb-example-runbook \
+  --title "Example Runbook" \
+  --summary "Example guided draft." \
+  --owner service_owner \
+  --team "IT Operations" \
+  --canonical-path knowledge/examples/example-runbook.md
+```
+
+Then fill sections incrementally:
+
+```bash
+python3 scripts/operator_view.py edit-section \
+  --object kb-example-runbook \
+  --revision <revision_id> \
+  --section purpose \
+  --field use_when="Use this when the governed workflow applies."
+
+python3 scripts/operator_view.py show-progress \
+  --object kb-example-runbook \
+  --revision <revision_id>
+```
+
+The repository scaffold path still exists when you explicitly need a canonical file created up front:
 
 ```bash
 python3 scripts/new_article.py --type runbook --title "Example Procedure"
@@ -31,16 +86,50 @@ python3 scripts/new_article.py --list-taxonomy tags
 
 Outcome:
 - A new canonical Markdown source file is created under `knowledge/`.
-- In the guided web flow, the shell becomes step 1 of 3 and Papyrus sends you directly into revision drafting.
+- In the guided web flow, the shell becomes step 1 and Papyrus sends you directly into blueprint-driven drafting.
 
 Failure signals:
 - The type or taxonomy value is not approved.
 - Required fields remain placeholder text.
 
+## Import External Documents Through The Workbench
+
+Use the import workbench when the source starts as Markdown, DOCX, or PDF and must be normalized before it becomes Papyrus knowledge.
+
+Web path:
+
+1. open `/ingest`
+2. upload the file or provide a local path
+3. inspect parse and classification output
+4. review the blueprint mapping
+5. confirm conversion to a governed draft
+6. continue editing in the normal write flow
+
+CLI path:
+
+```bash
+python3 scripts/ingest.py path/to/source.docx
+python3 scripts/operator_view.py list-ingestions
+python3 scripts/operator_view.py review-ingestion <ingestion_id>
+python3 scripts/operator_view.py convert-ingestion <ingestion_id> \
+  --object-id kb-imported-example \
+  --title "Imported Example" \
+  --canonical-path knowledge/imported/imported-example.md \
+  --owner service_owner \
+  --team "IT Operations"
+```
+
+Guardrails:
+
+- import does not create canonical knowledge automatically
+- import does not bypass review
+- mapping gaps and low-confidence matches must stay visible before conversion
+- converted content becomes the same structured draft model used by native authoring
+
 ## Revise An Existing Object
 
 1. Keep the existing object identity and canonical path stable unless a governed structural change requires otherwise.
-2. Update the body, metadata, and change log together.
+2. Update the blueprint sections rather than treating the revision as a freeform blob.
 3. Use the runtime-backed revision flow when you want lifecycle progress, citation cues, and reviewer handoff context.
 
 Do not create a parallel source file when the work is a revision of an existing object.
@@ -86,10 +175,11 @@ python3 scripts/report_content_health.py --section citation-health
 Outcome:
 - Source passes repository policy checks.
 - Runtime search and trust views reflect the revision.
-- The guided submit step shows validation blockers, warnings, and whether the revision is ready for review.
+- The guided submit step shows validation blockers, warnings, progress, and whether the revision is ready for review.
 
 Failure signals:
 - validation errors on metadata, taxonomy, links, citations, or canonical paths
+- required blueprint sections remain incomplete
 - duplicate-title or isolated-object warnings that indicate poor discoverability
 
 ## Submit For Review
@@ -117,6 +207,7 @@ Current repository boundary:
 - inspection happens through the runtime-backed queue, revision, CLI parity, and object detail views
 - approval-state changes are tracked in the governance workflow layer rather than through ad-hoc file or database edits
 - approved revisions become canonical guidance through explicit writeback preview and approval flow, not through hidden source mutation
+- imported drafts and native drafts enter the same review path after conversion
 
 ## Handle Rejection Or Follow-Up Revision
 

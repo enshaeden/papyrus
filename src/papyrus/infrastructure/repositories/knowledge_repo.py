@@ -187,6 +187,19 @@ def get_knowledge_revision(connection: sqlite3.Connection, revision_id: str) -> 
     ).fetchone()
 
 
+def latest_revision_for_object(connection: sqlite3.Connection, object_id: str) -> sqlite3.Row | None:
+    return connection.execute(
+        """
+        SELECT *
+        FROM knowledge_revisions
+        WHERE object_id = ?
+        ORDER BY revision_number DESC
+        LIMIT 1
+        """,
+        (object_id,),
+    ).fetchone()
+
+
 def find_revision_by_content_hash(
     connection: sqlite3.Connection,
     object_id: str,
@@ -589,10 +602,14 @@ def insert_knowledge_revision(
     object_id: str,
     revision_number: int,
     revision_state: str,
+    blueprint_id: str = "",
+    draft_state: str = "ready_for_review",
     source_path: str,
     content_hash: str,
     body_markdown: str,
     normalized_payload_json: str,
+    section_content_json: str = "{}",
+    section_completion_json: str = "{}",
     legacy_metadata_json: str,
     imported_at: str,
     change_summary: str | None,
@@ -604,27 +621,75 @@ def insert_knowledge_revision(
             object_id,
             revision_number,
             revision_state,
+            blueprint_id,
+            draft_state,
             source_path,
             content_hash,
             body_markdown,
             normalized_payload_json,
+            section_content_json,
+            section_completion_json,
             legacy_metadata_json,
             imported_at,
             change_summary
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             revision_id,
             object_id,
             revision_number,
             revision_state,
+            blueprint_id,
+            draft_state,
             source_path,
             content_hash,
             body_markdown,
             normalized_payload_json,
+            section_content_json,
+            section_completion_json,
             legacy_metadata_json,
             imported_at,
             change_summary,
+        ),
+    )
+
+
+def update_knowledge_revision_content(
+    connection: sqlite3.Connection,
+    *,
+    revision_id: str,
+    content_hash: str,
+    body_markdown: str,
+    normalized_payload_json: str,
+    blueprint_id: str,
+    draft_state: str,
+    section_content_json: str,
+    section_completion_json: str,
+    change_summary: str | None,
+) -> None:
+    connection.execute(
+        """
+        UPDATE knowledge_revisions
+        SET content_hash = ?,
+            body_markdown = ?,
+            normalized_payload_json = ?,
+            blueprint_id = ?,
+            draft_state = ?,
+            section_content_json = ?,
+            section_completion_json = ?,
+            change_summary = ?
+        WHERE revision_id = ?
+        """,
+        (
+            content_hash,
+            body_markdown,
+            normalized_payload_json,
+            blueprint_id,
+            draft_state,
+            section_content_json,
+            section_completion_json,
+            change_summary,
+            revision_id,
         ),
     )
 

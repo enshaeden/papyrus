@@ -366,6 +366,27 @@ def normalize_object_metadata(
         metadata.setdefault("related_object_ids", related_object_ids)
         metadata.setdefault("superseded_by", metadata.get("replaced_by"))
         metadata.setdefault("replaced_by", metadata.get("superseded_by"))
+    elif object_type == "policy":
+        metadata.setdefault("citations", citations)
+        metadata.setdefault("related_object_ids", related_object_ids)
+        metadata.setdefault("policy_scope", _legacy_scope_note(metadata.get("summary")))
+        metadata.setdefault("controls", _string_list(metadata.get("steps")) or [_legacy_note("controls")])
+        metadata.setdefault("exceptions", "")
+        metadata.setdefault("superseded_by", metadata.get("replaced_by"))
+        metadata.setdefault("replaced_by", metadata.get("superseded_by"))
+    elif object_type == "system_design":
+        metadata.setdefault("citations", citations)
+        metadata.setdefault("related_object_ids", related_object_ids)
+        metadata.setdefault("dependencies", _string_list(metadata.get("systems")))
+        metadata.setdefault("interfaces", _string_list(metadata.get("support_entrypoints")) or [_legacy_note("interfaces")])
+        metadata.setdefault(
+            "common_failure_modes",
+            _string_list(metadata.get("common_failure_modes")) or [_legacy_note("common failure modes")],
+        )
+        metadata.setdefault("support_entrypoints", _string_list(metadata.get("support_entrypoints")))
+        metadata.setdefault("architecture", _legacy_note("architecture"))
+        metadata.setdefault("superseded_by", metadata.get("replaced_by"))
+        metadata.setdefault("replaced_by", metadata.get("superseded_by"))
     else:  # pragma: no cover
         raise ValueError(f"{document.relative_path}: unsupported knowledge object type {object_type}")
 

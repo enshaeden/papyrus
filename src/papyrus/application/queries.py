@@ -644,7 +644,7 @@ def knowledge_object_detail(
         if object_row["current_revision_id"]:
             current_revision = connection.execute(
                 """
-                SELECT revision_id, revision_number, revision_state, imported_at, change_summary, body_markdown, normalized_payload_json
+                SELECT revision_id, revision_number, revision_state, blueprint_id, draft_state, imported_at, change_summary, body_markdown, normalized_payload_json, section_content_json, section_completion_json
                 FROM knowledge_revisions
                 WHERE revision_id = ?
                 """,
@@ -854,9 +854,13 @@ def knowledge_object_detail(
                     "revision_id": str(current_revision["revision_id"]),
                     "revision_number": int(current_revision["revision_number"]),
                     "revision_state": str(current_revision["revision_state"]),
+                    "blueprint_id": str(current_revision["blueprint_id"] or object_row["object_type"]),
+                    "draft_state": str(current_revision["draft_state"]),
                     "imported_at": str(current_revision["imported_at"]),
                     "change_summary": str(current_revision["change_summary"]) if current_revision["change_summary"] is not None else None,
                     "body_markdown": str(current_revision["body_markdown"]),
+                    "section_content": _json_dict(current_revision["section_content_json"]),
+                    "section_completion_map": _json_dict(current_revision["section_completion_json"]),
                 }
                 if current_revision is not None
                 else None
@@ -890,7 +894,7 @@ def revision_history(
 
         revisions = connection.execute(
             """
-            SELECT revision_id, revision_number, revision_state, imported_at, change_summary, source_path
+            SELECT revision_id, revision_number, revision_state, blueprint_id, draft_state, imported_at, change_summary, source_path
             FROM knowledge_revisions
             WHERE object_id = ?
             ORDER BY revision_number DESC
@@ -968,6 +972,8 @@ def revision_history(
                     "revision_id": str(row["revision_id"]),
                     "revision_number": int(row["revision_number"]),
                     "revision_state": str(row["revision_state"]),
+                    "blueprint_id": str(row["blueprint_id"] or ""),
+                    "draft_state": str(row["draft_state"]),
                     "imported_at": str(row["imported_at"]),
                     "change_summary": str(row["change_summary"]) if row["change_summary"] is not None else None,
                     "source_path": str(row["source_path"]),
@@ -1418,7 +1424,7 @@ def review_detail(
             raise KnowledgeObjectNotFoundError(f"revision not found for {object_id}: {revision_id}")
         revision_row = connection.execute(
             """
-            SELECT revision_id, object_id, revision_number, revision_state, imported_at, change_summary, body_markdown, normalized_payload_json
+            SELECT revision_id, object_id, revision_number, revision_state, blueprint_id, draft_state, imported_at, change_summary, body_markdown, normalized_payload_json, section_content_json, section_completion_json
             FROM knowledge_revisions
             WHERE revision_id = ?
             """,
@@ -1470,6 +1476,10 @@ def review_detail(
                 **revision,
                 "body_markdown": str(revision_row["body_markdown"]),
                 "metadata": _json_dict(revision_row["normalized_payload_json"]),
+                "blueprint_id": str(revision_row["blueprint_id"] or detail["object"]["object_type"]),
+                "draft_state": str(revision_row["draft_state"]),
+                "section_content": _json_dict(revision_row["section_content_json"]),
+                "section_completion_map": _json_dict(revision_row["section_completion_json"]),
             },
             "assignments": revision["review_assignments"],
             "citations": citations,

@@ -32,11 +32,12 @@ class ActorShellConfig:
 DEFAULT_WEB_ACTOR = resolve_actor(default_actor_id())
 READ_LINK = ShellLink("read", "Read", "/read", match_prefixes=("/read", "/queue", "/objects/"))
 WRITE_LINK = ShellLink("write", "Write", "/write/objects/new", match_prefixes=("/write/",))
+INGEST_LINK = ShellLink("import", "Import", "/ingest", match_prefixes=("/ingest",))
 REVIEW_LINK = ShellLink("review", "Review / Approvals", "/review", match_prefixes=("/review", "/manage/queue", "/manage/reviews/"))
 TRUST_LINK = ShellLink("health", "Knowledge Health", "/health", match_prefixes=("/health", "/dashboard/trust", "/manage/objects/", "/impact/"))
 SERVICES_LINK = ShellLink("services", "Services", "/services", match_prefixes=("/services",))
 AUDIT_LINK = ShellLink("activity", "Activity / History", "/activity", match_prefixes=("/activity", "/manage/audit", "/manage/validation-runs"))
-LIFECYCLE_LINKS = (READ_LINK, WRITE_LINK, REVIEW_LINK, TRUST_LINK, SERVICES_LINK, AUDIT_LINK)
+LIFECYCLE_LINKS = (READ_LINK, WRITE_LINK, INGEST_LINK, REVIEW_LINK, TRUST_LINK, SERVICES_LINK, AUDIT_LINK)
 
 WEB_ACTOR_SHELLS = (
     ActorShellConfig(
@@ -52,7 +53,7 @@ WEB_ACTOR_SHELLS = (
             ShellSection(
                 title="Start Here",
                 description="Frontline work starts with guided use and only pivots into authoring when the current guidance is not enough.",
-                items=(READ_LINK, WRITE_LINK, SERVICES_LINK),
+                items=(READ_LINK, WRITE_LINK, INGEST_LINK, SERVICES_LINK),
             ),
         ),
         quick_links=(READ_LINK, WRITE_LINK, SERVICES_LINK),
@@ -88,7 +89,7 @@ WEB_ACTOR_SHELLS = (
             ShellSection(
                 title="Start Here",
                 description="Managers usually begin with health and review load, then drill into services and activity when risk is rising.",
-                items=(TRUST_LINK, REVIEW_LINK, AUDIT_LINK, SERVICES_LINK),
+                items=(TRUST_LINK, REVIEW_LINK, INGEST_LINK, AUDIT_LINK, SERVICES_LINK),
             ),
         ),
         quick_links=(TRUST_LINK, REVIEW_LINK, AUDIT_LINK),

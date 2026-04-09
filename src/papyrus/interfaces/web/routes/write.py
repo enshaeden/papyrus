@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from urllib.parse import quote_plus
 
+from papyrus.application.authoring_flow import compute_completion_state, create_draft_from_blueprint, update_section, validate_draft_progress
+from papyrus.application.blueprint_registry import get_blueprint, list_blueprints
 from papyrus.application.commands import create_object_command, create_revision_command, submit_for_review_command
 from papyrus.application.queries import knowledge_object_detail, review_detail, search_knowledge_objects
 from papyrus.interfaces.web.forms.object_forms import default_object_values, validate_object_form
@@ -21,9 +23,14 @@ def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[
     controls = [
         forms.field(
             field_id="object_type",
-            label="Object type",
-            control_html=forms.select(field_id="object_type", name="object_type", value=values["object_type"], options=["runbook", "known_error", "service_record"]),
-            hint="Choose the governed object type before drafting the first revision.",
+            label="Blueprint",
+            control_html=forms.select(
+                field_id="object_type",
+                name="object_type",
+                value=values["object_type"],
+                options=[blueprint.blueprint_id for blueprint in list_blueprints()],
+            ),
+            hint="Choose the structured blueprint before drafting the first revision.",
             errors=errors.get("object_type"),
         ),
         forms.field(
@@ -105,16 +112,16 @@ def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[
         + "</form>"
     )
     guidance_html = components.section_card(
-        title="Authoring guidance",
+        title="Blueprint guidance",
         eyebrow="Write",
         body_html=(
-            "<p>Start by choosing the type, defining the purpose, and recording the accountable owner. Papyrus then carries that object shell forward into guided revision drafting.</p>"
+            "<p>Start by choosing the blueprint, defining the purpose, and recording accountable ownership. Papyrus then carries the object shell into guided section-by-section drafting.</p>"
         ),
     )
     return {
         "validation_html": validation_html,
         "progress_html": _object_progress_html(components, values=values, errors=errors),
-        "form_html": components.section_card(title="Create knowledge object", eyebrow="Write", body_html=body_html),
+        "form_html": components.section_card(title="Choose blueprint and create draft shell", eyebrow="Write", body_html=body_html),
         "guidance_html": guidance_html,
     }
 
@@ -377,6 +384,310 @@ def _revision_error_summary_html(components, errors: dict[str, list[str]]) -> st
     if not items:
         return ""
     return components.validation_summary(title="Blocking validation", findings=items, empty_label="")
+
+
+def _section_form_values(section, stored_values: dict[str, object]) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for field in section.fields:
+        name = str(field["name"])
+        kind = str(field.get("kind") or "text")
+        current = stored_values.get(name, [] if kind in {"list", "references"} else "")
+        if kind == "list":
+            values[name] = "\n".join(str(item) for item in current if str(item).strip()) if isinstance(current, list) else str(current or "")
+        else:
+            values[name] = str(current or "")
+    if section.section_type.name == "REFERENCES":
+        citations = stored_values.get("citations", []) if isinstance(stored_values.get("citations", []), list) else []
+        for index in range(1, 4):
+            citation = citations[index - 1] if index - 1 < len(citations) and isinstance(citations[index - 1], dict) else {}
+            values[f"citation_{index}_source_title"] = str(citation.get("source_title") or "")
+            values[f"citation_{index}_source_type"] = str(citation.get("source_type") or "document")
+            values[f"citation_{index}_source_ref"] = str(citation.get("source_ref") or "")
+            values[f"citation_{index}_note"] = str(citation.get("note") or "")
+    return values
+
+
+def _parse_section_submission(section, request: Request) -> dict[str, object]:
+    if str(section.section_type.value) == "references":
+        citations: list[dict[str, str | None]] = []
+        for index in range(1, 4):
+            source_title = request.form_value(f"citation_{index}_source_title").strip()
+            source_type = request.form_value(f"citation_{index}_source_type", "document").strip() or "document"
+            source_ref = request.form_value(f"citation_{index}_source_ref").strip()
+            note = request.form_value(f"citation_{index}_note").strip() or None
+            if not any([source_title, source_ref, note]):
+                continue
+            citations.append(
+                {
+                    "source_title": source_title,
+                    "source_type": source_type,
+                    "source_ref": source_ref,
+                    "note": note,
+                }
+            )
+        return {"citations": citations}
+    values: dict[str, object] = {}
+    for field in section.fields:
+        name = str(field["name"])
+        kind = str(field.get("kind") or "text")
+        raw_value = request.form_value(name)
+        if kind == "list":
+            values[name] = parse_multiline(raw_value)
+        else:
+            values[name] = raw_value.strip()
+    return values
+
+
+def _section_errors(
+    *,
+    blueprint,
+    section_id: str,
+    section_content: dict[str, dict[str, object]],
+    candidate_values: dict[str, object],
+    taxonomies: dict[str, dict[str, object]],
+) -> dict[str, list[str]]:
+    merged = {key: dict(value) for key, value in section_content.items()}
+    merged[section_id] = dict(candidate_values)
+    completion = compute_completion_state(blueprint=blueprint, section_content=merged, taxonomies=taxonomies)
+    section_progress = completion["section_completion_map"].get(section_id, {})
+    errors: dict[str, list[str]] = {}
+    messages = list(section_progress.get("errors", []))
+    if not messages:
+        return {}
+    if str(blueprint.section(section_id).section_type.value) == "references":
+        errors["citations"] = messages
+        return errors
+    current_index = 0
+    for field in blueprint.section(section_id).fields:
+        field_name = str(field["name"])
+        field_messages: list[str] = []
+        while current_index < len(messages) and messages[current_index]:
+            message = str(messages[current_index])
+            if message.startswith("'"):
+                field_messages.append(message)
+                current_index += 1
+                continue
+            if "Citation " in message and field_name != "citations":
+                break
+            field_messages.append(message)
+            current_index += 1
+            break
+        if field_messages:
+            errors[field_name] = field_messages
+    if not errors and messages:
+        errors["_section"] = messages
+    return errors
+
+
+def _progress_bar_html(runtime, *, blueprint, completion: dict[str, object], current_section_id: str) -> str:
+    items = []
+    section_map = completion["section_completion_map"]
+    for section_id in blueprint.ordering:
+        section_status = section_map.get(section_id, {})
+        items.append(
+            {
+                "label": blueprint.section(section_id).display_name,
+                "state": (
+                    "current"
+                    if section_id == current_section_id
+                    else "complete"
+                    if section_status.get("completed")
+                    else "upcoming"
+                ),
+                "required": section_id in blueprint.required_sections,
+            }
+        )
+    return runtime.template_renderer.render(
+        "partials/progress_bar.html",
+        {
+            "percentage": escape(completion["completion_percentage"]),
+            "summary": escape(
+                f"{completion['completed_required_sections']} of {completion['required_section_count']} required sections complete"
+            ),
+            "items_json": escape(json.dumps(items, ensure_ascii=True)),
+        },
+    )
+
+
+def _next_action_panel_html(components, *, blueprint, completion: dict[str, object]) -> str:
+    next_section_id = str(completion.get("next_section_id") or "")
+    next_label = blueprint.section(next_section_id).display_name if next_section_id else "Review readiness"
+    tone = "warning" if completion["draft_state"] != "ready_for_review" else "approved"
+    return components.section_card(
+        title="Next action",
+        eyebrow="Guidance",
+        tone=tone,
+        body_html=(
+            f"<p><strong>Current draft state:</strong> {escape(completion['draft_state'])}</p>"
+            f"<p><strong>Continue with:</strong> {escape(next_label)}</p>"
+            "<p>Required sections unlock sequentially through the visible progress bar. Review stays blocked until blockers are cleared.</p>"
+        ),
+    )
+
+
+def _section_fields_html(runtime, *, blueprint, section, values: dict[str, str], errors: dict[str, list[str]]) -> str:
+    forms = FormPresenter(runtime.template_renderer)
+    blocks: list[str] = []
+    if str(section.section_type.value) == "references":
+        for index in range(1, 4):
+            blocks.append(
+                '<section class="citation-entry">'
+                f"<h4>Citation {index}</h4>"
+                + forms.field(
+                    field_id=f"citation_{index}_source_title",
+                    label="Source title",
+                    control_html=forms.input(
+                        field_id=f"citation_{index}_source_title",
+                        name=f"citation_{index}_source_title",
+                        value=values.get(f"citation_{index}_source_title", ""),
+                    ),
+                    errors=errors.get("citations") if index == 1 else None,
+                )
+                + forms.field(
+                    field_id=f"citation_{index}_source_type",
+                    label="Source type",
+                    control_html=forms.input(
+                        field_id=f"citation_{index}_source_type",
+                        name=f"citation_{index}_source_type",
+                        value=values.get(f"citation_{index}_source_type", "document"),
+                    ),
+                )
+                + forms.field(
+                    field_id=f"citation_{index}_source_ref",
+                    label="Source reference",
+                    control_html=forms.input(
+                        field_id=f"citation_{index}_source_ref",
+                        name=f"citation_{index}_source_ref",
+                        value=values.get(f"citation_{index}_source_ref", ""),
+                    ),
+                )
+                + forms.field(
+                    field_id=f"citation_{index}_note",
+                    label="Note",
+                    control_html=forms.textarea(
+                        field_id=f"citation_{index}_note",
+                        name=f"citation_{index}_note",
+                        value=values.get(f"citation_{index}_note", ""),
+                        rows=2,
+                    ),
+                )
+                + "</section>"
+            )
+        return "".join(blocks)
+
+    for field in section.fields:
+        name = str(field["name"])
+        label = str(field["label"])
+        kind = str(field.get("kind") or "text")
+        hint = str(field.get("hint") or "")
+        placeholder = str(field.get("placeholder") or "")
+        if kind == "select":
+            control = forms.select(
+                field_id=name,
+                name=name,
+                value=values.get(name, ""),
+                options=list(runtime.taxonomies[str(field.get("taxonomy"))]["allowed_values"]),
+            )
+        elif kind == "list":
+            control = forms.textarea(field_id=name, name=name, value=values.get(name, ""), rows=5, placeholder=placeholder)
+        elif kind == "long_text":
+            control = forms.textarea(field_id=name, name=name, value=values.get(name, ""), rows=6, placeholder=placeholder)
+        else:
+            control = forms.input(field_id=name, name=name, value=values.get(name, ""), placeholder=placeholder)
+        blocks.append(forms.field(field_id=name, label=label, control_html=control, hint=hint, errors=errors.get(name)))
+    return "".join(blocks)
+
+
+def _render_guided_revision_page(
+    runtime,
+    *,
+    object_detail: dict[str, object],
+    draft_status: dict[str, object],
+    revision_id: str,
+    section_id: str,
+    is_first_revision: bool,
+    form_values: dict[str, str] | None = None,
+    form_errors: dict[str, list[str]] | None = None,
+    page_flash_html: str = "",
+) -> dict[str, str]:
+    forms = FormPresenter(runtime.template_renderer)
+    components = ComponentPresenter(runtime.template_renderer)
+    blueprint = draft_status["blueprint"]
+    section = blueprint.section(section_id)
+    stored_values = draft_status["section_content"].get(section_id, {})
+    values = form_values or _section_form_values(section, stored_values)
+    errors = form_errors or {}
+    completion = draft_status["completion"]
+    progress_html = _progress_bar_html(runtime, blueprint=blueprint, completion=completion, current_section_id=section_id)
+    validation_html = (
+        runtime.template_renderer.render(
+            "partials/validation_inline.html",
+            {
+                "title": escape("Section blockers"),
+                "items_html": ComponentPresenter(runtime.template_renderer).validation_findings(
+                    title="Section blockers",
+                    items=[escape(item) for item in errors.get("_section", [])],
+                    tone="warning",
+                ),
+            },
+        )
+        if errors.get("_section")
+        else ""
+    )
+    section_form_html = (
+        f'<form class="governed-form" method="post" action="/write/objects/{quoted_path(object_detail["object"]["object_id"])}/revisions/new?revision_id={quoted_path(revision_id)}&section={quoted_path(section_id)}">'
+        f'<input type="hidden" name="section_id" value="{escape(section_id)}" />'
+        + _section_fields_html(runtime, blueprint=blueprint, section=section, values=values, errors=errors)
+        + '<div class="section-editor-actions">'
+        + forms.button(label="Save section")
+        + (
+            forms.link_button(
+                label="Review readiness",
+                href=f"/write/objects/{quoted_path(object_detail['object']['object_id'])}/submit?revision_id={quoted_path(revision_id)}",
+                variant="secondary",
+            )
+            if completion["completion_percentage"] > 0
+            else ""
+        )
+        + "</div></form>"
+    )
+    compatibility_values = build_revision_defaults(object_detail)
+    compatibility_form_html = _render_revision_form(
+        runtime,
+        object_detail,
+        compatibility_values,
+        {},
+        [],
+        form_action=f"/write/objects/{quoted_path(object_detail['object']['object_id'])}/revisions/new",
+        is_first_revision=is_first_revision,
+    )["form_html"]
+    return {
+        "stage_label_html": (
+            '<p class="page-kicker">Step 2: Draft First Revision</p>'
+            if is_first_revision
+            else '<p class="page-kicker">Draft Revision</p>'
+        ),
+        "progress_html": progress_html,
+        "validation_html": validation_html,
+        "section_editor_html": runtime.template_renderer.render(
+            "partials/section_editor.html",
+            {
+                "section_title": escape(section.display_name),
+                "section_description": escape(section.description),
+                "section_help_text": escape(section.help_text),
+                "fields_html": section_form_html,
+            },
+        ),
+        "next_action_html": _next_action_panel_html(components, blueprint=blueprint, completion=completion),
+        "compatibility_html": (
+            '<details class="section-card tone-default">'
+            '<summary class="section-card-body"><strong>Bulk edit and search tools</strong><p>'
+            "Guided section editing remains the primary path. Open this only when you need the legacy multi-field form, citation lookup, or searchable multi-select helpers."
+            "</p></summary>"
+            f"{compatibility_form_html}"
+            "</details>"
+        ),
+    }
 
 
 def _render_revision_form(
@@ -662,10 +973,10 @@ def register(router, runtime) -> None:
         return html_response(
             runtime.page_renderer.render_page(
                 page_template="pages/write_object_new.html",
-                page_title="Create knowledge object",
+                page_title="Choose blueprint",
                 headline="Start A Guided Draft",
                 kicker="Write",
-                intro="Choose the type, define the purpose, and set the durable source path for the new knowledge object before drafting the first revision.",
+                intro="Choose the blueprint, define the purpose, and set the durable source path before Papyrus opens the guided section editor.",
                 active_nav="write",
                 flash_html=page_flash_html,
                 actor_id=actor_for_request(request),
@@ -679,19 +990,100 @@ def register(router, runtime) -> None:
 
     def create_revision_page(request: Request):
         object_id = request.route_value("object_id")
+        actor_id = actor_for_request(request)
+        initial_detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        draft = create_draft_from_blueprint(
+            object_id=object_id,
+            blueprint_id=initial_detail["object"]["object_type"],
+            actor=actor_id,
+            database_path=runtime.database_path,
+            source_root=runtime.source_root,
+        )
+        revision_id = request.query_value("revision_id") or str(draft["revision_id"])
+        draft_status = validate_draft_progress(
+            object_id=object_id,
+            revision_id=revision_id,
+            database_path=runtime.database_path,
+        )
         detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
-        is_first_revision = detail["current_revision"] is None
-        values = build_revision_defaults(detail)
-        errors: dict[str, list[str]] = {}
-        findings: list[str] | None = None
+        section_id = request.query_value("section") or str(draft_status["completion"]["next_section_id"])
+        blueprint = draft_status["blueprint"]
         page_flash_html = flash_html_for_request(runtime, request) if request.method != "POST" else ""
+
+        if request.method == "POST" and request.form_value("section_id"):
+            section_id = request.form_value("section_id").strip() or section_id
+            section = blueprint.section(section_id)
+            candidate_values = _parse_section_submission(section, request)
+            form_errors = _section_errors(
+                blueprint=blueprint,
+                section_id=section_id,
+                section_content=draft_status["section_content"],
+                candidate_values=candidate_values,
+                taxonomies=runtime.taxonomies,
+            )
+            if form_errors:
+                page_flash_html = FormPresenter(runtime.template_renderer).flash(
+                    title="Attention",
+                    body="Section not saved. Fix the inline blockers below.",
+                    tone="warning",
+                )
+                page_context = _render_guided_revision_page(
+                    runtime,
+                    object_detail=detail,
+                    draft_status=draft_status,
+                    revision_id=revision_id,
+                    section_id=section_id,
+                    is_first_revision=initial_detail["current_revision"] is None,
+                    form_values=_section_form_values(section, candidate_values),
+                    form_errors=form_errors,
+                    page_flash_html=page_flash_html,
+                )
+                return html_response(
+                    runtime.page_renderer.render_page(
+                        page_template="pages/write_revision_edit.html",
+                        page_title=f"Draft {section.display_name}",
+                        headline=f"Draft {blueprint.display_name}",
+                        kicker="Write",
+                        intro="Papyrus moves one section at a time, shows progress continuously, and keeps the next required action visible.",
+                        active_nav="write",
+                        flash_html=page_flash_html,
+                        actor_id=actor_id,
+                        current_path=request.path,
+                        header_detail_html=_write_timeline_html(stage="revision", is_first_revision=initial_detail["current_revision"] is None),
+                        aside_html=_common_revision_aside(runtime, detail),
+                        scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
+                        page_context=page_context,
+                    )
+                )
+            updated = update_section(
+                object_id=object_id,
+                revision_id=revision_id,
+                section_id=section_id,
+                values=candidate_values,
+                actor=actor_id,
+                database_path=runtime.database_path,
+                source_root=runtime.source_root,
+            )
+            next_section_id = str(updated["completion"]["next_section_id"])
+            redirect_target = (
+                f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision_id)}"
+                if updated["completion"]["draft_state"] == "ready_for_review" and next_section_id == section_id
+                else f"/write/objects/{quoted_path(object_id)}/revisions/new?revision_id={quoted_path(revision_id)}&section={quoted_path(next_section_id)}"
+            )
+            notice = f"Section saved. Next: {blueprint.section(next_section_id).display_name}."
+            return redirect_response(f"{redirect_target}&notice={quote_plus(notice)}")
+
         if request.method == "POST":
+            is_first_revision = detail["current_revision"] is None
+            values = build_revision_defaults(detail)
             values.update({key: request.form_value(key) for key in values})
+            errors: dict[str, list[str]] = {}
+            findings: list[str] | None = None
             result = validate_revision_form(
                 values=values,
                 object_detail=detail,
                 taxonomies=runtime.taxonomies,
-                actor=actor_for_request(request),
+                actor=actor_id,
             )
             findings = result.cleaned_data["validation_findings"]
             if result.is_valid:
@@ -701,7 +1093,7 @@ def register(router, runtime) -> None:
                     object_id=object_id,
                     normalized_payload=result.cleaned_data["normalized_payload"],
                     body_markdown=result.cleaned_data["body_markdown"],
-                    actor=actor_for_request(request),
+                    actor=actor_id,
                     legacy_metadata=detail.get("metadata") or {},
                     change_summary=result.cleaned_data["change_summary"],
                 )
@@ -709,37 +1101,63 @@ def register(router, runtime) -> None:
                     f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision.revision_id)}&notice={quote_plus('Draft revision saved')}"
                 )
             errors = result.errors
-            if errors:
-                page_flash_html = FormPresenter(runtime.template_renderer).flash(
-                    title="Attention",
-                    body="Draft not saved. Fix the blocking fields below.",
-                    tone="warning",
+            page_flash_html = FormPresenter(runtime.template_renderer).flash(
+                title="Attention",
+                body="Draft not saved. Fix the blocking fields below.",
+                tone="warning",
+            )
+            page_context = _render_revision_form(
+                runtime,
+                detail,
+                values,
+                errors,
+                findings,
+                form_action=request.path,
+                is_first_revision=is_first_revision,
+            )
+            return html_response(
+                runtime.page_renderer.render_page(
+                    page_template="pages/write_revision_new.html",
+                    page_title="Step 2: Draft first revision" if is_first_revision else "Create revision",
+                    headline="Step 2: Draft First Revision" if is_first_revision else "Create Revision",
+                    kicker="Write",
+                    intro=(
+                        "Shell creation is complete. Draft the first revision with guided progress, linked context, and explicit evidence cues."
+                        if is_first_revision
+                        else "Revise the current guidance with structured content first, then linked context, evidence, and submission readiness."
+                    ),
+                    active_nav="write",
+                    flash_html=page_flash_html,
+                    actor_id=actor_id,
+                    current_path=request.path,
+                    header_detail_html=_write_timeline_html(stage="revision", is_first_revision=is_first_revision),
+                    aside_html=_common_revision_aside(runtime, detail),
+                    scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
+                    page_context=page_context,
                 )
-        page_context = _render_revision_form(
+            )
+
+        page_context = _render_guided_revision_page(
             runtime,
-            detail,
-            values,
-            errors,
-            findings,
-            form_action=request.path,
-            is_first_revision=is_first_revision,
+            object_detail=detail,
+            draft_status=draft_status,
+            revision_id=revision_id,
+            section_id=section_id,
+            is_first_revision=initial_detail["current_revision"] is None,
+            page_flash_html=page_flash_html,
         )
         return html_response(
             runtime.page_renderer.render_page(
-                page_template="pages/write_revision_new.html",
-                page_title="Step 2: Draft first revision" if is_first_revision else "Create revision",
-                headline="Step 2: Draft First Revision" if is_first_revision else "Create Revision",
+                page_template="pages/write_revision_edit.html",
+                page_title=f"Draft {blueprint.display_name}",
+                headline=f"Draft {blueprint.display_name}",
                 kicker="Write",
-                intro=(
-                    "Shell creation is complete. Draft the first revision with guided progress, linked context, and explicit evidence cues."
-                    if is_first_revision
-                    else "Revise the current guidance with structured content first, then linked context, evidence, and submission readiness."
-                ),
+                intro="Papyrus moves one section at a time, shows progress continuously, and keeps the next required action visible.",
                 active_nav="write",
                 flash_html=page_flash_html,
-                actor_id=actor_for_request(request),
+                actor_id=actor_id,
                 current_path=request.path,
-                header_detail_html=_write_timeline_html(stage="revision", is_first_revision=is_first_revision),
+                header_detail_html=_write_timeline_html(stage="revision", is_first_revision=initial_detail["current_revision"] is None),
                 aside_html=_common_revision_aside(runtime, detail),
                 scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
                 page_context=page_context,
@@ -757,6 +1175,14 @@ def register(router, runtime) -> None:
             if exclude_object_id and str(candidate["object_id"]) == exclude_object_id:
                 continue
             if candidate.get("current_revision_id") is None:
+                continue
+            detail = knowledge_object_detail(str(candidate["object_id"]), database_path=runtime.database_path)
+            current_revision = detail.get("current_revision") or {}
+            if (
+                str(candidate.get("approval_state") or "") == "draft"
+                and not str(current_revision.get("body_markdown") or "").strip()
+                and not detail.get("citations")
+            ):
                 continue
             items.append(
                 {
@@ -794,17 +1220,26 @@ def register(router, runtime) -> None:
 
     def submit_revision_page(request: Request):
         object_id = request.route_value("object_id")
-        revision_id = request.query_value("revision_id")
+        revision_id = request.query_value("revision_id") or str(knowledge_object_detail(object_id, database_path=runtime.database_path)["current_revision"]["revision_id"])
         detail = review_detail(object_id, revision_id, database_path=runtime.database_path)
         values = {"notes": request.form_value("notes")}
         form_errors: dict[str, list[str]] = {}
-        findings = build_submission_findings(
+        draft_status = validate_draft_progress(
+            object_id=object_id,
+            revision_id=revision_id,
+            database_path=runtime.database_path,
+        )
+        findings = [
+            *draft_status["completion"]["blockers"],
+            *draft_status["completion"]["warnings"],
+            *build_submission_findings(
             object_type=detail["object"]["object_type"],
             payload=detail["revision"]["metadata"],
-        )
+            ),
+        ]
         if request.method == "POST":
             result = validate_submit_form(values)
-            if result.is_valid:
+            if result.is_valid and not draft_status["completion"]["blockers"]:
                 submit_for_review_command(
                     database_path=runtime.database_path,
                     source_root=runtime.source_root,
@@ -817,6 +1252,8 @@ def register(router, runtime) -> None:
                     f"/manage/reviews/{quoted_path(object_id)}/{quoted_path(revision_id)}/assign?notice={quote_plus('Revision submitted for review')}"
                 )
             form_errors = result.errors
+            if draft_status["completion"]["blockers"]:
+                form_errors.setdefault("notes", []).append("Clear the draft blockers before submitting for review.")
         page_context = _render_submit_page(runtime, detail, findings, form_errors, values)
         return html_response(
             runtime.page_renderer.render_page(

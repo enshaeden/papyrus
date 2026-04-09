@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 
 
-RUNTIME_SCHEMA_VERSION = 3
+RUNTIME_SCHEMA_VERSION = 4
 
 
 def connect_database(database_path: Path) -> sqlite3.Connection:

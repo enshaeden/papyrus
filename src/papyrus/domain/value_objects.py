@@ -7,6 +7,8 @@ class KnowledgeObjectType(StrEnum):
     RUNBOOK = "runbook"
     KNOWN_ERROR = "known_error"
     SERVICE_RECORD = "service_record"
+    POLICY = "policy"
+    SYSTEM_DESIGN = "system_design"
 
 
 class KnowledgeLifecycleStatus(StrEnum):

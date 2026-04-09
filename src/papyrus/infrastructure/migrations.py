@@ -39,10 +39,14 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             object_id TEXT NOT NULL REFERENCES knowledge_objects(object_id),
             revision_number INTEGER NOT NULL,
             revision_state TEXT NOT NULL,
+            blueprint_id TEXT NOT NULL DEFAULT '',
+            draft_state TEXT NOT NULL DEFAULT 'ready_for_review',
             source_path TEXT NOT NULL,
             content_hash TEXT NOT NULL,
             body_markdown TEXT NOT NULL,
             normalized_payload_json TEXT NOT NULL,
+            section_content_json TEXT NOT NULL DEFAULT '{}',
+            section_completion_json TEXT NOT NULL DEFAULT '{}',
             legacy_metadata_json TEXT NOT NULL,
             imported_at TEXT NOT NULL,
             change_summary TEXT,
@@ -134,6 +138,32 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             actor TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS ingestion_jobs (
+            ingestion_id TEXT PRIMARY KEY,
+            filename TEXT NOT NULL,
+            source_path TEXT NOT NULL,
+            media_type TEXT NOT NULL,
+            parser_name TEXT NOT NULL,
+            status TEXT NOT NULL,
+            normalized_content_json TEXT NOT NULL DEFAULT '{}',
+            classification_json TEXT NOT NULL DEFAULT '{}',
+            mapping_result_json TEXT NOT NULL DEFAULT '{}',
+            error_json TEXT NOT NULL DEFAULT '{}',
+            blueprint_id TEXT,
+            converted_object_id TEXT,
+            converted_revision_id TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS ingestion_artifacts (
+            artifact_id TEXT PRIMARY KEY,
+            ingestion_id TEXT NOT NULL REFERENCES ingestion_jobs(ingestion_id),
+            artifact_type TEXT NOT NULL,
+            content_json TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS search_documents (
             object_id TEXT PRIMARY KEY REFERENCES knowledge_objects(object_id),
             revision_id TEXT NOT NULL REFERENCES knowledge_revisions(revision_id),
@@ -162,6 +192,8 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
         CREATE INDEX IF NOT EXISTS idx_search_documents_status ON search_documents(status);
         CREATE INDEX IF NOT EXISTS idx_events_entity ON events(entity_type, entity_id);
         CREATE INDEX IF NOT EXISTS idx_events_occurred_at ON events(occurred_at);
+        CREATE INDEX IF NOT EXISTS idx_ingestion_jobs_status ON ingestion_jobs(status);
+        CREATE INDEX IF NOT EXISTS idx_ingestion_artifacts_job ON ingestion_artifacts(ingestion_id);
         """
     )
 

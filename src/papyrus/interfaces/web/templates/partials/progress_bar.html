@@ -1,0 +1,33 @@
+<section class="progress-shell" data-progress-items="{{ items_json }}">
+  <div class="progress-shell-summary">
+    <p class="progress-shell-percent">{{ percentage }}%</p>
+    <p>{{ summary }}</p>
+  </div>
+  <div class="progress-shell-track" aria-hidden="true">
+    <span class="progress-shell-fill" style="width: {{ percentage }}%;"></span>
+  </div>
+  <div class="progress-shell-steps"></div>
+</section>
+<script>
+  (function () {
+    const shells = document.querySelectorAll(".progress-shell[data-progress-items]");
+    shells.forEach((shell) => {
+      const steps = shell.querySelector(".progress-shell-steps");
+      if (!steps) {
+        return;
+      }
+      let items = [];
+      try {
+        items = JSON.parse(shell.dataset.progressItems || "[]");
+      } catch (error) {
+        items = [];
+      }
+      steps.innerHTML = items.map((item) => (
+        `<section class="progress-step is-${item.state}">`
+        + `<p class="progress-step-label">${item.label}</p>`
+        + `<p class="progress-step-meta">${item.required ? "Required" : "Optional"}</p>`
+        + `</section>`
+      )).join("");
+    });
+  })();
+</script>

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from papyrus.application.blueprint_registry import list_blueprints
 from papyrus.interfaces.web.view_helpers import OBJECT_ID_PATTERN, parse_csvish
 
 
@@ -58,7 +59,8 @@ def validate_object_form(
     elif not OBJECT_ID_PATTERN.fullmatch(object_id):
         add_error("object_id", "Object ID must match kb-slug format.")
 
-    if object_type not in {"runbook", "known_error", "service_record"}:
+    supported_blueprints = {blueprint.blueprint_id for blueprint in list_blueprints()}
+    if object_type not in supported_blueprints:
         add_error("object_type", "Choose a supported object type.")
     if not title:
         add_error("title", "Title is required.")

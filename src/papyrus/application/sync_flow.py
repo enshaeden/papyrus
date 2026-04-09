@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import json
 from pathlib import Path
 import uuid
 
+from papyrus.application.authoring_flow import compute_completion_state, derive_section_content
+from papyrus.application.blueprint_registry import get_blueprint
 from papyrus.application.validation_flow import validate_knowledge_documents
 from papyrus.application.runtime_projection import persist_revision_artifacts, refresh_current_object_projection, service_id
 from papyrus.domain.policies import bootstrap_revision_state, runtime_trust_state
@@ -140,6 +143,16 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                 as_of=dt.date.today(),
             )
             normalized_metadata_json = json_dump(parsed.metadata)
+            section_content = derive_section_content(
+                blueprint_id=parsed.object_type,
+                metadata=parsed.metadata,
+                body_markdown=document.body,
+            )
+            section_completion = compute_completion_state(
+                blueprint=get_blueprint(parsed.object_type),
+                section_content=section_content,
+                taxonomies=taxonomies,
+            )
             revision_hash = _content_hash(normalized_metadata_json, document.body)
             revision_id = f"{document.knowledge_object_id}-rev-{revision_hash[:12]}"
             existing_object = get_knowledge_object(connection, document.knowledge_object_id)
@@ -195,10 +208,22 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                     object_id=document.knowledge_object_id,
                     revision_number=revision_number,
                     revision_state=revision_state,
+                    blueprint_id=parsed.object_type,
+                    draft_state=(
+                        section_completion["draft_state"]
+                        if revision_state == RevisionReviewStatus.DRAFT.value
+                        else "ready_for_review"
+                    ),
                     source_path=document.relative_path,
                     content_hash=revision_hash,
                     body_markdown=document.body,
                     normalized_payload_json=normalized_metadata_json,
+                    section_content_json=json.dumps(section_content, sort_keys=True, ensure_ascii=True),
+                    section_completion_json=json.dumps(
+                        section_completion["section_completion_map"],
+                        sort_keys=True,
+                        ensure_ascii=True,
+                    ),
                     legacy_metadata_json=json_dump(document.metadata),
                     imported_at=now_iso,
                     change_summary=latest_change,

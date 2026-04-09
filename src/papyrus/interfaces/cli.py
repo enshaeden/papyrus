@@ -7,6 +7,10 @@ import sqlite3
 import sys
 from pathlib import Path
 
+from papyrus.application.authoring_flow import create_draft_from_blueprint, update_section, validate_draft_progress
+from papyrus.application.commands import create_object_command
+from papyrus.application.ingestion_flow import ingest_file, ingestion_detail, list_ingestions
+from papyrus.application.mapping_flow import convert_to_draft
 from papyrus.application.commands import build_projection_command, validate_repository_command
 from papyrus.application.queries import (
     CONTENT_HEALTH_SECTIONS,
@@ -171,6 +175,19 @@ def _emit_payload(payload: object, *, output_format: str) -> int:
     return 0
 
 
+def _parse_field_assignments(assignments: list[str]) -> dict[str, object]:
+    values: dict[str, object] = {}
+    for assignment in assignments:
+        if "=" not in assignment:
+            raise ValueError(f"field assignment must use name=value syntax: {assignment}")
+        name, raw_value = assignment.split("=", 1)
+        if "|" in raw_value:
+            values[name] = [item.strip() for item in raw_value.split("|") if item.strip()]
+        else:
+            values[name] = raw_value
+    return values
+
+
 def _safe_to_use_text(*, approval_state: str | None, trust_state: str | None) -> str:
     approval = str(approval_state or "").strip()
     trust = str(trust_state or "").strip()
@@ -234,6 +251,46 @@ def operator_main() -> int:
     subparsers.add_parser("manage-queue", help="Show review and stewardship buckets.", parents=[common])
     subparsers.add_parser("validation-runs", help="Show validation run history.", parents=[common])
 
+    create_draft_parser = subparsers.add_parser("create-draft", help="Create a structured draft from a blueprint.", parents=[common])
+    create_draft_parser.add_argument("--type", required=True, dest="blueprint_id", help="Blueprint ID.")
+    create_draft_parser.add_argument("--object-id", required=True, help="Knowledge object ID.")
+    create_draft_parser.add_argument("--title", required=True, help="Title.")
+    create_draft_parser.add_argument("--summary", required=True, help="Summary.")
+    create_draft_parser.add_argument("--owner", required=True, help="Owner.")
+    create_draft_parser.add_argument("--team", required=True, help="Team.")
+    create_draft_parser.add_argument("--canonical-path", required=True, help="Canonical Markdown path.")
+    create_draft_parser.add_argument("--review-cadence", default="quarterly", help="Review cadence.")
+    create_draft_parser.add_argument("--status", default="draft", help="Lifecycle status.")
+    create_draft_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+
+    edit_section_parser = subparsers.add_parser("edit-section", help="Update one structured draft section.", parents=[common])
+    edit_section_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    edit_section_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+    edit_section_parser.add_argument("--section", required=True, help="Blueprint section ID.")
+    edit_section_parser.add_argument("--field", action="append", default=[], help="Field assignment in name=value form. Use a|b|c for list values.")
+    edit_section_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+
+    show_progress_parser = subparsers.add_parser("show-progress", help="Show structured draft completion state.", parents=[common])
+    show_progress_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    show_progress_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+
+    subparsers.add_parser("list-ingestions", help="List ingestion jobs.", parents=[common])
+
+    review_ingestion_parser = subparsers.add_parser("review-ingestion", help="Show ingestion job detail.", parents=[common])
+    review_ingestion_parser.add_argument("ingestion_id", help="Ingestion job ID.")
+
+    convert_ingestion_parser = subparsers.add_parser("convert-ingestion", help="Convert an ingestion into a structured draft.", parents=[common])
+    convert_ingestion_parser.add_argument("ingestion_id", help="Ingestion job ID.")
+    convert_ingestion_parser.add_argument("--object-id", required=True, help="Knowledge object ID.")
+    convert_ingestion_parser.add_argument("--title", required=True, help="Draft title.")
+    convert_ingestion_parser.add_argument("--canonical-path", required=True, help="Canonical Markdown path.")
+    convert_ingestion_parser.add_argument("--owner", required=True, help="Owner.")
+    convert_ingestion_parser.add_argument("--team", required=True, help="Team.")
+    convert_ingestion_parser.add_argument("--review-cadence", default="quarterly", help="Review cadence.")
+    convert_ingestion_parser.add_argument("--status", default="draft", help="Lifecycle status.")
+    convert_ingestion_parser.add_argument("--audience", default="service_desk", help="Audience.")
+    convert_ingestion_parser.add_argument("--actor", default="local.operator", help="Actor.")
+
     args = parser.parse_args()
     database_path = args.db or str(DB_PATH)
     output_format = args.format or "text"
@@ -254,6 +311,86 @@ def operator_main() -> int:
                 )
             )
         return _emit_payload(lines, output_format="text")
+
+    if args.command == "create-draft":
+        create_object_command(
+            database_path=Path(database_path),
+            object_id=args.object_id,
+            object_type=args.blueprint_id,
+            title=args.title,
+            summary=args.summary,
+            owner=args.owner,
+            team=args.team,
+            canonical_path=args.canonical_path,
+            review_cadence=args.review_cadence,
+            status=args.status,
+            actor=args.actor,
+        )
+        created = create_draft_from_blueprint(
+            object_id=args.object_id,
+            blueprint_id=args.blueprint_id,
+            actor=args.actor,
+            database_path=Path(database_path),
+        )
+        return _emit_payload(
+            {
+                "object_id": args.object_id,
+                "revision_id": created["revision_id"],
+                "completion": created["completion"],
+            },
+            output_format=output_format,
+        )
+
+    if args.command == "edit-section":
+        updated = update_section(
+            object_id=args.object_id,
+            revision_id=args.revision_id,
+            section_id=args.section,
+            values=_parse_field_assignments(args.field),
+            actor=args.actor,
+            database_path=Path(database_path),
+        )
+        return _emit_payload(
+            {
+                "object_id": args.object_id,
+                "revision_id": args.revision_id,
+                "completion": updated["completion"],
+            },
+            output_format=output_format,
+        )
+
+    if args.command == "show-progress":
+        payload = validate_draft_progress(
+            object_id=args.object_id,
+            revision_id=args.revision_id,
+            database_path=Path(database_path),
+        )
+        return _emit_payload(payload, output_format=output_format)
+
+    if args.command == "list-ingestions":
+        return _emit_payload({"ingestions": list_ingestions(database_path=Path(database_path))}, output_format=output_format)
+
+    if args.command == "review-ingestion":
+        return _emit_payload(
+            ingestion_detail(ingestion_id=args.ingestion_id, database_path=Path(database_path)),
+            output_format=output_format,
+        )
+
+    if args.command == "convert-ingestion":
+        payload = convert_to_draft(
+            ingestion_id=args.ingestion_id,
+            object_id=args.object_id,
+            title=args.title,
+            canonical_path=args.canonical_path,
+            owner=args.owner,
+            team=args.team,
+            review_cadence=args.review_cadence,
+            status=args.status,
+            audience=args.audience,
+            actor=args.actor,
+            database_path=Path(database_path),
+        )
+        return _emit_payload(payload, output_format=output_format)
 
     if args.command in {"dashboard", "health"}:
         payload = trust_dashboard(database_path=database_path)

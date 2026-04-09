@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from papyrus.application.authoring_flow import derive_section_content
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import (
@@ -135,6 +136,55 @@ def _service_record_guidance(components: ComponentPresenter, metadata: dict[str,
     ]
 
 
+def _policy_guidance(components: ComponentPresenter, metadata: dict[str, Any], sections: dict[str, str]) -> list[str]:
+    return [
+        components.section_card(
+            title="Policy scope",
+            eyebrow="Guidance",
+            body_html=f"<p>{escape(sections.get('Policy Scope') or metadata.get('policy_scope') or 'No policy scope recorded.')}</p>",
+        ),
+        components.section_card(
+            title="Controls",
+            eyebrow="Guidance",
+            body_html=render_list([escape(item) for item in metadata.get("controls", [])], css_class="panel-list")
+            or '<p class="empty-state-copy">No controls recorded.</p>',
+        ),
+        components.section_card(
+            title="Exceptions",
+            eyebrow="Guidance",
+            body_html=f"<p>{escape(sections.get('Exceptions') or metadata.get('exceptions') or 'No exceptions recorded.')}</p>",
+        ),
+    ]
+
+
+def _system_design_guidance(components: ComponentPresenter, metadata: dict[str, Any], sections: dict[str, str]) -> list[str]:
+    return [
+        components.section_card(
+            title="Architecture",
+            eyebrow="Guidance",
+            body_html=f"<p>{escape(sections.get('Architecture') or metadata.get('architecture') or 'No architecture recorded.')}</p>",
+        ),
+        components.section_card(
+            title="Interfaces",
+            eyebrow="Guidance",
+            body_html=render_list([escape(item) for item in metadata.get("interfaces", [])], css_class="panel-list")
+            or '<p class="empty-state-copy">No interfaces recorded.</p>',
+        ),
+        components.section_card(
+            title="Dependencies",
+            eyebrow="Guidance",
+            body_html=render_list([escape(item) for item in metadata.get("dependencies", [])], css_class="panel-list")
+            or '<p class="empty-state-copy">No dependencies recorded.</p>',
+        ),
+        components.section_card(
+            title="Failure modes",
+            eyebrow="Guidance",
+            body_html=render_list([escape(item) for item in metadata.get("common_failure_modes", [])], css_class="panel-list")
+            or '<p class="empty-state-copy">No failure modes recorded.</p>',
+        ),
+    ]
+
+
 def _guidance_cards(
     components: ComponentPresenter,
     *,
@@ -147,7 +197,11 @@ def _guidance_cards(
         return _runbook_guidance(components, metadata, sections)
     if object_type == "known_error":
         return _known_error_guidance(components, metadata, sections)
-    return _service_record_guidance(components, metadata, sections)
+    if object_type == "service_record":
+        return _service_record_guidance(components, metadata, sections)
+    if object_type == "policy":
+        return _policy_guidance(components, metadata, sections)
+    return _system_design_guidance(components, metadata, sections)
 
 
 def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]) -> dict[str, Any]:
@@ -158,6 +212,12 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
     posture = detail.get("posture") or {}
     evidence_status = detail.get("evidence_status") or {}
     body_sections = _body_sections(revision["body_markdown"] if revision is not None else "")
+    if revision is not None and not revision.get("section_content"):
+        revision["section_content"] = derive_section_content(
+            blueprint_id=str(revision.get("blueprint_id") or item["object_type"]),
+            metadata=metadata,
+            body_markdown=str(revision["body_markdown"]),
+        )
     latest_audit = detail["audit_events"][0] if detail["audit_events"] else None
 
     header_html = components.object_header(

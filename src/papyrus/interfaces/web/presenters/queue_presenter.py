@@ -8,6 +8,8 @@ from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_
 
 
 def _queue_item_href(item: dict[str, Any]) -> str:
+    if str(item.get("approval_state") or "") in {"draft", "rejected"}:
+        return f"/write/objects/{quoted_path(item['object_id'])}/revisions/new#revision-form"
     if item.get("current_revision_id"):
         return f"/objects/{quoted_path(item['object_id'])}"
     return f"/write/objects/{quoted_path(item['object_id'])}/revisions/new#revision-form"

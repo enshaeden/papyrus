@@ -7,3 +7,7 @@ values:
     description: Diagnosed failure pattern with checks and mitigations.
   - name: service_record
     description: Operational record describing a service and its support posture.
+  - name: policy
+    description: Governed policy with scope, controls, and exceptions.
+  - name: system_design
+    description: Operational system design record with dependencies and interfaces.

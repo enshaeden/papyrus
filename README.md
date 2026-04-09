@@ -1,6 +1,6 @@
 # Papyrus
 
-Papyrus is a local-first operational knowledge control plane for IT support and systems operations. It keeps canonical knowledge in Markdown under `knowledge/` and `archive/knowledge/`, builds a relational runtime on top of that source, and guides people through the lifecycle of operational knowledge without turning generated output into the source of truth.
+Papyrus is a local-first operational knowledge control plane for IT support and systems operations. It keeps canonical knowledge in Markdown under `knowledge/` and `archive/knowledge/`, builds a relational runtime on top of that source, constructs new knowledge through blueprint-driven authoring, and converts external documents into governed drafts without turning generated output into the source of truth.
 
 ## Core Questions
 
@@ -15,7 +15,8 @@ Papyrus is a local-first operational knowledge control plane for IT support and 
 ## Use Modes
 
 - `Read`: find the right runbook, known error, or service record and decide whether it is safe to use now.
-- `Write`: create an object shell, draft or revise guidance, attach evidence, validate it, and submit it for review.
+- `Write`: create an object shell, choose a blueprint, complete guided sections, attach evidence, validate progress, and submit the draft for review.
+- `Import`: upload Markdown, DOCX, or PDF files; inspect parse and mapping output; and convert reviewed imports into the same draft lifecycle used by native authoring.
 - `Review / Approvals`: inspect what changed, what evidence supports it, what is unresolved, and whether it should become canonical guidance.
 - `Knowledge Health`: monitor stale guidance, weak evidence, suspect objects, and review pressure as stewardship work.
 - `Services`: move from a service context into the right operational guidance path.
@@ -30,6 +31,13 @@ python3 scripts/run.py --operator
 
 Start at the web home page. Papyrus now opens on a lifecycle-guided landing page instead of dropping straight into a raw queue.
 
+Primary authoring rules:
+
+- no generic rich-text editor as the main authoring surface
+- no direct freeform document blob storage for drafts
+- authored and imported drafts both converge on the same structured revision model
+- imports stay in reviewable ingestion jobs until a human converts them into a draft
+
 For terminal-first operator checks:
 
 ```bash
@@ -37,6 +45,16 @@ python3 scripts/operator_view.py queue --db build/knowledge.db
 python3 scripts/operator_view.py health --db build/knowledge.db
 python3 scripts/operator_view.py object kb-troubleshooting-vpn-connectivity --db build/knowledge.db
 python3 scripts/operator_view.py activity --db build/knowledge.db
+```
+
+For structured drafting and import:
+
+```bash
+python3 scripts/operator_view.py create-draft --type runbook --object-id kb-example --title "Example" --summary "Example" --owner service_owner --team "IT Operations" --canonical-path knowledge/examples/example.md
+python3 scripts/operator_view.py edit-section --object kb-example --revision <revision_id> --section purpose --field use_when="Use this when the blueprint applies."
+python3 scripts/operator_view.py show-progress --object kb-example --revision <revision_id>
+python3 scripts/ingest.py path/to/source.pdf
+python3 scripts/operator_view.py list-ingestions --db build/knowledge.db
 ```
 
 For a review/demo runtime with realistic workflow tension:
