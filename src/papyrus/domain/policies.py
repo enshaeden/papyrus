@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
+from papyrus.domain.lifecycle import ObjectLifecycleState, RevisionReviewState
 from papyrus.domain.value_objects import KnowledgeObjectType, RevisionReviewStatus, TrustState
 
 
@@ -60,20 +61,34 @@ def primary_object_type(metadata: dict[str, Any]) -> str | None:
 
 
 def approval_state_for_status(status: str) -> str:
-    return "approved" if status in {"active", "deprecated", "archived"} else "draft"
+    return (
+        "approved"
+        if status
+        in {
+            ObjectLifecycleState.ACTIVE.value,
+            ObjectLifecycleState.DEPRECATED.value,
+            ObjectLifecycleState.ARCHIVED.value,
+        }
+        else "draft"
+    )
 
 
 def approval_state_for_revision_state(revision_state: str) -> str:
-    if revision_state == RevisionReviewStatus.APPROVED.value:
-        return RevisionReviewStatus.APPROVED.value
+    if revision_state == RevisionReviewState.APPROVED.value:
+        return RevisionReviewState.APPROVED.value
     return revision_state
 
 
 def bootstrap_revision_state(status: str) -> str:
     return (
-        RevisionReviewStatus.APPROVED.value
-        if status in {"active", "deprecated", "archived"}
-        else RevisionReviewStatus.DRAFT.value
+        RevisionReviewState.APPROVED.value
+        if status
+        in {
+            ObjectLifecycleState.ACTIVE.value,
+            ObjectLifecycleState.DEPRECATED.value,
+            ObjectLifecycleState.ARCHIVED.value,
+        }
+        else RevisionReviewState.DRAFT.value
     )
 
 
@@ -189,7 +204,11 @@ def trust_state(
         return TrustState.STALE.value
     if citation_health_rank_value > 0:
         return TrustState.WEAK_EVIDENCE.value
-    return TrustState.TRUSTED.value if status != "draft" else TrustState.SUSPECT.value
+    return (
+        TrustState.TRUSTED.value
+        if status != ObjectLifecycleState.DRAFT.value
+        else TrustState.SUSPECT.value
+    )
 
 
 def runtime_trust_state(
@@ -199,7 +218,7 @@ def runtime_trust_state(
     existing_trust_state: str | None = None,
     preserve_existing_warning: bool = True,
 ) -> str:
-    if revision_state != RevisionReviewStatus.APPROVED.value:
+    if revision_state != RevisionReviewState.APPROVED.value:
         return TrustState.SUSPECT.value
     if preserve_existing_warning and existing_trust_state == TrustState.SUSPECT.value:
         return TrustState.SUSPECT.value

@@ -13,6 +13,13 @@ sys.path.insert(0, str(ROOT / "src"))
 from papyrus.interfaces.web import app as web_app
 
 
+def governed_ingest_path(temp_dir: str, filename: str) -> tuple[Path, Path]:
+    source_root = Path(temp_dir) / "repo"
+    source_path = source_root / "build" / "local-ingest" / filename
+    source_path.parent.mkdir(parents=True, exist_ok=True)
+    return source_root, source_path
+
+
 def call_wsgi(application, path: str, *, method: str = "GET", form: dict[str, object] | None = None) -> tuple[str, dict[str, str], str]:
     status_holder: dict[str, object] = {}
 
@@ -127,8 +134,7 @@ class IngestionUiTests(unittest.TestCase):
     def test_ingestion_workbench_requires_review_before_conversion(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            source_root = Path(temp_dir) / "repo"
-            source_file = Path(temp_dir) / "import.md"
+            source_root, source_file = governed_ingest_path(temp_dir, "import.md")
             source_file.write_text("# Import coverage\n\n## Steps\n\n- Review the import\n", encoding="utf-8")
             application = web_app(
                 database_path,
@@ -196,8 +202,7 @@ class IngestionUiTests(unittest.TestCase):
     def test_ingestion_detail_surfaces_parser_warnings_for_degraded_input(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            source_root = Path(temp_dir) / "repo"
-            source_file = Path(temp_dir) / "empty.md"
+            source_root, source_file = governed_ingest_path(temp_dir, "empty.md")
             source_file.write_text("", encoding="utf-8")
             application = web_app(
                 database_path,
@@ -225,8 +230,7 @@ class IngestionUiTests(unittest.TestCase):
     def test_mapping_review_surfaces_conflicts_and_fragment_provenance(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            source_root = Path(temp_dir) / "repo"
-            source_file = Path(temp_dir) / "conflicted-known-error.md"
+            source_root, source_file = governed_ingest_path(temp_dir, "conflicted-known-error.md")
             source_file.write_text(
                 "# Login failure\n\n"
                 "## Symptoms\n\n"

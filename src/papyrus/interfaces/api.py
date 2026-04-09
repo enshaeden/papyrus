@@ -12,16 +12,20 @@ from wsgiref.simple_server import make_server
 
 from papyrus.application.authoring_flow import create_draft_from_blueprint, update_section
 from papyrus.application.commands import (
+    archive_object_command,
     approve_revision_command,
     assign_reviewer_command,
     create_object_command,
     create_revision_command,
     ingest_event_command,
     mark_object_suspect_due_to_change_command,
+    preview_writeback_command,
     record_validation_run_command,
     reject_revision_command,
+    restore_writeback_command,
     submit_for_review_command,
     supersede_object_command,
+    writeback_object_command,
 )
 from papyrus.application.ingestion_flow import ingest_file, ingestion_detail, list_ingestions
 from papyrus.application.queries import (
@@ -343,12 +347,17 @@ def app(
                 if not source_path and not (content_base64 and filename):
                     raise ValueError("source_path or filename plus content_base64 is required for /ingest")
                 result = (
-                    ingest_file(file_path=source_path, database_path=resolved_database_path)
+                    ingest_file(
+                        file_path=source_path,
+                        database_path=resolved_database_path,
+                        source_root=resolved_source_root,
+                    )
                     if source_path
                     else ingest_file(
                         file_path=filename,
                         payload=base64.b64decode(content_base64.encode("ascii")),
                         database_path=resolved_database_path,
+                        source_root=resolved_source_root,
                     )
                 )
                 return _json_response(
@@ -419,6 +428,37 @@ def app(
                             actor=actor,
                         ),
                     )
+                if method == "POST" and len(parts) == 3 and parts[2] == "archive":
+                    actor = _actor_from_payload(request_payload, require_explicit=True)
+                    result = archive_object_command(
+                        database_path=resolved_database_path,
+                        source_root=resolved_source_root,
+                        object_id=parts[1],
+                        actor=actor,
+                        retirement_reason=str(request_payload["retirement_reason"]),
+                        notes=str(request_payload["notes"]) if request_payload.get("notes") is not None else None,
+                        acknowledgements=request_payload.get("acknowledgements") or [],
+                    )
+                    payload = _object_result_payload(
+                        object_id=parts[1],
+                        revision_id=result.revision_id,
+                        database_path=resolved_database_path,
+                        message="Object archived and canonical path moved under archive/knowledge/.",
+                        actor=actor,
+                    )
+                    payload["archive_result"] = {
+                        "previous_canonical_path": result.previous_canonical_path,
+                        "archived_canonical_path": result.archived_canonical_path,
+                        "backup_path": str(result.backup_path) if result.backup_path is not None else None,
+                        "mutation_id": result.mutation_id,
+                        "object_lifecycle_state": result.object_lifecycle_state,
+                        "required_acknowledgements": list(result.required_acknowledgements),
+                        "source_of_truth": result.source_of_truth,
+                        "state_change": result.state_change,
+                        "invalidated_assumptions": list(result.invalidated_assumptions),
+                        "operator_message": result.operator_message,
+                    }
+                    return _json_response(start_response, "200 OK", payload)
                 if method == "POST" and len(parts) == 3 and parts[2] == "mark-suspect":
                     actor = _actor_from_payload(request_payload, require_explicit=True)
                     result = mark_object_suspect_due_to_change_command(
@@ -441,6 +481,93 @@ def app(
                         "details": result.event.details,
                     }
                     return _json_response(start_response, "200 OK", payload)
+                if method == "POST" and len(parts) == 4 and parts[2] == "source-sync" and parts[3] == "preview":
+                    preview = preview_writeback_command(
+                        database_path=resolved_database_path,
+                        object_id=parts[1],
+                        revision_id=str(request_payload["revision_id"]),
+                        source_root=resolved_source_root,
+                    )
+                    return _json_response(
+                        start_response,
+                        "200 OK",
+                        {
+                            "object_id": preview.object_id,
+                            "revision_id": preview.revision_id,
+                            "file_path": str(preview.file_path),
+                            "changed_fields": preview.changed_fields,
+                            "changed_sections": preview.changed_sections,
+                            "conflict_detected": preview.conflict_detected,
+                            "source_sync_state": preview.source_sync_state,
+                            "required_acknowledgements": list(preview.required_acknowledgements),
+                            "source_of_truth": preview.source_of_truth,
+                            "state_change": preview.state_change,
+                            "invalidated_assumptions": list(preview.invalidated_assumptions),
+                            "operator_message": preview.operator_message,
+                        },
+                    )
+                if method == "POST" and len(parts) == 4 and parts[2] == "source-sync" and parts[3] == "apply":
+                    actor = _actor_from_payload(request_payload, require_explicit=True)
+                    result = writeback_object_command(
+                        database_path=resolved_database_path,
+                        object_id=parts[1],
+                        actor=actor,
+                        source_root=resolved_source_root,
+                    )
+                    return _json_response(
+                        start_response,
+                        "200 OK",
+                        {
+                            "message": "Source sync applied.",
+                            "actor": actor,
+                            "object_id": result.object_id,
+                            "revision_id": result.revision_id,
+                            "file_path": str(result.file_path),
+                            "mutation_id": result.mutation_id,
+                            "source_sync_state": result.source_sync_state,
+                            "required_acknowledgements": list(result.required_acknowledgements),
+                            "source_of_truth": result.source_of_truth,
+                            "state_change": result.state_change,
+                            "invalidated_assumptions": list(result.invalidated_assumptions),
+                            "operator_message": result.operator_message,
+                            "links": _links_for_object(parts[1], result.revision_id),
+                        },
+                    )
+                if method == "POST" and len(parts) == 4 and parts[2] == "source-sync" and parts[3] == "restore":
+                    actor = _actor_from_payload(request_payload, require_explicit=True)
+                    result = restore_writeback_command(
+                        database_path=resolved_database_path,
+                        object_id=parts[1],
+                        actor=actor,
+                        revision_id=(
+                            str(request_payload["revision_id"])
+                            if request_payload.get("revision_id") is not None
+                            else None
+                        ),
+                        source_root=resolved_source_root,
+                    )
+                    return _json_response(
+                        start_response,
+                        "200 OK",
+                        {
+                            "message": "Source sync restored.",
+                            "actor": actor,
+                            "object_id": result.object_id,
+                            "revision_id": result.revision_id,
+                            "file_path": str(result.file_path),
+                            "restored_event_id": result.restored_event_id,
+                            "backup_path": str(result.backup_path) if result.backup_path is not None else None,
+                            "restored_to_missing": result.restored_to_missing,
+                            "mutation_id": result.mutation_id,
+                            "source_sync_state": result.source_sync_state,
+                            "required_acknowledgements": list(result.required_acknowledgements),
+                            "source_of_truth": result.source_of_truth,
+                            "state_change": result.state_change,
+                            "invalidated_assumptions": list(result.invalidated_assumptions),
+                            "operator_message": result.operator_message,
+                            "links": _links_for_object(parts[1], result.revision_id),
+                        },
+                    )
 
             if path.startswith("/drafts/"):
                 parts = [unquote(part) for part in path.strip("/").split("/")]

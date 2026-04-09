@@ -8,13 +8,14 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.blueprint_registry import get_blueprint, list_blueprints
 from papyrus.domain.ingestion import IngestionStatus, has_mapping_result, truthful_ingestion_status
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.serializer import json_dump
 from papyrus.infrastructure.migrations import apply_runtime_schema
 from papyrus.infrastructure.parsers import parse_docx_bytes, parse_markdown_bytes, parse_pdf_bytes
-from papyrus.infrastructure.paths import BUILD_DIR, DB_PATH
+from papyrus.infrastructure.paths import BUILD_DIR, DB_PATH, ROOT
 from papyrus.infrastructure.repositories.ingestion_repo import (
     get_ingestion_job,
     insert_ingestion_artifact,
@@ -44,9 +45,12 @@ def _artifact_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:12]}"
 
 
+AUTHORITY = PolicyAuthority.from_repository_policy()
+
+
 def _truthful_status_from_row(row: sqlite3.Row) -> IngestionStatus:
     return truthful_ingestion_status(
-        stored_status=str(row["status"]),
+        stored_status=str(row["ingestion_state"] or row["status"]),
         mapping_result=json.loads(str(row["mapping_result_json"])),
         converted_revision_id=str(row["converted_revision_id"]) if row["converted_revision_id"] is not None else None,
     )
@@ -346,9 +350,16 @@ def ingest_file(
     file_path: str | Path,
     payload: bytes | None = None,
     database_path: Path = DB_PATH,
+    source_root: Path = ROOT,
 ) -> dict[str, Any]:
+    resolved_source_root = Path(source_root).resolve()
     path = Path(file_path)
     safe_filename = _safe_ingestion_filename(file_path)
+    if payload is None:
+        path = AUTHORITY.validate_local_ingest_source_path(
+            source_root=resolved_source_root,
+            candidate_path=path,
+        )
     parser_path = Path(safe_filename) if payload is not None else path
     parser_name, media_type, parsed = parse_file(file_path=parser_path, payload=payload)
     normalized = normalize_content(parsed)
@@ -373,6 +384,7 @@ def ingest_file(
             media_type=media_type,
             parser_name=parser_name,
             status=IngestionStatus.CLASSIFIED.value,
+            ingestion_state=IngestionStatus.CLASSIFIED.value,
             normalized_content_json=json_dump(normalized),
             classification_json=json_dump(classification),
             mapping_result_json=json_dump({}),
@@ -471,7 +483,7 @@ def ingestion_detail(*, ingestion_id: str, database_path: Path = DB_PATH) -> dic
             "source_path": str(row["source_path"]),
             "media_type": str(row["media_type"]),
             "parser_name": str(row["parser_name"]),
-            "status": _truthful_status_from_row(row).value,
+            "ingestion_state": _truthful_status_from_row(row).value,
             "normalized_content": json.loads(str(row["normalized_content_json"])),
             "classification": json.loads(str(row["classification_json"])),
             "mapping_result": json.loads(str(row["mapping_result_json"])),
@@ -494,7 +506,7 @@ def list_ingestions(*, database_path: Path = DB_PATH) -> list[dict[str, Any]]:
             {
                 "ingestion_id": str(row["ingestion_id"]),
                 "filename": str(row["filename"]),
-                "status": _truthful_status_from_row(row).value,
+                "ingestion_state": _truthful_status_from_row(row).value,
                 "blueprint_id": str(row["blueprint_id"]) if row["blueprint_id"] is not None else None,
                 "created_at": str(row["created_at"]),
                 "updated_at": str(row["updated_at"]),
@@ -523,11 +535,13 @@ def update_ingestion_mapping(
         current_status = _truthful_status_from_row(row)
         if current_status not in {IngestionStatus.CLASSIFIED, IngestionStatus.MAPPED}:
             raise ValueError("ingestion mapping can only be recorded after classification and before review")
+        AUTHORITY.require_ingestion_transition(current_status.value, IngestionStatus.MAPPED.value)
         created_at = _now_utc().isoformat()
         update_ingestion_job(
             connection,
             ingestion_id=ingestion_id,
             status=IngestionStatus.MAPPED.value,
+            ingestion_state=IngestionStatus.MAPPED.value,
             mapping_result_json=json_dump(mapping_result),
             blueprint_id=blueprint_id,
             updated_at=created_at,
@@ -573,11 +587,13 @@ def mark_ingestion_converted(
         mapping_result = json.loads(str(row["mapping_result_json"]))
         if _truthful_status_from_row(row) != IngestionStatus.MAPPED or not has_mapping_result(mapping_result):
             raise ValueError("ingestion must have a real mapping result before it can be reviewed and converted")
+        AUTHORITY.require_ingestion_transition(IngestionStatus.MAPPED.value, IngestionStatus.CONVERTED.value)
         created_at = _now_utc().isoformat()
         update_ingestion_job(
             connection,
             ingestion_id=ingestion_id,
-            status=IngestionStatus.REVIEWED.value,
+            status=IngestionStatus.CONVERTED.value,
+            ingestion_state=IngestionStatus.CONVERTED.value,
             converted_object_id=object_id,
             converted_revision_id=revision_id,
             updated_at=created_at,

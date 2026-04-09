@@ -31,10 +31,33 @@ class WorkflowAuditResult:
 
 
 @dataclass(frozen=True)
+class ArchiveObjectCommandResult:
+    object_id: str
+    revision_id: str
+    previous_canonical_path: str
+    archived_canonical_path: str
+    backup_path: Path | None
+    mutation_id: str
+    object_lifecycle_state: str
+    required_acknowledgements: tuple[str, ...]
+    source_of_truth: str
+    state_change: dict[str, str]
+    invalidated_assumptions: tuple[str, ...]
+    operator_message: str
+
+
+@dataclass(frozen=True)
 class SourceWritebackCommandResult:
     object_id: str
     revision_id: str
     file_path: Path
+    mutation_id: str
+    source_sync_state: str
+    required_acknowledgements: tuple[str, ...]
+    source_of_truth: str
+    state_change: dict[str, str]
+    invalidated_assumptions: tuple[str, ...]
+    operator_message: str
 
 
 @dataclass(frozen=True)
@@ -45,6 +68,12 @@ class SourceWritebackPreviewCommandResult:
     changed_fields: list[str]
     changed_sections: list[str]
     conflict_detected: bool
+    source_sync_state: str
+    required_acknowledgements: tuple[str, ...]
+    source_of_truth: str
+    state_change: dict[str, str]
+    invalidated_assumptions: tuple[str, ...]
+    operator_message: str
 
 
 @dataclass(frozen=True)
@@ -55,6 +84,13 @@ class SourceWritebackRestoreCommandResult:
     restored_event_id: str
     backup_path: Path | None
     restored_to_missing: bool
+    mutation_id: str
+    source_sync_state: str
+    required_acknowledgements: tuple[str, ...]
+    source_of_truth: str
+    state_change: dict[str, str]
+    invalidated_assumptions: tuple[str, ...]
+    operator_message: str
 
 
 @dataclass(frozen=True)
@@ -144,6 +180,26 @@ def supersede_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> Kn
     return governance_workflow(database_path, source_root=source_root).supersede_object(**kwargs)
 
 
+def archive_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> ArchiveObjectCommandResult:
+    source_root = Path(kwargs.pop("source_root", ROOT))
+    _require_actor_in_kwargs(kwargs)
+    result = governance_workflow(database_path, source_root=source_root).archive_object(**kwargs)
+    return ArchiveObjectCommandResult(
+        object_id=str(result["object_id"]),
+        revision_id=str(result["revision_id"]),
+        previous_canonical_path=str(result["previous_canonical_path"]),
+        archived_canonical_path=str(result["archived_canonical_path"]),
+        backup_path=result["backup_path"],
+        mutation_id=str(result["mutation_id"]),
+        object_lifecycle_state=str(result["object_lifecycle_state"]),
+        required_acknowledgements=tuple(str(item) for item in result["required_acknowledgements"]),
+        source_of_truth=str(result["source_of_truth"]),
+        state_change=dict(result["state_change"]),
+        invalidated_assumptions=tuple(str(item) for item in result["invalidated_assumptions"]),
+        operator_message=str(result["operator_message"]),
+    )
+
+
 def writeback_object_command(
     *,
     database_path: Path = DB_PATH,
@@ -162,6 +218,13 @@ def writeback_object_command(
         object_id=result.object_id,
         revision_id=result.revision_id,
         file_path=result.file_path,
+        mutation_id=result.mutation_id,
+        source_sync_state=result.source_sync_state,
+        required_acknowledgements=result.required_acknowledgements,
+        source_of_truth=result.source_of_truth,
+        state_change=result.state_change,
+        invalidated_assumptions=result.invalidated_assumptions,
+        operator_message=result.operator_message,
     )
 
 
@@ -182,6 +245,13 @@ def writeback_all_command(
             object_id=result.object_id,
             revision_id=result.revision_id,
             file_path=result.file_path,
+            mutation_id=result.mutation_id,
+            source_sync_state=result.source_sync_state,
+            required_acknowledgements=result.required_acknowledgements,
+            source_of_truth=result.source_of_truth,
+            state_change=result.state_change,
+            invalidated_assumptions=result.invalidated_assumptions,
+            operator_message=result.operator_message,
         )
         for result in results
     ]
@@ -207,6 +277,12 @@ def preview_writeback_command(
         changed_fields=result.changed_fields,
         changed_sections=result.changed_sections,
         conflict_detected=result.conflict_detected,
+        source_sync_state=result.source_sync_state,
+        required_acknowledgements=result.required_acknowledgements,
+        source_of_truth=result.source_of_truth,
+        state_change=result.state_change,
+        invalidated_assumptions=result.invalidated_assumptions,
+        operator_message=result.operator_message,
     )
 
 
@@ -233,6 +309,13 @@ def restore_writeback_command(
         restored_event_id=result.restored_event_id,
         backup_path=result.backup_path,
         restored_to_missing=result.restored_to_missing,
+        mutation_id=result.mutation_id,
+        source_sync_state=result.source_sync_state,
+        required_acknowledgements=result.required_acknowledgements,
+        source_of_truth=result.source_of_truth,
+        state_change=result.state_change,
+        invalidated_assumptions=result.invalidated_assumptions,
+        operator_message=result.operator_message,
     )
 
 

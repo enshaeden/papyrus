@@ -4,7 +4,7 @@ Use this page when you need the minimum shared model behind Papyrus. Each rule i
 
 ## Operating Boundary
 
-Papyrus has one authoritative layer, rebuildable derived state, and two governed construction flows:
+Papyrus has one authoritative policy layer for governed mutations, rebuildable derived state, and two governed construction flows:
 
 - Canonical source: Markdown knowledge under `knowledge/` and `archive/knowledge/`
 - Runtime derived state: rebuildable relational state and local workbench artifacts under `build/` used for validation, search, reporting, revision history, trust, governance views, ingestion review, and demo seeding
@@ -21,7 +21,7 @@ If these layers disagree, canonical source wins and the runtime or export must b
 | Knowledge object model | Papyrus treats runbooks, known errors, service records, policies, and system designs as first-class knowledge objects with stable identity. | Stable identity lets the runtime track revisions, relationships, services, and evidence over time. | Duplicate or forked objects fragment history, trust, and ownership. |
 | Blueprint model | Blueprints define section structure, ordering, required content, validation rules, evidence requirements, and lifecycle defaults for each knowledge object type. | Papyrus needs one central definition of valid operational knowledge instead of ad-hoc form rules or freeform blobs. | Different surfaces drift, validation becomes inconsistent, and drafts stop converging on a reliable structure. |
 | Blueprint versus template boundary | Approved templates may still scaffold source files, but blueprints are the authoritative structure for guided authoring and ingestion. | Source scaffolding and runtime authoring solve different problems and should not be confused. | Operators mistake a file scaffold for governed authoring behavior and bypass progress, validation, or evidence expectations. |
-| Source writeback | Approved revisions write back to canonical Markdown through a deterministic application-layer flow. | Runtime governance must close the loop back to the authoritative source without manual sync work. | Runtime and source drift, reviewers approve one state while operators read another, or people patch files outside the governed path. |
+| Source sync | Approved revisions can write back to canonical Markdown through a journaled mutation flow with explicit `source_sync_state`. Preview and apply run canonical-path policy, conflict detection, and recovery rules before changing source. | Runtime governance must close the loop back to the authoritative source without manual sync work or silent overwrite. | Runtime and source drift, hostile path handling bugs, reviewers approve one state while operators read another, or people patch files outside the governed path. |
 | Revision lifecycle | Revisions move independently of object lifecycle so draft, in-review, approved, rejected, and superseded states can be tracked cleanly. | Review decisions apply to a revision, not to an abstract file snapshot. | Review history becomes ambiguous and operators cannot tell which version was approved. |
 | Unified draft model | Native drafts and imported drafts both use the same runtime revision shape with `blueprint_id`, structured section content, completion state, and derived Markdown. | Papyrus should not carry a separate imported-content lifecycle after conversion. | Imported content behaves like a special case, lifecycle rules diverge, and review posture becomes inconsistent. |
 | Object lifecycle | Source objects still use `draft`, `active`, `deprecated`, and `archived` lifecycle states. | Lifecycle answers whether the object should appear in normal operational use. | Deprecated or archived guidance may be treated as current, or active guidance may disappear from the wrong views. |
@@ -34,6 +34,16 @@ If these layers disagree, canonical source wins and the runtime or export must b
 | Validation and reporting | Validation enforces schema, taxonomy, metadata, link, citation, and repository rules; reporting exposes stale, duplicate, broken, isolated, or suspect content. | Papyrus depends on controlled structure and visible drift signals. | Invalid or low-quality knowledge enters the corpus and governance problems stay hidden. |
 | Runtime versus source of truth | The runtime is a rebuildable projection of canonical source plus governance state. | Search, trust, queue, and impact views need relational state without making generated data authoritative. | People patch derived state by hand or trust stale runtime output over source. |
 | Export model | Static export is an approval-gated publication surface for approved knowledge only. | Publishing and browseability are useful, but they are not the operational control plane. | Draft or unreviewed material leaks into published output, or operators mistake export pages for the live governance surface. |
+
+## Explicit State Machines
+
+- `object_lifecycle_state`: `draft -> active -> deprecated -> archived`
+- `revision_review_state`: `draft -> in_review -> approved`, `in_review -> rejected`, `approved -> superseded`, `rejected -> draft`
+- `draft_progress_state`: `blocked`, `in_progress`, `ready_for_review`
+- `ingestion_state`: `uploaded -> parsed -> classified -> mapped -> converted`
+- `source_sync_state`: `not_required`, `pending`, `applied`, `conflicted`, `restored`
+
+Papyrus still projects compatibility aliases such as `status`, `revision_state`, `draft_state`, and `approval_state` in some read surfaces. Those aliases are presentation and query compatibility fields, not the authoritative policy contract.
 
 ## Commands That Exercise The Model
 
@@ -58,10 +68,10 @@ python3 scripts/operator_view.py events --db build/knowledge.db --format json
 - Edit canonical knowledge in `knowledge/` or `archive/knowledge/`.
 - Start new authoring from a blueprint, not from a blank editor.
 - Route external documents through the import workbench before they become drafts.
-- In web mode, browser upload is the normal import path; browser-submitted local file reads require explicit local-operator opt-in and an absolute host path.
+- In web mode, browser upload is the normal import path; browser-submitted local file reads require explicit local-operator opt-in, an absolute host path, and an allowlisted local read root.
 - Use guided section editing as the primary web authoring path. The bulk draft fallback is an explicit operator fallback, not a co-equal drafting model.
 - Treat `build/ingestions/` and any demo source created under `build/` as disposable runtime artifacts, not repository source.
-- Use governed writeback rather than manual file sync when an approved runtime revision becomes canonical.
+- Use governed source sync rather than manual file sync when an approved runtime revision becomes canonical.
 - Prefer one canonical procedure plus linked site deltas over copy-based regional variants.
 - Do not patch generated files in `generated/`, `build/`, or `site/`.
 - Validate before treating a revision as ready.

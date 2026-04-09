@@ -8,8 +8,10 @@ import uuid
 
 from papyrus.application.authoring_flow import compute_completion_state, derive_section_content
 from papyrus.application.blueprint_registry import get_blueprint
+from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.validation_flow import validate_knowledge_documents
 from papyrus.application.runtime_projection import persist_revision_artifacts, refresh_current_object_projection, service_id
+from papyrus.domain.lifecycle import DraftProgressState, RevisionReviewState, SourceSyncState
 from papyrus.domain.policies import bootstrap_revision_state, runtime_trust_state
 from papyrus.domain.value_objects import RevisionReviewStatus
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
@@ -41,6 +43,9 @@ from papyrus.jobs.stale_scan import cadence_to_days
 def _content_hash(normalized_metadata_json: str, body: str) -> str:
     return hashlib.sha256(f"{normalized_metadata_json}\n{body}".encode("utf-8")).hexdigest()
 
+
+AUTHORITY = PolicyAuthority.from_repository_policy()
+
 def _event_id(prefix: str, object_id: str | None, revision_id: str | None, now_iso: str) -> str:
     del object_id, revision_id, now_iso
     return f"{prefix}-{uuid.uuid4().hex[:12]}"
@@ -53,7 +58,7 @@ def _sync_revision_state(
     status: str,
 ) -> str:
     if existing_revision is not None:
-        return str(existing_revision["revision_state"])
+        return str(existing_revision["revision_review_state"] or existing_revision["revision_state"])
     if existing_object is None:
         return bootstrap_revision_state(status)
     return RevisionReviewStatus.DRAFT.value
@@ -185,6 +190,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                 title=str(parsed.metadata["title"]),
                 summary=str(parsed.metadata["summary"]),
                 status=str(parsed.metadata["status"]),
+                object_lifecycle_state=str(parsed.metadata["status"]),
                 owner=str(parsed.metadata["owner"]),
                 team=str(parsed.metadata["team"]),
                 canonical_path=document.relative_path,
@@ -196,24 +202,30 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                 last_reviewed=date_to_iso(parsed.metadata["last_reviewed"]),
                 review_cadence=str(parsed.metadata["review_cadence"]),
                 trust_state=trust_state,
+                source_sync_state=SourceSyncState.APPLIED.value,
+                source_sync_revision_id=revision_id,
+                source_sync_content_hash=revision_hash,
                 current_revision_id=revision_id,
                 tags_json=json_dump(parsed.metadata.get("tags", [])),
                 systems_json=json_dump(parsed.metadata.get("systems", [])),
             )
 
             if existing_revision is None:
+                draft_progress_state = (
+                    section_completion["draft_state"]
+                    if revision_state == RevisionReviewStatus.DRAFT.value
+                    else DraftProgressState.READY_FOR_REVIEW.value
+                )
                 insert_knowledge_revision(
                     connection,
                     revision_id=revision_id,
                     object_id=document.knowledge_object_id,
                     revision_number=revision_number,
                     revision_state=revision_state,
+                    revision_review_state=revision_state,
                     blueprint_id=parsed.object_type,
-                    draft_state=(
-                        section_completion["draft_state"]
-                        if revision_state == RevisionReviewStatus.DRAFT.value
-                        else "ready_for_review"
-                    ),
+                    draft_state=draft_progress_state,
+                    draft_progress_state=draft_progress_state,
                     source_path=document.relative_path,
                     content_hash=revision_hash,
                     body_markdown=document.body,
@@ -246,10 +258,18 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                 object_type=parsed.object_type,
                 legacy_type=parsed.legacy_type,
                 status=str(parsed.metadata["status"]),
+                object_lifecycle_state=str(parsed.metadata["status"]),
                 owner=str(parsed.metadata["owner"]),
                 team=str(parsed.metadata["team"]),
                 trust_state=trust_state,
                 approval_state=revision_state,
+                revision_review_state=revision_state,
+                draft_progress_state=(
+                    section_completion["draft_state"]
+                    if revision_state == RevisionReviewStatus.DRAFT.value
+                    else DraftProgressState.READY_FOR_REVIEW.value
+                ),
+                source_sync_state=SourceSyncState.APPLIED.value,
                 freshness_rank=parsed.freshness_rank,
                 citation_health_rank=parsed.citation_health_rank,
                 ownership_rank=parsed.ownership_rank,

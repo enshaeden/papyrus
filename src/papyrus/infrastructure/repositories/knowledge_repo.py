@@ -316,10 +316,14 @@ def upsert_search_document(
     object_type: str,
     legacy_type: str | None,
     status: str,
+    object_lifecycle_state: str | None = None,
     owner: str,
     team: str,
     trust_state: str,
     approval_state: str,
+    revision_review_state: str | None = None,
+    draft_progress_state: str | None = None,
+    source_sync_state: str | None = None,
     freshness_rank: int,
     citation_health_rank: int,
     ownership_rank: int,
@@ -336,16 +340,20 @@ def upsert_search_document(
             object_type,
             legacy_type,
             status,
+            object_lifecycle_state,
             owner,
             team,
             trust_state,
             approval_state,
+            revision_review_state,
+            draft_progress_state,
+            source_sync_state,
             freshness_rank,
             citation_health_rank,
             ownership_rank,
             path,
             search_text
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(object_id) DO UPDATE SET
             revision_id = excluded.revision_id,
             title = excluded.title,
@@ -353,10 +361,14 @@ def upsert_search_document(
             object_type = excluded.object_type,
             legacy_type = excluded.legacy_type,
             status = excluded.status,
+            object_lifecycle_state = excluded.object_lifecycle_state,
             owner = excluded.owner,
             team = excluded.team,
             trust_state = excluded.trust_state,
             approval_state = excluded.approval_state,
+            revision_review_state = excluded.revision_review_state,
+            draft_progress_state = excluded.draft_progress_state,
+            source_sync_state = excluded.source_sync_state,
             freshness_rank = excluded.freshness_rank,
             citation_health_rank = excluded.citation_health_rank,
             ownership_rank = excluded.ownership_rank,
@@ -371,10 +383,14 @@ def upsert_search_document(
             object_type,
             legacy_type,
             status,
+            object_lifecycle_state or status,
             owner,
             team,
             trust_state,
             approval_state,
+            revision_review_state or approval_state,
+            draft_progress_state or "ready_for_review",
+            source_sync_state or "not_required",
             freshness_rank,
             citation_health_rank,
             ownership_rank,
@@ -436,6 +452,7 @@ def insert_knowledge_object(
     title: str,
     summary: str,
     status: str,
+    object_lifecycle_state: str | None = None,
     owner: str,
     team: str,
     canonical_path: str,
@@ -447,6 +464,10 @@ def insert_knowledge_object(
     last_reviewed: str,
     review_cadence: str,
     trust_state: str,
+    source_sync_state: str | None = None,
+    source_sync_revision_id: str | None = None,
+    source_sync_content_hash: str | None = None,
+    source_sync_mutation_id: str | None = None,
     current_revision_id: str | None,
     tags_json: str,
     systems_json: str,
@@ -460,6 +481,7 @@ def insert_knowledge_object(
             title,
             summary,
             status,
+            object_lifecycle_state,
             owner,
             team,
             canonical_path,
@@ -471,10 +493,14 @@ def insert_knowledge_object(
             last_reviewed,
             review_cadence,
             trust_state,
+            source_sync_state,
+            source_sync_revision_id,
+            source_sync_content_hash,
+            source_sync_mutation_id,
             current_revision_id,
             tags_json,
             systems_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             object_id,
@@ -483,6 +509,7 @@ def insert_knowledge_object(
             title,
             summary,
             status,
+            object_lifecycle_state or status,
             owner,
             team,
             canonical_path,
@@ -494,6 +521,10 @@ def insert_knowledge_object(
             last_reviewed,
             review_cadence,
             trust_state,
+            source_sync_state or "not_required",
+            source_sync_revision_id,
+            source_sync_content_hash,
+            source_sync_mutation_id,
             current_revision_id,
             tags_json,
             systems_json,
@@ -510,6 +541,7 @@ def upsert_knowledge_object(
     title: str,
     summary: str,
     status: str,
+    object_lifecycle_state: str | None = None,
     owner: str,
     team: str,
     canonical_path: str,
@@ -521,6 +553,10 @@ def upsert_knowledge_object(
     last_reviewed: str,
     review_cadence: str,
     trust_state: str,
+    source_sync_state: str | None = None,
+    source_sync_revision_id: str | None = None,
+    source_sync_content_hash: str | None = None,
+    source_sync_mutation_id: str | None = None,
     current_revision_id: str | None,
     tags_json: str,
     systems_json: str,
@@ -534,6 +570,7 @@ def upsert_knowledge_object(
             title,
             summary,
             status,
+            object_lifecycle_state,
             owner,
             team,
             canonical_path,
@@ -545,16 +582,21 @@ def upsert_knowledge_object(
             last_reviewed,
             review_cadence,
             trust_state,
+            source_sync_state,
+            source_sync_revision_id,
+            source_sync_content_hash,
+            source_sync_mutation_id,
             current_revision_id,
             tags_json,
             systems_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(object_id) DO UPDATE SET
             object_type = excluded.object_type,
             legacy_type = excluded.legacy_type,
             title = excluded.title,
             summary = excluded.summary,
             status = excluded.status,
+            object_lifecycle_state = excluded.object_lifecycle_state,
             owner = excluded.owner,
             team = excluded.team,
             canonical_path = excluded.canonical_path,
@@ -566,6 +608,10 @@ def upsert_knowledge_object(
             last_reviewed = excluded.last_reviewed,
             review_cadence = excluded.review_cadence,
             trust_state = excluded.trust_state,
+            source_sync_state = excluded.source_sync_state,
+            source_sync_revision_id = excluded.source_sync_revision_id,
+            source_sync_content_hash = excluded.source_sync_content_hash,
+            source_sync_mutation_id = excluded.source_sync_mutation_id,
             current_revision_id = excluded.current_revision_id,
             tags_json = excluded.tags_json,
             systems_json = excluded.systems_json
@@ -577,6 +623,7 @@ def upsert_knowledge_object(
             title,
             summary,
             status,
+            object_lifecycle_state or status,
             owner,
             team,
             canonical_path,
@@ -588,6 +635,10 @@ def upsert_knowledge_object(
             last_reviewed,
             review_cadence,
             trust_state,
+            source_sync_state or "not_required",
+            source_sync_revision_id,
+            source_sync_content_hash,
+            source_sync_mutation_id,
             current_revision_id,
             tags_json,
             systems_json,
@@ -602,8 +653,10 @@ def insert_knowledge_revision(
     object_id: str,
     revision_number: int,
     revision_state: str,
+    revision_review_state: str | None = None,
     blueprint_id: str = "",
     draft_state: str = "ready_for_review",
+    draft_progress_state: str | None = None,
     source_path: str,
     content_hash: str,
     body_markdown: str,
@@ -621,8 +674,10 @@ def insert_knowledge_revision(
             object_id,
             revision_number,
             revision_state,
+            revision_review_state,
             blueprint_id,
             draft_state,
+            draft_progress_state,
             source_path,
             content_hash,
             body_markdown,
@@ -632,15 +687,17 @@ def insert_knowledge_revision(
             legacy_metadata_json,
             imported_at,
             change_summary
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             revision_id,
             object_id,
             revision_number,
             revision_state,
+            revision_review_state or revision_state,
             blueprint_id,
             draft_state,
+            draft_progress_state or draft_state,
             source_path,
             content_hash,
             body_markdown,
@@ -663,6 +720,7 @@ def update_knowledge_revision_content(
     normalized_payload_json: str,
     blueprint_id: str,
     draft_state: str,
+    draft_progress_state: str | None = None,
     section_content_json: str,
     section_completion_json: str,
     change_summary: str | None,
@@ -675,6 +733,7 @@ def update_knowledge_revision_content(
             normalized_payload_json = ?,
             blueprint_id = ?,
             draft_state = ?,
+            draft_progress_state = ?,
             section_content_json = ?,
             section_completion_json = ?,
             change_summary = ?
@@ -686,6 +745,7 @@ def update_knowledge_revision_content(
             normalized_payload_json,
             blueprint_id,
             draft_state,
+            draft_progress_state or draft_state,
             section_content_json,
             section_completion_json,
             change_summary,
@@ -698,21 +758,49 @@ def update_knowledge_object_runtime_state(
     connection: sqlite3.Connection,
     *,
     object_id: str,
+    canonical_path: str | None = None,
     status: str | None = None,
+    object_lifecycle_state: str | None = None,
     trust_state: str | None = None,
+    source_sync_state: str | None = None,
+    source_sync_revision_id: str | None = None,
+    source_sync_content_hash: str | None = None,
+    source_sync_mutation_id: str | None = None,
     current_revision_id: str | None = None,
+    updated_date: str | None = None,
 ) -> None:
     assignments: list[str] = []
     values: list[str | None] = []
+    if canonical_path is not None:
+        assignments.append("canonical_path = ?")
+        values.append(canonical_path)
     if status is not None:
         assignments.append("status = ?")
         values.append(status)
+    if object_lifecycle_state is not None:
+        assignments.append("object_lifecycle_state = ?")
+        values.append(object_lifecycle_state)
     if trust_state is not None:
         assignments.append("trust_state = ?")
         values.append(trust_state)
+    if source_sync_state is not None:
+        assignments.append("source_sync_state = ?")
+        values.append(source_sync_state)
+    if source_sync_revision_id is not None:
+        assignments.append("source_sync_revision_id = ?")
+        values.append(source_sync_revision_id)
+    if source_sync_content_hash is not None:
+        assignments.append("source_sync_content_hash = ?")
+        values.append(source_sync_content_hash)
+    if source_sync_mutation_id is not None:
+        assignments.append("source_sync_mutation_id = ?")
+        values.append(source_sync_mutation_id)
     if current_revision_id is not None:
         assignments.append("current_revision_id = ?")
         values.append(current_revision_id)
+    if updated_date is not None:
+        assignments.append("updated_date = ?")
+        values.append(updated_date)
     if not assignments:
         return
     values.append(object_id)
@@ -727,8 +815,16 @@ def update_knowledge_revision_state(
     *,
     revision_id: str,
     revision_state: str,
+    revision_review_state: str | None = None,
+    draft_progress_state: str | None = None,
 ) -> None:
+    assignments = ["revision_state = ?", "revision_review_state = ?"]
+    values: list[str] = [revision_state, revision_review_state or revision_state]
+    if draft_progress_state is not None:
+        assignments.append("draft_progress_state = ?")
+        values.append(draft_progress_state)
+    values.append(revision_id)
     connection.execute(
-        "UPDATE knowledge_revisions SET revision_state = ? WHERE revision_id = ?",
-        (revision_state, revision_id),
+        f"UPDATE knowledge_revisions SET {', '.join(assignments)} WHERE revision_id = ?",
+        tuple(values),
     )

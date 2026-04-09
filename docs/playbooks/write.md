@@ -214,8 +214,8 @@ Use the runtime-backed queue and revision history surfaces during review so the 
 Current repository boundary:
 
 - inspection happens through the runtime-backed queue, revision, CLI parity, and object detail views
-- approval-state changes are tracked in the governance workflow layer rather than through ad-hoc file or database edits
-- approved revisions become canonical guidance through explicit writeback preview and approval flow, not through hidden source mutation
+- approval-state changes are tracked through explicit `revision_review_state`, `object_lifecycle_state`, `draft_progress_state`, and `source_sync_state` transitions rather than through ad-hoc file or database edits
+- approved revisions become canonical guidance through explicit source-sync preview and approval flow, not through hidden source mutation
 - imported drafts and native drafts enter the same review path after conversion
 
 ## Handle Rejection Or Follow-Up Revision
@@ -240,4 +240,5 @@ python3 scripts/source_sync.py restore-last --object <object_id>
 ```
 
 - `preview` shows the changed fields, changed sections, and whether the canonical source has drifted unexpectedly.
-- `restore-last` restores the most recent backed-up canonical state and records the recovery in the audit trail.
+- `preview` also reports the proposed `source_sync_state`, required acknowledgements, and which prior assumptions stop being safe after apply.
+- `restore-last` restores the most recent backed-up canonical state, records the recovery in the audit trail, and leaves the object in explicit `restored` source-sync state.

@@ -8,7 +8,18 @@ import sys
 from pathlib import Path
 
 from papyrus.application.authoring_flow import create_draft_from_blueprint, update_section, validate_draft_progress
-from papyrus.application.commands import create_object_command
+from papyrus.application.commands import (
+    archive_object_command,
+    approve_revision_command,
+    assign_reviewer_command,
+    create_object_command,
+    mark_object_suspect_due_to_change_command,
+    reject_revision_command,
+    restore_writeback_command,
+    submit_for_review_command,
+    supersede_object_command,
+    writeback_object_command,
+)
 from papyrus.application.ingestion_flow import ingest_file, ingestion_detail, list_ingestions
 from papyrus.application.mapping_flow import convert_to_draft
 from papyrus.application.commands import build_projection_command, validate_repository_command
@@ -94,7 +105,7 @@ def search_main() -> int:
 
     for row in rows:
         print(
-            f"{row.object_id} | {row.title} | {row.content_type} | {row.status} | "
+            f"{row.object_id} | {row.title} | {row.content_type} | {row.object_lifecycle_state} | "
             f"{row.path}\n  {row.summary}"
         )
     return 0
@@ -281,6 +292,54 @@ def operator_main() -> int:
     edit_section_parser.add_argument("--field", action="append", default=[], help="Field assignment in name=value form. Use a|b|c for list values.")
     edit_section_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
 
+    submit_review_parser = subparsers.add_parser("submit-review", help="Submit a draft revision for review.", parents=[common])
+    submit_review_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    submit_review_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+    submit_review_parser.add_argument("--notes", default=None, help="Optional submission notes.")
+    submit_review_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+
+    assign_review_parser = subparsers.add_parser("assign-reviewer", help="Assign a reviewer to an in-review revision.", parents=[common])
+    assign_review_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    assign_review_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+    assign_review_parser.add_argument("--reviewer", required=True, help="Reviewer identifier.")
+    assign_review_parser.add_argument("--due-at", default=None, help="Optional ISO timestamp.")
+    assign_review_parser.add_argument("--notes", default=None, help="Optional assignment notes.")
+    assign_review_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+
+    approve_review_parser = subparsers.add_parser("approve-review", help="Approve an in-review revision.", parents=[common])
+    approve_review_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    approve_review_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+    approve_review_parser.add_argument("--reviewer", required=True, help="Reviewer identifier.")
+    approve_review_parser.add_argument("--notes", default=None, help="Optional approval notes.")
+    approve_review_parser.add_argument("--actor", default="local.reviewer", help="Actor for the governed change.")
+
+    reject_review_parser = subparsers.add_parser("reject-review", help="Reject an in-review revision.", parents=[common])
+    reject_review_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    reject_review_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+    reject_review_parser.add_argument("--reviewer", required=True, help="Reviewer identifier.")
+    reject_review_parser.add_argument("--notes", required=True, help="Rejection notes.")
+    reject_review_parser.add_argument("--actor", default="local.reviewer", help="Actor for the governed change.")
+
+    supersede_parser = subparsers.add_parser("supersede-object", help="Deprecate an object in favor of a replacement.", parents=[common])
+    supersede_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    supersede_parser.add_argument("--replacement", required=True, dest="replacement_object_id", help="Replacement object ID.")
+    supersede_parser.add_argument("--notes", default=None, help="Optional supersede notes.")
+    supersede_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+
+    archive_parser = subparsers.add_parser("archive-object", help="Archive a deprecated object and move its canonical file under archive/knowledge/.", parents=[common])
+    archive_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    archive_parser.add_argument("--retirement-reason", required=True, help="Required rationale for archival.")
+    archive_parser.add_argument("--notes", default=None, help="Optional operator notes for the archive action.")
+    archive_parser.add_argument("--ack", action="append", default=[], help="Required acknowledgement token. Repeat for multiple acknowledgements.")
+    archive_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+
+    suspect_parser = subparsers.add_parser("mark-suspect", help="Mark an object suspect due to a change event.", parents=[common])
+    suspect_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    suspect_parser.add_argument("--reason", required=True, help="Reason for suspect posture.")
+    suspect_parser.add_argument("--changed-entity-type", required=True, help="Changed entity type.")
+    suspect_parser.add_argument("--changed-entity-id", default=None, help="Optional changed entity ID.")
+    suspect_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+
     show_progress_parser = subparsers.add_parser("show-progress", help="Show structured draft completion state.", parents=[common])
     show_progress_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
     show_progress_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
@@ -301,6 +360,19 @@ def operator_main() -> int:
     convert_ingestion_parser.add_argument("--status", default="draft", help="Lifecycle status.")
     convert_ingestion_parser.add_argument("--audience", default="service_desk", help="Audience.")
     convert_ingestion_parser.add_argument("--actor", default="local.operator", help="Actor.")
+
+    preview_sync_parser = subparsers.add_parser("preview-source-sync", help="Preview canonical source sync for a revision.", parents=[common])
+    preview_sync_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    preview_sync_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+
+    apply_sync_parser = subparsers.add_parser("apply-source-sync", help="Apply canonical source sync for the current approved revision.", parents=[common])
+    apply_sync_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    apply_sync_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+
+    restore_sync_parser = subparsers.add_parser("restore-source-sync", help="Restore the last canonical source sync.", parents=[common])
+    restore_sync_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    restore_sync_parser.add_argument("--revision", default=None, dest="revision_id", help="Optional revision ID.")
+    restore_sync_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
 
     args = parser.parse_args()
     database_path = args.db or str(DB_PATH)
@@ -381,6 +453,150 @@ def operator_main() -> int:
             output_format=output_format,
         )
 
+    if args.command == "submit-review":
+        result = submit_for_review_command(
+            database_path=Path(database_path),
+            source_root=source_root,
+            object_id=args.object_id,
+            revision_id=args.revision_id,
+            actor=args.actor,
+            notes=args.notes,
+        )
+        return _emit_payload(
+            {
+                "object_id": args.object_id,
+                "revision_id": args.revision_id,
+                "event_type": result.event.event_type,
+                "details": result.event.details,
+            },
+            output_format=output_format,
+        )
+
+    if args.command == "assign-reviewer":
+        due_at = dt.datetime.fromisoformat(args.due_at) if args.due_at else None
+        assignment = assign_reviewer_command(
+            database_path=Path(database_path),
+            source_root=source_root,
+            object_id=args.object_id,
+            revision_id=args.revision_id,
+            reviewer=args.reviewer,
+            actor=args.actor,
+            due_at=due_at,
+            notes=args.notes,
+        )
+        return _emit_payload(
+            {
+                "object_id": args.object_id,
+                "revision_id": args.revision_id,
+                "assignment_id": assignment.assignment_id,
+                "reviewer": assignment.reviewer,
+                "state": assignment.state,
+            },
+            output_format=output_format,
+        )
+
+    if args.command == "approve-review":
+        approved = approve_revision_command(
+            database_path=Path(database_path),
+            source_root=source_root,
+            object_id=args.object_id,
+            revision_id=args.revision_id,
+            reviewer=args.reviewer,
+            actor=args.actor,
+            notes=args.notes,
+        )
+        return _emit_payload(
+            {
+                "object_id": approved.object_id,
+                "revision_id": approved.revision_id,
+                "revision_review_state": approved.state,
+            },
+            output_format=output_format,
+        )
+
+    if args.command == "reject-review":
+        rejected = reject_revision_command(
+            database_path=Path(database_path),
+            source_root=source_root,
+            object_id=args.object_id,
+            revision_id=args.revision_id,
+            reviewer=args.reviewer,
+            actor=args.actor,
+            notes=args.notes,
+        )
+        return _emit_payload(
+            {
+                "object_id": rejected.object_id,
+                "revision_id": rejected.revision_id,
+                "revision_review_state": rejected.state,
+            },
+            output_format=output_format,
+        )
+
+    if args.command == "supersede-object":
+        result = supersede_object_command(
+            database_path=Path(database_path),
+            source_root=source_root,
+            object_id=args.object_id,
+            replacement_object_id=args.replacement_object_id,
+            actor=args.actor,
+            notes=args.notes,
+        )
+        return _emit_payload(
+            {
+                "object_id": result.object_id,
+                "object_lifecycle_state": result.status,
+                "replacement_object_id": args.replacement_object_id,
+            },
+            output_format=output_format,
+        )
+
+    if args.command == "archive-object":
+        result = archive_object_command(
+            database_path=Path(database_path),
+            source_root=source_root,
+            object_id=args.object_id,
+            actor=args.actor,
+            retirement_reason=args.retirement_reason,
+            notes=args.notes,
+            acknowledgements=args.ack,
+        )
+        return _emit_payload(
+            {
+                "object_id": result.object_id,
+                "revision_id": result.revision_id,
+                "previous_canonical_path": result.previous_canonical_path,
+                "archived_canonical_path": result.archived_canonical_path,
+                "backup_path": str(result.backup_path) if result.backup_path is not None else None,
+                "mutation_id": result.mutation_id,
+                "object_lifecycle_state": result.object_lifecycle_state,
+                "required_acknowledgements": list(result.required_acknowledgements),
+                "source_of_truth": result.source_of_truth,
+                "state_change": result.state_change,
+                "invalidated_assumptions": list(result.invalidated_assumptions),
+                "operator_message": result.operator_message,
+            },
+            output_format=output_format,
+        )
+
+    if args.command == "mark-suspect":
+        result = mark_object_suspect_due_to_change_command(
+            database_path=Path(database_path),
+            object_id=args.object_id,
+            actor=args.actor,
+            reason=args.reason,
+            changed_entity_type=args.changed_entity_type,
+            changed_entity_id=args.changed_entity_id,
+        )
+        return _emit_payload(
+            {
+                "object_id": args.object_id,
+                "event_type": result.event.event_type,
+                "details": result.event.details,
+            },
+            output_format=output_format,
+        )
+
     if args.command == "show-progress":
         payload = validate_draft_progress(
             object_id=args.object_id,
@@ -415,6 +631,81 @@ def operator_main() -> int:
             source_root=source_root,
         )
         return _emit_payload(payload, output_format=output_format)
+
+    if args.command == "preview-source-sync":
+        preview = preview_revision_writeback(
+            database_path=Path(database_path),
+            object_id=args.object_id,
+            revision_id=args.revision_id,
+            root_path=source_root,
+        )
+        return _emit_payload(
+            {
+                "object_id": preview.object_id,
+                "revision_id": preview.revision_id,
+                "file_path": str(preview.file_path),
+                "changed_fields": preview.changed_fields,
+                "changed_sections": preview.changed_sections,
+                "conflict_detected": preview.conflict_detected,
+                "source_sync_state": preview.source_sync_state,
+                "required_acknowledgements": list(preview.required_acknowledgements),
+                "source_of_truth": preview.source_of_truth,
+                "state_change": preview.state_change,
+                "invalidated_assumptions": list(preview.invalidated_assumptions),
+                "operator_message": preview.operator_message,
+            },
+            output_format=output_format,
+        )
+
+    if args.command == "apply-source-sync":
+        result = writeback_object_command(
+            database_path=Path(database_path),
+            object_id=args.object_id,
+            actor=args.actor,
+            source_root=source_root,
+        )
+        return _emit_payload(
+            {
+                "object_id": result.object_id,
+                "revision_id": result.revision_id,
+                "file_path": str(result.file_path),
+                "mutation_id": result.mutation_id,
+                "source_sync_state": result.source_sync_state,
+                "required_acknowledgements": list(result.required_acknowledgements),
+                "source_of_truth": result.source_of_truth,
+                "state_change": result.state_change,
+                "invalidated_assumptions": list(result.invalidated_assumptions),
+                "operator_message": result.operator_message,
+            },
+            output_format=output_format,
+        )
+
+    if args.command == "restore-source-sync":
+        result = restore_writeback_command(
+            database_path=Path(database_path),
+            object_id=args.object_id,
+            actor=args.actor,
+            revision_id=args.revision_id,
+            source_root=source_root,
+        )
+        return _emit_payload(
+            {
+                "object_id": result.object_id,
+                "revision_id": result.revision_id,
+                "file_path": str(result.file_path),
+                "restored_event_id": result.restored_event_id,
+                "backup_path": str(result.backup_path) if result.backup_path is not None else None,
+                "restored_to_missing": result.restored_to_missing,
+                "mutation_id": result.mutation_id,
+                "source_sync_state": result.source_sync_state,
+                "required_acknowledgements": list(result.required_acknowledgements),
+                "source_of_truth": result.source_of_truth,
+                "state_change": result.state_change,
+                "invalidated_assumptions": list(result.invalidated_assumptions),
+                "operator_message": result.operator_message,
+            },
+            output_format=output_format,
+        )
 
     if args.command in {"dashboard", "health"}:
         payload = trust_dashboard(database_path=database_path)
@@ -451,7 +742,7 @@ def operator_main() -> int:
         if current_revision:
             lines.append(
                 "current_revision="
-                + f"{current_revision['revision_id']} | state={current_revision['revision_state']} | change={current_revision.get('change_summary') or 'no change summary'}"
+                + f"{current_revision['revision_id']} | state={current_revision['revision_review_state']} | change={current_revision.get('change_summary') or 'no change summary'}"
             )
         if latest_event:
             lines.append(
@@ -475,7 +766,7 @@ def operator_main() -> int:
             root_path=source_root,
         )
         lines = [
-            f"{payload['object']['object_id']} | revision={payload['revision']['revision_id']} | state={payload['revision']['revision_state']}",
+            f"{payload['object']['object_id']} | revision={payload['revision']['revision_id']} | state={payload['revision']['revision_review_state']}",
             f"approval={payload['object']['approval_state']} | trust={payload['object']['trust_state']}",
             f"citations={len(payload['citations'])} | assignments={len(payload['assignments'])}",
             "writeback_preview="

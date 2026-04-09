@@ -53,7 +53,7 @@ class WebPresenterTests(unittest.TestCase):
                     "object_type": "runbook",
                     "title": "Test object",
                     "summary": "Structured summary.",
-                    "status": "active",
+                    "object_lifecycle_state": "active",
                     "owner": "tester",
                     "team": "IT Operations",
                     "canonical_path": "knowledge/runbooks/test.md",
@@ -76,7 +76,7 @@ class WebPresenterTests(unittest.TestCase):
                 "current_revision": {
                     "revision_id": "kb-test-rev-1",
                     "revision_number": 1,
-                    "revision_state": "approved",
+                    "revision_review_state": "approved",
                     "imported_at": "2026-04-07T00:00:00+00:00",
                     "change_summary": "Initial",
                     "body_markdown": "## Use When\n\nUse the runbook.",

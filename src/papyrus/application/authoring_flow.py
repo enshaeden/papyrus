@@ -11,10 +11,17 @@ from pathlib import Path
 from typing import Any
 
 from papyrus.application.blueprint_registry import get_blueprint
+from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.revision_runtime import RevisionRuntimeServices
 from papyrus.application.runtime_projection import persist_revision_artifacts
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.blueprints import Blueprint, BlueprintSection, SectionType
+from papyrus.domain.lifecycle import (
+    DraftProgressState,
+    ObjectLifecycleState,
+    RevisionReviewState,
+    SourceSyncState,
+)
 from papyrus.domain.evidence import (
     default_citation_validity_status,
     summarize_evidence_posture,
@@ -41,6 +48,9 @@ SECTION_PATTERN = re.compile(r"^## (?P<title>.+?)\n\n(?P<body>.*?)(?=^## |\Z)", 
 
 FIELD_PROVENANCE_KEY = "_field_provenance"
 CONVERSION_GAPS_KEY = "_conversion_gaps"
+
+
+AUTHORITY = PolicyAuthority.from_repository_policy()
 
 
 @dataclass(frozen=True)
@@ -459,8 +469,11 @@ def _validate_field(
         errors.append("This field is required.")
     if name == "object_id" and text and not re.fullmatch(r"^kb-[a-z0-9]+(?:-[a-z0-9]+)*$", text):
         errors.append("Object ID must match kb-slug format.")
-    if name == "canonical_path" and text and not re.fullmatch(r"^(knowledge|archive/knowledge)/.+\.md$", text):
-        errors.append("Canonical path must stay under knowledge/ or archive/knowledge/ and end in .md.")
+    if name == "canonical_path" and text:
+        try:
+            AUTHORITY.validate_canonical_repo_relative_path(text)
+        except ValueError as exc:
+            errors.append(str(exc))
     if taxonomy and text:
         allowed = set(taxonomies[taxonomy]["allowed_values"])
         if text not in allowed:
@@ -573,11 +586,11 @@ def compute_completion_state(
         }
 
     completion_percentage = int((completed_required / total_required) * 100) if total_required else 100
-    draft_state = "ready_for_review"
+    draft_state = DraftProgressState.READY_FOR_REVIEW.value
     if blockers:
-        draft_state = "blocked"
+        draft_state = DraftProgressState.BLOCKED.value
     elif completion_percentage < 100:
-        draft_state = "in_progress"
+        draft_state = DraftProgressState.IN_PROGRESS.value
 
     if next_section_id is None:
         next_section_id = blueprint.ordering[-1] if blueprint.ordering else None
@@ -586,7 +599,7 @@ def compute_completion_state(
         "completion_percentage": completion_percentage,
         "completed_required_sections": completed_required,
         "required_section_count": total_required,
-        "draft_state": draft_state,
+        "draft_progress_state": draft_state,
         "next_section_id": next_section_id,
         "blockers": blockers,
         "warnings": warnings,
@@ -644,6 +657,14 @@ def _sync_object_from_parsed_revision(
     revision_id: str,
     parsed: Any,
 ) -> None:
+    current_object_lifecycle = str(object_row["object_lifecycle_state"] or object_row["status"])
+    next_object_lifecycle = str(parsed.metadata["status"])
+    AUTHORITY.require_object_lifecycle_transition(current_object_lifecycle, next_object_lifecycle)
+    source_sync_state = (
+        SourceSyncState.APPLIED.value
+        if str(parsed.metadata.get("source_type") or object_row["source_type"] or "native") != "native"
+        else SourceSyncState.NOT_REQUIRED.value
+    )
     upsert_knowledge_object(
         connection,
         object_id=str(object_row["object_id"]),
@@ -651,7 +672,8 @@ def _sync_object_from_parsed_revision(
         legacy_type=object_row["legacy_type"],
         title=str(parsed.metadata["title"]),
         summary=str(parsed.metadata["summary"]),
-        status=str(parsed.metadata["status"]),
+        status=next_object_lifecycle,
+        object_lifecycle_state=next_object_lifecycle,
         owner=str(parsed.metadata["owner"]),
         team=str(parsed.metadata["team"]),
         canonical_path=str(parsed.metadata["canonical_path"]),
@@ -663,6 +685,7 @@ def _sync_object_from_parsed_revision(
         last_reviewed=str(parsed.metadata["last_reviewed"]),
         review_cadence=str(parsed.metadata["review_cadence"]),
         trust_state=TrustState.SUSPECT.value,
+        source_sync_state=source_sync_state,
         current_revision_id=revision_id,
         tags_json=json_dump(parsed.metadata.get("tags", [])),
         systems_json=json_dump(parsed.metadata.get("systems", [])),
@@ -741,8 +764,10 @@ def create_draft_from_blueprint(
             object_id=object_id,
             revision_number=revision_number,
             revision_state=RevisionReviewStatus.DRAFT.value,
+            revision_review_state=RevisionReviewState.DRAFT.value,
             blueprint_id=blueprint.blueprint_id,
-            draft_state=artifacts.completion["draft_state"],
+            draft_state=artifacts.completion["draft_progress_state"],
+            draft_progress_state=artifacts.completion["draft_progress_state"],
             source_path=str(artifacts.parsed.metadata["canonical_path"]),
             content_hash=_content_hash(artifacts.normalized_payload_json, artifacts.body_markdown),
             body_markdown=artifacts.body_markdown,
@@ -772,7 +797,7 @@ def create_draft_from_blueprint(
                 {
                     "revision_number": revision_number,
                     "blueprint_id": blueprint.blueprint_id,
-                    "draft_state": artifacts.completion["draft_state"],
+                    "draft_progress_state": artifacts.completion["draft_progress_state"],
                 }
             ),
         )
@@ -847,7 +872,8 @@ def update_section(
             body_markdown=artifacts.body_markdown,
             normalized_payload_json=artifacts.normalized_payload_json,
             blueprint_id=blueprint.blueprint_id,
-            draft_state=artifacts.completion["draft_state"],
+            draft_state=artifacts.completion["draft_progress_state"],
+            draft_progress_state=artifacts.completion["draft_progress_state"],
             section_content_json=json_dump(section_content),
             section_completion_json=json_dump(artifacts.completion["section_completion_map"]),
             change_summary=str(section_content.get("stewardship", {}).get("change_summary") or "") or None,
@@ -867,7 +893,12 @@ def update_section(
             actor=actor,
             object_id=object_id,
             revision_id=revision_id,
-            details_json=json_dump({"section_id": section_id, "draft_state": artifacts.completion["draft_state"]}),
+            details_json=json_dump(
+                {
+                    "section_id": section_id,
+                    "draft_progress_state": artifacts.completion["draft_progress_state"],
+                }
+            ),
         )
         connection.commit()
         return {

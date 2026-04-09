@@ -84,6 +84,7 @@ Guardrail:
 - `python3 scripts/serve_web.py`, `python3 scripts/serve_api.py`, and `python3 scripts/operator_view.py` also reject non-canonical source roots unless you pass `--allow-noncanonical-source-root`.
 - Browser-submitted local path ingestion is off by default. Enable it only on a trusted local operator web surface with `python3 scripts/run.py --operator --allow-web-ingest-local-paths` or `python3 scripts/serve_web.py --allow-web-ingest-local-paths`.
 - When web local-path ingest is enabled, Papyrus reads an absolute path from the machine running Papyrus, not from the browser device.
+- Local-path ingest is still confined to allowlisted read roots from `schemas/repository_policy.yml`. The default read roots are `build/local-ingest/` and `migration/`.
 - If you embed the WSGI apps directly in tests or local tooling, `papyrus.interfaces.web.app(...)` and `papyrus.interfaces.api.app(...)` enforce the same rule. Use `allow_noncanonical_source_root=True` only for sandboxed demo/test roots.
 
 ## 3. Pick The Right Playbook
@@ -100,6 +101,6 @@ Guardrail:
 - Derived output in `generated/`, `build/`, and `site/` is rebuildable and not authoritative.
 - Generated ingestion artifacts in `build/ingestions/` are reviewable runtime state, not source of truth.
 - Demo source created under `build/demo-source/` is disposable local state, not canonical repository content.
-- Approved revisions write back deterministically to canonical Markdown through the governed application layer.
+- Approved revisions can become canonical Markdown through a governed source-sync mutation. Papyrus records a mutation journal under `build/mutations/`, persists explicit `source_sync_state`, and rejects root escapes or symlink traversal for governed source paths.
 - Papyrus constructs drafts from blueprints and converts imported files into the same draft model after review.
-- Writeback is inspectable: use review pages or `scripts/source_sync.py preview` before approval or explicit source sync, and use `scripts/source_sync.py restore-last` when you need to recover the previous canonical state.
+- Source sync is inspectable: use review pages or `scripts/source_sync.py preview` before approval or explicit source sync, and use `scripts/source_sync.py restore-last` when you need to recover the previous canonical state. If live source drift is detected, Papyrus reports a conflict instead of claiming the sync is safe.

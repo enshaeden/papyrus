@@ -62,6 +62,16 @@ lifecycle:
     - deprecated
     - draft
     - archived
+path_policy:
+  canonical_write_roots:
+    - knowledge
+    - archive/knowledge
+  archive_root: archive/knowledge
+  local_ingest_read_roots:
+    - build/local-ingest
+    - migration
+  mutation_root: build/mutations
+  backup_root: build/writeback-backups
 duplicate_detection:
   title_similarity_threshold: 0.99
   doc_duplication_threshold: 0.96

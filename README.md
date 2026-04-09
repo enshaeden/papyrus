@@ -9,6 +9,7 @@ Papyrus is a local-first operational knowledge control plane for IT support and 
 - `build/`, `generated/`, and `site/` are derived state. They are rebuildable and must not be treated as canonical source.
 - Generated ingestion artifacts under `build/ingestions/` are reviewable runtime artifacts, not source of truth.
 - Demo mode may create a disposable writable source root under `build/demo-source/`; it is regenerated local state, not repository source.
+- Governed runtime mutations now persist explicit lifecycle state fields: `object_lifecycle_state`, `revision_review_state`, `draft_progress_state`, `ingestion_state`, and `source_sync_state`.
 
 ## Core Questions
 
@@ -76,7 +77,7 @@ python3 scripts/run.py --demo
 python3 scripts/run_scenario.py service-degradation
 ```
 
-Writeback inspection and recovery remain explicit:
+Source sync inspection and recovery remain explicit:
 
 ```bash
 python3 scripts/source_sync.py preview --object kb-troubleshooting-vpn-connectivity
@@ -94,6 +95,8 @@ Guardrail:
 - `scripts/serve_web.py`, `scripts/serve_api.py`, and `scripts/operator_view.py` accept `--source-root` but reject non-canonical roots unless you explicitly pass `--allow-noncanonical-source-root`.
 - The same source-root policy now runs inside `papyrus.interfaces.web.app(...)`, `papyrus.interfaces.api.app(...)`, and the operator CLI. Test or demo embeddings must opt in explicitly with `allow_noncanonical_source_root=True`.
 - Browser-submitted local path ingest is off by default. Enable it only on a trusted local operator web surface with `--allow-web-ingest-local-paths`.
+- When local-path ingest is enabled, Papyrus still restricts reads to allowlisted roots from `schemas/repository_policy.yml`. The default read roots are `build/local-ingest/` and `migration/`.
+- Source sync is journaled under `build/mutations/`. Preview and apply report the proposed `source_sync_state`, required acknowledgements, and any assumptions invalidated by the mutation. If live canonical Markdown drifted, Papyrus marks the object `conflicted` instead of silently overwriting it.
 
 ## Operator Docs
 

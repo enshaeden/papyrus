@@ -13,16 +13,23 @@ from papyrus.application.mapping_flow import convert_to_draft, map_to_blueprint
 from papyrus.application.queries import review_detail
 
 
+def governed_ingest_path(temp_dir: str, filename: str) -> tuple[Path, Path]:
+    source_root = Path(temp_dir) / "repo"
+    source_path = source_root / "build" / "local-ingest" / filename
+    source_path.parent.mkdir(parents=True, exist_ok=True)
+    return source_root, source_path
+
+
 class MappingFlowTests(unittest.TestCase):
     def test_mapping_flags_missing_sections_without_silent_assumptions(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            source_path = Path(temp_dir) / "known-error.md"
+            source_root, source_path = governed_ingest_path(temp_dir, "known-error.md")
             source_path.write_text(
                 "# Login failure\n\n## Symptoms\n\nUsers cannot sign in.\n\n## Mitigations\n\n- Reset the cache\n",
                 encoding="utf-8",
             )
-            result = ingest_file(file_path=source_path, database_path=database_path)
+            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
             mapping = map_to_blueprint(ingestion_id=result["ingestion_id"], blueprint_id="known_error", database_path=database_path)
             detail = ingestion_detail(ingestion_id=result["ingestion_id"], database_path=database_path)
 
@@ -30,13 +37,13 @@ class MappingFlowTests(unittest.TestCase):
             self.assertIn("diagnostic_checks", mapping["missing_sections"])
             self.assertTrue(mapping["sections"]["diagnosis"]["confidence"] >= 0.0)
             self.assertIsNotNone(mapping["sections"]["diagnosis"]["provenance"])
-            self.assertEqual(detail["status"], "mapped")
+            self.assertEqual(detail["ingestion_state"], "mapped")
             self.assertEqual(detail["mapping_result"]["blueprint_id"], "known_error")
 
     def test_mapping_records_conflicts_when_sections_compete_for_same_fragment(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            source_path = Path(temp_dir) / "conflicted-known-error.md"
+            source_root, source_path = governed_ingest_path(temp_dir, "conflicted-known-error.md")
             source_path.write_text(
                 "# Login failure\n\n"
                 "## Symptoms\n\n"
@@ -46,7 +53,7 @@ class MappingFlowTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = ingest_file(file_path=source_path, database_path=database_path)
+            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
             mapping = map_to_blueprint(ingestion_id=result["ingestion_id"], blueprint_id="known_error", database_path=database_path)
 
             used_fragments = [
@@ -66,7 +73,7 @@ class MappingFlowTests(unittest.TestCase):
     def test_mapping_keeps_unmapped_leftovers_with_fragment_provenance(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            source_path = Path(temp_dir) / "runbook-with-notes.md"
+            source_root, source_path = governed_ingest_path(temp_dir, "runbook-with-notes.md")
             source_path.write_text(
                 "# Access recovery\n\n"
                 "## Procedure\n\n"
@@ -78,7 +85,7 @@ class MappingFlowTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = ingest_file(file_path=source_path, database_path=database_path)
+            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
             mapping = map_to_blueprint(ingestion_id=result["ingestion_id"], blueprint_id="runbook", database_path=database_path)
 
             self.assertTrue(mapping["unmapped_content"])
@@ -92,7 +99,7 @@ class MappingFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            source_path = Path(temp_dir) / "partial-known-error.md"
+            _, source_path = governed_ingest_path(temp_dir, "partial-known-error.md")
             source_path.write_text(
                 "# Login failure\n\n"
                 "## Symptoms\n\n"
@@ -102,7 +109,7 @@ class MappingFlowTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            ingested = ingest_file(file_path=source_path, database_path=database_path)
+            ingested = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
             map_to_blueprint(ingestion_id=ingested["ingestion_id"], blueprint_id="known_error", database_path=database_path)
             converted = convert_to_draft(
                 ingestion_id=ingested["ingestion_id"],
@@ -143,7 +150,7 @@ class MappingFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            source_path = Path(temp_dir) / "runbook.md"
+            _, source_path = governed_ingest_path(temp_dir, "runbook.md")
             source_path.write_text(
                 "# Access recovery\n\n"
                 "## Procedure\n\n"
@@ -153,7 +160,7 @@ class MappingFlowTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            ingested = ingest_file(file_path=source_path, database_path=database_path)
+            ingested = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
             map_to_blueprint(ingestion_id=ingested["ingestion_id"], blueprint_id="runbook", database_path=database_path)
             first_conversion = convert_to_draft(
                 ingestion_id=ingested["ingestion_id"],
@@ -187,6 +194,6 @@ class MappingFlowTests(unittest.TestCase):
                 )
 
             detail = ingestion_detail(ingestion_id=ingested["ingestion_id"], database_path=database_path)
-            self.assertEqual(detail["status"], "reviewed")
+            self.assertEqual(detail["ingestion_state"], "converted")
             self.assertEqual(detail["converted_object_id"], "kb-access-recovery-imported")
             self.assertEqual(detail["converted_revision_id"], first_conversion["revision_id"])

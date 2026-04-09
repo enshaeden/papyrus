@@ -196,11 +196,11 @@ class WebOperatorUiTests(unittest.TestCase):
 
             revision_row = read_row(
                 database_path,
-                "SELECT revision_state FROM knowledge_revisions WHERE revision_id = ?",
+                "SELECT revision_review_state FROM knowledge_revisions WHERE revision_id = ?",
                 (revision_id,),
             )
             self.assertIsNotNone(revision_row)
-            self.assertEqual(revision_row["revision_state"], "approved")
+            self.assertEqual(revision_row["revision_review_state"], "approved")
 
             assignment_row = read_row(
                 database_path,
@@ -376,11 +376,11 @@ class WebOperatorUiTests(unittest.TestCase):
 
             revision_row = read_row(
                 database_path,
-                "SELECT revision_state FROM knowledge_revisions WHERE revision_id = ?",
+                "SELECT revision_review_state FROM knowledge_revisions WHERE revision_id = ?",
                 (revision_id,),
             )
             self.assertIsNotNone(revision_row)
-            self.assertEqual(revision_row["revision_state"], "rejected")
+            self.assertEqual(revision_row["revision_review_state"], "rejected")
 
     def test_manage_forms_capture_suspect_and_validation_actions(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

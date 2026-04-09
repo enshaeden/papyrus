@@ -2,16 +2,12 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any
 
+from papyrus.domain.lifecycle import IngestionLifecycleState
 
-class IngestionStatus(str, Enum):
-    UPLOADED = "uploaded"
-    PARSED = "parsed"
-    CLASSIFIED = "classified"
-    MAPPED = "mapped"
-    REVIEWED = "reviewed"
+
+IngestionStatus = IngestionLifecycleState
 
 
 def has_mapping_result(mapping_result: dict[str, Any] | None) -> bool:
@@ -30,10 +26,10 @@ def truthful_ingestion_status(
 ) -> IngestionStatus:
     status = IngestionStatus(str(stored_status))
     if converted_revision_id:
-        return IngestionStatus.REVIEWED
+        return IngestionStatus.CONVERTED
     if has_mapping_result(mapping_result):
         return IngestionStatus.MAPPED
-    if status in {IngestionStatus.CLASSIFIED, IngestionStatus.MAPPED, IngestionStatus.REVIEWED}:
+    if status in {IngestionStatus.CLASSIFIED, IngestionStatus.MAPPED, IngestionStatus.CONVERTED}:
         return IngestionStatus.CLASSIFIED
     return status
 

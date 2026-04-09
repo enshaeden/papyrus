@@ -4,6 +4,7 @@ import json
 from urllib.parse import quote_plus
 
 from papyrus.application.commands import (
+    archive_object_command,
     approve_revision_command,
     assign_reviewer_command,
     mark_object_suspect_due_to_change_command,
@@ -16,6 +17,7 @@ from papyrus.application.queries import audit_view, event_history, impact_view_f
 from papyrus.application.writeback_flow import preview_revision_writeback
 from papyrus.interfaces.web.forms.revision_forms import build_submission_findings
 from papyrus.interfaces.web.forms.review_forms import (
+    validate_archive_form,
     validate_assignment_form,
     validate_decision_form,
     validate_suspect_form,
@@ -31,10 +33,10 @@ from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_h
 
 def _manage_item_detail_href(item: dict[str, object]) -> str:
     current_revision_id = str(item.get("current_revision_id") or "").strip()
-    revision_state = str(item.get("revision_state") or "")
-    if not current_revision_id or revision_state in {"draft", "rejected"}:
+    revision_review_state = str(item.get("revision_review_state") or "")
+    if not current_revision_id or revision_review_state in {"draft", "rejected"}:
         return f"/write/objects/{quoted_path(str(item['object_id']))}/revisions/new#revision-form"
-    if revision_state == "in_review" and item.get("revision_id"):
+    if revision_review_state == "in_review" and item.get("revision_id"):
         return f"/manage/reviews/{quoted_path(str(item['object_id']))}/{quoted_path(str(item['revision_id']))}"
     return f"/objects/{quoted_path(str(item['object_id']))}"
 
@@ -43,16 +45,16 @@ def _manage_item_actions(item: dict[str, object]) -> str:
     object_id = quoted_path(str(item["object_id"]))
     revision_id = str(item.get("revision_id") or "").strip()
     current_revision_id = str(item.get("current_revision_id") or "").strip()
-    revision_state = str(item.get("revision_state") or "")
+    revision_review_state = str(item.get("revision_review_state") or "")
     actions: list[str] = []
 
     if not current_revision_id:
         actions.append(link("Draft first revision", f"/write/objects/{object_id}/revisions/new#revision-form", css_class="button button-primary"))
-    elif revision_state in {"draft", "rejected"}:
+    elif revision_review_state in {"draft", "rejected"}:
         actions.append(link("Continue draft", f"/write/objects/{object_id}/revisions/new#revision-form", css_class="button button-primary"))
         if revision_id:
             actions.append(link("Submit for review", f"/write/objects/{object_id}/submit?revision_id={quoted_path(revision_id)}", css_class="button button-secondary"))
-    elif revision_state == "in_review" and revision_id:
+    elif revision_review_state == "in_review" and revision_id:
         actions.append(link("Assign reviewer", f"/manage/reviews/{object_id}/{quoted_path(revision_id)}/assign", css_class="button button-secondary"))
         actions.append(link("Review decision", f"/manage/reviews/{object_id}/{quoted_path(revision_id)}", css_class="button button-primary"))
 
@@ -60,6 +62,7 @@ def _manage_item_actions(item: dict[str, object]) -> str:
         [
             link("Mark suspect", f"/manage/objects/{object_id}/suspect", css_class="button button-secondary"),
             link("Supersede", f"/manage/objects/{object_id}/supersede", css_class="button button-secondary"),
+            link("Archive", f"/manage/objects/{object_id}/archive", css_class="button button-secondary"),
         ]
     )
     return join_html(actions, " ")
@@ -72,7 +75,7 @@ def _manage_table(components, title: str, items: list[dict[str, object]], *, sho
         rows.append(
             [
                 link(str(item["title"]), _manage_item_detail_href(item)),
-                f'{escape(item["revision_state"])}<p class="cell-meta">{escape(item.get("change_summary") or item.get("summary") or "No recent summary recorded.")}</p>',
+                f'{escape(item["revision_review_state"])}<p class="cell-meta">{escape(item.get("change_summary") or item.get("summary") or "No recent summary recorded.")}</p>',
                 f'{escape(item["trust_state"])} / {escape(item["approval_state"])}<p class="cell-meta">{escape(item["posture"]["trust_summary"])}</p>',
                 escape(", ".join(item["reasons"])),
                 escape(item["owner"]),
@@ -287,6 +290,92 @@ def register(router, runtime) -> None:
             )
         )
 
+    def object_archive_page(request: Request):
+        object_id = request.route_value("object_id")
+        detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        forms = FormPresenter(runtime.template_renderer)
+        components = ComponentPresenter(runtime.template_renderer)
+        values = {
+            "retirement_reason": request.form_value("retirement_reason"),
+            "notes": request.form_value("notes"),
+            "acknowledge_move": request.form_value("acknowledge_move"),
+        }
+        errors: dict[str, list[str]] = {}
+        if request.method == "POST":
+            result = validate_archive_form(values)
+            if result.is_valid:
+                archive_object_command(
+                    database_path=runtime.database_path,
+                    source_root=runtime.source_root,
+                    object_id=object_id,
+                    actor=actor_for_request(request),
+                    retirement_reason=str(result.cleaned_data["retirement_reason"]),
+                    notes=result.cleaned_data["notes"],
+                    acknowledgements=result.cleaned_data["acknowledgements"],
+                )
+                return redirect_response(
+                    f"/objects/{quoted_path(object_id)}?notice={quote_plus('Object archived and canonical path moved under archive/knowledge/')}"
+                )
+            errors = result.errors
+        summary_html = components.section_card(
+            title="Archive context",
+            eyebrow="Manage",
+            body_html=(
+                f"<p><strong>{escape(detail['object']['title'])}</strong></p>"
+                f"<p>Lifecycle: {escape(detail['object']['object_lifecycle_state'])} · Canonical path: {escape(detail['object']['canonical_path'])}</p>"
+                f"<p>{escape(detail['posture']['trust_detail'])}</p>"
+            ),
+        )
+        form_html = components.section_card(
+            title="Archive object",
+            eyebrow="Manage",
+            body_html=(
+                '<form class="governed-form" method="post">'
+                + forms.field(
+                    field_id="retirement_reason",
+                    label="Retirement rationale",
+                    control_html=forms.textarea(field_id="retirement_reason", name="retirement_reason", value=values["retirement_reason"], rows=4),
+                    hint="Required. State why operators should no longer treat this as active guidance.",
+                    errors=errors.get("retirement_reason"),
+                )
+                + forms.field(
+                    field_id="notes",
+                    label="Operator notes",
+                    control_html=forms.textarea(field_id="notes", name="notes", value=values["notes"], rows=3),
+                    hint="Optional notes stored with the archive audit event.",
+                )
+                + forms.field(
+                    field_id="acknowledge_move",
+                    label="Acknowledgement",
+                    control_html=forms.select(
+                        field_id="acknowledge_move",
+                        name="acknowledge_move",
+                        value=values["acknowledge_move"],
+                        options=["", "yes"],
+                    ),
+                    hint="Select yes to confirm the canonical file will move under archive/knowledge/.",
+                    errors=errors.get("acknowledge_move"),
+                )
+                + forms.button(label="Archive object")
+                + "</form>"
+            ),
+        )
+        return html_response(
+            runtime.page_renderer.render_page(
+                page_template="pages/manage_object_form.html",
+                page_title="Archive object",
+                headline="Archive Guidance",
+                kicker="Health",
+                intro="Archive deprecated guidance with an explicit rationale and a canonical file move that is recorded in the audit trail.",
+                active_nav="health",
+                flash_html=flash_html_for_request(runtime, request),
+                actor_id=actor_for_request(request),
+                current_path=request.path,
+                aside_html="",
+                page_context={"summary_html": summary_html, "form_html": form_html},
+            )
+        )
+
     def evidence_revalidation_page(request: Request):
         object_id = request.route_value("object_id")
         detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
@@ -376,7 +465,7 @@ def register(router, runtime) -> None:
             eyebrow="Manage",
             body_html=(
                 f"<p><strong>{escape(detail['object']['title'])}</strong> · revision #{escape(detail['revision']['revision_number'])}</p>"
-                f"<p>State: {escape(detail['revision']['revision_state'])} · citations: {escape(len(detail['citations']))}</p>"
+                f"<p>State: {escape(detail['revision']['revision_review_state'])} · citations: {escape(len(detail['citations']))}</p>"
             ),
         )
         assignment_html = components.audit_panel(
@@ -481,7 +570,7 @@ def register(router, runtime) -> None:
             eyebrow="Review",
             body_html=(
                 f"<p><strong>{escape(detail['object']['title'])}</strong> · revision #{escape(detail['revision']['revision_number'])}</p>"
-                f"<p>Current state: {escape(detail['revision']['revision_state'])}</p>"
+                f"<p>Current state: {escape(detail['revision']['revision_review_state'])}</p>"
                 f"<p>Assignments: {escape(len(detail['assignments']))} · citations: {escape(len(detail['citations']))} · downstream objects: {escape(len(impact['impacted_objects']))}</p>"
             ),
         )
@@ -802,6 +891,7 @@ def register(router, runtime) -> None:
     router.add(["GET"], "/manage/queue", manage_queue_page)
     router.add(["GET"], "/review", manage_queue_page)
     router.add(["GET", "POST"], "/manage/objects/{object_id}/supersede", object_supersede_page)
+    router.add(["GET", "POST"], "/manage/objects/{object_id}/archive", object_archive_page)
     router.add(["GET", "POST"], "/manage/objects/{object_id}/suspect", object_suspect_page)
     router.add(["GET", "POST"], "/manage/objects/{object_id}/evidence/revalidate", evidence_revalidation_page)
     router.add(["GET", "POST"], "/manage/reviews/{object_id}/{revision_id}/assign", review_assignment_page)

@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -127,11 +128,11 @@ class GovernanceWorkflowTests(unittest.TestCase):
 
             revision_row = read_row(
                 database_path,
-                "SELECT revision_state, revision_number FROM knowledge_revisions WHERE revision_id = ?",
+                "SELECT revision_review_state, revision_number FROM knowledge_revisions WHERE revision_id = ?",
                 (approved.revision_id,),
             )
             self.assertIsNotNone(revision_row)
-            self.assertEqual(revision_row["revision_state"], "approved")
+            self.assertEqual(revision_row["revision_review_state"], "approved")
             self.assertGreater(revision_row["revision_number"], 1)
 
             assignment_row = read_row(
@@ -326,6 +327,81 @@ class GovernanceWorkflowTests(unittest.TestCase):
             self.assertIn("object_superseded", audit_event_types)
             self.assertIn("object_marked_suspect_due_to_change", audit_event_types)
             self.assertIn("validation_run_recorded", audit_event_types)
+
+    def test_approval_rolls_back_source_sync_when_later_approval_audit_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "workflow.db"
+            source_root = Path(temp_dir) / "repo"
+            target_path = source_root / "knowledge" / "runbooks" / "approval-rollback.md"
+            workflow = GovernanceWorkflow(database_path, source_root=source_root)
+
+            created = workflow.create_object(
+                object_id="kb-approval-rollback",
+                object_type="runbook",
+                title="Approval Rollback",
+                summary="Rollback coverage for approval.",
+                owner="workflow_owner",
+                team="IT Operations",
+                canonical_path="knowledge/runbooks/approval-rollback.md",
+                actor="tests",
+            )
+            revision = workflow.create_revision(
+                object_id=created.object_id,
+                normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+                body_markdown="## Steps\n\n1. Exercise rollback.",
+                actor="tests",
+                change_summary="Approval rollback coverage.",
+            )
+            workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.assign_reviewer(
+                object_id=created.object_id,
+                revision_id=revision.revision_id,
+                reviewer="reviewer_a",
+                actor="tests",
+            )
+
+            original_insert_audit_event = __import__("papyrus.application.review_flow", fromlist=["insert_audit_event"]).insert_audit_event
+
+            def fail_revision_approved(connection, *, event_type, **kwargs):
+                if event_type == "revision_approved":
+                    raise RuntimeError("forced approval audit failure")
+                return original_insert_audit_event(connection, event_type=event_type, **kwargs)
+
+            with mock.patch("papyrus.application.review_flow.insert_audit_event", side_effect=fail_revision_approved):
+                with self.assertRaisesRegex(RuntimeError, "forced approval audit failure"):
+                    workflow.approve_revision(
+                        object_id=created.object_id,
+                        revision_id=revision.revision_id,
+                        reviewer="reviewer_a",
+                        actor="local.reviewer",
+                        notes="Should roll back.",
+                    )
+
+            self.assertFalse(target_path.exists())
+            revision_row = read_row(
+                database_path,
+                "SELECT revision_review_state FROM knowledge_revisions WHERE revision_id = ?",
+                (revision.revision_id,),
+            )
+            object_row = read_row(
+                database_path,
+                "SELECT object_lifecycle_state, source_sync_state, current_revision_id FROM knowledge_objects WHERE object_id = ?",
+                (created.object_id,),
+            )
+            audit_types = {
+                row["event_type"]
+                for row in read_rows(
+                    database_path,
+                    "SELECT event_type FROM audit_events WHERE object_id = ?",
+                    (created.object_id,),
+                )
+            }
+            self.assertEqual(revision_row["revision_review_state"], "in_review")
+            self.assertEqual(object_row["object_lifecycle_state"], "active")
+            self.assertEqual(object_row["source_sync_state"], "not_required")
+            self.assertEqual(object_row["current_revision_id"], revision.revision_id)
+            self.assertNotIn("revision_approved", audit_types)
+            self.assertNotIn("source_writeback", audit_types)
 
     def test_sync_preserves_runtime_suspect_state_for_unchanged_source_revision(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

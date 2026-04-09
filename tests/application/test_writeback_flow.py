@@ -169,23 +169,23 @@ class WritebackFlowTests(unittest.TestCase):
             connection = sqlite3.connect(database_path)
             connection.row_factory = sqlite3.Row
             try:
-                audit_row = connection.execute(
+                audit_rows = connection.execute(
                     """
                     SELECT event_type, actor, details_json
                     FROM audit_events
                     WHERE object_id = ? AND revision_id = ? AND event_type = 'source_writeback'
-                    ORDER BY occurred_at DESC
-                    LIMIT 1
+                    ORDER BY occurred_at ASC
                     """,
                     (created.object_id, revision.revision_id),
-                ).fetchone()
+                ).fetchall()
             finally:
                 connection.close()
 
-            self.assertIsNotNone(audit_row)
-            self.assertEqual(audit_row["event_type"], "source_writeback")
-            self.assertEqual(audit_row["actor"], "local.reviewer")
-            self.assertIn("knowledge/runbooks/writeback-approved.md", str(audit_row["details_json"]))
+            self.assertEqual(len(audit_rows), 2)
+            self.assertEqual(audit_rows[0]["event_type"], "source_writeback")
+            self.assertEqual(audit_rows[0]["actor"], "local.reviewer")
+            self.assertEqual(audit_rows[1]["actor"], "tests")
+            self.assertIn("knowledge/runbooks/writeback-approved.md", str(audit_rows[0]["details_json"]))
 
     def test_preview_reports_changed_sections_and_detects_conflict(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

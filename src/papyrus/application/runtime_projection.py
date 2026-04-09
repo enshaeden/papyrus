@@ -6,6 +6,7 @@ import json
 import sqlite3
 
 from papyrus.domain.entities import KnowledgeDocument
+from papyrus.domain.lifecycle import DraftProgressState, RevisionReviewState, SourceSyncState
 from papyrus.domain.policies import (
     approval_state_for_revision_state,
     citation_health_rank_for_counts,
@@ -256,21 +257,27 @@ def refresh_current_object_projection(
     citation_counts = citation_status_counts_for_revision(connection, str(revision_row["revision_id"]))
     citation_rank = citation_health_rank_for_counts(citation_counts)
     owner_rank_value = ownership_rank(str(metadata.get("owner", "")))
+    object_lifecycle_state = str(object_row["object_lifecycle_state"] or object_row["status"])
+    revision_review_state = str(revision_row["revision_review_state"] or revision_row["revision_state"])
+    draft_progress_state = str(
+        revision_row["draft_progress_state"] or revision_row["draft_state"] or DraftProgressState.READY_FOR_REVIEW.value
+    )
+    source_sync_state = str(object_row["source_sync_state"] or SourceSyncState.NOT_REQUIRED.value)
     fresh_rank = freshness_rank(
-        str(metadata.get("status", "")),
+        object_lifecycle_state,
         parse_iso_date(metadata["last_reviewed"]),
         cadence_to_days(str(metadata["review_cadence"]), taxonomies),
         as_of or dt.date.today(),
     )
     base_trust_state = trust_state(
-        status=str(metadata.get("status", "")),
+        status=object_lifecycle_state,
         freshness_rank_value=fresh_rank,
         citation_health_rank_value=citation_rank,
         ownership_rank_value=owner_rank_value,
     )
     effective_trust_state = runtime_trust_state(
         base_trust_state=base_trust_state,
-        revision_state=str(revision_row["revision_state"]),
+        revision_state=revision_review_state,
         existing_trust_state=str(object_row["trust_state"]),
         preserve_existing_warning=True,
     )
@@ -278,6 +285,8 @@ def refresh_current_object_projection(
         connection,
         object_id=object_id,
         trust_state=effective_trust_state,
+        object_lifecycle_state=object_lifecycle_state,
+        source_sync_state=source_sync_state,
     )
     upsert_search_document(
         connection,
@@ -287,11 +296,15 @@ def refresh_current_object_projection(
         summary=str(object_row["summary"]),
         object_type=str(object_row["object_type"]),
         legacy_type=str(object_row["legacy_type"]) if object_row["legacy_type"] is not None else None,
-        status=str(object_row["status"]),
+        status=object_lifecycle_state,
+        object_lifecycle_state=object_lifecycle_state,
         owner=str(object_row["owner"]),
         team=str(object_row["team"]),
         trust_state=effective_trust_state,
-        approval_state=approval_state_for_revision_state(str(revision_row["revision_state"])),
+        approval_state=approval_state_for_revision_state(revision_review_state),
+        revision_review_state=revision_review_state,
+        draft_progress_state=draft_progress_state,
+        source_sync_state=source_sync_state,
         freshness_rank=fresh_rank,
         citation_health_rank=citation_rank,
         ownership_rank=owner_rank_value,

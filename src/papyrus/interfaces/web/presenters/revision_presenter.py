@@ -13,7 +13,11 @@ def present_revision_history(renderer: TemplateRenderer, *, history: dict[str, A
     rows = [
         [
             f"#{escape(revision['revision_number'])}",
-            components.badge(label="State", value=revision["revision_state"], tone=tone_for_revision(revision["revision_state"])),
+            components.badge(
+                label="State",
+                value=revision["revision_review_state"],
+                tone=tone_for_revision(revision["revision_review_state"]),
+            ),
             escape(revision["change_summary"] or "No summary recorded."),
             escape(", ".join(f"{status}={count}" for status, count in revision["citations"].items() if count) or "No citations"),
             escape("; ".join(f"{assignment['reviewer']} ({assignment['state']})" for assignment in revision["review_assignments"]) or "No assignments"),

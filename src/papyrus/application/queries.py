@@ -138,7 +138,7 @@ def search_projection(
             title=row["title"],
             summary=row["summary"],
             content_type=row["object_type"],
-            status=row["status"],
+            object_lifecycle_state=row["status"],
             path=row["path"],
         )
         for row in rows
@@ -193,6 +193,22 @@ def _json_dict(value: object) -> dict[str, Any]:
             return {}
         return loaded if isinstance(loaded, dict) else {}
     return {}
+
+
+def _object_lifecycle_value(row: sqlite3.Row) -> str:
+    return str(row["object_lifecycle_state"] or row["status"])
+
+
+def _revision_review_value(row: sqlite3.Row) -> str:
+    return str(row["revision_review_state"] or row["revision_state"])
+
+
+def _draft_progress_value(row: sqlite3.Row) -> str:
+    return str(row["draft_progress_state"] or row["draft_state"] or "ready_for_review")
+
+
+def _source_sync_value(row: sqlite3.Row) -> str:
+    return str(row["source_sync_state"] or "not_required")
 
 
 def _trust_priority(trust_state: str) -> int:
@@ -401,20 +417,24 @@ def _queue_projection_select() -> str:
             o.summary,
             o.object_type,
             o.status,
+            o.object_lifecycle_state,
             o.owner,
             o.team,
             o.last_reviewed,
             o.review_cadence,
             COALESCE(d.path, o.canonical_path) AS path,
             o.trust_state,
+            o.source_sync_state,
             COALESCE(
                 d.approval_state,
                 CASE
-                    WHEN r.revision_state IN ('approved', 'in_review', 'draft', 'rejected', 'superseded') THEN r.revision_state
+                    WHEN COALESCE(r.revision_review_state, r.revision_state) IN ('approved', 'in_review', 'draft', 'rejected', 'superseded') THEN COALESCE(r.revision_review_state, r.revision_state)
                     WHEN o.current_revision_id IS NULL THEN 'draft'
                     ELSE 'unknown'
                 END
             ) AS approval_state,
+            COALESCE(d.revision_review_state, r.revision_review_state, r.revision_state, 'draft') AS revision_review_state,
+            COALESCE(d.draft_progress_state, r.draft_progress_state, r.draft_state, 'ready_for_review') AS draft_progress_state,
             COALESCE(d.freshness_rank, 0) AS freshness_rank,
             COALESCE(d.citation_health_rank, 0) AS citation_health_rank,
             COALESCE(d.ownership_rank, CASE WHEN TRIM(o.owner) = '' THEN 1 ELSE 0 END) AS ownership_rank,
@@ -435,7 +455,7 @@ def _queue_item_from_projection_row(row: sqlite3.Row) -> dict[str, Any]:
         "title": str(row["title"]),
         "summary": str(row["summary"]),
         "object_type": str(row["object_type"]),
-        "status": str(row["status"]),
+        "object_lifecycle_state": _object_lifecycle_value(row),
         "owner": str(row["owner"]),
         "team": str(row["team"]),
         "last_reviewed": str(row["last_reviewed"]),
@@ -443,6 +463,9 @@ def _queue_item_from_projection_row(row: sqlite3.Row) -> dict[str, Any]:
         "path": str(row["path"]),
         "trust_state": str(row["trust_state"]),
         "approval_state": str(row["approval_state"]),
+        "revision_review_state": str(row["revision_review_state"]),
+        "draft_progress_state": str(row["draft_progress_state"]),
+        "source_sync_state": _source_sync_value(row),
         "freshness_rank": int(row["freshness_rank"]),
         "citation_health_rank": int(row["citation_health_rank"]),
         "ownership_rank": int(row["ownership_rank"]),
@@ -625,6 +648,10 @@ def knowledge_object_detail(
             SELECT
                 o.*,
                 d.approval_state,
+                d.object_lifecycle_state,
+                d.revision_review_state,
+                d.draft_progress_state,
+                d.source_sync_state,
                 d.freshness_rank,
                 d.citation_health_rank,
                 d.ownership_rank,
@@ -644,7 +671,7 @@ def knowledge_object_detail(
         if object_row["current_revision_id"]:
             current_revision = connection.execute(
                 """
-                SELECT revision_id, revision_number, revision_state, blueprint_id, draft_state, imported_at, change_summary, body_markdown, normalized_payload_json, section_content_json, section_completion_json
+                SELECT revision_id, revision_number, revision_state, revision_review_state, blueprint_id, draft_state, draft_progress_state, imported_at, change_summary, body_markdown, normalized_payload_json, section_content_json, section_completion_json
                 FROM knowledge_revisions
                 WHERE revision_id = ?
                 """,
@@ -727,7 +754,7 @@ def knowledge_object_detail(
                 "object_id": str(row["object_id"]),
                 "title": str(row["title"]),
                 "path": str(row["canonical_path"]),
-                "status": str(row["status"]),
+                "object_lifecycle_state": str(row["status"]),
             }
             for row in connection.execute(
                 """
@@ -748,7 +775,7 @@ def knowledge_object_detail(
                 "object_id": str(row["object_id"]),
                 "title": str(row["title"]),
                 "path": str(row["canonical_path"]),
-                "status": str(row["status"]),
+                "object_lifecycle_state": str(row["status"]),
             }
             for row in connection.execute(
                 """
@@ -828,7 +855,7 @@ def knowledge_object_detail(
                 "legacy_type": str(object_row["legacy_type"]) if object_row["legacy_type"] is not None else None,
                 "title": str(object_row["title"]),
                 "summary": str(object_row["summary"]),
-                "status": str(object_row["status"]),
+                "object_lifecycle_state": _object_lifecycle_value(object_row),
                 "owner": str(object_row["owner"]),
                 "team": str(object_row["team"]),
                 "canonical_path": str(object_row["canonical_path"]),
@@ -841,6 +868,13 @@ def knowledge_object_detail(
                 "review_cadence": str(object_row["review_cadence"]),
                 "trust_state": str(object_row["trust_state"]),
                 "approval_state": str(object_row["approval_state"]) if object_row["approval_state"] is not None else None,
+                "revision_review_state": (
+                    str(object_row["revision_review_state"]) if object_row["revision_review_state"] is not None else None
+                ),
+                "draft_progress_state": (
+                    str(object_row["draft_progress_state"]) if object_row["draft_progress_state"] is not None else None
+                ),
+                "source_sync_state": _source_sync_value(object_row),
                 "freshness_rank": int(object_row["freshness_rank"] or 0),
                 "citation_health_rank": int(object_row["citation_health_rank"] or 0),
                 "ownership_rank": int(object_row["ownership_rank"] or 0),
@@ -853,9 +887,9 @@ def knowledge_object_detail(
                 {
                     "revision_id": str(current_revision["revision_id"]),
                     "revision_number": int(current_revision["revision_number"]),
-                    "revision_state": str(current_revision["revision_state"]),
+                    "revision_review_state": _revision_review_value(current_revision),
                     "blueprint_id": str(current_revision["blueprint_id"] or object_row["object_type"]),
-                    "draft_state": str(current_revision["draft_state"]),
+                    "draft_progress_state": _draft_progress_value(current_revision),
                     "imported_at": str(current_revision["imported_at"]),
                     "change_summary": str(current_revision["change_summary"]) if current_revision["change_summary"] is not None else None,
                     "body_markdown": str(current_revision["body_markdown"]),
@@ -894,7 +928,7 @@ def revision_history(
 
         revisions = connection.execute(
             """
-            SELECT revision_id, revision_number, revision_state, blueprint_id, draft_state, imported_at, change_summary, source_path
+            SELECT revision_id, revision_number, revision_state, revision_review_state, blueprint_id, draft_state, draft_progress_state, imported_at, change_summary, source_path
             FROM knowledge_revisions
             WHERE object_id = ?
             ORDER BY revision_number DESC
@@ -971,9 +1005,9 @@ def revision_history(
                 {
                     "revision_id": str(row["revision_id"]),
                     "revision_number": int(row["revision_number"]),
-                    "revision_state": str(row["revision_state"]),
+                    "revision_review_state": _revision_review_value(row),
                     "blueprint_id": str(row["blueprint_id"] or ""),
-                    "draft_state": str(row["draft_state"]),
+                    "draft_progress_state": _draft_progress_value(row),
                     "imported_at": str(row["imported_at"]),
                     "change_summary": str(row["change_summary"]) if row["change_summary"] is not None else None,
                     "source_path": str(row["source_path"]),
@@ -1017,7 +1051,7 @@ def service_detail(
                 "object_id": str(row["object_id"]),
                 "title": str(row["title"]),
                 "path": str(row["canonical_path"]),
-                "status": str(row["status"]),
+                "object_lifecycle_state": str(row["status"]),
                 "trust_state": str(row["trust_state"]),
                 "approval_state": str(row["approval_state"]) if row["approval_state"] is not None else None,
                 "citation_health_rank": int(row["citation_health_rank"] or 0),
@@ -1057,7 +1091,7 @@ def service_detail(
                     "object_id": str(canonical_object_row["object_id"]),
                     "title": str(canonical_object_row["title"]),
                     "path": str(canonical_object_row["canonical_path"]),
-                    "status": str(canonical_object_row["status"]),
+                    "object_lifecycle_state": str(canonical_object_row["status"]),
                 }
 
         return {
@@ -1239,23 +1273,26 @@ def manage_queue(
                 o.title,
                 o.summary,
                 o.status,
+                o.object_lifecycle_state,
                 o.owner,
                 o.team,
                 o.last_reviewed,
                 o.review_cadence,
                 o.canonical_path,
                 o.trust_state,
+                o.source_sync_state,
                 o.current_revision_id,
                 COALESCE(r.revision_id, '') AS revision_id,
                 COALESCE(r.revision_number, 0) AS revision_number,
-                COALESCE(r.revision_state, 'none') AS revision_state,
+                COALESCE(r.revision_review_state, r.revision_state, 'none') AS revision_review_state,
+                COALESCE(r.draft_progress_state, r.draft_state, 'ready_for_review') AS draft_progress_state,
                 COALESCE(r.imported_at, '') AS imported_at,
                 COALESCE(r.change_summary, '') AS change_summary,
                 COALESCE(d.approval_state, CASE
-                    WHEN r.revision_state = 'in_review' THEN 'in_review'
-                    WHEN r.revision_state = 'draft' THEN 'draft'
-                    WHEN r.revision_state = 'rejected' THEN 'rejected'
-                    WHEN r.revision_state = 'approved' THEN 'approved'
+                    WHEN COALESCE(r.revision_review_state, r.revision_state) = 'in_review' THEN 'in_review'
+                    WHEN COALESCE(r.revision_review_state, r.revision_state) = 'draft' THEN 'draft'
+                    WHEN COALESCE(r.revision_review_state, r.revision_state) = 'rejected' THEN 'rejected'
+                    WHEN COALESCE(r.revision_review_state, r.revision_state) = 'approved' THEN 'approved'
                     WHEN o.current_revision_id IS NULL THEN 'draft'
                     ELSE 'unknown'
                 END) AS approval_state,
@@ -1267,7 +1304,7 @@ def manage_queue(
             LEFT JOIN knowledge_revisions AS r ON r.revision_id = o.current_revision_id
             LEFT JOIN search_documents AS d ON d.object_id = o.object_id
             ORDER BY
-                CASE COALESCE(r.revision_state, 'none')
+                CASE COALESCE(r.revision_review_state, r.revision_state, 'none')
                     WHEN 'in_review' THEN 0
                     WHEN 'draft' THEN 1
                     WHEN 'rejected' THEN 2
@@ -1315,7 +1352,7 @@ def manage_queue(
                 "object_type": str(row["object_type"]),
                 "title": str(row["title"]),
                 "summary": str(row["summary"]),
-                "status": str(row["status"]),
+                "object_lifecycle_state": _object_lifecycle_value(row),
                 "owner": str(row["owner"]),
                 "team": str(row["team"]),
                 "last_reviewed": str(row["last_reviewed"]),
@@ -1323,13 +1360,15 @@ def manage_queue(
                 "path": str(row["path"]),
                 "trust_state": str(row["trust_state"]),
                 "approval_state": str(row["approval_state"]),
+                "revision_review_state": str(row["revision_review_state"]),
+                "draft_progress_state": str(row["draft_progress_state"]),
+                "source_sync_state": _source_sync_value(row),
                 "freshness_rank": int(row["freshness_rank"]),
                 "citation_health_rank": int(row["citation_health_rank"]),
                 "ownership_rank": int(row["ownership_rank"]),
                 "current_revision_id": str(row["current_revision_id"]) if row["current_revision_id"] is not None else None,
                 "revision_id": str(row["revision_id"]) or None,
                 "revision_number": int(row["revision_number"] or 0),
-                "revision_state": str(row["revision_state"]),
                 "change_summary": str(row["change_summary"]) if row["change_summary"] else None,
                 "imported_at": str(row["imported_at"]) if row["imported_at"] else None,
                 "assignment": assignment_map.get(str(row["revision_id"])),
@@ -1337,9 +1376,9 @@ def manage_queue(
             }
             if item["current_revision_id"] is None:
                 item["reasons"].append("no_revision")
-            if item["revision_state"] in {"draft", "rejected"}:
-                item["reasons"].append(f"revision:{item['revision_state']}")
-            if item["revision_state"] == "in_review":
+            if item["revision_review_state"] in {"draft", "rejected"}:
+                item["reasons"].append(f"revision:{item['revision_review_state']}")
+            if item["revision_review_state"] == "in_review":
                 item["reasons"].append("awaiting_review")
             if item["approval_state"] != "approved":
                 item["reasons"].append(f"approval:{item['approval_state']}")
@@ -1365,13 +1404,17 @@ def manage_queue(
                 ordered.append(entry)
             return ordered
 
-        review_required = [item for item in items if item["revision_state"] == "in_review"]
+        review_required = [item for item in items if item["revision_review_state"] == "in_review"]
         ready_for_review = [item for item in review_required if item["assignment"] is None]
         needs_decision = [item for item in review_required if item["assignment"] is not None]
         stale_items = [item for item in items if item["freshness_rank"] > 0]
         weak_evidence_items = [item for item in items if item["citation_health_rank"] > 0]
         ownership_items = [item for item in items if item["ownership_rank"] > 0 or not item["owner"].strip()]
-        draft_items = [item for item in items if item["current_revision_id"] is None or item["revision_state"] in {"draft", "rejected"}]
+        draft_items = [
+            item
+            for item in items
+            if item["current_revision_id"] is None or item["revision_review_state"] in {"draft", "rejected"}
+        ]
         suspect_items = [item for item in items if item["trust_state"] != "trusted" or item["approval_state"] != "approved"]
         needs_revalidation = unique_by_object_id(
             stale_items + weak_evidence_items + [item for item in items if item["trust_state"] in {"suspect", "stale"}]
@@ -1384,9 +1427,9 @@ def manage_queue(
         superseded_items = [
             item
             for item in items
-            if item["status"] == "deprecated"
+            if item["object_lifecycle_state"] == "deprecated"
             or item["approval_state"] == "superseded"
-            or item["revision_state"] == "superseded"
+            or item["revision_review_state"] == "superseded"
         ]
         needs_attention = unique_by_object_id(review_required + needs_revalidation + ownership_items)
 
@@ -1424,7 +1467,7 @@ def review_detail(
             raise KnowledgeObjectNotFoundError(f"revision not found for {object_id}: {revision_id}")
         revision_row = connection.execute(
             """
-            SELECT revision_id, object_id, revision_number, revision_state, blueprint_id, draft_state, imported_at, change_summary, body_markdown, normalized_payload_json, section_content_json, section_completion_json
+            SELECT revision_id, object_id, revision_number, revision_state, revision_review_state, blueprint_id, draft_state, draft_progress_state, imported_at, change_summary, body_markdown, normalized_payload_json, section_content_json, section_completion_json
             FROM knowledge_revisions
             WHERE revision_id = ?
             """,
@@ -1477,7 +1520,8 @@ def review_detail(
                 "body_markdown": str(revision_row["body_markdown"]),
                 "metadata": _json_dict(revision_row["normalized_payload_json"]),
                 "blueprint_id": str(revision_row["blueprint_id"] or detail["object"]["object_type"]),
-                "draft_state": str(revision_row["draft_state"]),
+                "revision_review_state": _revision_review_value(revision_row),
+                "draft_progress_state": _draft_progress_value(revision_row),
                 "section_content": _json_dict(revision_row["section_content_json"]),
                 "section_completion_map": _json_dict(revision_row["section_completion_json"]),
             },

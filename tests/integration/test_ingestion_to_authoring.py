@@ -13,18 +13,24 @@ from papyrus.application.mapping_flow import convert_to_draft, map_to_blueprint
 from papyrus.application.queries import review_detail
 
 
+def governed_ingest_path(temp_dir: str, filename: str) -> tuple[Path, Path]:
+    source_root = Path(temp_dir) / "repo"
+    source_path = source_root / "build" / "local-ingest" / filename
+    source_path.parent.mkdir(parents=True, exist_ok=True)
+    return source_root, source_path
+
+
 class IngestionToAuthoringIntegrationTests(unittest.TestCase):
     def test_imported_runbook_stays_honestly_partial_when_required_fields_are_unresolved(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            source_root = Path(temp_dir) / "repo"
-            source_path = Path(temp_dir) / "runbook.md"
+            source_root, source_path = governed_ingest_path(temp_dir, "runbook.md")
             source_path.write_text(
                 "# Access Recovery\n\n## Procedure\n\n- Confirm identity\n- Reset access\n\n## Verification\n\n- User can sign in\n",
                 encoding="utf-8",
             )
 
-            ingested = ingest_file(file_path=source_path, database_path=database_path)
+            ingested = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
             map_to_blueprint(ingestion_id=ingested["ingestion_id"], blueprint_id="runbook", database_path=database_path)
             converted = convert_to_draft(
                 ingestion_id=ingested["ingestion_id"],
@@ -48,7 +54,7 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
             )
             self.assertEqual(detail["object"]["object_type"], "runbook")
             self.assertEqual(detail["object"]["summary"], "")
-            self.assertEqual(detail["revision"]["revision_state"], "draft")
+            self.assertEqual(detail["revision"]["revision_review_state"], "draft")
             self.assertEqual(detail["revision"]["metadata"]["summary"], "")
             self.assertIn("section_content", detail["revision"])
             self.assertEqual(
@@ -83,7 +89,7 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
             )
             self.assertTrue(detail["revision"]["section_completion_map"]["procedure"]["completed"])
             self.assertFalse(detail["revision"]["section_completion_map"]["purpose"]["completed"])
-            self.assertNotEqual(detail["revision"]["draft_state"], "ready_for_review")
+            self.assertNotEqual(detail["revision"]["draft_progress_state"], "ready_for_review")
             self.assertLess(converted["completion"]["completion_percentage"], 100)
             self.assertLess(
                 detail["revision"]["section_completion_map"]["purpose"]["completed_field_count"],
@@ -94,8 +100,7 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
     def test_known_error_import_maps_distinct_fragments_to_distinct_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            source_root = Path(temp_dir) / "repo"
-            source_path = Path(temp_dir) / "known-error.md"
+            source_root, source_path = governed_ingest_path(temp_dir, "known-error.md")
             source_path.write_text(
                 "# Login failure\n\n"
                 "## Symptoms\n\n"
@@ -116,7 +121,7 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            ingested = ingest_file(file_path=source_path, database_path=database_path)
+            ingested = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
             map_to_blueprint(ingestion_id=ingested["ingestion_id"], blueprint_id="known_error", database_path=database_path)
             converted = convert_to_draft(
                 ingestion_id=ingested["ingestion_id"],
@@ -166,8 +171,7 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
     def test_policy_import_uses_explicit_policy_fields_and_stays_partial_without_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            source_root = Path(temp_dir) / "repo"
-            source_path = Path(temp_dir) / "policy.md"
+            source_root, source_path = governed_ingest_path(temp_dir, "policy.md")
             source_path.write_text(
                 "# Remote Access Change Policy\n\n"
                 "## Policy Scope\n\n"
@@ -180,7 +184,7 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            ingested = ingest_file(file_path=source_path, database_path=database_path)
+            ingested = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
             map_to_blueprint(ingestion_id=ingested["ingestion_id"], blueprint_id="policy", database_path=database_path)
             converted = convert_to_draft(
                 ingestion_id=ingested["ingestion_id"],
@@ -217,14 +221,13 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
                 "manual_required",
             )
             self.assertEqual(detail["object"]["summary"], "")
-            self.assertNotEqual(detail["revision"]["draft_state"], "ready_for_review")
+            self.assertNotEqual(detail["revision"]["draft_progress_state"], "ready_for_review")
             self.assertLess(converted["completion"]["completion_percentage"], 100)
 
     def test_system_design_import_uses_explicit_system_design_fields_and_keeps_optional_support_blank(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            source_root = Path(temp_dir) / "repo"
-            source_path = Path(temp_dir) / "system-design.md"
+            source_root, source_path = governed_ingest_path(temp_dir, "system-design.md")
             source_path.write_text(
                 "# Identity Platform Design\n\n"
                 "## Architecture\n\n"
@@ -243,7 +246,7 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            ingested = ingest_file(file_path=source_path, database_path=database_path)
+            ingested = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
             map_to_blueprint(ingestion_id=ingested["ingestion_id"], blueprint_id="system_design", database_path=database_path)
             converted = convert_to_draft(
                 ingestion_id=ingested["ingestion_id"],
@@ -292,5 +295,5 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
                 "unresolved",
             )
             self.assertTrue(detail["revision"]["section_completion_map"]["operations"]["completed"])
-            self.assertNotEqual(detail["revision"]["draft_state"], "ready_for_review")
+            self.assertNotEqual(detail["revision"]["draft_progress_state"], "ready_for_review")
             self.assertLess(converted["completion"]["completion_percentage"], 100)

@@ -18,15 +18,15 @@ INGEST_STAGES = ("upload", "parse", "classify", "map", "review", "convert")
 
 
 def _completed_stages(detail: dict[str, object]) -> set[str]:
-    status = IngestionStatus(str(detail.get("status") or IngestionStatus.UPLOADED.value))
+    status = IngestionStatus(str(detail.get("ingestion_state") or IngestionStatus.UPLOADED.value))
     completed: set[str] = {"upload"}
-    if status in {IngestionStatus.PARSED, IngestionStatus.CLASSIFIED, IngestionStatus.MAPPED, IngestionStatus.REVIEWED}:
+    if status in {IngestionStatus.PARSED, IngestionStatus.CLASSIFIED, IngestionStatus.MAPPED, IngestionStatus.CONVERTED}:
         completed.add("parse")
-    if status in {IngestionStatus.CLASSIFIED, IngestionStatus.MAPPED, IngestionStatus.REVIEWED}:
+    if status in {IngestionStatus.CLASSIFIED, IngestionStatus.MAPPED, IngestionStatus.CONVERTED}:
         completed.add("classify")
-    if status in {IngestionStatus.MAPPED, IngestionStatus.REVIEWED}:
+    if status in {IngestionStatus.MAPPED, IngestionStatus.CONVERTED}:
         completed.add("map")
-    if status == IngestionStatus.REVIEWED:
+    if status == IngestionStatus.CONVERTED:
         completed.update({"review", "convert"})
     return completed
 
@@ -34,7 +34,7 @@ def _completed_stages(detail: dict[str, object]) -> set[str]:
 def _current_stage(detail: dict[str, object]) -> str:
     if detail.get("converted_revision_id"):
         return ""
-    status = str(detail.get("status") or "")
+    status = str(detail.get("ingestion_state") or "")
     if status == "mapped":
         return "review"
     if status == "classified":
@@ -245,7 +245,7 @@ def _ingest_list_page(runtime, *, request: Request, errors: list[str] | None = N
     rows = "".join(
         (
             f'<tr><td>{link(item["filename"], f"/ingest/{quoted_path(item["ingestion_id"])}")}</td>'
-            f"<td>{escape(item['status'])}</td>"
+            f"<td>{escape(item['ingestion_state'])}</td>"
             f"<td>{escape(item.get('blueprint_id') or 'unclassified')}</td>"
             f"<td>{escape(item['updated_at'])}</td>"
             f'<td>{link("Open", f"/ingest/{quoted_path(item["ingestion_id"])}", css_class="button button-secondary")}</td></tr>'
@@ -517,22 +517,6 @@ def _mapping_review_page(runtime, *, request: Request, detail: dict[str, object]
 
 
 def register(router, runtime) -> None:
-    def _validated_local_source_path(source_path: str) -> Path:
-        if not runtime.allow_web_ingest_local_paths:
-            raise ValueError(
-                "Local file path ingestion is disabled on this web server. Upload a file instead or restart the local operator web surface with --allow-web-ingest-local-paths."
-            )
-        candidate = Path(source_path.strip()).expanduser()
-        if not candidate.is_absolute():
-            raise ValueError("Local file path ingestion requires an absolute path on the machine running Papyrus.")
-        try:
-            resolved = candidate.resolve(strict=True)
-        except FileNotFoundError as exc:
-            raise ValueError("Local source path not found.") from exc
-        if not resolved.is_file():
-            raise ValueError("Local source path must point to a file.")
-        return resolved
-
     def ingest_list_page(request: Request):
         errors: list[str] = []
         if request.method == "POST":
@@ -546,14 +530,22 @@ def register(router, runtime) -> None:
                     if not runtime.allow_web_ingest_local_paths
                     else "Select a file upload or provide a local operator file path before starting ingestion."
                 )
+            elif upload is None and source_path and not runtime.allow_web_ingest_local_paths:
+                errors.append("Local file path ingestion is disabled on this web server.")
             else:
                 try:
                     result = (
-                        ingest_file(file_path=upload.filename, payload=upload.body, database_path=runtime.database_path)
+                        ingest_file(
+                            file_path=upload.filename,
+                            payload=upload.body,
+                            database_path=runtime.database_path,
+                            source_root=runtime.source_root,
+                        )
                         if upload is not None
                         else ingest_file(
-                            file_path=_validated_local_source_path(source_path),
+                            file_path=source_path.strip(),
                             database_path=runtime.database_path,
+                            source_root=runtime.source_root,
                         )
                     )
                     return redirect_response(

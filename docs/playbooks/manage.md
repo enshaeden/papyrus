@@ -65,7 +65,7 @@ Evidence review boundary:
 
 Current repository boundary:
 
-- the repository exposes governed operator actions through the shared application layer and thin CLI, API, and web surfaces
+- the repository exposes governed operator actions through shared application flows backed by the lifecycle state machines, policy authority, and transactional mutation journal
 - reviewer assignment, approval, rejection, supersession, suspect marking, and validation-run recording all leave audit evidence
 
 ## Inspect Activity, Audit, And Revision History
@@ -129,7 +129,7 @@ python3 scripts/source_sync.py preview --object <object_id>
 python3 scripts/source_sync.py restore-last --object <object_id>
 ```
 
-Use these commands when the writeback needs explicit inspection or rollback. Do not recover by manually editing generated output.
+Use these commands when source sync needs explicit inspection or rollback. Preview reports the proposed `source_sync_state`, required acknowledgements, and conflict posture before apply. Do not recover by manually editing generated output.
 
 ## Use Papyrus As A Stewardship Surface
 

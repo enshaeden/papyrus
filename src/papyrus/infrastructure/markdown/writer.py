@@ -6,6 +6,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.infrastructure.markdown.serializer import slugify
 from papyrus.infrastructure.paths import ROOT
 
@@ -31,19 +32,18 @@ class MarkdownWriteResult:
 
 
 class MarkdownWriter:
-    def __init__(self, root_path: Path = ROOT):
-        self.root_path = Path(root_path)
+    def __init__(self, root_path: Path = ROOT, authority: PolicyAuthority | None = None):
+        self.root_path = Path(root_path).resolve()
+        self.authority = authority or PolicyAuthority.from_repository_policy()
 
     @property
     def canonical_roots(self) -> tuple[Path, Path]:
-        return (
-            (self.root_path / "knowledge").resolve(),
-            (self.root_path / "archive" / "knowledge").resolve(),
-        )
+        roots = self.authority.canonical_write_roots(source_root=self.root_path)
+        return roots[0], roots[1]
 
     @property
     def backup_root(self) -> Path:
-        return (self.root_path / "build" / "writeback-backups").resolve()
+        return self.authority.backup_root(source_root=self.root_path)
 
     def resolve_path(
         self,
@@ -55,15 +55,17 @@ class MarkdownWriter:
     ) -> Path:
         normalized = str(canonical_path or "").strip()
         if normalized:
-            candidate = (self.root_path / normalized).resolve()
-            self._ensure_canonical_root(candidate)
-            return candidate
+            return self.authority.resolve_canonical_target_path(
+                source_root=self.root_path,
+                canonical_path=normalized,
+            )
 
         folder = OBJECT_TYPE_DEFAULT_DIRS.get(object_type, "objects")
         filename = slugify(title or object_id) or object_id
-        candidate = (self.root_path / "knowledge" / folder / f"{filename}.md").resolve()
-        self._ensure_canonical_root(candidate)
-        return candidate
+        return self.authority.resolve_canonical_target_path(
+            source_root=self.root_path,
+            canonical_path=f"knowledge/{folder}/{filename}.md",
+        )
 
     def read_current_text(
         self,

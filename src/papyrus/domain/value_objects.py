@@ -2,6 +2,14 @@ from __future__ import annotations
 
 from enum import StrEnum
 
+from papyrus.domain.lifecycle import (
+    DraftProgressState,
+    IngestionLifecycleState,
+    ObjectLifecycleState,
+    RevisionReviewState,
+    SourceSyncState,
+)
+
 
 class KnowledgeObjectType(StrEnum):
     RUNBOOK = "runbook"
@@ -11,19 +19,11 @@ class KnowledgeObjectType(StrEnum):
     SYSTEM_DESIGN = "system_design"
 
 
-class KnowledgeLifecycleStatus(StrEnum):
-    DRAFT = "draft"
-    ACTIVE = "active"
-    DEPRECATED = "deprecated"
-    ARCHIVED = "archived"
-
-
-class RevisionReviewStatus(StrEnum):
-    DRAFT = "draft"
-    IN_REVIEW = "in_review"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-    SUPERSEDED = "superseded"
+KnowledgeLifecycleStatus = ObjectLifecycleState
+RevisionReviewStatus = RevisionReviewState
+DraftState = DraftProgressState
+IngestionStatus = IngestionLifecycleState
+SourceSyncStatus = SourceSyncState
 
 
 class ReviewAssignmentState(StrEnum):

@@ -12,6 +12,7 @@ def insert_ingestion_job(
     media_type: str,
     parser_name: str,
     status: str,
+    ingestion_state: str | None = None,
     normalized_content_json: str,
     classification_json: str,
     mapping_result_json: str,
@@ -31,6 +32,7 @@ def insert_ingestion_job(
             media_type,
             parser_name,
             status,
+            ingestion_state,
             normalized_content_json,
             classification_json,
             mapping_result_json,
@@ -40,7 +42,7 @@ def insert_ingestion_job(
             converted_revision_id,
             created_at,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             ingestion_id,
@@ -49,6 +51,7 @@ def insert_ingestion_job(
             media_type,
             parser_name,
             status,
+            ingestion_state or status,
             normalized_content_json,
             classification_json,
             mapping_result_json,
@@ -67,6 +70,7 @@ def update_ingestion_job(
     *,
     ingestion_id: str,
     status: str,
+    ingestion_state: str | None = None,
     normalized_content_json: str | None = None,
     classification_json: str | None = None,
     mapping_result_json: str | None = None,
@@ -76,8 +80,8 @@ def update_ingestion_job(
     converted_revision_id: str | None = None,
     updated_at: str,
 ) -> None:
-    assignments = ["status = ?", "updated_at = ?"]
-    values: list[str | None] = [status, updated_at]
+    assignments = ["status = ?", "ingestion_state = ?", "updated_at = ?"]
+    values: list[str | None] = [status, ingestion_state or status, updated_at]
     if normalized_content_json is not None:
         assignments.append("normalized_content_json = ?")
         values.append(normalized_content_json)

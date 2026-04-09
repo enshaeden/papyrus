@@ -146,7 +146,7 @@ def _common_revision_aside(runtime, detail) -> str:
                 title="Current revision context",
                 eyebrow="Lifecycle",
                 body_html=(
-                    f"<p><strong>Current attached revision:</strong> {escape(current_revision['revision_state'])} · #{escape(current_revision['revision_number'])}</p>"
+                    f"<p><strong>Current attached revision:</strong> {escape(current_revision['revision_review_state'])} · #{escape(current_revision['revision_number'])}</p>"
                     if current_revision
                     else "<p>No revision is attached yet. The first approved revision becomes the first canonical guidance for this object.</p>"
                 )
@@ -579,7 +579,7 @@ def _progress_bar_html(runtime, *, blueprint, completion: dict[str, object], cur
 def _next_action_panel_html(components, *, blueprint, completion: dict[str, object]) -> str:
     next_section_id = str(completion.get("next_section_id") or "")
     next_label = blueprint.section(next_section_id).display_name if next_section_id else "Review readiness"
-    tone = "warning" if completion["draft_state"] != "ready_for_review" else "approved"
+    tone = "warning" if completion["draft_progress_state"] != "ready_for_review" else "approved"
     evidence_posture = completion.get("evidence_posture") or {}
     evidence_summary = str(evidence_posture.get("summary") or "No evidence references recorded yet.")
     return components.section_card(
@@ -587,7 +587,7 @@ def _next_action_panel_html(components, *, blueprint, completion: dict[str, obje
         eyebrow="Guidance",
         tone=tone,
         body_html=(
-            f"<p><strong>Current draft state:</strong> {escape(completion['draft_state'])}</p>"
+            f"<p><strong>Current draft state:</strong> {escape(completion['draft_progress_state'])}</p>"
             f"<p><strong>Continue with:</strong> {escape(next_label)}</p>"
             f"<p><strong>Evidence posture:</strong> {escape(evidence_summary)}</p>"
             "<p>Required sections unlock sequentially through the visible progress bar. Review stays blocked until blockers are cleared.</p>"
@@ -1038,7 +1038,7 @@ def _render_submit_page(runtime, detail, completion: dict[str, object], findings
         title="Submission summary",
         eyebrow="Write",
         body_html=(
-            f"<p><strong>Revision:</strong> #{escape(revision['revision_number'])} · {escape(revision['revision_state'])}</p>"
+            f"<p><strong>Revision:</strong> #{escape(revision['revision_number'])} · {escape(revision['revision_review_state'])}</p>"
             f"<p><strong>Change summary:</strong> {escape(revision['change_summary'] or 'No change summary recorded.')}</p>"
             f"<p><strong>Citations:</strong> {escape(len(detail['citations']))}</p>"
             f"<p><strong>Evidence posture:</strong> {escape(evidence_posture['summary'])}</p>"
@@ -1190,7 +1190,7 @@ def register(router, runtime) -> None:
             next_section_id = str(updated["completion"]["next_section_id"])
             redirect_target = (
                 f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision_id)}"
-                if updated["completion"]["draft_state"] == "ready_for_review" and next_section_id == section_id
+                if updated["completion"]["draft_progress_state"] == "ready_for_review" and next_section_id == section_id
                 else f"/write/objects/{quoted_path(object_id)}/revisions/new?revision_id={quoted_path(revision_id)}&section={quoted_path(next_section_id)}"
             )
             notice = f"Section saved. Next: {blueprint.section(next_section_id).display_name}."

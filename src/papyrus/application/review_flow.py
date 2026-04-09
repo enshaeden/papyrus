@@ -10,8 +10,15 @@ from typing import Any
 
 from papyrus.application.revision_runtime import RevisionRuntimeServices
 from papyrus.application import writeback_flow
+from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.entities import AuditEvent, KnowledgeObject, KnowledgeRevision, ReviewAssignment
+from papyrus.domain.lifecycle import (
+    DraftProgressState,
+    ObjectLifecycleState,
+    RevisionReviewState,
+    SourceSyncState,
+)
 from papyrus.domain.policies import runtime_trust_state
 from papyrus.domain.value_objects import (
     KnowledgeLifecycleStatus,
@@ -20,8 +27,7 @@ from papyrus.domain.value_objects import (
     TrustState,
 )
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
-from papyrus.infrastructure.markdown.serializer import json_dump
-from papyrus.infrastructure.markdown.writer import MarkdownWriter
+from papyrus.infrastructure.markdown.serializer import json_dump, slugify
 from papyrus.infrastructure.migrations import apply_runtime_schema
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
@@ -33,6 +39,7 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     upsert_knowledge_object,
     upsert_relationship,
     update_knowledge_object_runtime_state,
+    update_knowledge_revision_content,
     update_knowledge_revision_state,
     insert_knowledge_revision,
 )
@@ -43,6 +50,7 @@ from papyrus.infrastructure.repositories.review_repo import (
     update_review_assignment,
 )
 from papyrus.infrastructure.search.indexer import fts5_available
+from papyrus.infrastructure.transactional_mutation import TransactionalMutation
 from papyrus.application.runtime_projection import persist_revision_artifacts
 
 
@@ -62,12 +70,54 @@ def _relationship_id(source_type: str, source_id: str, target_type: str, target_
     return hashlib.sha256(f"{source_type}|{source_id}|{target_type}|{target_id}|{rel_type}".encode("utf-8")).hexdigest()[:24]
 
 
+def _archive_canonical_path(canonical_path: str) -> str:
+    normalized = canonical_path.strip().replace("\\", "/")
+    if normalized.startswith("archive/knowledge/"):
+        raise ValueError("knowledge object is already archived")
+    if not normalized.startswith("knowledge/"):
+        raise ValueError("archive requires a canonical path under knowledge/")
+    return f"archive/{normalized}"
+
+
+def _object_lifecycle_state(row: sqlite3.Row) -> str:
+    return str(row["object_lifecycle_state"] or row["status"])
+
+
+def _revision_review_state(row: sqlite3.Row) -> str:
+    return str(row["revision_review_state"] or row["revision_state"])
+
+
+def _draft_progress_state(row: sqlite3.Row) -> str:
+    return str(row["draft_progress_state"] or row["draft_state"] or DraftProgressState.READY_FOR_REVIEW.value)
+
+
+def _source_sync_state(row: sqlite3.Row) -> str:
+    return str(row["source_sync_state"] or SourceSyncState.NOT_REQUIRED.value)
+
+
+def _policy_payload(decision: object | None) -> dict[str, Any] | None:
+    if decision is None:
+        return None
+    return {
+        "allowed": bool(getattr(decision, "allowed", False)),
+        "required_acknowledgements": list(getattr(decision, "required_acknowledgements", ())),
+        "source_of_truth": str(getattr(decision, "source_of_truth", "")),
+        "state_change": {
+            "machine": str(getattr(getattr(decision, "state_change", None), "machine", "")),
+            "from_state": str(getattr(getattr(decision, "state_change", None), "from_state", "")),
+            "to_state": str(getattr(getattr(decision, "state_change", None), "to_state", "")),
+        },
+        "invalidated_assumptions": list(getattr(decision, "invalidated_assumptions", ())),
+        "operator_message": str(getattr(decision, "operator_message", "")),
+    }
+
+
 def _row_to_object(row: sqlite3.Row) -> KnowledgeObject:
     return KnowledgeObject(
         object_id=row["object_id"],
         object_type=row["object_type"],
         title=row["title"],
-        status=row["status"],
+        status=_object_lifecycle_state(row),
         owner=row["owner"],
         team=row["team"],
         canonical_path=row["canonical_path"],
@@ -79,7 +129,7 @@ def _row_to_revision(row: sqlite3.Row) -> KnowledgeRevision:
         revision_id=row["revision_id"],
         object_id=row["object_id"],
         revision_number=row["revision_number"],
-        state=row["revision_state"],
+        state=_revision_review_state(row),
     )
 
 
@@ -138,6 +188,7 @@ class GovernanceWorkflow:
         self.database_path = Path(database_path)
         self.source_root = Path(source_root).resolve()
         self.runtime = RevisionRuntimeServices(source_root=self.source_root)
+        self.authority = PolicyAuthority.from_repository_policy()
 
     def _connection(self) -> sqlite3.Connection:
         connection = open_runtime_database(self.database_path, minimum_schema_version=RUNTIME_SCHEMA_VERSION)
@@ -207,6 +258,8 @@ class GovernanceWorkflow:
         try:
             if get_knowledge_object(connection, object_id) is not None:
                 raise ValueError(f"knowledge object already exists: {object_id}")
+            self.authority.validate_canonical_repo_relative_path(canonical_path)
+            ObjectLifecycleState(status)
 
             upsert_knowledge_object(
                 connection,
@@ -216,6 +269,7 @@ class GovernanceWorkflow:
                 title=title,
                 summary=summary,
                 status=status,
+                object_lifecycle_state=status,
                 owner=owner,
                 team=team,
                 canonical_path=canonical_path,
@@ -227,6 +281,7 @@ class GovernanceWorkflow:
                 last_reviewed=now.date().isoformat(),
                 review_cadence=review_cadence,
                 trust_state=TrustState.SUSPECT.value,
+                source_sync_state=SourceSyncState.NOT_REQUIRED.value,
                 current_revision_id=None,
                 tags_json=json_dump(tags or []),
                 systems_json=json_dump(systems or []),
@@ -292,6 +347,8 @@ class GovernanceWorkflow:
                 object_id=object_id,
                 revision_number=revision_number,
                 revision_state=RevisionReviewStatus.DRAFT.value,
+                revision_review_state=RevisionReviewState.DRAFT.value,
+                draft_progress_state=DraftProgressState.READY_FOR_REVIEW.value,
                 source_path=str(parsed.metadata["canonical_path"]),
                 content_hash=content_hash,
                 body_markdown=body_markdown,
@@ -301,6 +358,12 @@ class GovernanceWorkflow:
                 change_summary=change_summary,
             )
 
+            current_object_lifecycle = _object_lifecycle_state(object_row)
+            next_object_lifecycle = str(parsed.metadata["status"])
+            self.authority.require_object_lifecycle_transition(
+                current_object_lifecycle,
+                next_object_lifecycle,
+            )
             upsert_knowledge_object(
                 connection,
                 object_id=object_row["object_id"],
@@ -308,7 +371,8 @@ class GovernanceWorkflow:
                 legacy_type=object_row["legacy_type"],
                 title=str(parsed.metadata["title"]),
                 summary=str(parsed.metadata["summary"]),
-                status=str(parsed.metadata["status"]),
+                status=next_object_lifecycle,
+                object_lifecycle_state=next_object_lifecycle,
                 owner=str(parsed.metadata["owner"]),
                 team=str(parsed.metadata["team"]),
                 canonical_path=str(parsed.metadata["canonical_path"]),
@@ -320,6 +384,7 @@ class GovernanceWorkflow:
                 last_reviewed=str(parsed.metadata["last_reviewed"]),
                 review_cadence=str(parsed.metadata["review_cadence"]),
                 trust_state=TrustState.SUSPECT.value,
+                source_sync_state=_source_sync_state(object_row),
                 current_revision_id=revision_id,
                 tags_json=json_dump(parsed.metadata.get("tags", [])),
                 systems_json=json_dump(parsed.metadata.get("systems", [])),
@@ -369,20 +434,23 @@ class GovernanceWorkflow:
         try:
             self._require_object(connection, object_id)
             revision_row = self._require_revision(connection, object_id=object_id, revision_id=revision_id)
-            if revision_row["revision_state"] not in {
-                RevisionReviewStatus.DRAFT.value,
-                RevisionReviewStatus.REJECTED.value,
-            }:
-                raise ValueError(f"revision {revision_id} cannot be submitted from state {revision_row['revision_state']}")
-            if str(revision_row["draft_state"] or "ready_for_review") != "ready_for_review":
+            revision_state = _revision_review_state(revision_row)
+            draft_progress_state = _draft_progress_state(revision_row)
+            if draft_progress_state != DraftProgressState.READY_FOR_REVIEW.value:
                 raise ValueError(
-                    f"revision {revision_id} is not ready for review; current draft_state is {revision_row['draft_state']}"
+                    f"revision {revision_id} is not ready for review; current draft_progress_state is {draft_progress_state}"
                 )
+            decision = self.authority.require_revision_review_transition(
+                revision_state,
+                RevisionReviewState.IN_REVIEW.value,
+            )
 
             update_knowledge_revision_state(
                 connection,
                 revision_id=revision_id,
                 revision_state=RevisionReviewStatus.IN_REVIEW.value,
+                revision_review_state=RevisionReviewState.IN_REVIEW.value,
+                draft_progress_state=draft_progress_state,
             )
             update_knowledge_object_runtime_state(
                 connection,
@@ -393,7 +461,10 @@ class GovernanceWorkflow:
             self.runtime.refresh_object_projection(connection, object_id=object_id)
 
             event_id = _event_id("revision-submitted")
-            details = {"notes": notes}
+            details = {
+                "notes": notes,
+                "policy_decision": _policy_payload(decision),
+            }
             insert_audit_event(
                 connection,
                 event_id=event_id,
@@ -436,7 +507,7 @@ class GovernanceWorkflow:
         try:
             self._require_object(connection, object_id)
             revision_row = self._require_revision(connection, object_id=object_id, revision_id=revision_id)
-            if revision_row["revision_state"] != RevisionReviewStatus.IN_REVIEW.value:
+            if _revision_review_state(revision_row) != RevisionReviewState.IN_REVIEW.value:
                 raise ValueError(f"revision {revision_id} must be in_review before assigning reviewers")
 
             existing = list_review_assignments_for_revision(connection, revision_id)
@@ -496,15 +567,21 @@ class GovernanceWorkflow:
         actor = require_actor_id(actor)
         connection = self._connection()
         now = _now_utc()
+        pending_writeback: writeback_flow.PendingSourceWriteback | None = None
         writeback_result: writeback_flow.SourceWritebackResult | None = None
         try:
             object_row = self._require_object(connection, object_id)
             revision_row = self._require_revision(connection, object_id=object_id, revision_id=revision_id)
-            if revision_row["revision_state"] != RevisionReviewStatus.IN_REVIEW.value:
+            revision_state = _revision_review_state(revision_row)
+            if revision_state != RevisionReviewState.IN_REVIEW.value:
                 raise ValueError(f"revision {revision_id} must be in_review before approval")
             revision_author = _revision_author_actor(connection, revision_id)
             if revision_author and revision_author == actor:
                 raise ValueError("self-approval is not allowed; another actor must approve this revision")
+            revision_decision = self.authority.require_revision_review_transition(
+                revision_state,
+                RevisionReviewState.APPROVED.value,
+            )
 
             active_assignment = self._require_assignment(connection, revision_id=revision_id, reviewer=reviewer)
             assignments = list_review_assignments_for_revision(connection, revision_id)
@@ -528,13 +605,24 @@ class GovernanceWorkflow:
                 connection,
                 revision_id=revision_id,
                 revision_state=RevisionReviewStatus.APPROVED.value,
+                revision_review_state=RevisionReviewState.APPROVED.value,
+                draft_progress_state=_draft_progress_state(revision_row),
             )
             payload = json.loads(revision_row["normalized_payload_json"])
             parsed = self.runtime.parse_revision(payload, revision_row["body_markdown"])
+            next_object_lifecycle = str(parsed.metadata["status"])
+            object_decision = None
+            current_object_lifecycle = _object_lifecycle_state(object_row)
+            if current_object_lifecycle != next_object_lifecycle:
+                object_decision = self.authority.require_object_lifecycle_transition(
+                    current_object_lifecycle,
+                    next_object_lifecycle,
+                )
             update_knowledge_object_runtime_state(
                 connection,
                 object_id=object_id,
-                status=str(parsed.metadata["status"]),
+                status=next_object_lifecycle,
+                object_lifecycle_state=next_object_lifecycle,
                 trust_state=runtime_trust_state(
                     base_trust_state=parsed.trust_state,
                     revision_state=RevisionReviewStatus.APPROVED.value,
@@ -543,19 +631,23 @@ class GovernanceWorkflow:
                 current_revision_id=revision_id,
             )
             self.runtime.refresh_object_projection(connection, object_id=object_id)
-            writeback_result = writeback_flow.write_revision_to_source(
+            pending_writeback = writeback_flow.prepare_revision_writeback(
                 connection,
                 object_id=object_id,
                 revision_id=revision_id,
                 actor=actor,
                 root_path=self.source_root,
             )
+            writeback_result = pending_writeback.result
+            self.runtime.refresh_object_projection(connection, object_id=object_id)
 
             event_id = _event_id("revision-approved")
             details = {
                 "reviewer": reviewer,
                 "assignment_id": active_assignment["assignment_id"],
                 "notes": notes,
+                "policy_decision": _policy_payload(revision_decision),
+                "object_lifecycle_decision": _policy_payload(object_decision),
                 "previous_revision_id": writeback_result.previous_revision_id,
                 "source_writeback_path": writeback_result.file_path.relative_to(self.source_root).as_posix(),
                 "writeback_backup_path": (
@@ -574,15 +666,17 @@ class GovernanceWorkflow:
                 revision_id=revision_id,
                 details_json=json_dump(details),
             )
-            connection.commit()
+            if pending_writeback is not None:
+                pending_writeback.commit(connection)
+                pending_writeback = None
+            else:
+                connection.commit()
             return _row_to_revision(self._require_revision(connection, object_id=object_id, revision_id=revision_id))
         except Exception:
-            if writeback_result is not None:
-                MarkdownWriter(self.source_root).restore(
-                    file_path=writeback_result.file_path,
-                    previous_text=writeback_result.previous_text,
-                )
-            connection.rollback()
+            if pending_writeback is not None:
+                pending_writeback.rollback(connection)
+            else:
+                connection.rollback()
             raise
         finally:
             connection.close()
@@ -602,8 +696,13 @@ class GovernanceWorkflow:
         try:
             self._require_object(connection, object_id)
             revision_row = self._require_revision(connection, object_id=object_id, revision_id=revision_id)
-            if revision_row["revision_state"] != RevisionReviewStatus.IN_REVIEW.value:
+            revision_state = _revision_review_state(revision_row)
+            if revision_state != RevisionReviewState.IN_REVIEW.value:
                 raise ValueError(f"revision {revision_id} must be in_review before rejection")
+            decision = self.authority.require_revision_review_transition(
+                revision_state,
+                RevisionReviewState.REJECTED.value,
+            )
             active_assignment = self._require_assignment(connection, revision_id=revision_id, reviewer=reviewer)
             assignments = list_review_assignments_for_revision(connection, revision_id)
             for assignment in assignments:
@@ -626,6 +725,8 @@ class GovernanceWorkflow:
                 connection,
                 revision_id=revision_id,
                 revision_state=RevisionReviewStatus.REJECTED.value,
+                revision_review_state=RevisionReviewState.REJECTED.value,
+                draft_progress_state=_draft_progress_state(revision_row),
             )
             update_knowledge_object_runtime_state(
                 connection,
@@ -640,6 +741,7 @@ class GovernanceWorkflow:
                 "reviewer": reviewer,
                 "assignment_id": active_assignment["assignment_id"],
                 "notes": notes,
+                "policy_decision": _policy_payload(decision),
             }
             insert_audit_event(
                 connection,
@@ -693,16 +795,32 @@ class GovernanceWorkflow:
                 provenance="workflow",
             )
             if source_object["current_revision_id"]:
-                update_knowledge_revision_state(
+                current_revision_row = self._require_revision(
                     connection,
-                    revision_id=source_object["current_revision_id"],
-                    revision_state=RevisionReviewStatus.SUPERSEDED.value,
+                    object_id=object_id,
+                    revision_id=str(source_object["current_revision_id"]),
                 )
+                if _revision_review_state(current_revision_row) == RevisionReviewState.APPROVED.value:
+                    self.authority.require_revision_review_transition(
+                        RevisionReviewState.APPROVED.value,
+                        RevisionReviewState.SUPERSEDED.value,
+                    )
+                    update_knowledge_revision_state(
+                        connection,
+                        revision_id=source_object["current_revision_id"],
+                        revision_state=RevisionReviewStatus.SUPERSEDED.value,
+                        revision_review_state=RevisionReviewState.SUPERSEDED.value,
+                    )
 
+            decision = self.authority.require_object_lifecycle_transition(
+                _object_lifecycle_state(source_object),
+                ObjectLifecycleState.DEPRECATED.value,
+            )
             update_knowledge_object_runtime_state(
                 connection,
                 object_id=object_id,
                 status=KnowledgeLifecycleStatus.DEPRECATED.value,
+                object_lifecycle_state=ObjectLifecycleState.DEPRECATED.value,
                 trust_state=TrustState.SUSPECT.value,
             )
             self.runtime.refresh_object_projection(connection, object_id=object_id)
@@ -711,6 +829,7 @@ class GovernanceWorkflow:
             details = {
                 "replacement_object_id": replacement_object_id,
                 "notes": notes,
+                "policy_decision": _policy_payload(decision),
             }
             insert_audit_event(
                 connection,
@@ -724,6 +843,173 @@ class GovernanceWorkflow:
             )
             connection.commit()
             return _row_to_object(self._require_object(connection, object_id))
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def archive_object(
+        self,
+        *,
+        object_id: str,
+        actor: str,
+        retirement_reason: str,
+        notes: str | None = None,
+        acknowledgements: list[str] | tuple[str, ...] | set[str] | None = None,
+    ) -> dict[str, Any]:
+        actor = require_actor_id(actor)
+        connection = self._connection()
+        now = _now_utc()
+        try:
+            object_row = self._require_object(connection, object_id)
+            decision = self.authority.require_object_lifecycle_transition(
+                _object_lifecycle_state(object_row),
+                ObjectLifecycleState.ARCHIVED.value,
+            )
+            self.authority.assert_acknowledgements(decision, acknowledgements)
+
+            current_revision_id = str(object_row["current_revision_id"] or "").strip()
+            if not current_revision_id:
+                raise ValueError("archive requires a current revision so canonical content can be updated coherently")
+            revision_row = self._require_revision(connection, object_id=object_id, revision_id=current_revision_id)
+
+            metadata = json.loads(str(revision_row["normalized_payload_json"]))
+            current_canonical_path = str(metadata.get("canonical_path") or object_row["canonical_path"])
+            archived_canonical_path = _archive_canonical_path(current_canonical_path)
+            current_file_path = self.authority.resolve_canonical_target_path(
+                source_root=self.source_root,
+                canonical_path=current_canonical_path,
+            )
+            archived_file_path = self.authority.resolve_canonical_target_path(
+                source_root=self.source_root,
+                canonical_path=archived_canonical_path,
+            )
+            if archived_file_path.exists():
+                raise ValueError(f"archive target already exists: {archived_canonical_path}")
+
+            current_source_text = current_file_path.read_text(encoding="utf-8") if current_file_path.exists() else None
+            archived_metadata = dict(metadata)
+            archived_metadata["status"] = ObjectLifecycleState.ARCHIVED.value
+            archived_metadata["canonical_path"] = archived_canonical_path
+            archived_metadata["retirement_reason"] = retirement_reason
+            archived_metadata["updated"] = now.date().isoformat()
+            archived_payload_json = json_dump(archived_metadata)
+            archived_content_hash = _content_hash(archived_payload_json, str(revision_row["body_markdown"]))
+            archived_markdown = writeback_flow.render_revision_markdown(
+                object_type=str(object_row["object_type"]),
+                metadata=archived_metadata,
+                body_markdown=str(revision_row["body_markdown"]),
+            )
+
+            mutation_id = f"archive-{uuid.uuid4().hex[:12]}"
+            backup_path: Path | None = None
+            if current_source_text is not None:
+                timestamp = now.strftime("%Y%m%dT%H%M%SZ")
+                backup_path = (
+                    self.authority.backup_root(source_root=self.source_root)
+                    / slugify(object_id)
+                    / f"{timestamp}-archive-{current_file_path.name}"
+                )
+
+            with TransactionalMutation(
+                source_root=self.source_root,
+                mutation_id=mutation_id,
+                mutation_type="archive_object",
+                object_id=object_id,
+                authority=self.authority,
+            ) as mutation:
+                mutation.set_metadata(
+                    revision_id=current_revision_id,
+                    from_path=current_canonical_path,
+                    archived_path=archived_canonical_path,
+                    retirement_reason=retirement_reason,
+                )
+                if backup_path is not None:
+                    mutation.stage_write(
+                        target_path=backup_path,
+                        previous_text=None,
+                        new_text=current_source_text,
+                    )
+                mutation.stage_write(
+                    target_path=archived_file_path,
+                    previous_text=None,
+                    new_text=archived_markdown,
+                )
+                if current_source_text is not None:
+                    mutation.stage_delete(
+                        target_path=current_file_path,
+                        previous_text=current_source_text,
+                    )
+
+                update_knowledge_revision_content(
+                    connection,
+                    revision_id=current_revision_id,
+                    content_hash=archived_content_hash,
+                    body_markdown=str(revision_row["body_markdown"]),
+                    normalized_payload_json=archived_payload_json,
+                    blueprint_id=str(revision_row["blueprint_id"] or object_row["object_type"]),
+                    draft_state=str(revision_row["draft_state"] or _draft_progress_state(revision_row)),
+                    draft_progress_state=_draft_progress_state(revision_row),
+                    section_content_json=str(revision_row["section_content_json"]),
+                    section_completion_json=str(revision_row["section_completion_json"]),
+                    change_summary=str(revision_row["change_summary"]) if revision_row["change_summary"] is not None else None,
+                )
+                update_knowledge_object_runtime_state(
+                    connection,
+                    object_id=object_id,
+                    canonical_path=archived_canonical_path,
+                    status=ObjectLifecycleState.ARCHIVED.value,
+                    object_lifecycle_state=ObjectLifecycleState.ARCHIVED.value,
+                    source_sync_state=SourceSyncState.APPLIED.value,
+                    source_sync_revision_id=current_revision_id,
+                    source_sync_content_hash=archived_content_hash,
+                    source_sync_mutation_id=mutation_id,
+                    updated_date=now.date().isoformat(),
+                )
+                self.runtime.refresh_object_projection(connection, object_id=object_id)
+                insert_audit_event(
+                    connection,
+                    event_id=_event_id("object-archived"),
+                    event_type="object_archived",
+                    occurred_at=now.isoformat(),
+                    actor=actor,
+                    object_id=object_id,
+                    revision_id=current_revision_id,
+                    details_json=json_dump(
+                        {
+                            "notes": notes,
+                            "retirement_reason": retirement_reason,
+                            "previous_canonical_path": current_canonical_path,
+                            "archived_canonical_path": archived_canonical_path,
+                            "backup_path": (
+                                backup_path.relative_to(self.source_root).as_posix()
+                                if backup_path is not None
+                                else None
+                            ),
+                            "mutation_id": mutation_id,
+                            "policy_decision": _policy_payload(decision),
+                        }
+                    ),
+                )
+                mutation.apply_files()
+                connection.commit()
+                mutation.mark_committed()
+
+            return {
+                "object_id": object_id,
+                "revision_id": current_revision_id,
+                "previous_canonical_path": current_canonical_path,
+                "archived_canonical_path": archived_canonical_path,
+                "backup_path": backup_path,
+                "mutation_id": mutation_id,
+                "object_lifecycle_state": ObjectLifecycleState.ARCHIVED.value,
+                "required_acknowledgements": decision.required_acknowledgements,
+                "source_of_truth": decision.source_of_truth,
+                "state_change": _policy_payload(decision)["state_change"],
+                "invalidated_assumptions": decision.invalidated_assumptions,
+                "operator_message": decision.operator_message,
+            }
         except Exception:
             connection.rollback()
             raise

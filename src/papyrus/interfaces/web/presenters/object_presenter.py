@@ -312,7 +312,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                     else '<p class="empty-state-copy">No current revision is attached to this object.</p>'
                 ),
                 footer_html=(
-                    f'<p class="section-footer">Revision #{revision["revision_number"]} · {escape(revision["revision_state"])} · {escape(format_timestamp(revision["imported_at"]))}</p>'
+                    f'<p class="section-footer">Revision #{revision["revision_number"]} · {escape(revision["revision_review_state"])} · {escape(format_timestamp(revision["imported_at"]))}</p>'
                     if revision is not None
                     else ""
                 ),
@@ -367,7 +367,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                 badges=[
                     components.badge(label="Trust", value=item["trust_state"], tone=tone_for_trust(item["trust_state"])),
                     components.badge(label="Approval", value=item["approval_state"] or "unknown", tone=tone_for_approval(item["approval_state"])),
-                    components.badge(label="Status", value=item["status"], tone="context"),
+                    components.badge(label="Status", value=item["object_lifecycle_state"], tone="context"),
                 ],
                 summary=str(posture.get("trust_detail") or "Inspect trust, approval, and lifecycle cues before relying on the guidance."),
             ),

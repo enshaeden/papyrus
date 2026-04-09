@@ -42,8 +42,8 @@ This document records the v1.5 lifecycle-guided pass. Papyrus remains a governed
   - weak evidence
   - recently changed
   - superseded guidance still in view
-- Added writeback preview and conflict detection to make canonical publication inspectable before approval.
-- Added writeback recovery support through governed backup restoration.
+- Added source-sync preview and conflict detection so canonical publication is inspectable before approval or explicit apply.
+- Added source-sync recovery through journaled mutation rollback and governed backup restoration.
 - Reframed event and impact history around operational consequences instead of raw payload inspection.
 - Expanded local actor handling with registry-backed display names, role hints, default actor selection, explicit actor propagation, and self-approval prevention.
 - Aligned CLI language with the lifecycle-guided model so queue, health, review, object detail, activity, and validation output describe next actions instead of only raw state.
@@ -56,7 +56,7 @@ This document records the v1.5 lifecycle-guided pass. Papyrus remains a governed
 - Review surfaces lead with decision support and downstream effect.
 - Knowledge health is separate from approval work.
 - Activity and history explain what happened, what it affected, and what should happen next.
-- Source writeback is explicit, inspectable, and recoverable.
+- Source sync is explicit, inspectable, and recoverable, but Papyrus only claims safety within the configured canonical roots and local ingest allowlist.
 - Actor attribution is lightweight and local-first. This pass does not introduce enterprise authentication.
 
 ## Recovery And Inspection
@@ -111,7 +111,8 @@ Still deferred after this pass:
 - No new third-party dependencies were introduced.
 - Source of truth remains canonical Markdown under `knowledge/` and `archive/knowledge/`.
 - Derived output remains non-authoritative.
-- Business logic remains in the shared application layer rather than being duplicated in the web or CLI surfaces.
+- Governed mutation policy now terminates in `papyrus.domain.lifecycle`, `papyrus.application.policy_authority`, and `papyrus.infrastructure.transactional_mutation`. CLI, API, and web actions call those flows instead of each surface owning path or lifecycle checks.
+- Some read surfaces still expose compatibility aliases such as `status` and `approval_state` alongside the explicit lifecycle fields. Those aliases are not the authoritative mutation contract.
 
 ## Rollback Reference
 

@@ -159,7 +159,7 @@ class SearchHit:
     title: str
     summary: str
     content_type: str
-    status: str
+    object_lifecycle_state: str
     path: str
 
 

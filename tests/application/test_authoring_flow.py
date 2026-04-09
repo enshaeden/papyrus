@@ -143,7 +143,7 @@ class AuthoringFlowTests(unittest.TestCase):
 
             self.assertEqual(artifacts.payload["controls"], ["Require CAB approval before production change."])
             self.assertIn("## Policy Scope", artifacts.body_markdown)
-            self.assertEqual(artifacts.completion["draft_state"], "ready_for_review")
+            self.assertEqual(artifacts.completion["draft_progress_state"], "ready_for_review")
             self.assertEqual(artifacts.completion["completion_percentage"], 100)
             self.assertEqual(artifacts.parsed.metadata["knowledge_object_type"], "policy")
 
@@ -173,7 +173,7 @@ class AuthoringFlowTests(unittest.TestCase):
                 source_root=source_root,
             )
             revision_id = str(created["revision_id"])
-            self.assertIn(created["completion"]["draft_state"], {"blocked", "in_progress"})
+            self.assertIn(created["completion"]["draft_progress_state"], {"blocked", "in_progress"})
 
             updates = {
                 "purpose": {"use_when": "Use this when the operator needs guided recovery."},
@@ -201,7 +201,7 @@ class AuthoringFlowTests(unittest.TestCase):
                 database_path=database_path,
                 source_root=source_root,
             )
-            self.assertEqual(progress["completion"]["draft_state"], "ready_for_review")
+            self.assertEqual(progress["completion"]["draft_progress_state"], "ready_for_review")
             self.assertEqual(progress["completion"]["completion_percentage"], 100)
 
     def test_draft_progress_exposes_field_level_import_provenance_and_conversion_gaps(self) -> None:
@@ -324,7 +324,7 @@ class AuthoringFlowTests(unittest.TestCase):
                 database_path=database_path,
                 source_root=source_root,
             )
-            self.assertEqual(progress["completion"]["draft_state"], "ready_for_review")
+            self.assertEqual(progress["completion"]["draft_progress_state"], "ready_for_review")
             self.assertEqual(progress["completion"]["completion_percentage"], 100)
             self.assertTrue(progress["completion"]["section_completion_map"]["policy_scope"]["completed"])
             self.assertTrue(progress["completion"]["section_completion_map"]["controls"]["completed"])
@@ -338,7 +338,7 @@ class AuthoringFlowTests(unittest.TestCase):
                 notes="Policy draft ready for governance review.",
             )
             detail = knowledge_object_detail("kb-policy-blueprint", database_path=database_path)
-            self.assertEqual(detail["current_revision"]["revision_state"], "in_review")
+            self.assertEqual(detail["current_revision"]["revision_review_state"], "in_review")
             self.assertEqual(detail["current_revision"]["blueprint_id"], "policy")
 
     def test_system_design_blueprint_progress_and_submit_use_explicit_system_design_sections(self) -> None:
@@ -396,7 +396,7 @@ class AuthoringFlowTests(unittest.TestCase):
                 database_path=database_path,
                 source_root=source_root,
             )
-            self.assertEqual(progress["completion"]["draft_state"], "ready_for_review")
+            self.assertEqual(progress["completion"]["draft_progress_state"], "ready_for_review")
             self.assertEqual(progress["completion"]["completion_percentage"], 100)
             self.assertTrue(progress["completion"]["section_completion_map"]["architecture"]["completed"])
             self.assertTrue(progress["completion"]["section_completion_map"]["operations"]["completed"])
@@ -410,7 +410,7 @@ class AuthoringFlowTests(unittest.TestCase):
                 notes="System design draft ready for governance review.",
             )
             detail = knowledge_object_detail("kb-system-design-blueprint", database_path=database_path)
-            self.assertEqual(detail["current_revision"]["revision_state"], "in_review")
+            self.assertEqual(detail["current_revision"]["revision_review_state"], "in_review")
             self.assertEqual(detail["current_revision"]["blueprint_id"], "system_design")
 
     def test_validate_draft_progress_uses_supplied_source_root(self) -> None:
@@ -452,7 +452,7 @@ class AuthoringFlowTests(unittest.TestCase):
 
             runtime_class.assert_called_once_with(source_root=source_root)
             self.assertEqual(progress["blueprint"].blueprint_id, "runbook")
-            self.assertEqual(progress["completion"]["draft_state"], "blocked")
+            self.assertEqual(progress["completion"]["draft_progress_state"], "blocked")
 
     def test_completion_state_distinguishes_internal_references_from_weak_external_evidence(self) -> None:
         blueprint = get_blueprint("runbook")

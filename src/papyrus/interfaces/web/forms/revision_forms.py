@@ -82,7 +82,7 @@ def build_revision_defaults(detail: dict[str, Any]) -> dict[str, str]:
     values = {
         "title": _metadata_value(metadata, "title", object_info["title"]),
         "summary": _metadata_value(metadata, "summary", object_info["summary"]),
-        "status": _metadata_value(metadata, "status", object_info["status"]),
+        "status": _metadata_value(metadata, "status", object_info["object_lifecycle_state"]),
         "owner": _metadata_value(metadata, "owner", object_info["owner"]),
         "team": _metadata_value(metadata, "team", object_info["team"]),
         "review_cadence": _metadata_value(metadata, "review_cadence", object_info["review_cadence"]),
