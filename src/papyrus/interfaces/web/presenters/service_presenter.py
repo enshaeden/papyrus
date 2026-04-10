@@ -20,7 +20,7 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
             components.badge(label="Status", value=service["status"], tone="approved" if service["status"] == "active" else "muted"),
             components.badge(label="Linked objects", value=len(detail["linked_objects"]), tone="brand"),
         ],
-        actions_html=link("Impact view", f"/impact/service/{quoted_path(service['service_id'])}", css_class="button button-secondary"),
+        actions_html=link("Review service impact", f"/impact/service/{quoted_path(service['service_id'])}", css_class="button button-primary"),
     )
     overview_html = join_html(
         [
@@ -29,7 +29,7 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
                 eyebrow="Services",
                 body_html=join_html(
                     [
-                        "<p>Open this service view when you need the canonical service record, the linked operational guidance path, or the service-level blast radius before acting.</p>",
+                        "<p>Use this service record to move from a service issue into the right guidance path.</p>",
                         f"<p><strong>Support entrypoints:</strong> {escape(', '.join(service['support_entrypoints']) or 'None')}</p>",
                         f"<p><strong>Dependencies:</strong> {escape(', '.join(service['dependencies']) or 'None')}</p>",
                         f"<p><strong>Common failure modes:</strong> {escape(', '.join(service['common_failure_modes']) or 'None')}</p>",
@@ -60,13 +60,21 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
         title="Guidance path for this service",
         eyebrow="Read",
         body_html=components.queue_table(
-            headers=["Guidance", "When to open it", "Safe now?", "Relationship"],
+            headers=["Guidance", "Status", "Relationship", "Do next"],
             rows=[
                 [
-                    link(item["title"], f"/objects/{quoted_path(item['object_id'])}"),
-                    escape("Use this item when you need the service-specific operational answer."),
-                    escape(f"{item['trust_state']} / {item['approval_state'] or 'unknown'}"),
-                    escape(item["relationship_type"]),
+                    components.decision_cell(
+                        title_html=link(item["title"], f"/objects/{quoted_path(item['object_id'])}"),
+                        meta=[escape(item["object_id"])],
+                    ),
+                    components.decision_cell(
+                        title_html=escape(f"{item['trust_state']} / {item['approval_state'] or 'unknown'}"),
+                        supporting_html=escape("Use this item when you need the service-specific operational answer."),
+                    ),
+                    components.decision_cell(
+                        title_html=escape(item["relationship_type"]),
+                    ),
+                    link("Read guidance", f"/objects/{quoted_path(item['object_id'])}", css_class="button button-primary"),
                 ]
                 for item in detail["linked_objects"]
             ],
@@ -92,7 +100,7 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
         "page_title": service["service_name"],
         "headline": service["service_name"],
         "kicker": "Services",
-        "intro": "Move from a service issue into the right operational guidance path with service context, dependencies, and linked knowledge kept together.",
+        "intro": "Use service context to pick the right guidance fast.",
         "active_nav": "services",
         "aside_html": aside_html,
         "page_context": {
@@ -107,12 +115,22 @@ def present_service_catalog(renderer: TemplateRenderer, *, services: list[dict[s
     components = ComponentPresenter(renderer)
     rows = [
         [
-            link(service["service_name"], f"/services/{quoted_path(service['service_id'])}"),
-            escape(service["service_criticality"]),
-            escape(service["status"]),
-            escape(service["owner"] or "None"),
-            escape(service["team"] or "None"),
-            escape(service["linked_object_count"]),
+            components.decision_cell(
+                title_html=link(service["service_name"], f"/services/{quoted_path(service['service_id'])}"),
+                meta=[escape(service["service_id"])],
+            ),
+            components.decision_cell(
+                title_html=escape(service["status"]),
+                badges=[
+                    components.badge(label="Criticality", value=service["service_criticality"], tone="warning" if service["service_criticality"] in {"high", "critical"} else "approved"),
+                    components.badge(label="Linked guidance", value=service["linked_object_count"], tone="brand"),
+                ],
+            ),
+            components.decision_cell(
+                title_html=escape(service["owner"] or "Unassigned"),
+                meta=[escape(service["team"] or "No team")],
+            ),
+            link("Review service", f"/services/{quoted_path(service['service_id'])}", css_class="button button-primary"),
         ]
         for service in services
     ]
@@ -120,7 +138,7 @@ def present_service_catalog(renderer: TemplateRenderer, *, services: list[dict[s
         title="Service entry points",
         eyebrow="Services",
         body_html=components.queue_table(
-            headers=["Service", "Criticality", "Status", "Owner", "Team", "Linked guidance"],
+            headers=["Service", "Status", "Stewardship", "Do next"],
             rows=rows,
             table_id="service-catalog",
         ),
@@ -130,15 +148,8 @@ def present_service_catalog(renderer: TemplateRenderer, *, services: list[dict[s
         "page_title": "Services",
         "headline": "Services",
         "kicker": "Services",
-        "intro": "Use services as an operational starting point when the incident, request, or review begins with service context instead of a known document.",
+        "intro": "Start with the affected service, then move into the right guidance.",
         "active_nav": "services",
-        "aside_html": components.validation_summary(
-            title="How to use services",
-            findings=[
-                "Open the service first when the problem is clearly service-scoped.",
-                "Linked guidance counts help spot thin or missing knowledge coverage.",
-                "Use the service path to move into the right runbook, known error, or service record.",
-            ],
-        ),
+        "aside_html": "",
         "page_context": {"services_html": services_html},
     }

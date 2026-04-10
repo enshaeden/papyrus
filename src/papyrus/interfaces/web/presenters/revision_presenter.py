@@ -8,6 +8,13 @@ from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, tone_for_revision
 
 
+def _revision_assignments_text(revision: dict[str, Any]) -> str:
+    return "; ".join(
+        f"{assignment['reviewer']} ({assignment['state']})"
+        for assignment in revision["review_assignments"]
+    ) or "No assignments"
+
+
 def present_revision_history(
     renderer: TemplateRenderer,
     *,
@@ -18,17 +25,37 @@ def present_revision_history(
     object_info = history["object"]
     rows = [
         [
-            f"#{escape(revision['revision_number'])}",
-            components.badge(
-                label="State",
-                value=revision["revision_review_state"],
-                tone=tone_for_revision(revision["revision_review_state"]),
+            components.decision_cell(
+                title_html=f"#{escape(revision['revision_number'])}",
+                meta=[escape(format_timestamp(revision["imported_at"]))],
             ),
-            escape(revision["change_summary"] or "No summary recorded."),
-            escape(", ".join(f"{status}={count}" for status, count in revision["citations"].items() if count) or "No citations"),
-            escape("; ".join(f"{assignment['reviewer']} ({assignment['state']})" for assignment in revision["review_assignments"]) or "No assignments"),
-            escape(format_timestamp(revision["imported_at"])),
-            "Current" if revision["is_current"] else "",
+            components.decision_cell(
+                title_html=escape(revision["revision_review_state"]),
+                badges=[
+                    components.badge(
+                        label="State",
+                        value=revision["revision_review_state"],
+                        tone=tone_for_revision(revision["revision_review_state"]),
+                    ),
+                    components.badge(
+                        label="Current",
+                        value="Now" if revision["is_current"] else "Past",
+                        tone="brand" if revision["is_current"] else "muted",
+                    ),
+                ],
+            ),
+            components.decision_cell(
+                title_html=escape(revision["change_summary"] or "No summary recorded."),
+                extra_html=components.inline_disclosure(
+                    label="Evidence and assignments",
+                    body_html=join_html(
+                        [
+                            f"<p><strong>Citations:</strong> {escape(', '.join(f'{status}={count}' for status, count in revision['citations'].items() if count) or 'No citations')}</p>",
+                            f"<p><strong>Assignments:</strong> {escape(_revision_assignments_text(revision))}</p>",
+                        ]
+                    ),
+                ),
+            ),
         ]
         for revision in history["revisions"]
     ]
@@ -36,7 +63,7 @@ def present_revision_history(
         title="Revision history",
         eyebrow="Read",
         body_html=components.queue_table(
-            headers=["Revision", "State", "Change summary", "Citations", "Assignments", "Imported", "Current"],
+            headers=["Revision", "Status", "What changed"],
             rows=rows,
             table_id="revision-history",
         ),

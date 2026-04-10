@@ -234,9 +234,21 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         badges=_object_status_badges_html(components, item=item, ui_projection=ui_projection),
         actions_html=join_html(
             [
+<<<<<<< Updated upstream
                 link("See history", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
                 link("Revise guidance", f"/write/objects/{quoted_path(item['object_id'])}/revisions/new", css_class="button button-primary"),
                 link("See consequences", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
+=======
+<<<<<<< HEAD
+                link("See history", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
+                link("Revise guidance", f"/write/objects/{quoted_path(item['object_id'])}/revisions/new", css_class="button button-primary"),
+                link("See consequences", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
+=======
+                link("Compare revisions", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
+                link("Update guidance", f"/write/objects/{quoted_path(item['object_id'])}/revisions/new", css_class="button button-primary"),
+                link("Review impact", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
             ],
             " ",
         ),
@@ -366,8 +378,34 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
     aside_html = join_html(
         [
             components.trust_summary(
+<<<<<<< Updated upstream
                 title="Current status",
                 badges=_object_status_badges_html(components, item=item, ui_projection=ui_projection),
+=======
+<<<<<<< HEAD
+                title="Current status",
+                badges=_object_status_badges_html(components, item=item, ui_projection=ui_projection),
+=======
+                title="Safety status",
+                badges=[
+                    components.badge(
+                        label="Trust",
+                        value=projection_state_values.get("trust_state") or "unknown",
+                        tone=tone_for_trust(str(projection_state_values.get("trust_state") or "unknown")),
+                    ),
+                    components.badge(
+                        label="Approval",
+                        value=projection_state_values.get("approval_state") or "unknown",
+                        tone=tone_for_approval(str(projection_state_values.get("approval_state") or "unknown")),
+                    ),
+                    components.badge(
+                        label="Status",
+                        value=projection_state_values.get("object_lifecycle_state") or "unknown",
+                        tone="context",
+                    ),
+                ],
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
                 summary=str(
                     (ui_projection.get("use_guidance") or {}).get("detail")
                     or "Papyrus did not return governed detail for this object."
@@ -406,7 +444,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         "page_title": item["title"],
         "headline": item["title"],
         "kicker": "Use",
-        "intro": "Use the current guidance with visible safety, freshness, service context, and change history before you act.",
+        "intro": "Use the current guidance with safety, evidence, and recent change visible.",
         "active_nav": "read",
         "aside_html": aside_html,
         "page_context": {

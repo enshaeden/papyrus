@@ -27,34 +27,34 @@ def _field(
 COMMON_IDENTITY_SECTION = BlueprintSection(
     section_id="identity",
     display_name="Identity",
-    description="Stable identifiers and reader-facing basics.",
+    description="Name the guidance and set the publishing details.",
     section_type=SectionType.METADATA,
     fields=(
-        _field("object_id", "Object ID", kind="text", placeholder="kb-remote-access-example"),
-        _field("title", "Title", kind="text", placeholder="Remote Access VPN recovery"),
+        _field("object_id", "Reference code", kind="text", placeholder="Use lowercase words separated by hyphens"),
+        _field("title", "Title", kind="text", placeholder="Name the guidance clearly"),
         _field(
             "canonical_path",
-            "Canonical path",
+            "Publishing location",
             kind="text",
-            placeholder="knowledge/runbooks/remote-access-vpn-recovery.md",
+            placeholder="Where the published source will live in the knowledge library",
         ),
     ),
-    help_text="Start with the durable identity before filling in operational content.",
+    help_text="Start with the title and publishing details before drafting the operational content.",
 )
 
 COMMON_STEWARDSHIP_SECTION = BlueprintSection(
     section_id="stewardship",
     display_name="Stewardship",
-    description="Lifecycle, ownership, and relationship controls.",
+    description="Set ownership, review timing, and linked context.",
     section_type=SectionType.METADATA,
     fields=(
-        _field("summary", "Summary", kind="long_text", placeholder="Concise operational summary."),
-        _field("owner", "Owner", kind="text", placeholder="team_or_person"),
+        _field("summary", "Summary", kind="long_text", placeholder="Summarize the outcome and when to use it."),
+        _field("owner", "Owner", kind="text", placeholder="Team or person responsible"),
         _field("team", "Team", kind="select", taxonomy="teams"),
-        _field("status", "Lifecycle status", kind="select", taxonomy="statuses"),
+        _field("status", "Status", kind="select", taxonomy="statuses"),
         _field("review_cadence", "Review cadence", kind="select", taxonomy="review_cadences"),
         _field("audience", "Audience", kind="select", taxonomy="audiences"),
-        _field("systems", "Systems", kind="list", required=False, placeholder="One controlled system per line."),
+        _field("systems", "Related systems", kind="list", required=False, placeholder="Add one related system per line."),
         _field("tags", "Tags", kind="list", required=False, placeholder="One controlled tag per line."),
         _field(
             "related_services",
@@ -65,44 +65,44 @@ COMMON_STEWARDSHIP_SECTION = BlueprintSection(
         ),
         _field(
             "related_object_ids",
-            "Related object IDs",
+            "Related guidance",
             kind="list",
             required=False,
-            placeholder="One related knowledge object ID per line.",
+            placeholder="Add one related guidance reference per line.",
         ),
         _field(
             "change_summary",
-            "Change summary",
+            "What changed",
             kind="text",
             required=False,
-            placeholder="Short audit-facing summary.",
+            placeholder="Summarize the change in one short line.",
         ),
     ),
-    help_text="Papyrus uses these values for trust, routing, review cadence, and impact tracing.",
+    help_text="These details control accountability, review timing, and impact tracing.",
 )
 
 COMMON_EVIDENCE_SECTION = BlueprintSection(
     section_id="evidence",
     display_name="Evidence",
-    description="Attach specific references before review.",
+    description="Add the sources that support this draft before review.",
     section_type=SectionType.REFERENCES,
     fields=(
         _field("citations", "Citations", kind="references"),
     ),
     validation_rules={"minimum_items": 1},
-    help_text="Imported and authored drafts both require explicit evidence before review.",
+    help_text="Every draft needs clear supporting sources before it goes to review.",
 )
 
 COMMON_RELATIONSHIP_SECTION = BlueprintSection(
     section_id="relationships",
     display_name="Relationships",
-    description="Capture downstream links and adjacent guidance.",
+    description="Link related guidance and downstream dependencies.",
     section_type=SectionType.RELATIONSHIPS,
     required=False,
     fields=(
-        _field("related_object_ids", "Related object IDs", kind="list", required=False),
+        _field("related_object_ids", "Related guidance", kind="list", required=False),
     ),
-    help_text="This keeps impact tracing and operator navigation visible.",
+    help_text="These links make impact and follow-on work easier to review.",
 )
 
 

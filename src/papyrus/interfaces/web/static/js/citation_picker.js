@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setStatus(`Selected source: ${titleField.value} -> ${refField.value}`);
         return;
       }
-      setStatus("Search existing knowledge objects by title, tag, or object ID. Selecting a result fills the fields below.");
+      setStatus("Search guidance by title, tag, or reference code. Selecting a result fills the fields below.");
     };
 
     const selectResult = (item) => {
@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const renderResults = (items) => {
       clearResults();
       if (!items.length) {
-        setStatus("No matching knowledge objects. Enter the source manually below if needed.");
+        setStatus("No matching guidance found. Enter the source manually below if needed.");
         return;
       }
       const fragment = document.createDocumentFragment();
@@ -76,12 +76,12 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       results.append(fragment);
       results.hidden = false;
-      setStatus("Select an existing knowledge object to fill the citation fields.");
+      setStatus("Select an existing guidance item to fill the citation fields.");
     };
 
     const runSearch = async (query) => {
       const currentToken = ++requestToken;
-      setStatus("Searching knowledge objects...");
+      setStatus("Searching guidance...");
       try {
         const response = await fetch(
           buildSearchUrl(
@@ -111,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (query.length < 2) {
         clearResults();
-        setStatus("Type at least 2 characters to search existing knowledge objects.");
+        setStatus("Type at least 2 characters to search guidance.");
         return;
       }
       debounceTimer = window.setTimeout(() => {

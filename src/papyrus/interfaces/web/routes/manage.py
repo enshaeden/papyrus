@@ -41,7 +41,7 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
     render_projection_status_panel,
 )
 from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
-from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, render_list
+from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, render_list, tone_for_approval, tone_for_trust
 
 
 def _manage_item_detail_href(item: dict[str, object]) -> str:
@@ -109,11 +109,50 @@ def _manage_table(components, title: str, items: list[dict[str, object]]) -> str
         reasons = projection_reasons(item.get("ui_projection"))
         rows.append(
             [
-                link(str(item["title"]), _manage_item_detail_href(item)),
-                f'{escape(state.get("revision_review_state") or "unknown")}<p class="cell-meta">{escape(item.get("change_summary") or item.get("summary") or "No recent summary recorded.")}</p>',
-                f'{escape(use_guidance.get("summary") or "Backend guidance unavailable")}<p class="cell-meta">{escape(use_guidance.get("detail") or "Papyrus did not return governed detail for this queue item.")}</p>',
-                escape(", ".join(reasons) or "Papyrus did not attach explicit reasons to this queue item."),
-                escape(item["owner"]),
+                components.decision_cell(
+                    title_html=link(str(item["title"]), _manage_item_detail_href(item)),
+                    supporting_html=escape(item.get("change_summary") or item.get("summary") or "No recent summary recorded."),
+                    meta=[
+                        escape(str(item.get("object_id") or "")),
+                    ],
+                ),
+                components.decision_cell(
+                    title_html=escape(use_guidance.get("summary") or "Backend guidance unavailable"),
+                    badges=[
+                        components.badge(
+                            label="Trust",
+                            value=str(state.get("trust_state") or "unknown"),
+                            tone=tone_for_trust(str(state.get("trust_state") or "unknown")),
+                        ),
+                        components.badge(
+                            label="Approval",
+                            value=str(state.get("approval_state") or "unknown"),
+                            tone=tone_for_approval(str(state.get("approval_state") or "unknown")),
+                        ),
+                        components.badge(
+                            label="Revision",
+                            value=str(state.get("revision_review_state") or "unknown"),
+                            tone=tone_for_approval(str(state.get("revision_review_state") or "unknown")),
+                        ),
+                    ],
+                    supporting_html=escape(use_guidance.get("detail") or "Papyrus did not return governed detail for this queue item."),
+                ),
+                components.decision_cell(
+                    title_html=escape(use_guidance.get("next_action") or "Review this item"),
+                    supporting_html=escape(", ".join(reasons) or "Papyrus did not attach explicit reasons to this queue item."),
+                    extra_html=(
+                        components.inline_disclosure(
+                            label="Why this item is here",
+                            body_html=render_list([escape(reason) for reason in reasons], css_class="panel-list")
+                            or '<p class="empty-state-copy">No explicit reasons were attached to this queue item.</p>',
+                        )
+                        if reasons
+                        else ""
+                    ),
+                ),
+                components.decision_cell(
+                    title_html=escape(str(item["owner"])),
+                ),
                 _manage_item_actions(components, item),
             ]
         )
@@ -121,7 +160,7 @@ def _manage_table(components, title: str, items: list[dict[str, object]]) -> str
         title=title,
         eyebrow="Stewardship",
         body_html=components.queue_table(
-            headers=["Guidance", "Lifecycle stage", "Safe now?", "Why now", "Steward", "Actions"],
+            headers=["Guidance", "Status", "Attention", "Steward", "Next action"],
             rows=rows,
             table_id=title.lower().replace(" ", "-"),
         ) if rows else '<p class="empty-state-copy">No items in this queue.</p>',
@@ -140,7 +179,7 @@ def register(router, runtime) -> None:
                 components.badge(label="Needs revalidation", value=len(queue["needs_revalidation"]), tone="warning"),
                 components.badge(label="Recently changed", value=len(queue["recently_changed"]), tone="brand"),
             ],
-            summary="Stewardship work is grouped by the next decision or follow-up step instead of a flat wall of governance states.",
+            summary="Work is grouped by the next decision, not by raw state.",
         )
         tables_html = join_html(
             [
@@ -162,7 +201,7 @@ def register(router, runtime) -> None:
                 page_title="Review / Approvals",
                 headline="Review And Approval Work",
                 kicker="Stewardship",
-                intro="Steward revisions, revalidation work, and recent changes with grouped buckets that lead to concrete decisions.",
+                intro="Review the queue and take the next decision.",
                 active_nav="review",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
@@ -223,7 +262,7 @@ def register(router, runtime) -> None:
                     hint="Required. Explain why operators should stop relying on this object.",
                     errors=errors.get("notes"),
                 )
-                + forms.button(label="Supersede object")
+                + forms.button(label="Set replacement")
                 + "</form>"
             ),
         )
@@ -233,7 +272,7 @@ def register(router, runtime) -> None:
                 page_title="Supersede object",
                 headline="Supersede Guidance",
                 kicker="Health",
-                intro="Retire or replace guidance with a clear replacement path so operators know what to use next.",
+                intro="Replace this guidance with the correct successor.",
                 active_nav="health",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
@@ -302,7 +341,7 @@ def register(router, runtime) -> None:
                     hint="Required. Make the degradation legible to future operators and reviewers.",
                     errors=errors.get("reason"),
                 )
-                + forms.button(label="Mark object suspect")
+                + forms.button(label="Flag for review")
                 + "</form>"
             ),
         )
@@ -312,7 +351,7 @@ def register(router, runtime) -> None:
                 page_title="Mark object suspect",
                 headline="Mark Guidance Suspect",
                 kicker="Health",
-                intro="Use suspect posture when a dependency or upstream change may invalidate the guidance before a full revision is ready.",
+                intro="Flag this guidance when a dependency change may have invalidated it.",
                 active_nav="health",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
@@ -392,7 +431,7 @@ def register(router, runtime) -> None:
                     operator_message=str(archive_action.get("detail") or "Review the required acknowledgements before continuing."),
                     errors=errors.get("acknowledgements"),
                 )
-                + forms.button(label="Archive object")
+                + forms.button(label="Archive guidance")
                 + "</form>"
             ),
         )
@@ -402,7 +441,7 @@ def register(router, runtime) -> None:
                 page_title="Archive object",
                 headline="Archive Guidance",
                 kicker="Health",
-                intro="Archive deprecated guidance with an explicit rationale and a canonical file move that is recorded in the audit trail.",
+                intro="Archive this guidance with a clear rationale.",
                 active_nav="health",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
@@ -456,7 +495,7 @@ def register(router, runtime) -> None:
                 page_title="Revalidate evidence",
                 headline="Revalidate Evidence",
                 kicker="Evidence",
-                intro="Request explicit evidence follow-up when snapshots, expiry windows, or supporting proofs need confirmation.",
+                intro="Request evidence follow-up when support needs confirmation.",
                 active_nav="health",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
@@ -529,7 +568,7 @@ def register(router, runtime) -> None:
                 page_title="Assign reviewer",
                 headline="Assign Reviewer",
                 kicker="Review",
-                intro="Route the revision to the next reviewer with the right context instead of leaving it stranded in review.",
+                intro="Assign the next reviewer.",
                 active_nav="review",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
@@ -692,7 +731,7 @@ def register(router, runtime) -> None:
                 page_title="Review decision",
                 headline="Review Decision",
                 kicker="Review",
-                intro="Decide with change context, evidence posture, downstream effect, and source writeback impact visible before approval.",
+                intro="Approve or reject with change, evidence, and impact visible.",
                 active_nav="review",
                 flash_html=page_flash_html,
                 actor_id=actor_for_request(request),
@@ -725,7 +764,7 @@ def register(router, runtime) -> None:
             f'<option value="validation_failures"{" selected" if selected_group == "validation_failures" else ""}>Validation failures</option>'
             f'<option value="manual_suspect_marks"{" selected" if selected_group == "manual_suspect_marks" else ""}>Manual suspect marks</option>'
             "</select>"
-            '<button class="button button-secondary" type="submit">Apply</button>'
+            '<button class="button button-primary" type="submit">Show activity</button>'
             "</form>"
         )
         summary_html = components.trust_summary(
@@ -736,21 +775,27 @@ def register(router, runtime) -> None:
                 components.badge(label="Validation failures", value=sum(1 for event in structured_events if event["group"] == "validation_failures"), tone="danger"),
                 components.badge(label="Suspect marks", value=sum(1 for event in structured_events if event["group"] == "manual_suspect_marks"), tone="pending"),
             ],
-            summary="Activity should explain operational consequences, not force operators to interpret raw event payloads.",
+            summary="Activity should show consequence and next step, not raw payloads.",
         )
         audit_html = components.section_card(
             title="Governed audit trail",
             eyebrow="History",
             body_html=components.queue_table(
-                headers=["Time", "Event", "Actor", "Object", "Revision", "Details"],
+                headers=["Event", "Affected", "Recorded", "Details"],
                 rows=[
                     [
+                        components.decision_cell(
+                            title_html=escape(event["event_type"]),
+                            meta=[escape(event["actor"])],
+                        ),
+                        components.decision_cell(
+                            title_html=escape(event["object_id"] or "No object"),
+                            meta=[escape(event["revision_id"] or "No revision")],
+                        ),
                         escape(format_timestamp(event["occurred_at"])),
-                        escape(event["event_type"]),
-                        escape(event["actor"]),
-                        escape(event["object_id"] or ""),
-                        escape(event["revision_id"] or ""),
-                        escape(", ".join(f"{key}={value}" for key, value in event["details"].items() if value)),
+                        components.decision_cell(
+                            title_html=escape(", ".join(f"{key}={value}" for key, value in event["details"].items() if value) or "No extra details"),
+                        ),
                     ]
                     for event in events
                 ],
@@ -775,14 +820,20 @@ def register(router, runtime) -> None:
                     title=label,
                     eyebrow="Activity",
                     body_html=components.queue_table(
-                        headers=["When", "What happened", "Affected", "Actor", "Next action"],
+                        headers=["What happened", "Affected", "Recorded", "Do next"],
                         rows=[
                             [
+                                components.decision_cell(
+                                    title_html=escape(event["what_happened"]),
+                                    meta=[escape(event["actor"])],
+                                ),
+                                components.decision_cell(
+                                    title_html=escape(f"{event['entity_type']}:{event['entity_id']}"),
+                                ),
                                 escape(format_timestamp(event["occurred_at"])),
-                                escape(event["what_happened"]),
-                                escape(f"{event['entity_type']}:{event['entity_id']}"),
-                                escape(event["actor"]),
-                                escape(event["next_action"]),
+                                components.decision_cell(
+                                    title_html=escape(event["next_action"]),
+                                ),
                             ]
                             for event in group_events
                         ],
@@ -798,14 +849,16 @@ def register(router, runtime) -> None:
             title="Validation runs",
             eyebrow="History",
             body_html=components.queue_table(
-                headers=["Completed", "Run type", "Status", "Findings", "Run ID"],
+                headers=["Run", "Status", "Findings", "Completed"],
                 rows=[
                     [
-                        escape(format_timestamp(run["completed_at"])),
-                        escape(run["run_type"]),
+                        components.decision_cell(
+                            title_html=escape(run["run_type"]),
+                            meta=[escape(run["run_id"])],
+                        ),
                         escape(run["status"]),
                         escape(run["finding_count"]),
-                        escape(run["run_id"]),
+                        escape(format_timestamp(run["completed_at"])),
                     ]
                     for run in validation_runs[:20]
                 ],
@@ -818,7 +871,7 @@ def register(router, runtime) -> None:
                 page_title="Activity / History",
                 headline="Activity And History",
                 kicker="Activity",
-                intro="Understand what changed, what it affected, and what should be reviewed or revalidated next without reading raw event payloads.",
+                intro="See what changed and what needs attention next.",
                 active_nav="activity",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
@@ -844,14 +897,16 @@ def register(router, runtime) -> None:
             title="Validation runs",
             eyebrow="Validation",
             body_html=components.queue_table(
-                headers=["Completed", "Run type", "Status", "Findings", "Run ID"],
+                headers=["Run", "Status", "Findings", "Completed"],
                 rows=[
                     [
-                        escape(format_timestamp(run["completed_at"])),
-                        escape(run["run_type"]),
+                        components.decision_cell(
+                            title_html=escape(run["run_type"]),
+                            meta=[escape(run["run_id"])],
+                        ),
                         escape(run["status"]),
                         escape(run["finding_count"]),
-                        escape(run["run_id"]),
+                        escape(format_timestamp(run["completed_at"])),
                     ]
                     for run in runs
                 ],
@@ -864,7 +919,7 @@ def register(router, runtime) -> None:
                 page_title="Validation runs",
                 headline="Validation History",
                 kicker="Activity",
-                intro="Keep recent validation outcomes close to review and health work so operators can trace what was checked and when.",
+                intro="Review recent validation results.",
                 active_nav="activity",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
@@ -924,7 +979,7 @@ def register(router, runtime) -> None:
                 page_title="Record validation run",
                 headline="Record Validation Run",
                 kicker="Activity",
-                intro="Record what was validated, what it found, and when it happened so future stewardship decisions stay inspectable.",
+                intro="Record the validation result and its findings.",
                 active_nav="activity",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),

@@ -426,7 +426,7 @@ def build_submission_findings(*, object_type: str, payload: dict[str, Any]) -> l
     weak_count = int(evidence_posture["weak_external_evidence_count"])
     if weak_count:
         findings.append(
-            f"Evidence posture: {weak_count} external/manual citation(s) remain weak because the write form only records title, reference, and note. Capture time, integrity hash, and evidence snapshots need manage-side follow-up."
+            f"Evidence posture: {weak_count} external/manual citation(s) still need evidence follow-up. This draft records the title, reference, and note, but stronger verification details are added later."
         )
     if object_type in {"runbook", "known_error"} and not payload.get("related_services"):
         findings.append("Related service links are missing.")

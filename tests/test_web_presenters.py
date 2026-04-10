@@ -114,7 +114,7 @@ class WebPresenterTests(unittest.TestCase):
                             "use_guidance": {
                                 "summary": "Review decision pending",
                                 "detail": "Papyrus requires a review decision before use.",
-                                "next_action": "Open the review decision.",
+                                "next_action": "Review the decision.",
                                 "safe_to_use": False,
                             },
                             "actions": [
@@ -130,7 +130,8 @@ class WebPresenterTests(unittest.TestCase):
             },
         )
         self.assertIn("/manage/reviews/kb-review/kb-review-r1", page["page_context"]["primary_html"])
-        self.assertIn("Open the review decision.", page["page_context"]["primary_html"])
+        self.assertIn("Review the decision.", page["page_context"]["primary_html"])
+        self.assertIn("Review decision", page["page_context"]["primary_html"])
         self.assertIn("Review decision pending", page["page_context"]["primary_html"])
 
     def test_queue_presenter_keeps_trust_and_filters_visible(self) -> None:
@@ -165,6 +166,13 @@ class WebPresenterTests(unittest.TestCase):
         )
         self.assertEqual(page["page_title"], "Read Guidance")
         self.assertEqual(page["aside_html"], "")
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+=======
+        self.assertIn("Read posture", page["page_context"]["summary_html"])
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
         self.assertIn("Read filters", page["page_context"]["filter_bar_html"])
         self.assertIn("Decision view", page["page_context"]["summary_html"])
         self.assertIn("Requires attention", page["page_context"]["queue_html"])
@@ -261,7 +269,15 @@ class WebPresenterTests(unittest.TestCase):
         self.assertIn("Supporting evidence", page["page_context"]["related_sections_html"])
         self.assertIn("Recent audit trail", page["page_context"]["related_sections_html"])
         self.assertIn("Linked service context", page["page_context"]["content_sections_html"])
+<<<<<<< Updated upstream
         self.assertIn("Current status", page["aside_html"])
+=======
+<<<<<<< HEAD
+        self.assertIn("Current status", page["aside_html"])
+=======
+        self.assertIn("Safety status", page["aside_html"])
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
         self.assertIn("Governed actions", page["page_context"]["content_sections_html"])
         self.assertIn("The runtime contract marks this object safe for use.", page["page_context"]["content_sections_html"])
         self.assertEqual(page["page_context"]["content_sections_html"].count("Governed actions"), 1)

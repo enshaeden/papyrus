@@ -168,7 +168,7 @@ def _stage_summary_html(components, *, detail: dict[str, object]) -> str:
             eyebrow="Import",
             tone="approved",
             body_html=(
-                f"<p><strong>Suggested blueprint:</strong> {escape(classification.get('blueprint_id') or 'unknown')}</p>"
+                f"<p><strong>Suggested content type:</strong> {escape(classification.get('blueprint_id') or 'unknown')}</p>"
                 f"<p><strong>Confidence:</strong> {escape(classification.get('confidence') or 0.0)}</p>"
             ),
         ),
@@ -188,7 +188,7 @@ def _stage_summary_html(components, *, detail: dict[str, object]) -> str:
                     f"<p><strong>Unmapped content blocks:</strong> {escape(len(mapping.get('unmapped_content', [])))}</p>"
                 )
                 if mapping_generated
-                else "<p>Mapping has not been generated yet.</p><p>Open the mapping review screen to generate section matches and inspect gaps.</p>"
+                else "<p>Mapping has not been generated yet.</p><p>Review the mapping to generate section matches and inspect gaps.</p>"
             ),
         ),
     ]
@@ -264,37 +264,37 @@ def _ingest_list_page(runtime, *, request: Request, errors: list[str] | None = N
             f"<td>{escape(item['ingestion_state'])}</td>"
             f"<td>{escape(item.get('blueprint_id') or 'unclassified')}</td>"
             f"<td>{escape(item['updated_at'])}</td>"
-            f'<td>{link("Open", f"/ingest/{quoted_path(item["ingestion_id"])}", css_class="button button-secondary")}</td></tr>'
+            f'<td>{link("Review import", f"/ingest/{quoted_path(item["ingestion_id"])}", css_class="button button-primary")}</td></tr>'
         )
         for item in ingestions
     )
     table_html = (
-        f'<table class="data-table"><thead><tr><th>File</th><th>Status</th><th>Blueprint</th><th>Updated</th><th>Next</th></tr></thead><tbody>{rows}</tbody></table>'
+        f'<table class="data-table"><thead><tr><th>File</th><th>Status</th><th>Content type</th><th>Updated</th><th>Next</th></tr></thead><tbody>{rows}</tbody></table>'
         if ingestions
         else components.empty_state(
             title="No ingestions yet",
             description=(
-                "Upload a Markdown, DOCX, or PDF file to start a governed import review."
+                "Upload a Markdown, DOCX, or PDF file to start import review."
                 if not runtime.allow_web_ingest_local_paths
-                else "Upload a file or use an operator-only host path to start a governed import review."
+                else "Upload a file or point to a local source file to start import review."
             ),
         )
     )
     local_path_html = (
         forms.field(
             field_id="source_path",
-            label="Local file path (operator-only)",
+            label="Local source file",
             control_html=forms.input(field_id="source_path", name="source_path", value="", placeholder="/absolute/path/to/file.md"),
-            hint="Reads from the machine running Papyrus, not from the browser device. Use only on a trusted local operator session.",
+            hint="Use an absolute path on this computer. Use this only in a trusted local session.",
         )
         if runtime.allow_web_ingest_local_paths
         else components.section_card(
-            title="Operator boundary",
+            title="Local source file unavailable",
             eyebrow="Import",
             tone="context",
             body_html=(
-                "<p>Browser-submitted local file paths are disabled on this web server.</p>"
-                "<p>Use browser upload for normal web ingest, or restart the local operator web surface with <code>--allow-web-ingest-local-paths</code> if you intentionally need Papyrus to read a host file path.</p>"
+                "<p>This session accepts uploaded files only.</p>"
+                "<p>Start the app with <code>--allow-web-ingest-local-paths</code> if you intentionally want to read a file from this same computer.</p>"
             ),
         )
     )
@@ -314,10 +314,10 @@ def _ingest_list_page(runtime, *, request: Request, errors: list[str] | None = N
                 field_id="upload",
                 label="File upload",
                 control_html='<input id="upload" name="upload" type="file" accept=".md,.markdown,.docx,.pdf" />',
-                hint="Standard web ingest path. Papyrus parses Markdown and DOCX locally. PDF import is limited to text-based PDFs and may surface degradation warnings.",
+                hint="Upload Markdown, DOCX, or PDF. Text-based PDFs work best and may still need cleanup after import.",
             )
             + local_path_html
-            + forms.button(label="Start ingestion")
+            + forms.button(label="Import document")
             + "</form>"
         ),
     )
@@ -326,16 +326,12 @@ def _ingest_list_page(runtime, *, request: Request, errors: list[str] | None = N
         page_title="Import workbench",
         headline="Import Workbench",
         kicker="Import",
-        intro="Upload, parse, classify, map, review, and convert external documents into governed drafts without skipping review.",
+        intro="Bring in a document, review the mapping, then create a draft.",
         active_nav="import",
         flash_html=flash_html_for_request(runtime, request),
         actor_id=actor_for_request(request),
         current_path=request.path,
-        aside_html=components.section_card(
-            title="Next action",
-            eyebrow="Guidance",
-            body_html="<p>Every import stays non-canonical until a human reviews the mapping and explicitly converts it into a draft.</p>",
-        ),
+        aside_html="",
         page_context={"upload_html": upload_html, "ingestions_html": table_html},
     )
 
@@ -359,7 +355,7 @@ def _ingestion_detail_page(runtime, *, request: Request, detail: dict[str, objec
         page_title=f"Ingestion {detail['filename']}",
         headline=detail["filename"],
         kicker="Import",
-        intro="Inspect how Papyrus parsed and classified the source before generating, accepting, or converting any mapping.",
+        intro="Check what was extracted before you review the mapping and create the draft.",
         active_nav="import",
         flash_html=flash_html_for_request(runtime, request),
         actor_id=actor_for_request(request),
@@ -405,7 +401,7 @@ def _mapping_review_page(runtime, *, request: Request, detail: dict[str, object]
             "</tr>"
         )
     mapping_table = (
-        f'<table class="data-table"><thead><tr><th>Blueprint section</th><th>Source fragment</th><th>Source heading</th><th>Confidence</th><th>Conflict state</th></tr></thead><tbody>{"".join(section_rows)}</tbody></table>'
+        f'<table class="data-table"><thead><tr><th>Draft section</th><th>Matched passage</th><th>Matched heading</th><th>Confidence</th><th>Review state</th></tr></thead><tbody>{"".join(section_rows)}</tbody></table>'
         if section_rows
         else '<p class="empty-state-copy">No mapping summary available.</p>'
     )
@@ -415,20 +411,11 @@ def _mapping_review_page(runtime, *, request: Request, detail: dict[str, object]
         else ""
     )
     convert_form = components.section_card(
-        title="Convert to draft",
+        title="Create draft",
         eyebrow="Import",
         body_html=(
             error_html
             + '<form id="convert-to-draft-form" class="governed-form" method="post">'
-            + forms.field(
-                field_id="object_id",
-                label="Object ID",
-                control_html=forms.input(
-                    field_id="object_id",
-                    name="object_id",
-                    value=f"kb-{slugify(str(detail['normalized_content'].get('title') or detail['filename']))}",
-                ),
-            )
             + forms.field(
                 field_id="title",
                 label="Title",
@@ -438,15 +425,6 @@ def _mapping_review_page(runtime, *, request: Request, detail: dict[str, object]
                     value=str(detail["normalized_content"].get("title") or detail["filename"]),
                 ),
             )
-            + forms.field(
-                field_id="canonical_path",
-                label="Canonical path",
-                control_html=forms.input(
-                    field_id="canonical_path",
-                    name="canonical_path",
-                    value=f"knowledge/imported/{slugify(str(detail['normalized_content'].get('title') or detail['filename']))}.md",
-                ),
-            )
             + forms.field(field_id="owner", label="Owner", control_html=forms.input(field_id="owner", name="owner", value=""))
             + forms.field(
                 field_id="team",
@@ -454,7 +432,7 @@ def _mapping_review_page(runtime, *, request: Request, detail: dict[str, object]
                 control_html=forms.select(
                     field_id="team",
                     name="team",
-                    value="IT Operations",
+                    value="",
                     options=runtime.taxonomies["teams"]["allowed_values"],
                 ),
             )
@@ -464,13 +442,13 @@ def _mapping_review_page(runtime, *, request: Request, detail: dict[str, object]
                 control_html=forms.select(
                     field_id="review_cadence",
                     name="review_cadence",
-                    value="quarterly",
+                    value="",
                     options=runtime.taxonomies["review_cadences"]["allowed_values"],
                 ),
             )
             + forms.field(
                 field_id="status",
-                label="Lifecycle status",
+                label="Status",
                 control_html=forms.select(
                     field_id="status",
                     name="status",
@@ -484,11 +462,33 @@ def _mapping_review_page(runtime, *, request: Request, detail: dict[str, object]
                 control_html=forms.select(
                     field_id="audience",
                     name="audience",
-                    value="service_desk",
+                    value="",
                     options=runtime.taxonomies["audiences"]["allowed_values"],
                 ),
             )
-            + forms.button(label="Convert to draft")
+            + '<section class="form-section"><h3>Publishing details</h3><p class="section-intro">Keep the new draft traceable and ready to publish.</p>'
+            + forms.field(
+                field_id="object_id",
+                label="Reference code",
+                control_html=forms.input(
+                    field_id="object_id",
+                    name="object_id",
+                    value=f"kb-{slugify(str(detail['normalized_content'].get('title') or detail['filename']))}",
+                ),
+                hint="Use lowercase words separated by hyphens. This stays with the guidance in links and search.",
+            )
+            + forms.field(
+                field_id="canonical_path",
+                label="Publishing location",
+                control_html=forms.input(
+                    field_id="canonical_path",
+                    name="canonical_path",
+                    value=f"knowledge/imported/{slugify(str(detail['normalized_content'].get('title') or detail['filename']))}.md",
+                ),
+                hint="Where the published source will live in the knowledge library.",
+            )
+            + "</section>"
+            + forms.button(label="Create draft")
             + "</form>"
         ),
     )
@@ -497,7 +497,7 @@ def _mapping_review_page(runtime, *, request: Request, detail: dict[str, object]
         page_title=f"Review mapping for {detail['filename']}",
         headline=f"Review mapping for {detail['filename']}",
         kicker="Import",
-        intro="Papyrus generates the mapping here if needed, then highlights section matches, gaps, and low-confidence results before draft conversion.",
+        intro="Confirm the matches, fix the gaps, then create the draft.",
         active_nav="import",
         flash_html=flash_html_for_request(runtime, request),
         actor_id=actor_for_request(request),
@@ -534,15 +534,15 @@ def register(router, runtime) -> None:
             upload = request.uploaded_file("upload")
             source_path = request.form_value("source_path").strip()
             if upload is not None and source_path:
-                errors.append("Choose either a browser upload or a local operator file path, not both.")
+                errors.append("Choose either a file upload or a local source file, not both.")
             elif upload is None and not source_path:
                 errors.append(
                     "Select a file upload before starting ingestion."
                     if not runtime.allow_web_ingest_local_paths
-                    else "Select a file upload or provide a local operator file path before starting ingestion."
+                    else "Select a file upload or provide a local source file before starting import."
                 )
             elif upload is None and source_path and not runtime.allow_web_ingest_local_paths:
-                errors.append("Local file path ingestion is disabled on this web server.")
+                errors.append("Local source file import is unavailable in this session.")
             else:
                 try:
                     result = (
@@ -560,7 +560,7 @@ def register(router, runtime) -> None:
                         )
                     )
                     return redirect_response(
-                        f"/ingest/{quoted_path(result['ingestion_id'])}?notice={quote_plus('Ingestion completed through upload, parse, and classify. Generate and review the mapping before conversion.')}"
+                        f"/ingest/{quoted_path(result['ingestion_id'])}?notice={quote_plus('Import started. Review the mapping before creating the draft.')}"
                     )
                 except ValueError as exc:
                     errors.append(str(exc))
@@ -586,7 +586,17 @@ def register(router, runtime) -> None:
             required_fields = ["object_id", "title", "canonical_path", "owner", "team", "review_cadence", "status", "audience"]
             missing = [field for field in required_fields if not request.form_value(field).strip()]
             if missing:
-                errors = [f"{field.replace('_', ' ')} is required." for field in missing]
+                field_labels = {
+                    "object_id": "Reference code",
+                    "title": "Title",
+                    "canonical_path": "Publishing location",
+                    "owner": "Owner",
+                    "team": "Team",
+                    "review_cadence": "Review cadence",
+                    "status": "Status",
+                    "audience": "Audience",
+                }
+                errors = [f"{field_labels[field]} is required." for field in missing]
             else:
                 converted = convert_to_draft(
                     ingestion_id=ingestion_id,
@@ -603,7 +613,7 @@ def register(router, runtime) -> None:
                     source_root=runtime.source_root,
                 )
                 return redirect_response(
-                    f"/write/objects/{quoted_path(converted['object_id'])}/revisions/new?revision_id={quoted_path(converted['revision_id'])}&notice={quote_plus('Imported document converted into a governed draft.')}"
+                    f"/write/objects/{quoted_path(converted['object_id'])}/revisions/new?revision_id={quoted_path(converted['revision_id'])}&notice={quote_plus('Draft created from the imported document.')}"
                 )
         return html_response(_mapping_review_page(runtime, request=request, detail=detail, mapping=mapping, errors=errors))
 

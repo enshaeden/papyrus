@@ -55,9 +55,9 @@ def validate_object_form(
     status = values["status"].strip()
 
     if not object_id:
-        add_error("object_id", "Object ID is required.")
+        add_error("object_id", "Reference code is required.")
     elif not OBJECT_ID_PATTERN.fullmatch(object_id):
-        add_error("object_id", "Object ID must match kb-slug format.")
+        add_error("object_id", "Reference code must use the kb-slug format.")
 
     supported_blueprints = {blueprint.blueprint_id for blueprint in list_blueprints()}
     if object_type not in supported_blueprints:
@@ -73,11 +73,11 @@ def validate_object_form(
     if review_cadence not in taxonomies["review_cadences"]["allowed_values"]:
         add_error("review_cadence", "Choose a valid review cadence.")
     if status not in taxonomies["statuses"]["allowed_values"]:
-        add_error("status", "Choose a valid lifecycle status.")
+        add_error("status", "Choose a valid status.")
     if not canonical_path:
-        add_error("canonical_path", "Canonical path is required.")
+        add_error("canonical_path", "Publishing location is required.")
     elif not canonical_path.startswith("knowledge/") or not canonical_path.endswith(".md"):
-        add_error("canonical_path", "Canonical path must stay under knowledge/ and end in .md.")
+        add_error("canonical_path", "Publishing location must stay under knowledge/ and end in .md.")
 
     cleaned_data = {
         "object_id": object_id,

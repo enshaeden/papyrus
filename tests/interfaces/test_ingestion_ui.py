@@ -123,13 +123,13 @@ class IngestionUiTests(unittest.TestCase):
 
             status, _, body = call_wsgi(application, "/ingest")
             self.assertEqual(status, "200 OK")
-            self.assertNotIn("Local file path (operator-only)", body)
             self.assertNotIn('name="source_path"', body)
-            self.assertIn("Browser-submitted local file paths are disabled on this web server.", body)
+            self.assertIn("Local source file unavailable", body)
+            self.assertIn("This session accepts uploaded files only.", body)
 
             status, _, body = call_wsgi(application, "/ingest", method="POST", form={"source_path": str(source_file)})
             self.assertEqual(status, "200 OK")
-            self.assertIn("Local file path ingestion is disabled on this web server.", body)
+            self.assertIn("Local source file import is unavailable in this session.", body)
 
     def test_ingestion_workbench_requires_review_before_conversion(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -149,14 +149,14 @@ class IngestionUiTests(unittest.TestCase):
 
             status, _, body = call_wsgi(application, detail_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn("upload, parse, and classify", body)
+            self.assertIn("Import started. Review the mapping before creating the draft.", body)
             self.assertIn("Import workflow contract", body)
             self.assertIn("Import workflow actions", body)
             self.assertIn("Mapping has not been generated yet.", body)
             self.assertIn("Generate mapping review", body)
             self.assertIn("Upload", body)
             self.assertIn("Classify", body)
-            self.assertIn("Convert to draft", body)
+            self.assertIn("Create draft", body)
             self.assertNotIn("#convert-to-draft-form", body)
 
             review_path = detail_path.split("?", 1)[0].rstrip("/") + "/review"
@@ -166,7 +166,7 @@ class IngestionUiTests(unittest.TestCase):
             self.assertIn("Import workflow actions", review_body)
             self.assertIn("Mapping review", review_body)
             self.assertIn("Missing required sections", review_body)
-            self.assertIn("Convert to draft", review_body)
+            self.assertIn("Create draft", review_body)
             self.assertNotIn("<h2>Next action</h2>", review_body)
 
     def test_ingestion_entry_shows_inline_error_when_no_source_is_provided(self) -> None:
@@ -193,8 +193,8 @@ class IngestionUiTests(unittest.TestCase):
 
             status, _, body = call_wsgi(application, "/ingest")
             self.assertEqual(status, "200 OK")
-            self.assertIn("Local file path (operator-only)", body)
-            self.assertIn("machine running Papyrus", body)
+            self.assertIn("Local source file", body)
+            self.assertIn("Use an absolute path on this computer.", body)
 
             status, _, invalid_body = call_wsgi(application, "/ingest", method="POST", form={"source_path": "relative.md"})
             self.assertEqual(status, "200 OK")
@@ -260,7 +260,7 @@ class IngestionUiTests(unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Import workflow contract", body)
             self.assertIn("Mapping conflicts", body)
-            self.assertIn("Source fragment", body)
+            self.assertIn("Matched passage", body)
             self.assertIn("blocked_duplicate_source_reuse", body)
 
     def test_multipart_upload_sanitizes_browser_filename_before_storage(self) -> None:
@@ -303,4 +303,4 @@ class IngestionUiTests(unittest.TestCase):
                 files={"upload": ("upload.md", "text/markdown", b"# Upload copy\n")},
             )
             self.assertEqual(status, "200 OK")
-            self.assertIn("Choose either a browser upload or a local operator file path, not both.", body)
+            self.assertIn("Choose either a file upload or a local source file, not both.", body)

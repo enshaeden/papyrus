@@ -504,14 +504,14 @@ def build_ingestion_actions(*, detail: dict[str, Any]) -> tuple[ActionDescriptor
     actions.append(
         action_from_gate(
             action_id="convert_ingestion_to_draft",
-            label="Convert to draft",
+            label="Create draft",
             available=mapped and not converted,
             detail=(
-                "Convert the reviewed mapping into a governed draft."
+                "Create a draft from the reviewed mapping."
                 if mapped and not converted
-                else "Generate and review the mapping before converting this ingestion into a draft."
+                else "Generate and review the mapping before creating a draft."
                 if not mapped
-                else "This ingestion has already been converted into a governed draft."
+                else "This ingestion has already been turned into a draft."
             ),
             noop=converted,
         )

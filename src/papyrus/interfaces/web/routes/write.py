@@ -37,20 +37,21 @@ def _support_details_html(*, title: str, summary: str, body_html: str, open_by_d
 def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[str]], *, form_action: str) -> dict[str, str]:
     forms = FormPresenter(runtime.template_renderer)
     components = ComponentPresenter(runtime.template_renderer)
-    controls = [
+    primary_controls = [
         forms.field(
             field_id="object_type",
-            label="Blueprint",
+            label="Content type",
             control_html=forms.select(
                 field_id="object_type",
                 name="object_type",
                 value=values["object_type"],
                 options=[blueprint.blueprint_id for blueprint in list_blueprints()],
             ),
-            hint="Choose the structured blueprint before drafting the first revision.",
+            hint="Choose the structure that best fits the guidance you are starting.",
             errors=errors.get("object_type"),
         ),
         forms.field(
+<<<<<<< HEAD
             field_id="object_id",
             label="Object ID",
             control_html=forms.input(field_id="object_id", name="object_id", value=values["object_id"]),
@@ -62,30 +63,64 @@ def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[
             label="Title",
             control_html=forms.input(field_id="title", name="title", value=values["title"]),
             hint="Operator-facing title used in read surfaces and audit history.",
+=======
+            field_id="title",
+            label="Title",
+            control_html=forms.input(field_id="title", name="title", value=values["title"], placeholder="Name the guidance clearly"),
+            hint="Use the name readers will recognize in search and review.",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
             errors=errors.get("title"),
         ),
         forms.field(
             field_id="summary",
             label="Summary",
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
             control_html=forms.textarea(field_id="summary", name="summary", value=values["summary"], rows=3),
             hint="Short operational summary shown above the fold.",
+=======
+            control_html=forms.textarea(
+                field_id="summary",
+                name="summary",
+                value=values["summary"],
+                rows=3,
+                placeholder="Summarize the outcome and when to use it.",
+            ),
+            hint="Keep it short and action-focused.",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
             errors=errors.get("summary"),
         ),
         forms.field(
             field_id="owner",
             label="Owner",
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
             control_html=forms.input(field_id="owner", name="owner", value=values["owner"]),
             hint="Visible ownership is required for trust posture.",
+=======
+            control_html=forms.input(field_id="owner", name="owner", value=values["owner"], placeholder="Team or person responsible"),
+            hint="Name the person or team accountable for keeping this guidance current.",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
             errors=errors.get("owner"),
         ),
         forms.field(
             field_id="team",
             label="Team",
-            control_html=forms.select(field_id="team", name="team", value=values["team"], options=runtime.taxonomies["teams"]["allowed_values"]),
-            hint="Primary accountable team.",
+            control_html=forms.select(
+                field_id="team",
+                name="team",
+                value=values["team"],
+                options=runtime.taxonomies["teams"]["allowed_values"],
+            ),
+            hint="Choose the team responsible for this guidance.",
             errors=errors.get("team"),
         ),
         forms.field(
+<<<<<<< HEAD
             field_id="canonical_path",
             label="Canonical path",
             control_html=forms.input(field_id="canonical_path", name="canonical_path", value=values["canonical_path"]),
@@ -93,37 +128,100 @@ def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[
             errors=errors.get("canonical_path"),
         ),
         forms.field(
+=======
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
             field_id="review_cadence",
             label="Review cadence",
-            control_html=forms.select(field_id="review_cadence", name="review_cadence", value=values["review_cadence"], options=runtime.taxonomies["review_cadences"]["allowed_values"]),
-            hint="Controls stale posture in the trust model.",
+            control_html=forms.select(
+                field_id="review_cadence",
+                name="review_cadence",
+                value=values["review_cadence"],
+                options=runtime.taxonomies["review_cadences"]["allowed_values"],
+            ),
+            hint="Set how often this guidance should be checked.",
             errors=errors.get("review_cadence"),
         ),
         forms.field(
             field_id="status",
-            label="Lifecycle status",
-            control_html=forms.select(field_id="status", name="status", value=values["status"], options=runtime.taxonomies["statuses"]["allowed_values"]),
-            hint="New operator-authored objects should usually begin as draft.",
+            label="Status",
+            control_html=forms.select(
+                field_id="status",
+                name="status",
+                value=values["status"],
+                options=runtime.taxonomies["statuses"]["allowed_values"],
+            ),
+            hint="New guidance usually starts as draft.",
             errors=errors.get("status"),
         ),
         forms.field(
             field_id="systems",
+<<<<<<< HEAD
             label="Systems",
             control_html=forms.input(field_id="systems", name="systems", value=values["systems"]),
             hint="Comma-separated controlled system references.",
+=======
+            label="Related systems",
+            control_html=forms.input(
+                field_id="systems",
+                name="systems",
+                value=values["systems"],
+                placeholder="List related systems, separated by commas",
+            ),
+            hint="Add the systems this guidance applies to.",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
             errors=errors.get("systems"),
         ),
         forms.field(
             field_id="tags",
             label="Tags",
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
             control_html=forms.input(field_id="tags", name="tags", value=values["tags"]),
             hint="Comma-separated controlled tags for discovery and reporting.",
+=======
+            control_html=forms.input(
+                field_id="tags",
+                name="tags",
+                value=values["tags"],
+                placeholder="Add search tags, separated by commas",
+            ),
+            hint="Use a few tags that will help readers find this quickly.",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
             errors=errors.get("tags"),
+        ),
+    ]
+    publishing_controls = [
+        forms.field(
+            field_id="object_id",
+            label="Reference code",
+            control_html=forms.input(
+                field_id="object_id",
+                name="object_id",
+                value=values["object_id"],
+                placeholder="Created from the title if left blank",
+            ),
+            hint="Use lowercase words separated by hyphens. This stays with the guidance in links and search.",
+            errors=errors.get("object_id"),
+        ),
+        forms.field(
+            field_id="canonical_path",
+            label="Publishing location",
+            control_html=forms.input(
+                field_id="canonical_path",
+                name="canonical_path",
+                value=values["canonical_path"],
+                placeholder="Created from the title if left blank",
+            ),
+            hint="Where the published source will live in the knowledge library.",
+            errors=errors.get("canonical_path"),
         ),
     ]
     validation_html = _revision_error_summary_html(components, errors) if errors else ""
     body_html = (
         f'<form class="governed-form" method="post" action="{escape(form_action)}">'
+<<<<<<< HEAD
         + "".join(controls)
         + forms.button(label="Start draft")
         + "</form>"
@@ -134,14 +232,80 @@ def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[
         body_html=(
             "<p>Start by choosing the blueprint, defining the purpose, and recording accountable ownership. Papyrus then carries the object shell into guided section-by-section drafting.</p>"
         ),
+=======
+        + '<section class="form-section"><h3>Draft details</h3>'
+        + "".join(primary_controls)
+        + "</section>"
+        + '<section class="form-section"><h3>Publishing details</h3><p class="section-intro">Keep the draft traceable and ready to publish.</p>'
+        + "".join(publishing_controls)
+        + "</section>"
+        + forms.button(label="Start drafting")
+        + "</form>"
+    )
+    guidance_html = components.section_card(
+        title="What happens next",
+        eyebrow="Write",
+        body_html="<p>After setup, you will complete the first draft one section at a time and then send it for review.</p>",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
     )
     return {
         "validation_html": validation_html,
         "progress_html": _object_progress_html(components, values=values, errors=errors),
+<<<<<<< Updated upstream
         "form_html": components.section_card(title="Create draft shell", eyebrow="Write", body_html=body_html),
         "guidance_html": guidance_html,
     }
 
+=======
+<<<<<<< HEAD
+        "form_html": components.section_card(title="Create draft shell", eyebrow="Write", body_html=body_html),
+        "guidance_html": guidance_html,
+    }
+
+=======
+        "form_html": components.section_card(title="Set up the draft", eyebrow="Write", body_html=body_html),
+        "guidance_html": guidance_html,
+    }
+
+
+def _common_revision_aside(runtime, detail) -> str:
+    components = ComponentPresenter(runtime.template_renderer)
+    item = detail["object"]
+    current_revision = detail.get("current_revision")
+    submit_action = action_descriptor(detail.get("ui_projection"), "submit_for_review")
+    return join_html(
+        [
+            render_projection_status_panel(
+                components,
+                title="Governed posture",
+                ui_projection=detail.get("ui_projection"),
+            ),
+            render_action_contract_panel(
+                components,
+                title="Submission contract",
+                action=submit_action,
+            ),
+            components.metadata_list(
+                title="Revision context",
+                rows=[
+                    (
+                        "Current revision",
+                        escape(
+                            f"#{current_revision['revision_number']} · {current_revision['revision_review_state']}"
+                            if current_revision
+                            else "No revision attached yet"
+                        ),
+                    ),
+                    ("Owner", escape(item["owner"])),
+                    ("Publishing location", escape(item["canonical_path"])),
+                ],
+            ),
+        ]
+    )
+
+
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
 def _completion_ratio(values: dict[str, str], fields: list[str]) -> tuple[int, int]:
     total = len(fields)
     completed = sum(1 for field in fields if values.get(field, "").strip())
@@ -153,6 +317,10 @@ def _object_progress_html(components, *, values: dict[str, str], errors: dict[st
     stewardship_completed, stewardship_total = _completion_ratio(values, ["owner", "team", "review_cadence", "status"])
     source_completed, source_total = _completion_ratio(values, ["object_id", "canonical_path"])
     blockers = sum(len(messages) for messages in errors.values())
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
     return components.section_card(
         title="Step 1 of 3",
         eyebrow="Progress",
@@ -170,6 +338,26 @@ def _object_progress_html(components, *, values: dict[str, str], errors: dict[st
             + f"<p><strong>Blocking fields:</strong> {escape(blockers)}</p>"
         ),
         footer_html='<p class="section-footer">Next: Papyrus opens the first required section for guided drafting.</p>',
+<<<<<<< Updated upstream
+=======
+=======
+    return join_html(
+        [
+            _progress_card(components, title="Define the draft", completed=purpose_completed, total=purpose_total, detail="Choose the content type, title, and summary readers will see first.", tone="brand"),
+            _progress_card(components, title="Set ownership", completed=stewardship_completed, total=stewardship_total, detail="Owner, team, cadence, and status keep the guidance accountable."),
+            _progress_card(components, title="Set publishing details", completed=source_completed, total=source_total, detail="Reference code and publishing location keep the draft traceable."),
+            components.section_card(
+                title="Readiness",
+                eyebrow="Progress",
+                tone="warning" if blockers else "approved",
+                body_html=(
+                    f"<p><strong>Blocking fields:</strong> {escape(blockers)}</p>"
+                    "<p>Start drafting once the required setup, ownership, and publishing details are complete.</p>"
+                ),
+            ),
+        ]
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
     )
 
 
@@ -212,10 +400,57 @@ def _revision_progress_html(components, *, object_type: str, values: dict[str, s
     )
 
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+=======
+def _write_timeline_html(*, stage: str, is_first_revision: bool = False) -> str:
+    step_two_label = "Draft first revision" if is_first_revision else "Draft revision"
+    steps = [
+        {
+            "index": "1",
+            "title": "Set up draft",
+            "detail": "Name the guidance, set ownership, and confirm publishing details.",
+            "state": "current" if stage == "object" else "complete",
+        },
+        {
+            "index": "2",
+            "title": step_two_label,
+            "detail": "Fill in the guided sections and supporting evidence.",
+            "state": "current" if stage == "revision" else "complete" if stage == "submit" else "upcoming",
+        },
+        {
+            "index": "3",
+            "title": "Submit for review",
+            "detail": "Send the draft to review with the right context.",
+            "state": "current" if stage == "submit" else "upcoming",
+        },
+    ]
+
+    parts: list[str] = ['<div class="workflow-top" aria-label="Write workflow">']
+    for position, step in enumerate(steps):
+        parts.append(
+            f'<section class="workflow-top-step is-{escape(step["state"])}">'
+            f'<span class="workflow-top-index">{escape(step["index"])}</span>'
+            '<div class="workflow-top-copy">'
+            f'<p class="workflow-top-label">{escape(step["title"])}</p>'
+            f'<p class="workflow-top-detail">{escape(step["detail"])}</p>'
+            f'<p class="workflow-top-state">{escape("Current step" if step["state"] == "current" else "Complete" if step["state"] == "complete" else "Next")}</p>'
+            "</div>"
+            "</section>"
+        )
+        if position < len(steps) - 1:
+            parts.append('<span class="workflow-top-arrow" aria-hidden="true">→</span>')
+    parts.append("</div>")
+    return "".join(parts)
+
+
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
 def _citation_search_status(title: str, reference: str) -> str:
     if title and reference:
         return f"Selected source: {title} -> {reference}"
-    return "Search existing knowledge objects by title, tag, or object ID. Selecting a result fills the fields below."
+    return "Search guidance by title, tag, or reference code. Selecting a result fills the fields below."
 
 
 def _evidence_posture_from_form_values(values: dict[str, str]) -> dict[str, object]:
@@ -241,34 +476,26 @@ def _evidence_posture_from_form_values(values: dict[str, str]) -> dict[str, obje
 def _revision_evidence_progress_detail(evidence_posture: dict[str, object]) -> str:
     if int(evidence_posture.get("weak_external_evidence_count") or 0):
         return (
-            f"{evidence_posture['summary']}. External/manual evidence entered here stays weak until manage-side follow-up "
-            "records capture time, integrity metadata, and any needed snapshot."
+            f"{evidence_posture['summary']}. External or manual sources still need evidence follow-up before they count as strong support."
         )
     if int(evidence_posture.get("internal_reference_count") or 0):
         return (
-            f"{evidence_posture['summary']}. Governed Papyrus references support traceability and review context, "
-            "not captured external evidence."
+            f"{evidence_posture['summary']}. Linked guidance supports traceability and review context, not captured source evidence."
         )
-    return "Related services, related knowledge, and evidence posture stay visible. Citations entered here do not automatically mean strong evidence."
+    return "Related services, linked guidance, and evidence posture stay visible here. Adding a source does not automatically make it strong evidence."
 
 
 def _submit_evidence_posture_detail(evidence_posture: dict[str, object]) -> str:
     if int(evidence_posture.get("weak_external_evidence_count") or 0):
-        return (
-            "External/manual evidence remains weak until manage-side follow-up records capture time, "
-            "integrity metadata, and any needed snapshot."
-        )
+        return "External or manual sources still need evidence follow-up before they count as strong support."
     if int(evidence_posture.get("captured_external_evidence_count") or 0) and int(
         evidence_posture.get("internal_reference_count") or 0
     ):
-        return (
-            "Governed Papyrus references remain lightweight internal references. Captured external/manual evidence "
-            "provides the stronger support recorded so far."
-        )
+        return "Linked guidance provides traceability. Captured external evidence is the strongest support recorded so far."
     if int(evidence_posture.get("captured_external_evidence_count") or 0):
         return "Captured external/manual evidence has stronger support metadata recorded."
     if int(evidence_posture.get("internal_reference_count") or 0):
-        return "Governed Papyrus references remain lightweight internal references for traceability and review context."
+        return "Linked guidance provides traceability and review context."
     return "No evidence references are recorded yet."
 
 
@@ -282,16 +509,15 @@ def _evidence_guidance_section(
     action_html = ""
     if include_action and object_id:
         action_html = (
-            '<p><strong>Next step:</strong> use the manage-side evidence flow to request follow-up on these citations.</p>'
+            '<p><strong>Next step:</strong> request evidence follow-up for any source that still needs stronger verification.</p>'
             + f'<p>{link("Request evidence revalidation", f"/manage/objects/{quoted_path(object_id)}/evidence/revalidate", css_class="button button-secondary")}</p>'
         )
     return components.section_card(
         title=title,
         eyebrow="Evidence",
         body_html=(
-            "<p>This write form can link governed Papyrus articles as lightweight internal references and can record a manual source title, reference, and note for external/manual evidence.</p>"
-            "<p>Current web boundary: the write form does not record capture time, integrity hash, expiry metadata, or evidence snapshots directly.</p>"
-            "<p>External, migration, or other manual evidence stays weak until the manage-side follow-up path records that stronger evidence metadata.</p>"
+            "<p>Use this form to link existing guidance or record a source title, reference, and note.</p>"
+            "<p>If a source needs stronger verification, complete evidence follow-up after the draft is saved so capture time, integrity details, and any needed snapshot are recorded.</p>"
             + action_html
         ),
         tone="default",
@@ -304,7 +530,7 @@ def _citation_lookup_control_html(*, index: int, values: dict[str, str]) -> str:
         '<div class="citation-picker">'
         f'<input id="citation_{index}_lookup" name="citation_{index}_lookup" type="text" '
         'class="text-input citation-picker-input" '
-        f'value="{escape(lookup_value)}" placeholder="Search by title, tag, or object ID" '
+        f'value="{escape(lookup_value)}" placeholder="Search by title, tag, or reference code" '
         'autocomplete="off" spellcheck="false" />'
         '<div class="citation-picker-results" hidden></div>'
         f'<p class="field-hint citation-picker-status">{escape(_citation_search_status(values.get(f"citation_{index}_source_title", ""), values.get(f"citation_{index}_source_ref", "")))}</p>'
@@ -362,6 +588,15 @@ def _multi_value_picker_control_html(
 
 
 def _revision_error_label(field_name: str) -> str:
+    explicit_labels = {
+        "object_id": "Reference code",
+        "canonical_path": "Publishing location",
+        "status": "Status",
+        "change_summary": "What changed",
+        "related_object_ids": "Related guidance",
+    }
+    if field_name in explicit_labels:
+        return explicit_labels[field_name]
     label = field_name.replace("_", " ")
     label = label.replace(" id", " ID")
     label = label.replace(" ids", " IDs")
@@ -541,8 +776,18 @@ def _guided_fallback_html(components, *, object_id: str, revision_id: str) -> st
         title="Need the advanced editor?",
         summary="Use it only for cross-section edits, citation lookup, or searchable pickers.",
         body_html=(
+<<<<<<< Updated upstream
             "<p>Guided section editing stays the default path. Move to the advanced editor only when you need to change multiple sections in one pass or use the search-assisted reference tools.</p>"
             f'<p>{link("Use advanced editor", _fallback_revision_href(object_id=object_id, revision_id=revision_id), css_class="button button-secondary")}</p>'
+=======
+<<<<<<< HEAD
+            "<p>Guided section editing stays the default path. Move to the advanced editor only when you need to change multiple sections in one pass or use the search-assisted reference tools.</p>"
+            f'<p>{link("Use advanced editor", _fallback_revision_href(object_id=object_id, revision_id=revision_id), css_class="button button-secondary")}</p>'
+=======
+            "<p>Guided editing is the primary path. Use bulk edit only when you need a wider form, source lookup, or multi-select helpers.</p>"
+            f'<p>{link("Switch to bulk edit", _fallback_revision_href(object_id=object_id, revision_id=revision_id), css_class="button button-secondary")}</p>'
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
         ),
     )
 
@@ -756,13 +1001,13 @@ def _render_fallback_revision_form(
     sections = [
         forms.field(field_id="title", label="Title", control_html=forms.input(field_id="title", name="title", value=values["title"]), errors=errors.get("title")),
         forms.field(field_id="summary", label="Summary", control_html=forms.textarea(field_id="summary", name="summary", value=values["summary"], rows=3), errors=errors.get("summary")),
-        forms.field(field_id="change_summary", label="Change summary", control_html=forms.input(field_id="change_summary", name="change_summary", value=values["change_summary"]), hint="Short audit-facing summary of this revision.", errors=errors.get("change_summary")),
+        forms.field(field_id="change_summary", label="What changed", control_html=forms.input(field_id="change_summary", name="change_summary", value=values["change_summary"]), hint="Summarize the change in one short line.", errors=errors.get("change_summary")),
         forms.field(field_id="owner", label="Owner", control_html=forms.input(field_id="owner", name="owner", value=values["owner"]), errors=errors.get("owner")),
         forms.field(field_id="team", label="Team", control_html=forms.select(field_id="team", name="team", value=values["team"], options=runtime.taxonomies["teams"]["allowed_values"]), errors=errors.get("team")),
-        forms.field(field_id="status", label="Lifecycle status", control_html=forms.select(field_id="status", name="status", value=values["status"], options=runtime.taxonomies["statuses"]["allowed_values"]), errors=errors.get("status")),
+        forms.field(field_id="status", label="Status", control_html=forms.select(field_id="status", name="status", value=values["status"], options=runtime.taxonomies["statuses"]["allowed_values"]), errors=errors.get("status")),
         forms.field(field_id="review_cadence", label="Review cadence", control_html=forms.select(field_id="review_cadence", name="review_cadence", value=values["review_cadence"], options=runtime.taxonomies["review_cadences"]["allowed_values"]), errors=errors.get("review_cadence")),
         forms.field(field_id="audience", label="Audience", control_html=forms.select(field_id="audience", name="audience", value=values["audience"], options=runtime.taxonomies["audiences"]["allowed_values"]), errors=errors.get("audience")),
-        multiline_field("systems", "Systems", "One controlled system reference per line."),
+        multiline_field("systems", "Related systems", "Add one related system per line."),
         forms.field(
             field_id="tags",
             label="Tags",
@@ -793,17 +1038,17 @@ def _render_fallback_revision_form(
         ),
         forms.field(
             field_id="related_object_ids",
-            label="Related object IDs",
+            label="Related guidance",
             control_html=_multi_value_picker_control_html(
                 field_name="related_object_ids",
                 values=values,
-                placeholder="Search related objects by title, tag, or object ID",
-                singular_label="related object",
-                manual_entry_label="Manual object ID entry",
+                placeholder="Search related guidance by title, tag, or reference code",
+                singular_label="related guidance item",
+                manual_entry_label="Manual reference entry",
                 search_url="/write/objects/search",
                 exclude_object_id=str(object_info["object_id"]),
             ),
-            hint="Search existing knowledge objects and select one or more related objects for impact tracing.",
+            hint="Link related guidance so reviewers can assess impact quickly.",
             errors=errors.get("related_object_ids"),
         ),
     ]
@@ -841,8 +1086,8 @@ def _render_fallback_revision_form(
                 multiline_field("dependencies", "Dependencies", "One dependency per line."),
                 multiline_field("support_entrypoints", "Support entrypoints", "Primary support channels or escalation doors."),
                 multiline_field("common_failure_modes", "Common failure modes", "One common failure mode per line."),
-                multiline_field("related_runbooks", "Related runbooks", "One related runbook object ID per line."),
-                multiline_field("related_known_errors", "Related known errors", "One related known error object ID per line."),
+                multiline_field("related_runbooks", "Related runbooks", "Add one related runbook reference per line."),
+                multiline_field("related_known_errors", "Related known errors", "Add one related known error reference per line."),
                 multiline_field("scope_notes", "Scope", "Narrative service boundary and exclusions."),
                 multiline_field("operational_notes", "Operational notes", "Support posture, caveats, and operating model."),
                 multiline_field("evidence_notes", "Evidence notes", "Evidence caveats or capture instructions."),
@@ -876,37 +1121,37 @@ def _render_fallback_revision_form(
             f'<section class="citation-entry" data-citation-picker data-citation-index="{index}" '
             f'data-search-url="/write/citations/search" data-exclude-object-id="{escape(object_info["object_id"])}">'
             f"<h4>Citation {index}</h4>"
-            '<p class="citation-entry-intro">Reference an existing Papyrus article first for lightweight internal traceability. Use the manual fields below only when the supporting source is external or otherwise outside Papyrus.</p>'
+            '<p class="citation-entry-intro">Link existing guidance when it supports this draft. Add a manual source only when the support comes from outside the library.</p>'
             + forms.field(
                 field_id=f"citation_{index}_lookup",
                 label=f"Citation {index} source search",
                 control_html=_citation_lookup_control_html(index=index, values=values),
-                hint="Search existing article titles, tags, or object IDs.",
+                hint="Search existing guidance by title, tag, or reference code.",
                 errors=errors.get("citations") if index == 1 else None,
             )
             + forms.field(
                 field_id=f"citation_{index}_source_title",
-                label=f"Citation {index} selected title",
+                label="Source title",
                 control_html=forms.input(field_id=f"citation_{index}_source_title", name=f"citation_{index}_source_title", value=values.get(f"citation_{index}_source_title", "")),
-                hint="Filled from a selected Papyrus article, or enter the source title for manual/external evidence.",
+                hint="Filled from linked guidance, or enter the source name.",
             )
             + forms.field(
                 field_id=f"citation_{index}_source_type",
-                label=f"Citation {index} type",
+                label="Source type",
                 control_html=forms.input(field_id=f"citation_{index}_source_type", name=f"citation_{index}_source_type", value=values.get(f"citation_{index}_source_type", "document")),
                 hint="document, url, ticket, or system reference.",
             )
             + forms.field(
                 field_id=f"citation_{index}_source_ref",
-                label=f"Citation {index} selected reference",
+                label="Source reference",
                 control_html=forms.input(field_id=f"citation_{index}_source_ref", name=f"citation_{index}_source_ref", value=values.get(f"citation_{index}_source_ref", "")),
-                hint="Papyrus path or manual/external reference. The write form does not capture snapshots or integrity metadata here.",
+                hint="Use a path, ticket, URL, or other reference.",
             )
             + forms.field(
                 field_id=f"citation_{index}_note",
-                label=f"Citation {index} note",
+                label="Source note",
                 control_html=forms.textarea(field_id=f"citation_{index}_note", name=f"citation_{index}_note", value=values.get(f"citation_{index}_note", ""), rows=2),
-                hint="Why this reference supports the draft and what a reviewer should inspect.",
+                hint="Explain why this source supports the draft and what a reviewer should inspect.",
             )
             + "</section>"
         )
@@ -933,6 +1178,7 @@ def _render_fallback_revision_form(
     guided_return_href = (
         f"/write/objects/{quoted_path(object_info['object_id'])}/revisions/new?revision_id={quoted_path(str(current_revision.get('revision_id') or ''))}#revision-form"
     )
+<<<<<<< Updated upstream
     guidance_html = _support_details_html(
         title="Return to guided drafting",
         summary="Use the guided flow when you only need one active section at a time.",
@@ -943,11 +1189,45 @@ def _render_fallback_revision_form(
         )
         + f'<p>{link("Return to guided flow", guided_return_href, css_class="button button-secondary")}</p>'
         + "<p>Evidence note: governed Papyrus citations are lightweight internal references. External or manual evidence stays weak until later follow-up records capture time, integrity metadata, and any needed snapshot.</p>",
+=======
+<<<<<<< HEAD
+    guidance_html = _support_details_html(
+        title="Return to guided drafting",
+        summary="Use the guided flow when you only need one active section at a time.",
+        body_html=(
+            "<p>This editor keeps the full draft in one place. Switch back to guided drafting when you want the next required section surfaced automatically.</p>"
+            if is_first_revision
+            else "<p>This editor still writes the same draft, but guided section editing remains the primary route for day-to-day authoring.</p>"
+        )
+        + f'<p>{link("Return to guided flow", guided_return_href, css_class="button button-secondary")}</p>'
+        + "<p>Evidence note: governed Papyrus citations are lightweight internal references. External or manual evidence stays weak until later follow-up records capture time, integrity metadata, and any needed snapshot.</p>",
+=======
+    guidance_html = components.section_card(
+        title="Bulk edit",
+        eyebrow="Fallback",
+        tone="context",
+        body_html=(
+            "<p>Use this wider editor only when guided drafting is not enough for the change you need to make.</p>"
+            if is_first_revision
+            else "<p>This editor updates the same draft, but guided section editing remains the primary route for day-to-day work.</p>"
+        )
+        + f'<p>{link("Return to guided editing", guided_return_href, css_class="button button-secondary")}</p>'
+        + "<p>Linked guidance helps with traceability. External or manual sources still need evidence follow-up before they count as strong support.</p>",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
     )
     return {
         "validation_html": validation_html,
         "progress_html": _revision_progress_html(components, object_type=object_type, values=values, errors=errors, findings=findings),
+<<<<<<< Updated upstream
         "form_html": components.section_card(title="Advanced draft editor", eyebrow="Write", body_html=body_html),
+=======
+<<<<<<< HEAD
+        "form_html": components.section_card(title="Advanced draft editor", eyebrow="Write", body_html=body_html),
+=======
+        "form_html": components.section_card(title="Bulk edit", eyebrow="Fallback", body_html=body_html, tone="context"),
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
         "guidance_html": guidance_html + _evidence_guidance_section(components, title="How evidence gets strengthened"),
     }
 
@@ -985,6 +1265,7 @@ def _render_submit_page(
                 hint="Optional notes for reviewers and assignment triage.",
                 errors=form_errors.get("notes"),
             )
+<<<<<<< Updated upstream
             + forms.button(label="Send to review")
             + "</form>"
         ),
@@ -1000,6 +1281,55 @@ def _render_submit_page(
             f"<p><strong>Evidence note:</strong> {escape(_submit_evidence_posture_detail(evidence_posture))}</p>"
             f"<p><strong>Canonical target:</strong> {escape(detail['object']['canonical_path'])}</p>"
         ),
+=======
+<<<<<<< HEAD
+            + forms.button(label="Send to review")
+            + "</form>"
+        ),
+    )
+    summary_html = components.section_card(
+        title="Review handoff summary",
+        eyebrow="Write",
+        body_html=(
+            f"<p><strong>Revision:</strong> #{escape(revision['revision_number'])} · {escape(revision['revision_review_state'])}</p>"
+            f"<p><strong>Change summary:</strong> {escape(revision['change_summary'] or 'No change summary recorded.')}</p>"
+            f"<p><strong>Citations:</strong> {escape(len(detail['citations']))}</p>"
+            f"<p><strong>Evidence posture:</strong> {escape(evidence_posture['summary'])}</p>"
+            f"<p><strong>Evidence note:</strong> {escape(_submit_evidence_posture_detail(evidence_posture))}</p>"
+            f"<p><strong>Canonical target:</strong> {escape(detail['object']['canonical_path'])}</p>"
+        ),
+=======
+            + forms.button(label="Send for review")
+            + "</form>"
+        ),
+    )
+    summary_html = join_html(
+        [
+            render_projection_status_panel(
+                components,
+                title="Current governed posture",
+                ui_projection=object_detail.get("ui_projection"),
+            ),
+            render_action_contract_panel(
+                components,
+                title="Submission contract",
+                action=submit_action,
+            ),
+            components.section_card(
+                title="Submission summary",
+                eyebrow="Write",
+                body_html=(
+                    f"<p><strong>Revision:</strong> #{escape(revision['revision_number'])} · {escape(revision['revision_review_state'])}</p>"
+                    f"<p><strong>What changed:</strong> {escape(revision['change_summary'] or 'No change summary recorded.')}</p>"
+                    f"<p><strong>Citations:</strong> {escape(len(detail['citations']))}</p>"
+                    f"<p><strong>Evidence posture:</strong> {escape(evidence_posture['summary'])}</p>"
+                    f"<p><strong>Evidence note:</strong> {escape(_submit_evidence_posture_detail(evidence_posture))}</p>"
+                    f"<p><strong>Publishing location:</strong> {escape(detail['object']['canonical_path'])}</p>"
+                ),
+            ),
+        ]
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
     )
     findings_html = components.validation_findings(title="Pre-submit validation", items=[escape(item) for item in findings] or ["No blocking findings detected."], tone="warning" if findings else "approved")
     progress_rows = [
@@ -1020,6 +1350,10 @@ def _render_submit_page(
     )
     guidance_html = ""
     if any("Evidence posture:" in item for item in findings):
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
         guidance_html = _support_details_html(
             title="How to strengthen weak evidence",
             summary="Use the manage flow when reviewer confidence depends on stronger capture metadata.",
@@ -1029,6 +1363,16 @@ def _render_submit_page(
                 include_action=True,
                 object_id=str(detail["object"]["object_id"]),
             ),
+<<<<<<< Updated upstream
+=======
+=======
+        guidance_html = _evidence_guidance_section(
+            components,
+            title="Strengthen evidence before approval",
+            include_action=True,
+            object_id=str(detail["object"]["object_id"]),
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
         )
     return {
         "summary_html": summary_html,
@@ -1055,13 +1399,13 @@ def register(router, runtime) -> None:
                     **result.cleaned_data,
                 )
                 return redirect_response(
-                    f"/write/objects/{quoted_path(created.object_id)}/revisions/new?notice={quote_plus('Object shell created. Step 2 of 3: draft the first revision below.')}#revision-form"
+                    f"/write/objects/{quoted_path(created.object_id)}/revisions/new?notice={quote_plus('Draft setup saved. Step 2 of 3: complete the first draft below.')}#revision-form"
                 )
             errors = result.errors
             if errors:
                 page_flash_html = FormPresenter(runtime.template_renderer).flash(
                     title="Attention",
-                    body="Object shell not created. Fix the blocking fields below.",
+                    body="Draft setup not saved. Fix the blocking fields below.",
                     tone="warning",
                 )
         page_context = _render_object_form(runtime, values, errors, form_action=request.path)
@@ -1071,7 +1415,15 @@ def register(router, runtime) -> None:
                 page_title="Choose blueprint",
                 headline="Start a guided draft",
                 kicker="Write",
+<<<<<<< Updated upstream
                 intro="Define the shell once, then move into guided section-by-section drafting.",
+=======
+<<<<<<< HEAD
+                intro="Define the shell once, then move into guided section-by-section drafting.",
+=======
+                intro="Choose the content type, name the guidance, and confirm who owns it.",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
                 active_nav="write",
                 flash_html=page_flash_html,
                 actor_id=actor_for_request(request),
@@ -1135,7 +1487,15 @@ def register(router, runtime) -> None:
                         page_title=f"Draft {section.display_name}",
                         headline=f"Continue {blueprint.display_name}",
                         kicker="Write",
+<<<<<<< Updated upstream
                         intro="Finish the active section, save it, and move to the next required gap.",
+=======
+<<<<<<< HEAD
+                        intro="Finish the active section, save it, and move to the next required gap.",
+=======
+                        intro="Complete this draft one section at a time.",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
                         active_nav="write",
                         flash_html=page_flash_html,
                         actor_id=actor_id,
@@ -1166,7 +1526,15 @@ def register(router, runtime) -> None:
 
         if request.method == "POST":
             return redirect_response(
+<<<<<<< Updated upstream
                 f"{_fallback_revision_href(object_id=object_id, revision_id=revision_id)}&notice={quote_plus('Advanced draft editing moved to its own route. Continue there if the guided step is not enough.')}"
+=======
+<<<<<<< HEAD
+                f"{_fallback_revision_href(object_id=object_id, revision_id=revision_id)}&notice={quote_plus('Advanced draft editing moved to its own route. Continue there if the guided step is not enough.')}"
+=======
+                f"{_fallback_revision_href(object_id=object_id, revision_id=revision_id)}&notice={quote_plus('Bulk edit is on its own page. Continue there if you need the wider editor.')}"
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
             )
 
         page_context = _render_guided_revision_page(
@@ -1184,7 +1552,15 @@ def register(router, runtime) -> None:
                 page_title=f"Draft {blueprint.display_name}",
                 headline=f"Continue {blueprint.display_name}",
                 kicker="Write",
+<<<<<<< Updated upstream
                 intro="Finish the active section, save it, and move to the next required gap.",
+=======
+<<<<<<< HEAD
+                intro="Finish the active section, save it, and move to the next required gap.",
+=======
+                intro="Complete this draft one section at a time.",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
                 active_nav="write",
                 flash_html=page_flash_html,
                 actor_id=actor_id,
@@ -1233,7 +1609,15 @@ def register(router, runtime) -> None:
                     change_summary=result.cleaned_data["change_summary"],
                 )
                 return redirect_response(
+<<<<<<< Updated upstream
                     f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision.revision_id)}&notice={quote_plus('Advanced draft saved')}"
+=======
+<<<<<<< HEAD
+                    f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision.revision_id)}&notice={quote_plus('Advanced draft saved')}"
+=======
+                    f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision.revision_id)}&notice={quote_plus('Bulk edit saved')}"
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
                 )
             page_flash_html = FormPresenter(runtime.template_renderer).flash(
                 title="Attention",
@@ -1252,10 +1636,23 @@ def register(router, runtime) -> None:
             return html_response(
                 runtime.page_renderer.render_page(
                     page_template="pages/write_revision_new.html",
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
                     page_title="Advanced draft editor",
                     headline="Advanced draft editor",
                     kicker="Write",
                     intro="Use this editor only when the guided step is not enough for the change you need to make.",
+<<<<<<< Updated upstream
+=======
+=======
+                    page_title="Bulk edit",
+                    headline="Bulk Edit",
+                    kicker="Write",
+                    intro="Use bulk edit only when guided drafting is not enough.",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
                     active_nav="write",
                     flash_html=page_flash_html,
                     actor_id=actor_id,
@@ -1285,10 +1682,23 @@ def register(router, runtime) -> None:
         return html_response(
             runtime.page_renderer.render_page(
                 page_template="pages/write_revision_new.html",
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
                 page_title="Advanced draft editor",
                 headline="Advanced draft editor",
                 kicker="Write",
                 intro="Use this editor only when the guided step is not enough for the change you need to make.",
+<<<<<<< Updated upstream
+=======
+=======
+                page_title="Bulk edit",
+                headline="Bulk Edit",
+                kicker="Write",
+                intro="Use bulk edit only when guided drafting is not enough.",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
                 active_nav="write",
                 flash_html=page_flash_html,
                 actor_id=actor_id,
@@ -1329,7 +1739,7 @@ def register(router, runtime) -> None:
                     "detail": (
                         f"{state.get('approval_state') or candidate.get('approval_state') or 'unknown'} approval | "
                         f"{state.get('trust_state') or candidate.get('trust_state') or 'unknown'} trust | "
-                        f"{reference_projection.get('detail') or use_guidance.get('detail') or 'Reference candidate available.'}"
+                        f"{reference_projection.get('detail') or use_guidance.get('detail') or 'Reference available.'}"
                     ),
                 }
             )
@@ -1352,8 +1762,8 @@ def register(router, runtime) -> None:
                     "value": str(candidate["object_id"]),
                     "label": str(candidate["title"]),
                     "detail": (
-                        f"{candidate['object_id']} | {candidate['path']} | "
-                        f"{use_guidance.get('summary') or 'Backend guidance unavailable'} | "
+                        f"Ref {candidate['object_id']} | {candidate['path']} | "
+                        f"{use_guidance.get('summary') or 'Guidance summary unavailable'} | "
                         f"{state.get('approval_state') or 'unknown'} approval | "
                         f"{state.get('trust_state') or 'unknown'} trust"
                     ),
@@ -1414,7 +1824,15 @@ def register(router, runtime) -> None:
                 page_title="Submit for review",
                 headline="Send to review",
                 kicker="Write",
+<<<<<<< Updated upstream
                 intro="Review the blockers, confirm the evidence posture, and hand the revision to a reviewer.",
+=======
+<<<<<<< HEAD
+                intro="Review the blockers, confirm the evidence posture, and hand the revision to a reviewer.",
+=======
+                intro="Check readiness, then send the draft for review.",
+>>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
+>>>>>>> Stashed changes
                 active_nav="write",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
