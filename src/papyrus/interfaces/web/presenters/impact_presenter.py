@@ -20,7 +20,7 @@ def present_object_impact(renderer: TemplateRenderer, *, impact: dict[str, Any])
             f"<p><strong>Why this is impacted:</strong> {escape(current_impact['why_impacted'])}</p>"
             f"<p><strong>What to revalidate:</strong> {escape(' | '.join(current_impact['revalidate']))}</p>"
         ),
-        footer_html=link("Back to object", f"/objects/{quoted_path(entity['object_id'])}", css_class="button button-secondary"),
+        footer_html=link("Return to guidance", f"/objects/{quoted_path(entity['object_id'])}", css_class="button button-primary"),
     )
     impacts_html = join_html(
         [
@@ -81,7 +81,7 @@ def present_object_impact(renderer: TemplateRenderer, *, impact: dict[str, Any])
         "page_title": f"Impact {entity['title']}",
         "headline": f"Change Consequences: {entity['title']}",
         "kicker": "Health",
-        "intro": "See what changed, what is affected, and what should be reviewed or revalidated next before the consequence becomes stale context.",
+        "intro": "See what changed, what it affects, and what to review next.",
         "active_nav": "health",
         "aside_html": "",
         "page_context": {"summary_html": summary_html, "impacts_html": impacts_html},
@@ -101,7 +101,7 @@ def present_service_impact(renderer: TemplateRenderer, *, impact: dict[str, Any]
             f"<p><strong>Why this is impacted:</strong> {escape(current_impact['why_impacted'])}</p>"
             f"<p><strong>What to revalidate:</strong> {escape(' | '.join(current_impact['revalidate']))}</p>"
         ),
-        footer_html=link("Back to service", f"/services/{quoted_path(entity['service_id'])}", css_class="button button-secondary"),
+        footer_html=link("Return to service", f"/services/{quoted_path(entity['service_id'])}", css_class="button button-primary"),
     )
     impacts_html = join_html(
         [
@@ -138,7 +138,7 @@ def present_service_impact(renderer: TemplateRenderer, *, impact: dict[str, Any]
         "page_title": f"Impact {entity['service_name']}",
         "headline": f"Change Consequences: {entity['service_name']}",
         "kicker": "Health",
-        "intro": "Use the service consequence view to see what changed, what knowledge is affected, and what should be reviewed next.",
+        "intro": "See what changed around this service and what needs review next.",
         "active_nav": "health",
         "aside_html": "",
         "page_context": {"summary_html": summary_html, "impacts_html": impacts_html},

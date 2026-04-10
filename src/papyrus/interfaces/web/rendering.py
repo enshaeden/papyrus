@@ -54,6 +54,13 @@ class PageRenderer:
     ) -> str:
         role_config = actor_shell_for_id(actor_id)
         content_html = self.template_renderer.render(page_template, page_context or {})
+        has_aside = bool(str(aside_html).strip())
+        active_item = self._active_nav_item(role_config.nav_sections, active_nav=active_nav, current_path=current_path)
+        aside_column_html = (
+            f'<aside class="context-column">{aside_html}</aside>'
+            if has_aside
+            else ""
+        )
         topbar_html = self.template_renderer.render(
             "partials/topbar.html",
             {
@@ -64,12 +71,44 @@ class PageRenderer:
                 ),
             },
         )
+        actor_role_class = str(role_config.actor.role_hint).replace("_", "-")
+        actor_role_label = self._role_hint_label(role_config.actor.role_hint)
+        current_view_label = active_item.label if active_item is not None else page_title
+        quick_links_html = join_html(
+            [
+                link(
+                    item.label,
+                    item.href,
+                    css_class=(
+                        "actor-banner-link is-active"
+                        if self._nav_item_is_active(item, active_nav=active_nav, current_path=current_path)
+                        else "actor-banner-link"
+                    ),
+                )
+                for item in role_config.quick_links
+            ]
+        )
+        actor_banner_html = self.template_renderer.render(
+            "partials/actor_banner.html",
+            {
+                "actor_display_name": escape(role_config.actor.display_name),
+                "actor_role_summary": escape(role_config.summary),
+                "actor_role_label": escape(actor_role_label),
+                "actor_role_class": escape(actor_role_class),
+                "current_view_label": escape(current_view_label),
+                "quick_links_html": quick_links_html,
+            },
+        )
         nav_sections_html = join_html(
             [
                 (
                     '<div class="sidebar-block">'
                     f'<p class="sidebar-label">{escape(section.title)}</p>'
-                    f'<p class="sidebar-copy">{escape(section.description)}</p>'
+                    + (
+                        f'<p class="sidebar-copy">{escape(section.description)}</p>'
+                        if section.description
+                        else ""
+                    )
                     + join_html(
                         [
                             link(
@@ -105,13 +144,15 @@ class PageRenderer:
                 "headline": escape(headline),
                 "kicker": escape(kicker),
                 "intro": escape(intro),
+                "actor_banner_html": actor_banner_html,
                 "header_detail_html": header_detail_html,
                 "topbar_html": topbar_html,
                 "sidebar_html": sidebar_html,
                 "flash_html": flash_html,
                 "action_bar_html": action_bar_html,
                 "content_html": content_html,
-                "aside_html": aside_html,
+                "aside_column_html": aside_column_html,
+                "shell_columns_class": "has-aside" if has_aside else "no-aside",
                 "scripts_html": scripts_html,
             },
         )
@@ -134,6 +175,23 @@ class PageRenderer:
             if any(PageRenderer._path_matches(current_path, prefix) for prefix in prefixes):
                 return True
         return item.key == active_nav
+
+    @staticmethod
+    def _active_nav_item(nav_sections, *, active_nav: str, current_path: str):
+        for section in nav_sections:
+            for item in section.items:
+                if PageRenderer._nav_item_is_active(item, active_nav=active_nav, current_path=current_path):
+                    return item
+        return None
+
+    @staticmethod
+    def _role_hint_label(role_hint: str) -> str:
+        mapping = {
+            "reader_writer": "Reader / Writer",
+            "reviewer": "Reviewer",
+            "manager": "Manager",
+        }
+        return mapping.get(str(role_hint), str(role_hint).replace("_", " ").title())
 
     @staticmethod
     def _path_matches(current_path: str, prefix: str) -> bool:

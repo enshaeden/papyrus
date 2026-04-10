@@ -8,10 +8,52 @@ from urllib.parse import quote
 
 
 OBJECT_ID_PATTERN = re.compile(r"^kb-[a-z0-9]+(?:-[a-z0-9]+)*$")
+DISPLAY_PLACEHOLDER_PATTERN = re.compile(r"<([A-Z0-9]+(?:_[A-Z0-9]+)*)>")
+
+DISPLAY_TOKEN_REPLACEMENTS = {
+    "COMPANY": "organization",
+    "NAME": "",
+    "ENDPOINT": "device",
+    "SYSTEM": "system",
+    "SERVICE": "service",
+    "PROVIDER": "provider",
+    "PLATFORM": "platform",
+    "PORTAL": "portal",
+    "REGION": "region",
+    "OFFICE": "office",
+    "SITE": "site",
+    "ROOM": "room",
+    "CATALOG": "catalog",
+}
+
+DISPLAY_TOKEN_ACRONYMS = {"AV", "HR", "IT", "VPN"}
 
 
 def escape(value: object) -> str:
-    return html.escape("" if value is None else str(value))
+    return html.escape(sanitize_display_text("" if value is None else str(value)))
+
+
+def sanitize_display_text(value: str) -> str:
+    def replacement(match: re.Match[str]) -> str:
+        parts = [part for part in match.group(1).split("_") if part]
+        while parts and len(parts[-1]) == 1:
+            parts.pop()
+        normalized: list[str] = []
+        for part in parts:
+            mapped = DISPLAY_TOKEN_REPLACEMENTS.get(part, part.lower())
+            if not mapped:
+                continue
+            if part in DISPLAY_TOKEN_ACRONYMS:
+                normalized.append(part)
+            elif mapped.islower():
+                normalized.append(mapped)
+            else:
+                normalized.append(mapped)
+        if not normalized:
+            return "internal reference"
+        return " ".join(normalized)
+
+    return DISPLAY_PLACEHOLDER_PATTERN.sub(replacement, value)
 
 
 def slugify(value: str) -> str:

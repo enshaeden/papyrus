@@ -37,23 +37,17 @@ REVIEW_LINK = ShellLink("review", "Review / Approvals", "/review", match_prefixe
 TRUST_LINK = ShellLink("health", "Knowledge Health", "/health", match_prefixes=("/health", "/dashboard/trust", "/manage/objects/", "/impact/"))
 SERVICES_LINK = ShellLink("services", "Services", "/services", match_prefixes=("/services",))
 AUDIT_LINK = ShellLink("activity", "Activity / History", "/activity", match_prefixes=("/activity", "/manage/audit", "/manage/validation-runs"))
-LIFECYCLE_LINKS = (READ_LINK, WRITE_LINK, INGEST_LINK, REVIEW_LINK, TRUST_LINK, SERVICES_LINK, AUDIT_LINK)
 
 WEB_ACTOR_SHELLS = (
     ActorShellConfig(
         actor=DEFAULT_WEB_ACTOR,
         home_path="/",
-        summary="Use current guidance, revise gaps you find, and keep work moving through the next safe lifecycle step.",
+        summary="Use current guidance, update gaps, and keep work moving safely.",
         nav_sections=(
             ShellSection(
-                title="Lifecycle",
-                description="Move from use to revision, review, health checks, and history without leaving the operator shell.",
-                items=LIFECYCLE_LINKS,
-            ),
-            ShellSection(
-                title="Start Here",
-                description="Frontline work starts with guided use and only pivots into authoring when the current guidance is not enough.",
-                items=(READ_LINK, WRITE_LINK, INGEST_LINK, SERVICES_LINK),
+                title="Navigation",
+                description="",
+                items=(READ_LINK, WRITE_LINK, INGEST_LINK, SERVICES_LINK, REVIEW_LINK, TRUST_LINK, AUDIT_LINK),
             ),
         ),
         quick_links=(READ_LINK, WRITE_LINK, SERVICES_LINK),
@@ -61,17 +55,12 @@ WEB_ACTOR_SHELLS = (
     ActorShellConfig(
         actor=resolve_actor("local.reviewer"),
         home_path="/",
-        summary="Steward submitted revisions, make explicit decisions, and keep weak evidence or stale guidance from reaching operators silently.",
+        summary="Steward submitted revisions and block weak guidance from slipping through.",
         nav_sections=(
             ShellSection(
-                title="Lifecycle",
-                description="The same lifecycle frame stays visible while you move from review to health and activity history.",
-                items=LIFECYCLE_LINKS,
-            ),
-            ShellSection(
-                title="Start Here",
-                description="Reviewers should begin with pending decisions, then fall back to health and activity for supporting context.",
-                items=(REVIEW_LINK, TRUST_LINK, AUDIT_LINK),
+                title="Navigation",
+                description="",
+                items=(REVIEW_LINK, TRUST_LINK, AUDIT_LINK, READ_LINK, SERVICES_LINK, WRITE_LINK, INGEST_LINK),
             ),
         ),
         quick_links=(REVIEW_LINK, TRUST_LINK, AUDIT_LINK),
@@ -79,17 +68,12 @@ WEB_ACTOR_SHELLS = (
     ActorShellConfig(
         actor=resolve_actor("local.manager"),
         home_path="/",
-        summary="Shepherd knowledge health, review pressure, and recent change consequences without dropping straight into raw queues.",
+        summary="Shepherd knowledge health, review pressure, and change impact.",
         nav_sections=(
             ShellSection(
-                title="Lifecycle",
-                description="Use the lifecycle map to move between operational use, stewardship decisions, and consequence history.",
-                items=LIFECYCLE_LINKS,
-            ),
-            ShellSection(
-                title="Start Here",
-                description="Managers usually begin with health and review load, then drill into services and activity when risk is rising.",
-                items=(TRUST_LINK, REVIEW_LINK, INGEST_LINK, AUDIT_LINK, SERVICES_LINK),
+                title="Navigation",
+                description="",
+                items=(TRUST_LINK, REVIEW_LINK, AUDIT_LINK, SERVICES_LINK, READ_LINK, WRITE_LINK, INGEST_LINK),
             ),
         ),
         quick_links=(TRUST_LINK, REVIEW_LINK, AUDIT_LINK),

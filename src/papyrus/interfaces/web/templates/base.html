@@ -12,9 +12,10 @@
 <body>
   <div class="app-shell">
     {{ topbar_html }}
-    <div class="shell-columns">
+    <div class="shell-columns {{ shell_columns_class }}">
       {{ sidebar_html }}
       <main class="main-column">
+        {{ actor_banner_html }}
         <header class="page-header">
           <p class="page-kicker">{{ kicker }}</p>
           <h1>{{ headline }}</h1>
@@ -25,9 +26,7 @@
         {{ action_bar_html }}
         {{ content_html }}
       </main>
-      <aside class="context-column">
-        {{ aside_html }}
-      </aside>
+      {{ aside_column_html }}
     </div>
   </div>
   <script src="/static/js/filters.js" defer></script>

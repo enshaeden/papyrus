@@ -98,6 +98,51 @@ class ComponentPresenter:
             },
         )
 
+    def decision_cell(
+        self,
+        *,
+        title_html: str,
+        supporting_html: str = "",
+        meta: Iterable[str] = (),
+        badges: Iterable[str] = (),
+        extra_html: str = "",
+    ) -> str:
+        badge_items = [item for item in badges if item]
+        meta_items = [item for item in meta if item]
+        return (
+            '<div class="decision-cell">'
+            + f'<div class="decision-primary">{title_html}</div>'
+            + (
+                '<div class="decision-badges">'
+                + join_html(badge_items, " ")
+                + "</div>"
+                if badge_items
+                else ""
+            )
+            + (
+                f'<div class="decision-supporting">{supporting_html}</div>'
+                if supporting_html
+                else ""
+            )
+            + (
+                '<div class="decision-meta-group">'
+                + join_html([f'<p class="decision-meta">{item}</p>' for item in meta_items])
+                + "</div>"
+                if meta_items
+                else ""
+            )
+            + extra_html
+            + "</div>"
+        )
+
+    def inline_disclosure(self, *, label: str, body_html: str) -> str:
+        return (
+            '<details class="inline-disclosure">'
+            f"<summary>{escape(label)}</summary>"
+            f'<div class="inline-disclosure-body">{body_html}</div>'
+            "</details>"
+        )
+
     def validation_summary(self, *, title: str, findings: list[str], empty_label: str = "No validation findings.") -> str:
         body_html = render_list(findings, css_class="validation-findings") or f'<p class="empty-state-copy">{escape(empty_label)}</p>'
         return self.renderer.render(

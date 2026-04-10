@@ -7,17 +7,6 @@ from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link
 
 
-LIFECYCLE_STAGES: tuple[tuple[str, str], ...] = (
-    ("Draft", "Create a new knowledge object or start a new revision."),
-    ("Revise", "Clarify scope, update guidance, and record what changed."),
-    ("Review", "Route the revision to a reviewer with supporting evidence."),
-    ("Approve", "Decide whether it is ready to become canonical guidance."),
-    ("Use", "Rely on the approved guidance with visible freshness and safety cues."),
-    ("Revalidate", "Recheck evidence and assumptions after change or time-based drift."),
-    ("Supersede / Archive", "Retire or replace guidance with a clear transition path."),
-)
-
-
 def _area_card(
     components: ComponentPresenter,
     *,
@@ -29,6 +18,7 @@ def _area_card(
     href: str,
     action_label: str,
     tone: str = "default",
+    action_variant: str = "secondary",
 ) -> str:
     return components.section_card(
         title=title,
@@ -39,7 +29,7 @@ def _area_card(
             f'<p><strong>{escape(metric_label)}</strong></p>'
             f"<p>{escape(description)}</p>"
         ),
-        footer_html=link(action_label, href, css_class="button button-secondary"),
+        footer_html=link(action_label, href, css_class=f"button button-{escape(action_variant)}"),
     )
 
 
@@ -55,23 +45,23 @@ def _next_action_definitions(actor_id: str, *, counts: dict[str, int]) -> list[d
         return [
             {
                 "title": "Make review decisions",
-                "detail": "Start with the revisions that already need a reviewer decision and make the next step explicit.",
+                "detail": "Work the revisions waiting on a decision.",
                 "href": "/review",
-                "label": "Open review work",
+                "label": "Review queued changes",
                 "count": shared["review"],
             },
             {
                 "title": "Revalidate weak guidance",
-                "detail": "Clear stale or weak-evidence items before they become invisible operational risk.",
+                "detail": "Clear stale or weak-evidence items.",
                 "href": "/health",
-                "label": "Open knowledge health",
+                "label": "Review risky guidance",
                 "count": shared["revalidate"],
             },
             {
                 "title": "Inspect recent consequences",
-                "detail": "Use the activity history when the reason for a queue item is not obvious from status alone.",
+                "detail": "Trace recent changes when the next step is unclear.",
                 "href": "/activity",
-                "label": "Open activity",
+                "label": "Inspect activity",
                 "count": shared["activity"],
             },
         ]
@@ -79,46 +69,46 @@ def _next_action_definitions(actor_id: str, *, counts: dict[str, int]) -> list[d
         return [
             {
                 "title": "Shepherd knowledge health",
-                "detail": "Review what needs attention across stale guidance, weak evidence, and suspect posture.",
+                "detail": "Focus on the guidance that needs attention first.",
                 "href": "/health",
-                "label": "Open knowledge health",
+                "label": "Review risky guidance",
                 "count": shared["health"],
             },
             {
                 "title": "Reduce review pressure",
-                "detail": "Keep review demand moving so drafts and pending decisions do not stall the lifecycle.",
+                "detail": "Keep pending decisions from stalling.",
                 "href": "/review",
-                "label": "Open approvals",
+                "label": "Review queued changes",
                 "count": shared["review"],
             },
             {
                 "title": "Inspect recent activity",
-                "detail": "Use recent events and validation outcomes to understand where the next stewardship action belongs.",
+                "detail": "Use recent events to decide where to step in next.",
                 "href": "/activity",
-                "label": "Open activity",
+                "label": "Inspect activity",
                 "count": shared["activity"],
             },
         ]
     return [
         {
             "title": "Use current guidance",
-            "detail": "Start with read surfaces that keep operational guidance, freshness, and service context visible together.",
+            "detail": "Go straight to the best current answer.",
             "href": "/read",
-            "label": "Open read",
+            "label": "Read guidance",
             "count": counts["read_ready"],
         },
         {
             "title": "Continue authoring",
-            "detail": "Move a gap or rejected revision forward instead of leaving it stuck as an unresolved draft.",
+            "detail": "Finish a draft or move a gap forward.",
             "href": "/write/objects/new",
-            "label": "Open write",
+            "label": "Start a draft",
             "count": shared["drafts"],
         },
         {
             "title": "Escalate unsafe guidance",
-            "detail": "When the current answer looks stale or weak, hand it into review and health flows instead of guessing.",
+            "detail": "Hand off stale or weak guidance instead of guessing.",
             "href": "/health",
-            "label": "Open knowledge health",
+            "label": "Review risky guidance",
             "count": shared["revalidate"],
         },
     ]
@@ -163,6 +153,7 @@ def present_home_page(
                 href=str(item["href"]),
                 action_label=str(item["label"]),
                 tone="brand" if index == 0 else "default",
+                action_variant="primary" if index == 0 else "secondary",
             )
             for index, item in enumerate(_next_action_definitions(actor_id, counts=counts))
         ]
@@ -175,9 +166,9 @@ def present_home_page(
                 title="Read",
                 metric_label="Guidance items",
                 metric_value=counts["read_ready"],
-                description="Find current guidance, check whether it is safe to use, and move into service context when needed.",
+                description="Read the best current guidance and its trust signals.",
                 href="/read",
-                action_label="Open read",
+                action_label="Read guidance",
                 tone="brand",
             ),
             _area_card(
@@ -186,9 +177,9 @@ def present_home_page(
                 title="Write",
                 metric_label="Drafts or rework items",
                 metric_value=counts["drafts"],
-                description="Create a new object shell, revise existing guidance, and move a draft toward submission.",
+                description="Create or finish a draft.",
                 href="/write/objects/new",
-                action_label="Open write",
+                action_label="Start a draft",
             ),
             _area_card(
                 components,
@@ -196,9 +187,9 @@ def present_home_page(
                 title="Review / Approvals",
                 metric_label="Review items",
                 metric_value=counts["review_required"],
-                description="Assign reviewers, inspect changes, and make approval or rejection decisions with context.",
+                description="Review changes and make the next decision.",
                 href="/review",
-                action_label="Open review",
+                action_label="Review queued changes",
             ),
             _area_card(
                 components,
@@ -206,9 +197,9 @@ def present_home_page(
                 title="Knowledge Health",
                 metric_label="Needs attention",
                 metric_value=counts["needs_attention"],
-                description="Track stale content, weak evidence, suspect guidance, and review load as stewardship work.",
+                description="Prioritize stale, weak, or suspect guidance.",
                 href="/health",
-                action_label="Open knowledge health",
+                action_label="Review risky guidance",
                 tone="warning" if counts["needs_attention"] else "approved",
             ),
             _area_card(
@@ -217,9 +208,9 @@ def present_home_page(
                 title="Services",
                 metric_label="Services in scope",
                 metric_value=counts["services"],
-                description="Move from a service issue into the linked guidance path instead of browsing unrelated objects.",
+                description="Start from a service and move into the linked guidance.",
                 href="/services",
-                action_label="Open services",
+                action_label="Browse services",
             ),
             _area_card(
                 components,
@@ -227,9 +218,9 @@ def present_home_page(
                 title="Activity / History",
                 metric_label="Recent events",
                 metric_value=counts["recent_activity"],
-                description="Understand what changed, what it affected, and what should be reviewed or revalidated next.",
+                description="Trace recent changes and their follow-up.",
                 href="/activity",
-                action_label="Open activity",
+                action_label="Inspect activity",
             ),
         ]
     )
@@ -242,7 +233,7 @@ def present_home_page(
             components.badge(label="Stale", value=counts["stale"], tone="danger"),
             components.badge(label="Activity", value=counts["recent_activity"], tone="brand"),
         ],
-        summary="Papyrus should tell each actor what is safe to use, what is moving forward, and what needs stewardship next.",
+        summary="Use this as the short list for what needs attention now.",
     )
     activity_html = components.section_card(
         title="Recent activity",
@@ -257,39 +248,14 @@ def present_home_page(
             else '<p class="empty-state-copy">No recent activity is recorded yet.</p>'
         ),
     )
-    aside_html = join_html(
-        [
-            components.section_card(
-                title="Knowledge lifecycle",
-                eyebrow="Lifecycle",
-                body_html=join_html(
-                    [
-                        '<div class="lifecycle-stage">'
-                        f'<p class="lifecycle-stage-title">{escape(title)}</p>'
-                        f'<p class="lifecycle-stage-detail">{escape(detail)}</p>'
-                        "</div>"
-                        for title, detail in LIFECYCLE_STAGES
-                    ]
-                ),
-            ),
-            components.validation_summary(
-                title="How to use this home page",
-                findings=[
-                    "Start with the next-action cards instead of dropping straight into a raw queue.",
-                    "Use Knowledge Health for stewardship work and Activity / History for consequence tracing.",
-                    "Move into review only after the revision and evidence context are clear enough to decide.",
-                ],
-            ),
-        ]
-    )
     return {
         "page_template": "pages/home.html",
         "page_title": "Home",
         "headline": "Guided Operational Knowledge",
         "kicker": "Lifecycle",
-        "intro": "Papyrus guides people through drafting, reviewing, using, revalidating, and retiring operational knowledge without hiding the guardrails.",
+        "intro": "Read, draft, review, and revalidate guidance from one place.",
         "active_nav": "read",
-        "aside_html": aside_html,
+        "aside_html": "",
         "page_context": {
             "summary_html": summary_html,
             "next_actions_html": next_actions_html,

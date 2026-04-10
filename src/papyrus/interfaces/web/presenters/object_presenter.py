@@ -226,9 +226,9 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         ],
         actions_html=join_html(
             [
-                link("Revision history", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
-                link("Revise guidance", f"/write/objects/{quoted_path(item['object_id'])}/revisions/new", css_class="button button-primary"),
-                link("Impact view", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
+                link("Compare revisions", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
+                link("Update guidance", f"/write/objects/{quoted_path(item['object_id'])}/revisions/new", css_class="button button-primary"),
+                link("Review impact", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
             ],
             " ",
         ),
@@ -358,7 +358,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
     aside_html = join_html(
         [
             components.trust_summary(
-                title="Safety and lifecycle",
+                title="Safety status",
                 badges=[
                     components.badge(
                         label="Trust",
@@ -413,7 +413,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         "page_title": item["title"],
         "headline": item["title"],
         "kicker": "Use",
-        "intro": "Use the current guidance with visible safety, freshness, service context, and change history before you act.",
+        "intro": "Use the current guidance with safety, evidence, and recent change visible.",
         "active_nav": "read",
         "aside_html": aside_html,
         "page_context": {

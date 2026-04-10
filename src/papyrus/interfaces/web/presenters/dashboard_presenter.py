@@ -5,7 +5,7 @@ from typing import Any
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import primary_surface_href, projection_state, projection_use_guidance
 from papyrus.interfaces.web.rendering import TemplateRenderer
-from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link
+from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, tone_for_approval, tone_for_trust
 
 
 def _dashboard_item_href(item: dict[str, Any]) -> str:
@@ -60,6 +60,39 @@ def _dashboard_next_action(item: dict[str, Any]) -> str:
     )
 
 
+def _dashboard_action_label(item: dict[str, Any]) -> str:
+    state = projection_state(item.get("ui_projection"))
+    use_guidance = projection_use_guidance(item.get("ui_projection"))
+    if bool(use_guidance.get("safe_to_use")):
+        return "Use guidance"
+    if str(state.get("approval_state") or "") == "in_review":
+        return "Review decision"
+    if str(state.get("trust_state") or "") in {"suspect", "stale", "weak_evidence"}:
+        return "Review risk"
+    return "Inspect guidance"
+
+
+def _dashboard_status_cell(components: ComponentPresenter, item: dict[str, Any]) -> str:
+    state = projection_state(item.get("ui_projection"))
+    use_guidance = projection_use_guidance(item.get("ui_projection"))
+    return components.decision_cell(
+        title_html=escape(use_guidance.get("summary") or "Status unavailable"),
+        badges=[
+            components.badge(
+                label="Trust",
+                value=str(state.get("trust_state") or "unknown"),
+                tone=tone_for_trust(str(state.get("trust_state") or "unknown")),
+            ),
+            components.badge(
+                label="Approval",
+                value=str(state.get("approval_state") or "unknown"),
+                tone=tone_for_approval(str(state.get("approval_state") or "unknown")),
+            ),
+        ],
+        supporting_html=escape(_dashboard_why_now(item)),
+    )
+
+
 def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, Any]) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     summary_cards_html = join_html(
@@ -68,27 +101,27 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
                 title="Knowledge in scope",
                 eyebrow="Health",
                 body_html=f"<p class=\"metric-value\">{escape(dashboard['object_count'])}</p><p>Operational knowledge objects currently in the runtime.</p>",
-                footer_html=link("Open read", "/read", css_class="button button-secondary"),
+                footer_html=link("Read guidance", "/read", css_class="button button-secondary"),
             ),
             components.section_card(
                 title="Review pressure",
                 eyebrow="Health",
                 body_html=f"<p class=\"metric-value\">{escape(dashboard['approval_counts'].get('in_review', 0))}</p><p>Revisions currently waiting on a review decision.</p>",
-                footer_html=link("Open review / approvals", "/review", css_class="button button-secondary"),
+                footer_html=link("Review queue", "/review", css_class="button button-primary"),
                 tone="warning" if dashboard["approval_counts"].get("in_review", 0) else "approved",
             ),
             components.section_card(
                 title="Needs revalidation",
                 eyebrow="Health",
                 body_html=f"<p class=\"metric-value\">{escape(dashboard['trust_counts'].get('stale', 0) + dashboard['trust_counts'].get('weak_evidence', 0) + dashboard['trust_counts'].get('suspect', 0))}</p><p>Guidance that needs evidence, freshness, or trust follow-up.</p>",
-                footer_html=link("Open knowledge health", "/health", css_class="button button-secondary"),
+                footer_html=link("Review risks", "/health", css_class="button button-secondary"),
                 tone="warning" if (dashboard["trust_counts"].get("stale", 0) + dashboard["trust_counts"].get("weak_evidence", 0) + dashboard["trust_counts"].get("suspect", 0)) else "approved",
             ),
             components.section_card(
                 title="Evidence posture",
                 eyebrow="Health",
                 body_html="<p>" + escape(", ".join(f"{key}={value}" for key, value in sorted(dashboard["evidence_counts"].items()))) + "</p>",
-                footer_html=link("Open activity / history", "/activity", css_class="button button-secondary"),
+                footer_html=link("Inspect activity", "/activity", css_class="button button-secondary"),
             ),
         ]
     )
@@ -96,13 +129,19 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
         title="Needs attention",
         eyebrow="Health",
         body_html=components.queue_table(
-            headers=["Guidance", "Safe now?", "Why now", "Next action"],
+            headers=["Guidance", "Status", "What needs attention", "Do next"],
             rows=[
                 [
-                    link(item["title"], _dashboard_item_href(item)),
-                    _dashboard_safe_now_html(components, item),
-                    escape(_dashboard_why_now(item)),
-                    escape(_dashboard_next_action(item)),
+                    components.decision_cell(
+                        title_html=link(item["title"], _dashboard_item_href(item)),
+                        meta=[escape(str(item.get("object_id") or ""))],
+                    ),
+                    _dashboard_status_cell(components, item),
+                    components.decision_cell(
+                        title_html=escape(_dashboard_next_action(item)),
+                        supporting_html=escape(_dashboard_why_now(item)),
+                    ),
+                    link(_dashboard_action_label(item), _dashboard_item_href(item), css_class="button button-primary"),
                 ]
                 for item in dashboard["queue"]
             ],
@@ -127,22 +166,14 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
             table_id="dashboard-validation-runs",
         ),
     )
-    aside_html = components.validation_summary(
-        title="How to use knowledge health",
-        findings=[
-            dashboard["validation_posture"]["summary"] + ": " + dashboard["validation_posture"]["detail"],
-            "Use this page for stewardship work, not for passive observation.",
-            "Every queue item links to the contract-selected next surface so the next decision stays in the right governed context.",
-        ],
-    )
     return {
         "page_template": "pages/dashboard_trust.html",
         "page_title": "Knowledge Health",
         "headline": "Knowledge Health",
         "kicker": "Health",
-        "intro": "Track what needs review, revalidation, or evidence follow-up so governance supports operational usefulness instead of eclipsing it.",
+        "intro": "See what needs review or revalidation next.",
         "active_nav": "health",
-        "aside_html": aside_html,
+        "aside_html": "",
         "page_context": {
             "summary_cards_html": summary_cards_html,
             "primary_html": primary_html,
