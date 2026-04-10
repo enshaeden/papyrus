@@ -6,7 +6,7 @@ summary: Interview loaner laptops are stored in the Mail Room at <OFFICE_SITE_C>
   available exclusively to Recruiting, Hiring Managers, and IT .
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

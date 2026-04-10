@@ -5,7 +5,7 @@ canonical_path: knowledge/assets/acquisition/device-acquisition-and-registration
 summary: Canonical article for Device Acquisition and Registration imported from <KNOWLEDGE_PORTAL>.
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

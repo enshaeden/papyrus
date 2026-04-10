@@ -6,7 +6,7 @@ summary: We have moved to a new process for adding <DEVELOPER_TOOL_SUITE> licens
   giving them to users.
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

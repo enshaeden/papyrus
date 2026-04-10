@@ -48,7 +48,7 @@ def call_wsgi(
     status_holder: dict[str, object] = {}
 
     def start_response(status: str, headers: list[tuple[str, str]]) -> None:
-        status_holder["status"] = status
+        status_holder["object_lifecycle_state"] = status
         status_holder["headers"] = {name: value for name, value in headers}
 
     if json_payload is not None:
@@ -80,7 +80,7 @@ def call_wsgi(
         "wsgi.run_once": False,
     }
     body = b"".join(application(environ, start_response)).decode("utf-8")
-    return str(status_holder["status"]), dict(status_holder["headers"]), body
+    return str(status_holder["object_lifecycle_state"]), dict(status_holder["headers"]), body
 
 
 def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str, object]:
@@ -91,7 +91,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "summary": f"Surface conformance for {title.lower()}",
         "knowledge_object_type": "runbook",
         "legacy_article_type": None,
-        "status": "active",
+        "object_lifecycle_state": "active",
         "owner": "workflow_owner",
         "source_type": "native",
         "source_system": "repository",
@@ -133,7 +133,7 @@ def read_truth(database_path: Path, *, object_id: str, revision_id: str, reviewe
     try:
         revision_row = connection.execute(
             """
-            SELECT revision_review_state, revision_state
+            SELECT revision_review_state
             FROM knowledge_revisions
             WHERE revision_id = ?
             """,
@@ -180,7 +180,7 @@ def read_truth(database_path: Path, *, object_id: str, revision_id: str, reviewe
     finally:
         connection.close()
     return {
-        "revision_review_state": str(revision_row["revision_review_state"] or revision_row["revision_state"]),
+        "revision_review_state": str(revision_row["revision_review_state"]),
         "assignment_state": str(assignment_row["state"]),
         "object_lifecycle_state": str(object_row["object_lifecycle_state"]),
         "object_source_sync_state": str(object_row["source_sync_state"]),
@@ -233,7 +233,7 @@ def read_archive_truth(database_path: Path, *, object_id: str, source_root: Path
         "source_sync_state": str(object_row["source_sync_state"]),
         "old_path_exists": (source_root / old_path).exists(),
         "archived_path_exists": (source_root / archived_path).exists(),
-        "revision_status": str(metadata["status"]),
+        "revision_status": str(metadata["object_lifecycle_state"]),
         "revision_canonical_path": str(metadata["canonical_path"]),
         "latest_event_type": str(latest_event["event_type"]),
         "latest_event_details": json.loads(str(latest_event["details_json"]) or "{}"),

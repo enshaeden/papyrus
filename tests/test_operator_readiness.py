@@ -91,10 +91,10 @@ class OperatorReadinessTests(unittest.TestCase):
             connection = sqlite3.connect(database_path)
             connection.row_factory = sqlite3.Row
             try:
-                approval_counts = {
-                    row["approval_state"]: row["item_count"]
+                review_counts = {
+                    row["revision_review_state"]: row["item_count"]
                     for row in connection.execute(
-                        "SELECT approval_state, COUNT(*) AS item_count FROM search_documents GROUP BY approval_state"
+                        "SELECT revision_review_state, COUNT(*) AS item_count FROM search_documents GROUP BY revision_review_state"
                     ).fetchall()
                 }
                 trust_counts = {
@@ -120,8 +120,8 @@ class OperatorReadinessTests(unittest.TestCase):
                 ).fetchone()
             finally:
                 connection.close()
-            self.assertGreaterEqual(approval_counts.get("approved", 0), 1)
-            self.assertGreaterEqual(approval_counts.get("in_review", 0), 1)
+            self.assertGreaterEqual(review_counts.get("approved", 0), 1)
+            self.assertGreaterEqual(review_counts.get("in_review", 0), 1)
             self.assertGreaterEqual(trust_counts.get("trusted", 0), 1)
             self.assertGreaterEqual(trust_counts.get("weak_evidence", 0), 1)
             self.assertGreaterEqual(trust_counts.get("stale", 0), 1)
@@ -141,7 +141,7 @@ class OperatorReadinessTests(unittest.TestCase):
 
             self.assertGreaterEqual(len(seeded_identity_results), 3)
             self.assertEqual(seeded_identity_results[0]["object_id"], "kb-identity-service-record")
-            self.assertEqual(seeded_identity_results[0]["approval_state"], "approved")
+            self.assertEqual(seeded_identity_results[0]["revision_review_state"], "approved")
             self.assertEqual(seeded_identity_results[0]["trust_state"], "weak_evidence")
             self.assertIn("kb-identity-token-refresh-failure", [item["object_id"] for item in seeded_identity_results[1:]])
             self.assertIn("kb-identity-fallback-sign-in", [item["object_id"] for item in seeded_identity_results[1:]])
@@ -351,7 +351,7 @@ class OperatorReadinessTests(unittest.TestCase):
             self.assertEqual(api_status, "200 OK")
             web_status, _, body = call_wsgi(web_application, "/queue")
             self.assertEqual(web_status, "200 OK")
-            self.assertIn("Read Operational Guidance", body)
+            self.assertIn("Read guidance", body)
 
     def test_degraded_surfaces_return_actionable_runtime_unavailable_responses(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

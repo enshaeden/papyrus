@@ -7,7 +7,7 @@ summary: "This <TICKETING_SYSTEM> automation rule adds a label to newly created 
   \ It uses the <TICKETING_SYSTEM> Service Management issue property..."
 knowledge_object_type: runbook
 legacy_article_type: SOP
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

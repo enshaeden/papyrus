@@ -5,7 +5,7 @@ canonical_path: knowledge/assets/shipping/shipping-instructions-and-best-practic
 summary: 'If shipping is required, follow the steps below to ensure timely and accurate delivery of equipment:'
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

@@ -5,7 +5,7 @@ canonical_path: knowledge/assets/loaners/loaner-laptop-policy-region-a.md
 summary: Deprecated <REGION_A>-specific policy variant. Use the shared loaner policy plus the <REGION_A> access page.
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: deprecated
+object_lifecycle_state: deprecated
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

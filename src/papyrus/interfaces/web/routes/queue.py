@@ -13,15 +13,15 @@ def _apply_filters(
     *,
     selected_type: str,
     selected_trust: str,
-    selected_approval: str,
+    selected_review_state: str,
 ) -> list[dict[str, Any]]:
     filtered = items
     if selected_type:
         filtered = [item for item in filtered if item["object_type"] == selected_type]
     if selected_trust:
         filtered = [item for item in filtered if item["trust_state"] == selected_trust]
-    if selected_approval:
-        filtered = [item for item in filtered if item["approval_state"] == selected_approval]
+    if selected_review_state:
+        filtered = [item for item in filtered if item["revision_review_state"] == selected_review_state]
     return filtered
 
 
@@ -30,7 +30,7 @@ def register(router, runtime) -> None:
         query = request.query_value("query").strip()
         selected_type = request.query_value("object_type").strip()
         selected_trust = request.query_value("trust").strip()
-        selected_approval = request.query_value("approval").strip()
+        selected_review_state = request.query_value("review_state").strip()
         limit = int(request.query_value("limit", "100"))
         items = (
             search_knowledge_objects(query, limit=limit, database_path=runtime.database_path)
@@ -41,7 +41,7 @@ def register(router, runtime) -> None:
             items,
             selected_type=selected_type,
             selected_trust=selected_trust,
-            selected_approval=selected_approval,
+            selected_review_state=selected_review_state,
         )
         page = present_queue_page(
             runtime.template_renderer,
@@ -49,7 +49,7 @@ def register(router, runtime) -> None:
             query=query,
             selected_type=selected_type,
             selected_trust=selected_trust,
-            selected_approval=selected_approval,
+            selected_review_state=selected_review_state,
         )
         return html_response(
             runtime.page_renderer.render_page(

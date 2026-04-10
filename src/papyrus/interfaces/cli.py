@@ -284,7 +284,7 @@ def operator_main() -> int:
     create_draft_parser.add_argument("--team", required=True, help="Team.")
     create_draft_parser.add_argument("--canonical-path", required=True, help="Canonical Markdown path.")
     create_draft_parser.add_argument("--review-cadence", default="quarterly", help="Review cadence.")
-    create_draft_parser.add_argument("--status", default="draft", help="Lifecycle status.")
+    create_draft_parser.add_argument("--object-lifecycle-state", default="draft", help="Lifecycle state.")
     create_draft_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
 
     edit_section_parser = subparsers.add_parser("edit-section", help="Update one structured draft section.", parents=[common])
@@ -359,7 +359,7 @@ def operator_main() -> int:
     convert_ingestion_parser.add_argument("--owner", required=True, help="Owner.")
     convert_ingestion_parser.add_argument("--team", required=True, help="Team.")
     convert_ingestion_parser.add_argument("--review-cadence", default="quarterly", help="Review cadence.")
-    convert_ingestion_parser.add_argument("--status", default="draft", help="Lifecycle status.")
+    convert_ingestion_parser.add_argument("--object-lifecycle-state", default="draft", help="Lifecycle state.")
     convert_ingestion_parser.add_argument("--audience", default="service_desk", help="Audience.")
     convert_ingestion_parser.add_argument("--actor", default="local.operator", help="Actor.")
 
@@ -401,7 +401,7 @@ def operator_main() -> int:
                 _line_block(
                     f"{item['object_id']} | {item['title']}",
                     f"  use_now={_projection_summary(item.get('ui_projection'))}",
-                    f"  trust={item['trust_state']} | approval={item['approval_state']} | services={linked_services}",
+                    f"  trust={item['trust_state']} | review={item['revision_review_state']} | services={linked_services}",
                     f"  next={_projection_next_action(item.get('ui_projection'))}",
                 )
             )
@@ -419,7 +419,7 @@ def operator_main() -> int:
             team=args.team,
             canonical_path=args.canonical_path,
             review_cadence=args.review_cadence,
-            status=args.status,
+            object_lifecycle_state=args.object_lifecycle_state,
             actor=args.actor,
         )
         created = create_draft_from_blueprint(
@@ -549,7 +549,7 @@ def operator_main() -> int:
         return _emit_payload(
             {
                 "object_id": result.object_id,
-                "object_lifecycle_state": result.status,
+                "object_lifecycle_state": result.object_lifecycle_state,
                 "replacement_object_id": args.replacement_object_id,
             },
             output_format=output_format,
@@ -630,7 +630,7 @@ def operator_main() -> int:
             owner=args.owner,
             team=args.team,
             review_cadence=args.review_cadence,
-            status=args.status,
+            object_lifecycle_state=args.object_lifecycle_state,
             audience=args.audience,
             actor=args.actor,
             database_path=Path(database_path),
@@ -728,11 +728,11 @@ def operator_main() -> int:
             "Knowledge health",
             f"objects={payload['object_count']}",
             "trust=" + ", ".join(f"{key}={value}" for key, value in sorted(payload["trust_counts"].items())),
-            "approval=" + ", ".join(f"{key}={value}" for key, value in sorted(payload["approval_counts"].items())),
+            "review=" + ", ".join(f"{key}={value}" for key, value in sorted(payload["review_counts"].items())),
             "validation=" + payload["validation_posture"]["summary"],
         ]
         lines.extend(
-            f"needs_attention | {item['object_id']} | trust={item['trust_state']} | approval={item['approval_state']} | next={_projection_next_action(item.get('ui_projection'))}"
+            f"needs_attention | {item['object_id']} | trust={item['trust_state']} | review={item['revision_review_state']} | next={_projection_next_action(item.get('ui_projection'))}"
             for item in payload["queue"][: args.limit]
         )
         return _emit_payload(lines, output_format="text")
@@ -747,7 +747,7 @@ def operator_main() -> int:
         lines = [
             f"{payload['object']['object_id']} | {payload['object']['title']}",
             f"use_now={_projection_summary(payload.get('ui_projection'))}",
-            f"trust={payload['object']['trust_state']} | approval={payload['object']['approval_state']} | owner={payload['object']['owner']}",
+            f"trust={payload['object']['trust_state']} | review={payload['object']['revision_review_state']} | owner={payload['object']['owner']}",
             f"last_reviewed={payload['object'].get('last_reviewed') or 'unknown'} | cadence={payload['object'].get('review_cadence') or 'unknown'}",
             "guidance=" + _projection_summary(payload.get("ui_projection")),
             "detail=" + _projection_detail(payload.get("ui_projection")),
@@ -780,7 +780,7 @@ def operator_main() -> int:
         )
         lines = [
             f"{payload['object']['object_id']} | revision={payload['revision']['revision_id']} | state={payload['revision']['revision_review_state']}",
-            f"approval={payload['object']['approval_state']} | trust={payload['object']['trust_state']}",
+            f"review={payload['object']['revision_review_state']} | trust={payload['object']['trust_state']}",
             f"citations={len(payload['citations'])} | assignments={len(payload['assignments'])}",
             "writeback_preview="
             + (

@@ -6,7 +6,7 @@ summary: Review and fulfill routine software installation and entitlement reques
   approval workflow.
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: native
 source_system: repository

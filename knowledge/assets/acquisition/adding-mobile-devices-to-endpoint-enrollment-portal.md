@@ -6,7 +6,7 @@ summary: If we have standalone, or separately purchased, tablet devices or mobil
   manual way to add them into our <ENDPOINT_ENROLLMENT_PORTAL> so they get picked up by <ENDPOINT_MANAGEMENT_PLATFORM>
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

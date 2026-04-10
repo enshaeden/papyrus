@@ -5,7 +5,7 @@ canonical_path: knowledge/user-lifecycle/onboarding-new-hires/employee-onboardin
 summary: Coordinate endpoint, identity, and communications tasks required before a new hire starts.
 knowledge_object_type: runbook
 legacy_article_type: onboarding
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: native
 source_system: repository

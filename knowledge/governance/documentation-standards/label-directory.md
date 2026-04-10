@@ -5,7 +5,7 @@ canonical_path: knowledge/governance/documentation-standards/label-directory.md
 summary: Canonical article for Label Directory imported from <KNOWLEDGE_PORTAL>.
 knowledge_object_type: service_record
 legacy_article_type: reference
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: derived
 source_system: knowledge_portal

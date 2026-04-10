@@ -28,7 +28,10 @@ def completion_ratio(values: dict[str, str], fields: list[str]) -> tuple[int, in
 
 def render_object_progress_html(components: ComponentPresenter, *, values: dict[str, str], errors: dict[str, list[str]]) -> str:
     purpose_completed, purpose_total = completion_ratio(values, ["object_type", "title", "summary"])
-    stewardship_completed, stewardship_total = completion_ratio(values, ["owner", "team", "review_cadence", "status"])
+    stewardship_completed, stewardship_total = completion_ratio(
+        values,
+        ["owner", "team", "review_cadence", "object_lifecycle_state"],
+    )
     source_completed, source_total = completion_ratio(values, ["object_id", "canonical_path"])
     blockers = sum(len(messages) for messages in errors.values())
     return components.section_card(
@@ -225,7 +228,7 @@ def revision_error_label(field_name: str) -> str:
     explicit_labels = {
         "object_id": "Reference code",
         "canonical_path": "Publishing location",
-        "status": "Status",
+        "object_lifecycle_state": "Lifecycle state",
         "change_summary": "What changed",
         "related_object_ids": "Related guidance",
     }

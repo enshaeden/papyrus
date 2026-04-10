@@ -213,7 +213,7 @@ def main() -> int:
     parser.add_argument("--slug", help="Optional explicit slug. Derived from title when omitted.")
     parser.add_argument("--owner", default="TBD", help="Object owner")
     parser.add_argument("--team", default="Service Desk", help="Responsible team")
-    parser.add_argument("--status", default="draft", help="Lifecycle status")
+    parser.add_argument("--object-lifecycle-state", default="draft", help="Lifecycle state")
     parser.add_argument("--audience", default="service_desk", help="Primary audience")
     parser.add_argument("--service", action="append", default=[], help="Service taxonomy value. Repeatable.")
     parser.add_argument("--system", action="append", default=[], help="System taxonomy value. Repeatable.")
@@ -262,7 +262,7 @@ def main() -> int:
         return 1
 
     try:
-        ensure_allowed(args.status, "statuses", "status")
+        ensure_allowed(args.object_lifecycle_state, "statuses", "object_lifecycle_state")
         ensure_allowed(args.team, "teams", "team")
         ensure_allowed(args.audience, "audiences", "audience")
         for service in args.service:
@@ -323,7 +323,7 @@ def main() -> int:
             "id": article_id,
             "title": args.title,
             "canonical_path": destination.relative_to(root).as_posix(),
-            "status": args.status,
+            "object_lifecycle_state": args.object_lifecycle_state,
             "owner": args.owner,
             "team": args.team,
             "audience": args.audience,

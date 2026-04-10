@@ -5,7 +5,7 @@ canonical_path: {{canonical_path}}
 summary: Replace with a concise statement of the failure pattern and impact.
 knowledge_object_type: known_error
 legacy_article_type: null
-status: {{status}}
+object_lifecycle_state: {{object_lifecycle_state}}
 owner: {{owner}}
 source_type: native
 source_system: repository

@@ -107,3 +107,14 @@ Guardrail:
 - Governed mutation contracts carry operator messages, transition payloads, and required acknowledgements. CLI, API, and web should display those contracts instead of restating the rules locally.
 - Papyrus constructs drafts from blueprints and converts imported files into the same draft model after review.
 - Source sync is inspectable: use review pages or `scripts/source_sync.py preview` before approval or explicit source sync, and use `scripts/source_sync.py restore-last` when you need to recover the previous canonical state. If live source drift is detected, Papyrus reports a conflict instead of claiming the sync is safe.
+
+## 5. Script Inventory
+
+Keep this list aligned with the current top-level `scripts/` directory. If a new top-level script is added, update this inventory in the same change.
+
+| Category | Scripts | Notes |
+| --- | --- | --- |
+| Bootstrap and build | `_bootstrap.py`, `bootstrap.sh`, `build.sh`, `build_index.py`, `build_site_docs.py`, `build_static_export.sh`, `validate.py` | Local environment setup, validation, runtime rebuild, and static/export build entrypoints. |
+| Serve and operator entrypoints | `run.py`, `serve.sh`, `serve_web.py`, `serve_api.py`, `serve_static_export.sh`, `operator_view.py`, `search.py` | Web, API, shell, and operator-facing read/manage entrypoints. |
+| Authoring, import, and source mutation | `new_article.py`, `ingest.py`, `ingest_event.py`, `source_sync.py`, `import_knowledge_portal.py` | Create or ingest knowledge, record events, and manage governed source synchronization. |
+| Reporting, demo, and migration | `report_stale.py`, `report_content_health.py`, `demo_runtime.py`, `run_scenario.py`, `validate_migration.py` | Reporting, demo/runtime seeding, scenario exercises, and migration validation. |

@@ -7,7 +7,7 @@ summary: This document defines the standard process for securely decommissioning
   devices are deregistered from management...
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

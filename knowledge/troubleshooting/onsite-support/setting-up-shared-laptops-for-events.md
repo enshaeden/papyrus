@@ -6,7 +6,7 @@ summary: 'You can create a single group in <ENDPOINT_MANAGEMENT_PLATFORM> then a
   policies, or do the machines as one offs:'
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

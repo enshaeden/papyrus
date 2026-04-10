@@ -237,7 +237,7 @@ def _build_initial_section_content(
         "summary": str(object_row["summary"]),
         "owner": str(object_row["owner"]),
         "team": str(object_row["team"]),
-        "status": str(object_row["status"]),
+        "object_lifecycle_state": str(object_row["object_lifecycle_state"]),
         "review_cadence": str(object_row["review_cadence"]),
         "audience": "service_desk",
         "systems": json.loads(str(object_row["systems_json"])),
@@ -317,7 +317,9 @@ def _base_payload(
         "summary": stewardship.get("summary") or str(object_row["summary"]),
         "knowledge_object_type": blueprint.blueprint_id,
         "legacy_article_type": metadata.get("legacy_article_type"),
-        "status": stewardship.get("status") or str(object_row["status"]),
+        "object_lifecycle_state": (
+            stewardship.get("object_lifecycle_state") or str(object_row["object_lifecycle_state"])
+        ),
         "owner": stewardship.get("owner") or str(object_row["owner"]),
         "source_type": str(metadata.get("source_type") or object_row["source_type"] or "native"),
         "source_system": str(metadata.get("source_system") or object_row["source_system"] or "repository"),
@@ -666,8 +668,8 @@ def _sync_object_from_parsed_revision(
     authority: PolicyAuthority | None = None,
 ) -> None:
     current_authority = _policy_authority(authority)
-    current_object_lifecycle = str(object_row["object_lifecycle_state"] or object_row["status"])
-    next_object_lifecycle = str(parsed.metadata["status"])
+    current_object_lifecycle = str(object_row["object_lifecycle_state"])
+    next_object_lifecycle = str(parsed.metadata["object_lifecycle_state"])
     current_authority.require_object_lifecycle_transition(current_object_lifecycle, next_object_lifecycle)
     source_sync_state = (
         SourceSyncState.APPLIED.value
@@ -681,7 +683,6 @@ def _sync_object_from_parsed_revision(
         legacy_type=object_row["legacy_type"],
         title=str(parsed.metadata["title"]),
         summary=str(parsed.metadata["summary"]),
-        status=next_object_lifecycle,
         object_lifecycle_state=next_object_lifecycle,
         owner=str(parsed.metadata["owner"]),
         team=str(parsed.metadata["team"]),
@@ -732,7 +733,7 @@ def create_draft_from_blueprint(
             current_revision_row = get_knowledge_revision(connection, str(object_row["current_revision_id"]))
             if (
                 current_revision_row is not None
-                and str(current_revision_row["revision_state"]) == RevisionReviewStatus.DRAFT.value
+                and str(current_revision_row["revision_review_state"]) == RevisionReviewStatus.DRAFT.value
                 and str(current_revision_row["blueprint_id"] or blueprint.blueprint_id) == blueprint.blueprint_id
             ):
                 return {
@@ -776,10 +777,8 @@ def create_draft_from_blueprint(
             revision_id=revision_id,
             object_id=object_id,
             revision_number=revision_number,
-            revision_state=RevisionReviewStatus.DRAFT.value,
             revision_review_state=RevisionReviewState.DRAFT.value,
             blueprint_id=blueprint.blueprint_id,
-            draft_state=artifacts.completion["draft_progress_state"],
             draft_progress_state=artifacts.completion["draft_progress_state"],
             source_path=str(artifacts.parsed.metadata["canonical_path"]),
             content_hash=_content_hash(artifacts.normalized_payload_json, artifacts.body_markdown),
@@ -889,7 +888,6 @@ def update_section(
             body_markdown=artifacts.body_markdown,
             normalized_payload_json=artifacts.normalized_payload_json,
             blueprint_id=blueprint.blueprint_id,
-            draft_state=artifacts.completion["draft_progress_state"],
             draft_progress_state=artifacts.completion["draft_progress_state"],
             section_content_json=json_dump(section_content),
             section_completion_json=json_dump(artifacts.completion["section_completion_map"]),

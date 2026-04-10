@@ -6,7 +6,7 @@ summary: Office support guide for <OFFICE_SITE_A> covering access, network use, 
   references.
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

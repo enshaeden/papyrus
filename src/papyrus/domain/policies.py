@@ -54,35 +54,16 @@ def primary_object_type(metadata: dict[str, Any]) -> str | None:
     explicit = metadata.get("knowledge_object_type")
     if isinstance(explicit, str) and explicit.strip():
         return explicit
-    legacy_type = metadata.get("legacy_article_type") or metadata.get("type")
+    legacy_type = metadata.get("legacy_article_type")
     if isinstance(legacy_type, str):
         return LEGACY_ARTICLE_TYPE_TO_OBJECT_TYPE.get(legacy_type)
     return None
 
 
-def approval_state_for_status(status: str) -> str:
-    return (
-        "approved"
-        if status
-        in {
-            ObjectLifecycleState.ACTIVE.value,
-            ObjectLifecycleState.DEPRECATED.value,
-            ObjectLifecycleState.ARCHIVED.value,
-        }
-        else "draft"
-    )
-
-
-def approval_state_for_revision_state(revision_state: str) -> str:
-    if revision_state == RevisionReviewState.APPROVED.value:
-        return RevisionReviewState.APPROVED.value
-    return revision_state
-
-
-def bootstrap_revision_state(status: str) -> str:
+def bootstrap_revision_review_state(object_lifecycle_state: str) -> str:
     return (
         RevisionReviewState.APPROVED.value
-        if status
+        if object_lifecycle_state
         in {
             ObjectLifecycleState.ACTIVE.value,
             ObjectLifecycleState.DEPRECATED.value,
@@ -179,12 +160,12 @@ def citation_health_rank_for_counts(counts: dict[str, int]) -> int:
 
 
 def freshness_rank(
-    status: str,
+    object_lifecycle_state: str,
     last_reviewed: dt.date,
     review_cadence_days: int | None,
     as_of: dt.date,
 ) -> int:
-    if status == "draft":
+    if object_lifecycle_state == ObjectLifecycleState.DRAFT.value:
         return 2
     if review_cadence_days is None:
         return 0
@@ -194,7 +175,7 @@ def freshness_rank(
 
 def trust_state(
     *,
-    status: str,
+    object_lifecycle_state: str,
     freshness_rank_value: int,
     citation_health_rank_value: int,
     ownership_rank_value: int,
@@ -206,7 +187,7 @@ def trust_state(
         return TrustState.WEAK_EVIDENCE.value
     return (
         TrustState.TRUSTED.value
-        if status != ObjectLifecycleState.DRAFT.value
+        if object_lifecycle_state != ObjectLifecycleState.DRAFT.value
         else TrustState.SUSPECT.value
     )
 

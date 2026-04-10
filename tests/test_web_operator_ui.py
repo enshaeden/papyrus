@@ -103,7 +103,7 @@ def guided_runbook_section_forms(
             "summary": summary,
             "owner": "workflow_owner",
             "team": "IT Operations",
-            "status": "draft",
+            "object_lifecycle_state": "draft",
             "review_cadence": "quarterly",
             "audience": "service_desk",
             "systems": PRIMARY_SYSTEM,
@@ -214,7 +214,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "summary": f"Runbook payload for {title.lower()}",
         "knowledge_object_type": "runbook",
         "legacy_article_type": None,
-        "status": "active",
+        "object_lifecycle_state": "active",
         "owner": "workflow_owner",
         "source_type": "native",
         "source_system": "repository",
@@ -280,7 +280,7 @@ class WebOperatorUiTests(unittest.TestCase):
                     "team": "IT Operations",
                     "canonical_path": "knowledge/runbooks/operator-ui-approval-flow.md",
                     "review_cadence": "quarterly",
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
@@ -365,11 +365,11 @@ class WebOperatorUiTests(unittest.TestCase):
 
             search_row = read_row(
                 database_path,
-                "SELECT approval_state FROM search_documents WHERE object_id = ?",
+                "SELECT revision_review_state FROM search_documents WHERE object_id = ?",
                 ("kb-operator-ui-approve",),
             )
             self.assertIsNotNone(search_row)
-            self.assertEqual(search_row["approval_state"], "approved")
+            self.assertEqual(search_row["revision_review_state"], "approved")
 
     def test_rejection_flow_and_validation_messages_render(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -395,7 +395,7 @@ class WebOperatorUiTests(unittest.TestCase):
                     "team": "Unknown Team",
                     "canonical_path": "bad-path.md",
                     "review_cadence": "weekly",
-                    "status": "invalid",
+                    "object_lifecycle_state": "invalid",
                     "systems": "",
                     "tags": "",
                 },
@@ -421,7 +421,7 @@ class WebOperatorUiTests(unittest.TestCase):
                     "team": "IT Operations",
                     "canonical_path": "knowledge/runbooks/operator-ui-rejection-flow.md",
                     "review_cadence": "quarterly",
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
@@ -516,7 +516,7 @@ class WebOperatorUiTests(unittest.TestCase):
                     "team": "IT Operations",
                     "canonical_path": "knowledge/runbooks/operator-ui-manage-flow.md",
                     "review_cadence": "quarterly",
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
@@ -642,7 +642,7 @@ class WebOperatorUiTests(unittest.TestCase):
                     "team": "IT Operations",
                     "canonical_path": "knowledge/runbooks/operator-ui-evidence-flow.md",
                     "review_cadence": "quarterly",
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
@@ -936,7 +936,7 @@ class WebOperatorUiTests(unittest.TestCase):
                     "team": "IT Operations",
                     "canonical_path": "knowledge/runbooks/shell-search-runbook.md",
                     "review_cadence": "quarterly",
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
@@ -971,7 +971,7 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, body = call_wsgi(
                 application,
-                "/queue?query=Shell+Search+Runbook&object_type=runbook&approval=draft",
+                "/queue?query=Shell+Search+Runbook&object_type=runbook&review_state=draft",
             )
             self.assertEqual(status, "200 OK")
             self.assertIn("kb-operator-ui-shell-search", body)
@@ -1001,7 +1001,7 @@ class WebOperatorUiTests(unittest.TestCase):
                     "team": "IT Operations",
                     "canonical_path": "knowledge/runbooks/manage-queue-shell.md",
                     "review_cadence": "quarterly",
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
@@ -1011,7 +1011,6 @@ class WebOperatorUiTests(unittest.TestCase):
             status, _, body = call_wsgi(application, "/manage/queue")
             self.assertEqual(status, "200 OK")
             self.assertIn("Manage Queue Shell", body)
-            self.assertIn("approval:draft", body)
             self.assertIn("/write/objects/kb-operator-ui-manage-shell/revisions/new#revision-form", body)
             self.assertIn("Draft first revision", body)
 
@@ -1055,7 +1054,7 @@ class WebOperatorUiTests(unittest.TestCase):
                     "team": "IT Operations",
                     "canonical_path": "knowledge/runbooks/citation-search-runbook.md",
                     "review_cadence": "quarterly",
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "systems": PRIMARY_SYSTEM,
                     "tags": "citation-search-tag",
                 },
@@ -1121,7 +1120,7 @@ class WebOperatorUiTests(unittest.TestCase):
                 matching = [item for item in items if item["object_id"] == "kb-operator-ui-citation-search"]
                 self.assertTrue(matching, msg=f"expected citation search result for query {query!r}")
                 self.assertIn("Current revision can be referenced", matching[0]["summary"])
-                self.assertIn("approval", matching[0]["detail"])
+                self.assertIn("review", matching[0]["detail"])
                 self.assertIn("trust", matching[0]["detail"])
 
     def test_revision_multiselect_fields_render_search_controls_and_object_lookup(self) -> None:
@@ -1148,7 +1147,7 @@ class WebOperatorUiTests(unittest.TestCase):
                     "team": "IT Operations",
                     "canonical_path": "knowledge/runbooks/multi-select-runbook.md",
                     "review_cadence": "quarterly",
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },

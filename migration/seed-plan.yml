@@ -1,7 +1,7 @@
 version: 1
 defaults:
   owner: service_owner
-  status: active
+  object_lifecycle_state: active
   review_cadence: quarterly
   source_system: knowledge_portal_export
 synthetic_collections:

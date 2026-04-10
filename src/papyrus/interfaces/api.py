@@ -307,7 +307,9 @@ def app(
                         team=str(request_payload["team"]),
                         canonical_path=str(request_payload["canonical_path"]),
                         review_cadence=str(request_payload.get("review_cadence") or "quarterly"),
-                        status=str(request_payload.get("status") or "draft"),
+                        object_lifecycle_state=str(
+                            request_payload.get("object_lifecycle_state") or "draft"
+                        ),
                         systems=list(request_payload.get("systems") or []),
                         tags=list(request_payload.get("tags") or []),
                     )

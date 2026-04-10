@@ -5,7 +5,7 @@ canonical_path: knowledge/user-lifecycle/onboarding-new-hires/troubleshooting-on
 summary: Troubleshoot contact-sync errors between the HR system and the onboarding workflow.
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

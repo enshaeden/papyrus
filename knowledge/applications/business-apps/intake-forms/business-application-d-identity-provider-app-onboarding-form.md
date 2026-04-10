@@ -6,7 +6,7 @@ summary: Canonical article for <BUSINESS_APPLICATION_D> <IDENTITY_PROVIDER> App 
   from <KNOWLEDGE_PORTAL>.
 knowledge_object_type: service_record
 legacy_article_type: reference
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

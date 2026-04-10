@@ -7,7 +7,7 @@ summary: Decommissioning assets involves securely removing outdated or end of li
   sensitive...
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

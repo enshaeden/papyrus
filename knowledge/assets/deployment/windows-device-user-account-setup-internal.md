@@ -7,7 +7,7 @@ summary: note cf197999997c After implementing Windows Hello Project for all user
   Project for all...
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

@@ -5,7 +5,7 @@ canonical_path: knowledge/helpdesk/configuration-and-automation/ticketing-ticket
 summary: This article documents the <QUEUE_NAME> automation workflows maintained in <TICKETING_SYSTEM>.
 knowledge_object_type: runbook
 legacy_article_type: SOP
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

@@ -5,7 +5,7 @@ canonical_path: knowledge/troubleshooting/audio-video/boardrooms/touch-controlle
 summary: Shared operator guide for meeting rooms that use a room video bar and touch controller for native room joins.
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: native
 source_system: repository

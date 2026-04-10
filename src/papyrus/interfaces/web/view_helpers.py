@@ -111,24 +111,18 @@ def tone_for_trust(trust_state: str) -> str:
     }.get(trust_state, "muted")
 
 
-def tone_for_approval(approval_state: str | None) -> str:
+def tone_for_review_state(revision_review_state: str | None) -> str:
     return {
         "approved": "approved",
         "in_review": "pending",
         "draft": "muted",
         "rejected": "danger",
         "superseded": "muted",
-    }.get(str(approval_state or ""), "pending")
+    }.get(str(revision_review_state or ""), "pending")
 
 
 def tone_for_revision(revision_state: str) -> str:
-    return {
-        "approved": "approved",
-        "in_review": "pending",
-        "draft": "muted",
-        "rejected": "danger",
-        "superseded": "muted",
-    }.get(revision_state, "muted")
+    return tone_for_review_state(revision_state)
 
 
 def tone_for_health(rank: int) -> str:
@@ -156,9 +150,9 @@ def freshness_status(rank: int) -> tuple[str, str]:
     return "Stale", "danger"
 
 
-def approval_status(approval_state: str | None) -> tuple[str, str]:
-    normalized = str(approval_state or "unknown")
-    return normalized.replace("_", " "), tone_for_approval(normalized)
+def review_state_status(revision_review_state: str | None) -> tuple[str, str]:
+    normalized = str(revision_review_state or "unknown")
+    return normalized.replace("_", " "), tone_for_review_state(normalized)
 
 
 def format_timestamp(value: str | None) -> str:

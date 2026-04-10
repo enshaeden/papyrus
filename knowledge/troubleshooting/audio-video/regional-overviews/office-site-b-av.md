@@ -6,7 +6,7 @@ summary: 'Overview: The <OFFICE_SITE_B> site contains roughly 5 AV equipped room
   collaboration. These rooms use streamlined setups for quick deployment and consistent user experience.'
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

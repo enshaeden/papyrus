@@ -5,7 +5,7 @@ canonical_path: knowledge/assets/printers/overview-office-site-b-office-printer.
 summary: Canonical article for Overview - <OFFICE_SITE_B> Office Printer imported from <KNOWLEDGE_PORTAL>.
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

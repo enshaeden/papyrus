@@ -6,7 +6,7 @@ canonical_path: knowledge/applications/business-apps/messaging-platform/creating
 summary: 'You can always return to the main page of your App(s) here: <INTERNAL_URL>'
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

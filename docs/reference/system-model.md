@@ -43,7 +43,7 @@ If these layers disagree, canonical source wins and the runtime or export must b
 - `ingestion_state`: `uploaded -> parsed -> classified -> mapped -> converted`
 - `source_sync_state`: `not_required`, `pending`, `applied`, `conflicted`, `restored`
 
-Papyrus still projects compatibility aliases such as `status`, `revision_state`, `draft_state`, and `approval_state` in some read surfaces. Those aliases are presentation and query compatibility fields, not the authoritative policy contract.
+Papyrus does not treat compatibility aliases such as `status`, `revision_state`, `draft_state`, or `approval_state` as part of the knowledge-object contract. Knowledge-object surfaces use the explicit lifecycle and review state fields directly.
 
 ## Backend/UI Cut Line
 

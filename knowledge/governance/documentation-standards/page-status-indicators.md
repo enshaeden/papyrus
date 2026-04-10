@@ -7,7 +7,7 @@ summary: The "Status" flags in <TICKETING_SYSTEM> <KNOWLEDGE_PORTAL> are visual 
   the status of work items at...
 knowledge_object_type: service_record
 legacy_article_type: reference
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

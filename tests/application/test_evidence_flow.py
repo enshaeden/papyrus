@@ -26,7 +26,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "summary": "Evidence lifecycle test payload.",
         "knowledge_object_type": "runbook",
         "legacy_article_type": "runbook",
-        "status": "active",
+        "object_lifecycle_state": "active",
         "owner": "workflow_owner",
         "source_type": "native",
         "source_system": "repository",

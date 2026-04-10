@@ -11,7 +11,7 @@ from papyrus.application.blueprint_registry import get_blueprint
 from papyrus.application.validation_flow import validate_knowledge_documents
 from papyrus.application.runtime_projection import persist_revision_artifacts, refresh_current_object_projection, service_id
 from papyrus.domain.lifecycle import DraftProgressState, RevisionReviewState, SourceSyncState
-from papyrus.domain.policies import bootstrap_revision_state, runtime_trust_state
+from papyrus.domain.policies import bootstrap_revision_review_state, runtime_trust_state
 from papyrus.domain.value_objects import RevisionReviewStatus
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.parser import normalize_object_metadata
@@ -50,12 +50,12 @@ def _sync_revision_state(
     *,
     existing_object,
     existing_revision,
-    status: str,
+    object_lifecycle_state: str,
 ) -> str:
     if existing_revision is not None:
-        return str(existing_revision["revision_review_state"] or existing_revision["revision_state"])
+        return str(existing_revision["revision_review_state"])
     if existing_object is None:
-        return bootstrap_revision_state(status)
+        return bootstrap_revision_review_state(object_lifecycle_state)
     return RevisionReviewStatus.DRAFT.value
 
 
@@ -160,7 +160,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
             revision_state = _sync_revision_state(
                 existing_object=existing_object,
                 existing_revision=existing_revision,
-                status=str(parsed.metadata["status"]),
+                object_lifecycle_state=str(parsed.metadata["object_lifecycle_state"]),
             )
             trust_state = _sync_trust_state(
                 parsed_trust_state=parsed.trust_state,
@@ -184,8 +184,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                 legacy_type=parsed.legacy_type,
                 title=str(parsed.metadata["title"]),
                 summary=str(parsed.metadata["summary"]),
-                status=str(parsed.metadata["status"]),
-                object_lifecycle_state=str(parsed.metadata["status"]),
+                object_lifecycle_state=str(parsed.metadata["object_lifecycle_state"]),
                 owner=str(parsed.metadata["owner"]),
                 team=str(parsed.metadata["team"]),
                 canonical_path=document.relative_path,
@@ -207,7 +206,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
 
             if existing_revision is None:
                 draft_progress_state = (
-                    section_completion["draft_state"]
+                    section_completion["draft_progress_state"]
                     if revision_state == RevisionReviewStatus.DRAFT.value
                     else DraftProgressState.READY_FOR_REVIEW.value
                 )
@@ -216,10 +215,8 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                     revision_id=revision_id,
                     object_id=document.knowledge_object_id,
                     revision_number=revision_number,
-                    revision_state=revision_state,
                     revision_review_state=revision_state,
                     blueprint_id=parsed.object_type,
-                    draft_state=draft_progress_state,
                     draft_progress_state=draft_progress_state,
                     source_path=document.relative_path,
                     content_hash=revision_hash,
@@ -252,15 +249,13 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                 summary=str(parsed.metadata["summary"]),
                 object_type=parsed.object_type,
                 legacy_type=parsed.legacy_type,
-                status=str(parsed.metadata["status"]),
-                object_lifecycle_state=str(parsed.metadata["status"]),
+                object_lifecycle_state=str(parsed.metadata["object_lifecycle_state"]),
                 owner=str(parsed.metadata["owner"]),
                 team=str(parsed.metadata["team"]),
                 trust_state=trust_state,
-                approval_state=revision_state,
                 revision_review_state=revision_state,
                 draft_progress_state=(
-                    section_completion["draft_state"]
+                    section_completion["draft_progress_state"]
                     if revision_state == RevisionReviewStatus.DRAFT.value
                     else DraftProgressState.READY_FOR_REVIEW.value
                 ),

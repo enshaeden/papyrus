@@ -7,7 +7,7 @@ summary: 'Gardening leave is when an employee continues to receive full pay and 
   reasons:'
 knowledge_object_type: runbook
 legacy_article_type: offboarding
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

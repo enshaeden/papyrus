@@ -68,7 +68,7 @@ class ActorEnforcementTests(unittest.TestCase):
                     "canonical_path": created.canonical_path,
                     "summary": "Used to verify actor enforcement.",
                     "knowledge_object_type": "runbook",
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "owner": "ops",
                     "source_type": "native",
                     "source_system": "repository",

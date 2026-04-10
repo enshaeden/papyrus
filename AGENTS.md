@@ -28,9 +28,9 @@ This repository is a local-first knowledge system for IT support and systems ope
 
 ## Content Requirements
 
-- Every knowledge item must declare `id`, `title`, `owner`, `status`, `created`, `updated`, `last_reviewed`, `review_cadence`, `canonical_path`, and `source_type`.
+- Every knowledge item must declare `id`, `title`, `owner`, `object_lifecycle_state`, `created`, `updated`, `last_reviewed`, `review_cadence`, `canonical_path`, and `source_type`.
 - Deprecated or archived content must include replacement or retirement rationale according to the lifecycle policy.
-- Content status must follow the documented lifecycle: `draft -> active -> deprecated -> archived`.
+- Content lifecycle state must follow the documented lifecycle: `draft -> active -> deprecated -> archived`.
 - Changes to schema or taxonomy files require rationale in `decisions/`.
 
 ## Completion Gate

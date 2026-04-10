@@ -7,7 +7,7 @@ summary: "Overview: <OFFICE_SITE_C> is the primary hub for <COMPANY_NAME>\u2019s
   \ and 5th) and includes over 40 AV enabled rooms, ranging..."
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

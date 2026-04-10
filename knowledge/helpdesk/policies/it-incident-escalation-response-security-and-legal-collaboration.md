@@ -7,7 +7,7 @@ summary: "The purpose of this SOP is to establish a clear framework for how <COM
   \ manage legal escalations. This..."
 knowledge_object_type: service_record
 legacy_article_type: policy
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

@@ -7,7 +7,7 @@ summary: "For details on how to import Windows devices into <ENDPOINT_MANAGEMENT
   \ \u2013 Admin Guide device enrollment Windows Device Enrollment Admin Guide..."
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

@@ -5,7 +5,7 @@ canonical_path: knowledge/applications/business-apps/password-manager/vault-owne
 summary: This SOP outlines how to check the owner of particular vault in <PASSWORD_MANAGER>.
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

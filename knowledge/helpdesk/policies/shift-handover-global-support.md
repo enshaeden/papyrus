@@ -6,7 +6,7 @@ summary: Ensures seamless IT support transitions across shifts in <REGION_A>, <R
   while maintaining visibility on critical issues and minimizing response delays.
 knowledge_object_type: service_record
 legacy_article_type: policy
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

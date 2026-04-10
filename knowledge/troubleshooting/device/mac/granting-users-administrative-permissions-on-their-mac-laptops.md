@@ -6,7 +6,7 @@ summary: "When setting up their machines for the first time, some users may find
   \ Here\u2019s how to fix this."
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

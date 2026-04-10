@@ -5,7 +5,7 @@ canonical_path: knowledge/user-lifecycle/job-and-org-change/job-and-org-change-t
 summary: 'Purpose:'
 knowledge_object_type: runbook
 legacy_article_type: runbook
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

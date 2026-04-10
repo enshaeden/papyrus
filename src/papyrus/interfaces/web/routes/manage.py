@@ -41,7 +41,7 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
     render_projection_status_panel,
 )
 from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
-from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, render_list, tone_for_approval, tone_for_trust
+from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, render_list, tone_for_review_state, tone_for_trust
 
 
 def _manage_item_detail_href(item: dict[str, object]) -> str:
@@ -125,14 +125,9 @@ def _manage_table(components, title: str, items: list[dict[str, object]]) -> str
                             tone=tone_for_trust(str(state.get("trust_state") or "unknown")),
                         ),
                         components.badge(
-                            label="Approval",
-                            value=str(state.get("approval_state") or "unknown"),
-                            tone=tone_for_approval(str(state.get("approval_state") or "unknown")),
-                        ),
-                        components.badge(
-                            label="Revision",
+                            label="Review",
                             value=str(state.get("revision_review_state") or "unknown"),
-                            tone=tone_for_approval(str(state.get("revision_review_state") or "unknown")),
+                            tone=tone_for_review_state(str(state.get("revision_review_state") or "unknown")),
                         ),
                     ],
                     supporting_html=escape(use_guidance.get("detail") or "Papyrus did not return governed detail for this queue item."),

@@ -6,7 +6,7 @@ summary: Create a service account in the identity provider with managed credenti
   details.
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

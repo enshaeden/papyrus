@@ -557,6 +557,15 @@ def validate_knowledge_documents(
                 issues.append(ValidationIssue(path, "missing required field", field_name))
 
         for field_name in metadata:
+            if field_name == "status" and "object_lifecycle_state" in fields:
+                issues.append(
+                    ValidationIssue(
+                        path,
+                        "knowledge-object lifecycle field 'status' was renamed to 'object_lifecycle_state'",
+                        field_name,
+                    )
+                )
+                continue
             if field_name not in fields:
                 issues.append(ValidationIssue(path, "unknown field", field_name))
 
@@ -594,29 +603,41 @@ def validate_knowledge_documents(
         if metadata.get("canonical_path") != path:
             issues.append(ValidationIssue(path, "canonical_path must match the source file path", "canonical_path"))
 
-        if path.startswith("archive/knowledge/") and metadata.get("status") != "archived":
-            issues.append(ValidationIssue(path, "archived paths must use status 'archived'", "status"))
+        if path.startswith("archive/knowledge/") and metadata.get("object_lifecycle_state") != "archived":
+            issues.append(
+                ValidationIssue(
+                    path,
+                    "archived paths must use object_lifecycle_state 'archived'",
+                    "object_lifecycle_state",
+                )
+            )
 
-        if path.startswith("knowledge/") and metadata.get("status") == "archived":
-            issues.append(ValidationIssue(path, "archived knowledge objects must live under archive/knowledge/", "status"))
+        if path.startswith("knowledge/") and metadata.get("object_lifecycle_state") == "archived":
+            issues.append(
+                ValidationIssue(
+                    path,
+                    "archived knowledge objects must live under archive/knowledge/",
+                    "object_lifecycle_state",
+                )
+            )
 
         replaced_by = metadata.get("superseded_by") or metadata.get("replaced_by")
         retirement_reason = metadata.get("retirement_reason")
-        status = metadata.get("status")
-        if status == "deprecated" and not (replaced_by or retirement_reason):
+        object_lifecycle_state = metadata.get("object_lifecycle_state")
+        if object_lifecycle_state == "deprecated" and not (replaced_by or retirement_reason):
             issues.append(
                 ValidationIssue(
                     path,
                     "deprecated content must declare replaced_by or retirement_reason",
-                    "status",
+                    "object_lifecycle_state",
                 )
             )
-        if status == "archived" and not retirement_reason:
+        if object_lifecycle_state == "archived" and not retirement_reason:
             issues.append(
                 ValidationIssue(
                     path,
                     "archived content must declare retirement_reason",
-                    "status",
+                    "object_lifecycle_state",
                 )
             )
         if replaced_by:
@@ -853,9 +874,15 @@ def orphaned_files(policy: dict[str, Any], documents: list[KnowledgeDocument]) -
                 findings.append(relative_path(path))
 
     for document in documents:
-        if document.relative_path.startswith("archive/knowledge/") and document.metadata.get("status") != "archived":
+        if (
+            document.relative_path.startswith("archive/knowledge/")
+            and document.metadata.get("object_lifecycle_state") != "archived"
+        ):
             findings.append(document.relative_path)
-        if document.relative_path.startswith("knowledge/") and document.metadata.get("status") == "archived":
+        if (
+            document.relative_path.startswith("knowledge/")
+            and document.metadata.get("object_lifecycle_state") == "archived"
+        ):
             findings.append(document.relative_path)
 
     if GENERATED_SITE_DOCS_DIR.exists():

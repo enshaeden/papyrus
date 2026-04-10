@@ -6,7 +6,7 @@ summary: Prepare and hand off a standard employee laptop with inventory, identit
   completed.
 knowledge_object_type: runbook
 legacy_article_type: runbook
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: native
 source_system: repository

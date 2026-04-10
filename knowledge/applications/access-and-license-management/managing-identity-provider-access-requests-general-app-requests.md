@@ -7,7 +7,7 @@ summary: 'Summary: This simplified guide explains how the <COMPANY_NAME> IT Help
   <TICKETING_SYSTEM>, and how to manage approval updates...'
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

@@ -5,7 +5,7 @@ canonical_path: knowledge/helpdesk/policies/it-group-configurations-and-general-
 summary: security it collab for direct communication with the Security team
 knowledge_object_type: service_record
 legacy_article_type: policy
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

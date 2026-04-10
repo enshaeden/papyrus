@@ -6,7 +6,7 @@ summary: Template for coordinating the initial response to an IT service inciden
   and verification checkpoints.
 knowledge_object_type: runbook
 legacy_article_type: incident
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: native
 source_system: repository

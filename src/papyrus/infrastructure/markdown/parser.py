@@ -9,7 +9,6 @@ import yaml
 
 from papyrus.domain.entities import BrokenLink, KnowledgeDocument, ParsedKnowledgeObjectSource
 from papyrus.domain.policies import (
-    approval_state_for_status,
     citation_health_rank_for_statuses,
     normalize_citation_validity_status,
     ownership_rank,
@@ -304,20 +303,23 @@ def normalize_object_metadata(
     as_of: dt.date | None = None,
 ) -> ParsedKnowledgeObjectSource:
     metadata = dict(document.metadata)
+    if "status" in metadata:
+        raise ValueError(
+            f"{document.relative_path}: knowledge-object lifecycle field 'status' was renamed to 'object_lifecycle_state'"
+        )
     object_type = primary_object_type(metadata)
     if object_type is None:
         raise ValueError(f"{document.relative_path}: unsupported or missing knowledge object type")
 
     legacy_type_value = metadata.get("legacy_article_type")
     if not isinstance(legacy_type_value, str) or not legacy_type_value.strip():
-        legacy_type_candidate = metadata.get("type")
-        legacy_type_value = str(legacy_type_candidate).strip() if legacy_type_candidate else None
+        legacy_type_value = None
 
     paragraph = extract_first_paragraph(document.body)
     citations = _normalize_citations(metadata)
     related_services = _related_services(metadata)
     related_object_ids = _related_object_ids(metadata)
-    status = str(metadata.get("status") or "")
+    object_lifecycle_state = str(metadata.get("object_lifecycle_state") or "")
     owner = str(metadata.get("owner") or "")
     review_date = parse_iso_date(metadata.get("last_reviewed"))
     now = as_of or dt.date.today()
@@ -394,7 +396,7 @@ def normalize_object_metadata(
         [str(citation.get("validity_status", "unverified")) for citation in citations]
     )
     owner_rank_value = ownership_rank(owner)
-    fresh_rank = freshness_rank(status, review_date, review_cadence_days, now)
+    fresh_rank = freshness_rank(object_lifecycle_state, review_date, review_cadence_days, now)
 
     return ParsedKnowledgeObjectSource(
         document=document,
@@ -405,12 +407,11 @@ def normalize_object_metadata(
         related_services=related_services,
         related_object_ids=related_object_ids,
         trust_state=trust_state(
-            status=status,
+            object_lifecycle_state=object_lifecycle_state,
             freshness_rank_value=fresh_rank,
             citation_health_rank_value=citation_rank,
             ownership_rank_value=owner_rank_value,
         ),
-        approval_state=approval_state_for_status(status),
         freshness_rank=fresh_rank,
         citation_health_rank=citation_rank,
         ownership_rank=owner_rank_value,

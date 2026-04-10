@@ -1,6 +1,6 @@
 # Operator Readiness
 
-This document records the v1.5 lifecycle-guided pass. Papyrus remains a governed local-first operational knowledge control plane, but the product framing now emphasizes guided work, next actions, lifecycle progression, and stewardship instead of presenting governance metadata as the primary experience.
+This document records the current operator-readiness boundary. Papyrus remains a governed local-first operational knowledge system, and the operator surfaces now emphasize guided work, next actions, lifecycle progression, and stewardship instead of compatibility-era governance aliases.
 
 ## What This Pass Accomplished
 
@@ -118,7 +118,7 @@ Still deferred after this pass:
 - Derived output remains non-authoritative.
 - Governed mutation policy now terminates in `papyrus.domain.lifecycle`, `papyrus.application.policy_authority`, and `papyrus.infrastructure.transactional_mutation`. CLI, API, and web actions call those flows instead of each surface owning path or lifecycle checks.
 - The backend/UI cut line is now explicit: backend contracts define governed meaning, and surfaces render `ui_projection`, workflow projection, action descriptor, and acknowledgement payloads without recreating the policy.
-- Some read surfaces still expose compatibility aliases such as `status` and `approval_state` alongside the explicit lifecycle fields. Those aliases are not the authoritative mutation contract.
+- Read, write, and review surfaces now use explicit lifecycle and review fields for knowledge objects. Unrelated entities such as services and validation runs still keep their own canonical `status` fields.
 
 ## Remaining Technical Debt
 

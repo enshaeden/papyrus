@@ -17,7 +17,7 @@ def summarize_for_search(document: KnowledgeDocument) -> str:
         metadata.get("summary", ""),
         object_type,
         metadata.get("legacy_article_type", ""),
-        metadata.get("status", ""),
+        metadata.get("object_lifecycle_state", ""),
         metadata.get("owner", ""),
         metadata.get("team", ""),
         metadata.get("source_type", ""),
@@ -49,7 +49,7 @@ def site_relative_path_for_repo_path(repo_relative: str) -> Path | None:
 
 
 def site_knowledge_output_path(document: KnowledgeDocument) -> Path:
-    if document.metadata.get("status") == "archived":
+    if document.metadata.get("object_lifecycle_state") == "archived":
         from papyrus.infrastructure.paths import ROOT
 
         return GENERATED_SITE_DOCS_DIR / document.source_path.relative_to(ROOT)

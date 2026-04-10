@@ -6,7 +6,7 @@ summary: 'Currently limited to <COLLABORATION_PLATFORM> and <PRODUCTIVITY_PLATFO
   purchase licensing as needed. Licenses will arrive Just in time (JIT) according to the following processes:'
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

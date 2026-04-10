@@ -7,7 +7,7 @@ summary: 'Tickets for new hires are generated per the New Hire Workflow Overview
   < <HR_SYSTEM> < <TICKETING_SYSTEM> Ticket (<QUEUE_NAME>) Management'
 knowledge_object_type: runbook
 legacy_article_type: onboarding
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

@@ -5,7 +5,7 @@ canonical_path: knowledge/user-lifecycle/employee-conversion/intern-to-fte.md
 summary: Overview
 knowledge_object_type: runbook
 legacy_article_type: runbook
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

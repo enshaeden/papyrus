@@ -5,7 +5,7 @@ canonical_path: knowledge/applications/business-apps/password-manager/vault-crea
 summary: This SOP outlines actions IT should perform when someone requests a vault creation in <PASSWORD_MANAGER>.
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

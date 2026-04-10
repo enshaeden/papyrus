@@ -98,7 +98,7 @@ def classify_citation(
                 status = worse_citation_validity(status, "unverified")
                 reasons.append("cited knowledge object is not present in runtime")
             else:
-                target_status = str(target_object["status"])
+                target_status = str(target_object["object_lifecycle_state"])
                 if target_status in {"deprecated", "archived"}:
                     status = worse_citation_validity(status, "stale")
                     reasons.append(f"cited knowledge object is {target_status}")

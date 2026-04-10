@@ -5,7 +5,7 @@ canonical_path: knowledge/applications/business-apps/developer-tool-suite/index.
 summary: Collection index for curated seed content under Applications / Business Apps / <DEVELOPER_TOOL_SUITE>.
 knowledge_object_type: service_record
 legacy_article_type: reference
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: derived
 source_system: knowledge_portal

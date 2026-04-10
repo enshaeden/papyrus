@@ -28,7 +28,7 @@ def default_object_values() -> dict[str, str]:
         "team": "",
         "canonical_path": "",
         "review_cadence": "quarterly",
-        "status": "draft",
+        "object_lifecycle_state": "draft",
         "systems": "",
         "tags": "",
     }
@@ -52,7 +52,7 @@ def validate_object_form(
     owner = values["owner"].strip()
     team = values["team"].strip()
     review_cadence = values["review_cadence"].strip()
-    status = values["status"].strip()
+    object_lifecycle_state = values["object_lifecycle_state"].strip()
 
     if not object_id:
         add_error("object_id", "Reference code is required.")
@@ -72,8 +72,8 @@ def validate_object_form(
         add_error("team", "Choose a valid team.")
     if review_cadence not in taxonomies["review_cadences"]["allowed_values"]:
         add_error("review_cadence", "Choose a valid review cadence.")
-    if status not in taxonomies["statuses"]["allowed_values"]:
-        add_error("status", "Choose a valid status.")
+    if object_lifecycle_state not in taxonomies["statuses"]["allowed_values"]:
+        add_error("object_lifecycle_state", "Choose a valid lifecycle state.")
     if not canonical_path:
         add_error("canonical_path", "Publishing location is required.")
     elif not canonical_path.startswith("knowledge/") or not canonical_path.endswith(".md"):
@@ -88,7 +88,7 @@ def validate_object_form(
         "team": team,
         "canonical_path": canonical_path,
         "review_cadence": review_cadence,
-        "status": status,
+        "object_lifecycle_state": object_lifecycle_state,
         "systems": parse_csvish(values["systems"]),
         "tags": parse_csvish(values["tags"]),
     }

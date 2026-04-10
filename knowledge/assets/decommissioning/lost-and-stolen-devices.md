@@ -6,7 +6,7 @@ summary: In the event that a <COMPANY_NAME> asset is reported lost or stolen, it
   swiftly to mitigate any potential security risks. Adherence to the procedures outlined below is required.
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

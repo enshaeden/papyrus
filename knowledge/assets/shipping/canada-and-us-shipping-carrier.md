@@ -6,7 +6,7 @@ summary: Create laptop and accessory shipments for <REGION_B> and <REGION_C> usi
   workflow.
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

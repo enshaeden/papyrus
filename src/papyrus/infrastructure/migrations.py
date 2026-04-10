@@ -17,7 +17,6 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             legacy_type TEXT,
             title TEXT NOT NULL,
             summary TEXT NOT NULL,
-            status TEXT NOT NULL,
             object_lifecycle_state TEXT NOT NULL,
             owner TEXT NOT NULL,
             team TEXT NOT NULL,
@@ -43,10 +42,8 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             revision_id TEXT PRIMARY KEY,
             object_id TEXT NOT NULL REFERENCES knowledge_objects(object_id),
             revision_number INTEGER NOT NULL,
-            revision_state TEXT NOT NULL,
             revision_review_state TEXT NOT NULL,
             blueprint_id TEXT NOT NULL DEFAULT '',
-            draft_state TEXT NOT NULL DEFAULT 'ready_for_review',
             draft_progress_state TEXT NOT NULL DEFAULT 'ready_for_review',
             source_path TEXT NOT NULL,
             content_hash TEXT NOT NULL,
@@ -179,12 +176,10 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             summary TEXT NOT NULL,
             object_type TEXT NOT NULL,
             legacy_type TEXT,
-            status TEXT NOT NULL,
             object_lifecycle_state TEXT NOT NULL,
             owner TEXT NOT NULL,
             team TEXT NOT NULL,
             trust_state TEXT NOT NULL,
-            approval_state TEXT NOT NULL,
             revision_review_state TEXT NOT NULL,
             draft_progress_state TEXT NOT NULL,
             source_sync_state TEXT NOT NULL,
@@ -195,13 +190,14 @@ def apply_runtime_schema(connection: sqlite3.Connection, has_fts5: bool) -> None
             search_text TEXT NOT NULL
         );
 
-        CREATE INDEX IF NOT EXISTS idx_objects_type_status ON knowledge_objects(object_type, status);
+        CREATE INDEX IF NOT EXISTS idx_objects_type_lifecycle ON knowledge_objects(object_type, object_lifecycle_state);
         CREATE INDEX IF NOT EXISTS idx_revisions_object ON knowledge_revisions(object_id);
         CREATE INDEX IF NOT EXISTS idx_citations_revision ON citations(revision_id);
         CREATE INDEX IF NOT EXISTS idx_relationships_source ON relationships(source_entity_type, source_entity_id);
         CREATE INDEX IF NOT EXISTS idx_relationships_target ON relationships(target_entity_type, target_entity_id);
         CREATE INDEX IF NOT EXISTS idx_services_name ON services(service_name);
-        CREATE INDEX IF NOT EXISTS idx_search_documents_status ON search_documents(status);
+        CREATE INDEX IF NOT EXISTS idx_search_documents_lifecycle ON search_documents(object_lifecycle_state);
+        CREATE INDEX IF NOT EXISTS idx_search_documents_revision_review_state ON search_documents(revision_review_state);
         CREATE INDEX IF NOT EXISTS idx_events_entity ON events(entity_type, entity_id);
         CREATE INDEX IF NOT EXISTS idx_events_occurred_at ON events(occurred_at);
         CREATE INDEX IF NOT EXISTS idx_ingestion_jobs_status ON ingestion_jobs(status);

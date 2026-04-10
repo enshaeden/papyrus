@@ -7,7 +7,7 @@ summary: Follow identical steps for the two <COLLABORATION_PLATFORM> domains by 
   to gain access to...
 knowledge_object_type: runbook
 legacy_article_type: offboarding
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

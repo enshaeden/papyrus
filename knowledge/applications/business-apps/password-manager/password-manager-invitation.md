@@ -6,7 +6,7 @@ summary: "This SOP outlines the steps IT should follow to send a <PASSWORD_MANAG
   \ The following steps work for both FTE\u2019s and Contractors."
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

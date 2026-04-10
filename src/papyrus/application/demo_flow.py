@@ -65,7 +65,7 @@ def _common_payload(
         "summary": f"Operational guidance for {title.lower()}",
         "knowledge_object_type": object_type,
         "legacy_article_type": None,
-        "status": "active",
+        "object_lifecycle_state": "active",
         "owner": owner,
         "source_type": "native",
         "source_system": "repository",
@@ -280,7 +280,7 @@ def _scenario_summary(
         "database_path": str(database_path),
         "source_root": str(source_root),
         "trust_counts": dashboard["trust_counts"],
-        "approval_counts": dashboard["approval_counts"],
+        "review_counts": dashboard["review_counts"],
         "queue_counts": _queue_counts(database_path),
     }
     if extra:

@@ -89,7 +89,7 @@ class WebPresenterTests(unittest.TestCase):
             TEMPLATE_RENDERER,
             dashboard={
                 "object_count": 1,
-                "approval_counts": {"in_review": 1},
+                "review_counts": {"in_review": 1},
                 "trust_counts": {"suspect": 1},
                 "evidence_counts": {"verified": 1},
                 "validation_posture": {
@@ -101,13 +101,12 @@ class WebPresenterTests(unittest.TestCase):
                     {
                         "object_id": "kb-review",
                         "title": "Review Queue Item",
-                        "approval_state": "in_review",
+                        "revision_review_state": "in_review",
                         "trust_state": "suspect",
                         "current_revision_id": "kb-review-r1",
                         "posture": {"trust_summary": "Governance review is still open."},
                         "ui_projection": {
                             "state": {
-                                "approval_state": "in_review",
                                 "trust_state": "suspect",
                                 "revision_review_state": "in_review",
                             },
@@ -143,8 +142,8 @@ class WebPresenterTests(unittest.TestCase):
                     "title": "Test title",
                     "object_type": "runbook",
                     "trust_state": "suspect",
-                    "approval_state": "in_review",
-                    "reasons": ["approval:in_review", "trust:suspect"],
+                    "revision_review_state": "in_review",
+                    "reasons": ["review:in_review", "trust:suspect"],
                     "owner": "tester",
                     "path": "knowledge/runbooks/test.md",
                     "citation_health_rank": 1,
@@ -162,7 +161,7 @@ class WebPresenterTests(unittest.TestCase):
             query="vpn",
             selected_type="runbook",
             selected_trust="suspect",
-            selected_approval="in_review",
+            selected_review_state="in_review",
         )
         self.assertEqual(page["page_title"], "Read Guidance")
         self.assertEqual(page["aside_html"], "")
@@ -195,7 +194,7 @@ class WebPresenterTests(unittest.TestCase):
                     "last_reviewed": "2026-04-07",
                     "review_cadence": "quarterly",
                     "trust_state": "trusted",
-                    "approval_state": "approved",
+                    "revision_review_state": "approved",
                     "freshness_rank": 0,
                     "citation_health_rank": 0,
                     "ownership_rank": 0,
@@ -210,7 +209,6 @@ class WebPresenterTests(unittest.TestCase):
                         "draft_progress_state": "ready_for_review",
                         "source_sync_state": "applied",
                         "trust_state": "trusted",
-                        "approval_state": "approved",
                     },
                     "use_guidance": {
                         "summary": "Safe to use now",
@@ -218,7 +216,7 @@ class WebPresenterTests(unittest.TestCase):
                         "next_action": "Use the current guidance.",
                         "safe_to_use": True,
                     },
-                    "reasons": ["approval:approved", "trust:trusted"],
+                    "reasons": ["review:approved", "trust:trusted"],
                     "actions": [
                         {
                             "action_id": "mark_suspect",
@@ -268,7 +266,7 @@ class WebPresenterTests(unittest.TestCase):
         self.assertEqual(page["page_context"]["content_sections_html"].count("Governed actions"), 1)
         self.assertIn("Risk", page["page_context"]["header_html"])
         self.assertIn("Freshness", page["page_context"]["header_html"])
-        self.assertIn("Approval", page["page_context"]["header_html"])
+        self.assertIn("Review", page["page_context"]["header_html"])
         self.assertNotIn("Evidence", page["page_context"]["header_html"])
 
     def test_object_presenter_prefers_projection_truth_over_raw_state_fallbacks(self) -> None:
@@ -292,7 +290,7 @@ class WebPresenterTests(unittest.TestCase):
                     "last_reviewed": "2026-04-09",
                     "review_cadence": "quarterly",
                     "trust_state": "trusted",
-                    "approval_state": "approved",
+                    "revision_review_state": "approved",
                     "freshness_rank": 0,
                     "citation_health_rank": 0,
                     "ownership_rank": 0,
@@ -311,7 +309,6 @@ class WebPresenterTests(unittest.TestCase):
                         "draft_progress_state": "ready_for_review",
                         "source_sync_state": "conflicted",
                         "trust_state": "trusted",
-                        "approval_state": "approved",
                     },
                     "use_guidance": {
                         "summary": "Projection says stop and inspect",
@@ -360,8 +357,8 @@ class WebPresenterTests(unittest.TestCase):
                     "title": "Queue Projection",
                     "object_type": "runbook",
                     "trust_state": "trusted",
-                    "approval_state": "approved",
-                    "reasons": ["approval:approved"],
+                    "revision_review_state": "approved",
+                    "reasons": ["review:approved"],
                     "owner": "tester",
                     "path": "knowledge/runbooks/queue-projection.md",
                     "citation_health_rank": 0,
@@ -380,7 +377,7 @@ class WebPresenterTests(unittest.TestCase):
             query="projection",
             selected_type="runbook",
             selected_trust="all",
-            selected_approval="all",
+            selected_review_state="all",
         )
         queue_html = page["page_context"]["queue_html"]
         self.assertIn("Projection summary wins", queue_html)
@@ -424,7 +421,6 @@ class WebPresenterTests(unittest.TestCase):
                         "draft_progress_state": "ready_for_review",
                         "source_sync_state": "applied",
                         "trust_state": "trusted",
-                        "approval_state": "approved",
                     },
                     "use_guidance": {
                         "summary": "Safe to use now",

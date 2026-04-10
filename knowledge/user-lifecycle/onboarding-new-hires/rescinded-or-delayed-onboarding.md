@@ -7,7 +7,7 @@ summary: In such cases, users typically do not join after accepting the offer. W
   the user can be directly archived...
 knowledge_object_type: runbook
 legacy_article_type: onboarding
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

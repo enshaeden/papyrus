@@ -12,13 +12,13 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
 )
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import (
-    approval_status,
     escape,
     freshness_status,
     format_timestamp,
     join_html,
     link,
     quoted_path,
+    review_state_status,
     risk_status,
     render_list,
 )
@@ -201,11 +201,11 @@ def _object_status_badges_html(
         safe_to_use=bool(use_guidance.get("safe_to_use")),
     )
     freshness_label, freshness_tone = freshness_status(int(item.get("freshness_rank") or 0))
-    approval_label, approval_tone = approval_status(str(state.get("approval_state") or "unknown"))
+    review_label, review_tone = review_state_status(str(state.get("revision_review_state") or "unknown"))
     return [
         components.badge(label="Risk", value=risk_label, tone=risk_tone),
         components.badge(label="Freshness", value=freshness_label, tone=freshness_tone),
-        components.badge(label="Approval", value=approval_label, tone=approval_tone),
+        components.badge(label="Review", value=review_label, tone=review_tone),
     ]
 
 

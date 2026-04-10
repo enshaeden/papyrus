@@ -22,8 +22,8 @@ def _reason(
     }
 
 
-def _approval_summary(approval_state: str | None) -> dict[str, str]:
-    state = str(approval_state or "unknown")
+def _review_summary(revision_review_state: str | None) -> dict[str, str]:
+    state = str(revision_review_state or "unknown")
     if state == "approved":
         return {
             "state": state,
@@ -61,8 +61,8 @@ def _approval_summary(approval_state: str | None) -> dict[str, str]:
         }
     return {
         "state": state,
-        "summary": "Approval state unknown",
-        "detail": "Papyrus cannot confirm the approval state for the current runtime projection.",
+        "summary": "Review state unknown",
+        "detail": "Papyrus cannot confirm the current review state for the runtime projection.",
         "action": "Rebuild the runtime and inspect audit history before relying on this object.",
     }
 
@@ -87,7 +87,7 @@ def _suspect_detail(event: dict[str, Any] | None) -> str:
 def build_posture_summary(
     *,
     trust_state: str,
-    approval_state: str | None,
+    revision_review_state: str | None,
     freshness_rank: int,
     citation_health_rank: int,
     ownership_rank: int,
@@ -174,7 +174,7 @@ def build_posture_summary(
             )
         )
 
-    approval = _approval_summary(approval_state)
+    approval = _review_summary(revision_review_state)
     trust_summary = (
         blocking_failures[0]["summary"]
         if blocking_failures

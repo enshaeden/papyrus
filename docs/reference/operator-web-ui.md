@@ -8,7 +8,7 @@ This document describes the current Papyrus operator web interface after the ser
 - Keep the shell task-driven so the main work surface stays larger, secondary panels stay conditional, and the next action is clearer than the surrounding state.
 - Keep actor context visible so Local Operator, Local Reviewer, and Local Manager each land on a different primary workflow and see different navigation emphasis.
 - Preserve the application service layer as the source of workflow behavior.
-- Keep risk, freshness, approval, and audit signals visible without letting governance chrome dominate the primary workflow.
+- Keep risk, freshness, review, and audit signals visible without letting governance chrome dominate the primary workflow.
 - Support governed POST workflows for object creation, revision authoring, review submission, reviewer assignment, approval, rejection, supersession, suspect marking, and validation-run recording.
 
 This change does not rework repository schemas, canonical source layout, or the underlying governance workflow model.
@@ -140,8 +140,8 @@ This change does not rework repository schemas, canonical source layout, or the 
 - No new third-party Python dependencies were introduced.
 - The refactor continues to use the existing standard-library WSGI stack and repository taxonomies.
 - The JSON API was extended to expose thin write/manage endpoints aligned to existing application commands.
-- Queue, dashboard, object detail, and review detail now share backend projection-backed posture summaries so approval and trust do not blur together.
-- Read and health decision surfaces now group guidance by urgency and use the same risk, freshness, and approval badge vocabulary.
+- Queue, dashboard, object detail, and review detail now share backend projection-backed posture summaries so review state and trust do not blur together.
+- Read and health decision surfaces now group guidance by urgency and use the same risk, freshness, and review badge vocabulary.
 
 ## Tradeoffs And Known Limitations
 
@@ -169,7 +169,7 @@ This change does not rework repository schemas, canonical source layout, or the 
 - Shell-only objects created through the write flow remain discoverable in `/queue` before their first revision exists. Queue hits for those shells route back into `/write/objects/{object_id}/revisions/new#revision-form`, and write screens keep the current stage visible through the progress sidebar during object creation, revision drafting, and review submission.
 - Write object setup and guided drafting stay in the shared shell, while the one-step submission and decision screens use the minimal shell.
 - Queue and health screens now replace wide status tables with grouped decision cards ordered by `Requires attention`, `Needs review`, and `Safe`.
-- Object detail now uses the same risk, freshness, and approval badges as queue and health surfaces, with lifecycle state moved into reference metadata.
+- Object detail now uses the same risk, freshness, and review badges as queue and health surfaces, with lifecycle state moved into reference metadata.
 - Actor context now propagates through the shell in two places:
   - topbar selector for changing actor
   - optional compact actor banner in pages that need page-level role context
@@ -181,7 +181,7 @@ This change does not rework repository schemas, canonical source layout, or the 
   - lifecycle and governance context stays visible through status panels, badges, and contracts rather than repeated explanatory prose
 - Decision-heavy tables were rebalanced to improve scanability:
   - low-value metadata moved into disclosures or compact meta rows
-  - risk, trust, freshness, approval, and current action now appear before archival identifiers
+  - risk, trust, freshness, review state, and current action now appear before archival identifiers
   - fixed table layout plus overflow handling prevents long text from collapsing action columns
 - Guided revision editing now owns citation lookup and searchable multi-select controls inside the primary authoring flow.
 - Invalid object-shell creation attempts now render a warning flash and blocking validation summary at the top of the page so missing or malformed required fields are visible without hunting through the full form.

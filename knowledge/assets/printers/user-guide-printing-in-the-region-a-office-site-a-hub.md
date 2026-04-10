@@ -7,7 +7,7 @@ summary: "1\uFE0F\u20E3 Add Printer via Self Service \U0001F539 Open Spotlight (
   \ \u2705 Once installed, your printer will be ready to use"
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

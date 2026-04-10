@@ -6,7 +6,7 @@ summary: "Most application access is provisioned automatically based on the user
   \ , covering both Full Time Employees (FTEs) and Contractors (Extended Users) ."
 knowledge_object_type: runbook
 legacy_article_type: onboarding
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

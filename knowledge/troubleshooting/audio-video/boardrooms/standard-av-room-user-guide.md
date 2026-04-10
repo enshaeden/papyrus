@@ -5,7 +5,7 @@ canonical_path: knowledge/troubleshooting/audio-video/boardrooms/standard-av-roo
 summary: Shared operator guide for meeting rooms that use a laptop-connected USB conference video bar and TV display.
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: native
 source_system: repository

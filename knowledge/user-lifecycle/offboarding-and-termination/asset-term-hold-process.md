@@ -6,7 +6,7 @@ summary: 'Key aspects of a termination hold for asset management include and are
   retrieval, data security, inventory update, inspection and assessment, compliance and record keeping.'
 knowledge_object_type: runbook
 legacy_article_type: offboarding
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

@@ -83,7 +83,6 @@ def ui_projection_payload(projection: UiProjection) -> dict[str, Any]:
             "draft_progress_state": projection.state.draft_progress_state,
             "source_sync_state": projection.state.source_sync_state,
             "trust_state": projection.state.trust_state,
-            "approval_state": projection.state.approval_state,
         },
         "use_guidance": use_guidance_payload(projection.use_guidance),
         "reasons": list(projection.reasons),
@@ -122,7 +121,7 @@ def build_use_guidance(
     state: RuntimeStateSnapshot,
     posture: dict[str, Any],
 ) -> UseGuidanceProjection:
-    approval_state = str(state.approval_state or "")
+    revision_review_state = str(state.revision_review_state or "")
     trust_state = str(state.trust_state or "")
     source_sync_state = str(state.source_sync_state or "")
     if source_sync_state == SourceSyncState.CONFLICTED.value:
@@ -142,7 +141,7 @@ def build_use_guidance(
             safe_to_use=False,
         )
     if source_sync_state == SourceSyncState.PENDING.value:
-        safe_to_use = approval_state == "approved" and trust_state == "trusted"
+        safe_to_use = revision_review_state == RevisionReviewState.APPROVED.value and trust_state == "trusted"
         return UseGuidanceProjection(
             code="source_sync_pending",
             summary="Runtime is ahead of canonical Markdown",
@@ -157,7 +156,7 @@ def build_use_guidance(
             ),
             safe_to_use=safe_to_use,
         )
-    if approval_state == "approved" and trust_state == "trusted":
+    if revision_review_state == RevisionReviewState.APPROVED.value and trust_state == "trusted":
         return UseGuidanceProjection(
             code="safe_to_use",
             summary="Safe to use now",
@@ -165,7 +164,7 @@ def build_use_guidance(
             next_action=str(posture.get("approval", {}).get("action") or "Use the current guidance."),
             safe_to_use=True,
         )
-    if approval_state == "in_review":
+    if revision_review_state == RevisionReviewState.IN_REVIEW.value:
         return UseGuidanceProjection(
             code="review_pending",
             summary="Review decision pending",
@@ -173,7 +172,7 @@ def build_use_guidance(
             next_action=str(posture.get("approval", {}).get("action") or "Use the last approved guidance or route the revision through review."),
             safe_to_use=False,
         )
-    if approval_state in {"draft", "rejected"}:
+    if revision_review_state in {RevisionReviewState.DRAFT.value, RevisionReviewState.REJECTED.value, ""}:
         return UseGuidanceProjection(
             code="not_ready",
             summary="Not ready for operational use",
@@ -185,7 +184,7 @@ def build_use_guidance(
         return UseGuidanceProjection(
             code="verify_evidence",
             summary="Verify evidence before use",
-            detail="Approval is not enough here because the current evidence posture is weak or unverified.",
+            detail="A completed review state is not enough here because the current evidence posture is weak or unverified.",
             next_action=str(posture.get("approval", {}).get("action") or "Review citations and capture stronger evidence before relying on this guidance."),
             safe_to_use=False,
         )

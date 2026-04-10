@@ -161,7 +161,7 @@ def list_current_citations(
             r.object_id,
             r.revision_number,
             o.title AS object_title,
-            o.status AS object_status,
+            o.object_lifecycle_state AS object_lifecycle_state,
             o.canonical_path AS object_path,
             o.last_reviewed AS object_last_reviewed,
             o.review_cadence AS object_review_cadence,

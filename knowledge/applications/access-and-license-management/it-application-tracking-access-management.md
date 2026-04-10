@@ -6,7 +6,7 @@ summary: The purpose of the SOP is to outline how IT manages software access usi
   Including guidance, procedures and app owners for each app.
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

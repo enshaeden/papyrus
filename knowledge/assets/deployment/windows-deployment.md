@@ -6,7 +6,7 @@ summary: All Windows PCs are enrolled in <ENDPOINT_MANAGEMENT_PLATFORM> during i
   new hire selects "Work Account" and signs in with their <COMPANY_NAME> email .
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

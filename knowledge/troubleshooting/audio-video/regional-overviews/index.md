@@ -6,7 +6,7 @@ summary: Collection index for curated seed content under Troubleshooting / Audio
   Overviews.
 knowledge_object_type: service_record
 legacy_article_type: reference
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: derived
 source_system: knowledge_portal

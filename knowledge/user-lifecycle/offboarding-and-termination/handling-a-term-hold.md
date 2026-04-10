@@ -5,7 +5,7 @@ canonical_path: knowledge/user-lifecycle/offboarding-and-termination/handling-a-
 summary: 'Devices in Term Hold will trigger:'
 knowledge_object_type: runbook
 legacy_article_type: offboarding
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

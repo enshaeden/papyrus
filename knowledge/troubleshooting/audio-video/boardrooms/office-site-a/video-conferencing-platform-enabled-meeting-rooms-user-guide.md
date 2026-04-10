@@ -5,7 +5,7 @@ canonical_path: knowledge/troubleshooting/audio-video/boardrooms/office-site-a/v
 summary: Deprecated site-specific duplicate. Use the shared Touch Controller Room User Guide and the <OFFICE_SITE_A> meeting-room overview instead.
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: deprecated
+object_lifecycle_state: deprecated
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

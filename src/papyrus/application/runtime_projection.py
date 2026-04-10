@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from papyrus.domain.entities import KnowledgeDocument
 from papyrus.domain.lifecycle import DraftProgressState, RevisionReviewState, SourceSyncState
 from papyrus.domain.policies import (
-    approval_state_for_revision_state,
     citation_health_rank_for_counts,
     freshness_rank,
     ownership_rank,
@@ -45,7 +44,6 @@ class RuntimeStateSnapshot:
     draft_progress_state: str | None
     source_sync_state: str
     trust_state: str | None
-    approval_state: str | None
 
 
 def relationship_id(
@@ -84,7 +82,7 @@ def persist_revision_artifacts(
             canonical_object_id=object_id,
             owner=str(parsed.metadata["owner"]),
             team=str(parsed.metadata["team"]),
-            status=str(parsed.metadata["status"]),
+            status=str(parsed.metadata["object_lifecycle_state"]),
             service_criticality=str(parsed.metadata["service_criticality"]),
             support_entrypoints_json=json_dump(parsed.metadata.get("support_entrypoints", [])),
             dependencies_json=json_dump(parsed.metadata.get("dependencies", [])),
@@ -268,11 +266,9 @@ def refresh_current_object_projection(
     citation_counts = citation_status_counts_for_revision(connection, str(revision_row["revision_id"]))
     citation_rank = citation_health_rank_for_counts(citation_counts)
     owner_rank_value = ownership_rank(str(metadata.get("owner", "")))
-    object_lifecycle_state = str(object_row["object_lifecycle_state"] or object_row["status"])
-    revision_review_state = str(revision_row["revision_review_state"] or revision_row["revision_state"])
-    draft_progress_state = str(
-        revision_row["draft_progress_state"] or revision_row["draft_state"] or DraftProgressState.READY_FOR_REVIEW.value
-    )
+    object_lifecycle_state = str(object_row["object_lifecycle_state"])
+    revision_review_state = str(revision_row["revision_review_state"])
+    draft_progress_state = str(revision_row["draft_progress_state"] or DraftProgressState.READY_FOR_REVIEW.value)
     source_sync_state = str(object_row["source_sync_state"] or SourceSyncState.NOT_REQUIRED.value)
     fresh_rank = freshness_rank(
         object_lifecycle_state,
@@ -281,7 +277,7 @@ def refresh_current_object_projection(
         as_of or dt.date.today(),
     )
     base_trust_state = trust_state(
-        status=object_lifecycle_state,
+        object_lifecycle_state=object_lifecycle_state,
         freshness_rank_value=fresh_rank,
         citation_health_rank_value=citation_rank,
         ownership_rank_value=owner_rank_value,
@@ -307,12 +303,10 @@ def refresh_current_object_projection(
         summary=str(object_row["summary"]),
         object_type=str(object_row["object_type"]),
         legacy_type=str(object_row["legacy_type"]) if object_row["legacy_type"] is not None else None,
-        status=object_lifecycle_state,
         object_lifecycle_state=object_lifecycle_state,
         owner=str(object_row["owner"]),
         team=str(object_row["team"]),
         trust_state=effective_trust_state,
-        approval_state=approval_state_for_revision_state(revision_review_state),
         revision_review_state=revision_review_state,
         draft_progress_state=draft_progress_state,
         source_sync_state=source_sync_state,

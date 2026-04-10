@@ -5,7 +5,7 @@ canonical_path: knowledge/applications/access-and-license-management/add-product
 summary: Canonical article for Add <PRODUCTIVITY_PLATFORM> Licenses imported from <KNOWLEDGE_PORTAL>.
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

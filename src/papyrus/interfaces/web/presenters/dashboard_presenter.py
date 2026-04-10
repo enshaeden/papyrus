@@ -5,7 +5,7 @@ from typing import Any
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import primary_surface_href, projection_state, projection_use_guidance
 from papyrus.interfaces.web.rendering import TemplateRenderer
-from papyrus.interfaces.web.view_helpers import approval_status, escape, format_timestamp, freshness_status, join_html, link, risk_status
+from papyrus.interfaces.web.view_helpers import escape, format_timestamp, freshness_status, join_html, link, review_state_status, risk_status
 
 
 def _dashboard_item_href(item: dict[str, Any]) -> str:
@@ -38,7 +38,7 @@ def _dashboard_state(item: dict[str, Any]) -> dict[str, str]:
     state = projection_state(item.get("ui_projection"))
     return {
         "trust_state": str(state.get("trust_state") or item.get("trust_state") or "unknown"),
-        "approval_state": str(state.get("approval_state") or item.get("approval_state") or "unknown"),
+        "revision_review_state": str(state.get("revision_review_state") or item.get("revision_review_state") or "unknown"),
     }
 
 
@@ -46,11 +46,11 @@ def _dashboard_bucket(item: dict[str, Any]) -> str:
     state = _dashboard_state(item)
     use_guidance = projection_use_guidance(item.get("ui_projection"))
     trust_state = state["trust_state"]
-    approval_state = state["approval_state"]
+    revision_review_state = state["revision_review_state"]
     safe_to_use = bool(use_guidance.get("safe_to_use"))
-    if trust_state == "suspect" or approval_state == "rejected":
+    if trust_state == "suspect" or revision_review_state == "rejected":
         return "attention"
-    if not safe_to_use or approval_state != "approved" or trust_state in {"weak_evidence", "stale"}:
+    if not safe_to_use or revision_review_state != "approved" or trust_state in {"weak_evidence", "stale"}:
         return "review"
     return "safe"
 
@@ -63,12 +63,12 @@ def _dashboard_status_badges_html(components: ComponentPresenter, item: dict[str
         safe_to_use=bool(use_guidance.get("safe_to_use")),
     )
     freshness_label, freshness_tone = freshness_status(int(item.get("freshness_rank") or 0))
-    approval_label, approval_tone = approval_status(state["approval_state"])
+    review_label, review_tone = review_state_status(state["revision_review_state"])
     return join_html(
         [
             components.badge(label="Risk", value=risk_label, tone=risk_tone),
             components.badge(label="Freshness", value=freshness_label, tone=freshness_tone),
-            components.badge(label="Approval", value=approval_label, tone=approval_tone),
+            components.badge(label="Review", value=review_label, tone=review_tone),
         ],
         " ",
     )
@@ -120,9 +120,9 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
             components.section_card(
                 title="Review pressure",
                 eyebrow="Health",
-                body_html=f"<p class=\"metric-value\">{escape(dashboard['approval_counts'].get('in_review', 0))}</p><p>Revisions currently waiting on a review decision.</p>",
+                body_html=f"<p class=\"metric-value\">{escape(dashboard['review_counts'].get('in_review', 0))}</p><p>Revisions currently waiting on a review decision.</p>",
                 footer_html=link("Review decisions", "/review", css_class="button button-primary"),
-                tone="warning" if dashboard["approval_counts"].get("in_review", 0) else "approved",
+                tone="warning" if dashboard["review_counts"].get("in_review", 0) else "approved",
             ),
             components.section_card(
                 title="Needs revalidation",

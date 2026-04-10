@@ -5,7 +5,7 @@ canonical_path: knowledge/assets/overview/asset-management-overview.md
 summary: Asset Management breaks down into two categories Workstations and Accessories/Peripherals.
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

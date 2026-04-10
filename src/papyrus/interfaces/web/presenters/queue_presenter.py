@@ -5,7 +5,7 @@ from typing import Any
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import primary_surface_href, projection_state, projection_use_guidance
 from papyrus.interfaces.web.rendering import TemplateRenderer
-from papyrus.interfaces.web.view_helpers import approval_status, escape, freshness_status, join_html, link, quoted_path, risk_status
+from papyrus.interfaces.web.view_helpers import escape, freshness_status, join_html, link, quoted_path, review_state_status, risk_status
 
 
 def _queue_item_href(item: dict[str, Any]) -> str:
@@ -57,7 +57,7 @@ def _queue_state(item: dict[str, Any]) -> dict[str, str]:
     state = projection_state(item.get("ui_projection"))
     return {
         "trust_state": str(state.get("trust_state") or item.get("trust_state") or "unknown"),
-        "approval_state": str(state.get("approval_state") or item.get("approval_state") or "unknown"),
+        "revision_review_state": str(state.get("revision_review_state") or item.get("revision_review_state") or "unknown"),
     }
 
 
@@ -70,11 +70,11 @@ def _decision_bucket(item: dict[str, Any]) -> str:
     state = _queue_state(item)
     use_guidance = projection_use_guidance(item.get("ui_projection"))
     trust_state = state["trust_state"]
-    approval_state = state["approval_state"]
+    revision_review_state = state["revision_review_state"]
     safe_to_use = bool(use_guidance.get("safe_to_use"))
-    if trust_state == "suspect" or approval_state == "rejected":
+    if trust_state == "suspect" or revision_review_state == "rejected":
         return "attention"
-    if not safe_to_use or approval_state != "approved" or trust_state in {"weak_evidence", "stale"}:
+    if not safe_to_use or revision_review_state != "approved" or trust_state in {"weak_evidence", "stale"}:
         return "review"
     return "safe"
 
@@ -87,12 +87,12 @@ def _decision_status_badges_html(components: ComponentPresenter, item: dict[str,
         safe_to_use=bool(use_guidance.get("safe_to_use")),
     )
     freshness_label, freshness_tone = freshness_status(int(item.get("freshness_rank") or 0))
-    approval_label, approval_tone = approval_status(state["approval_state"])
+    review_label, review_tone = review_state_status(state["revision_review_state"])
     return join_html(
         [
             components.badge(label="Risk", value=risk_label, tone=risk_tone),
             components.badge(label="Freshness", value=freshness_label, tone=freshness_tone),
-            components.badge(label="Approval", value=approval_label, tone=approval_tone),
+            components.badge(label="Review", value=review_label, tone=review_tone),
         ],
         " ",
     )
@@ -144,7 +144,7 @@ def present_queue_page(
     query: str,
     selected_type: str,
     selected_trust: str,
-    selected_approval: str,
+    selected_review_state: str,
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     normalized_items = []
@@ -182,12 +182,12 @@ def present_queue_page(
         f'<option value="stale"{" selected" if selected_trust == "stale" else ""}>Stale</option>'
         f'<option value="suspect"{" selected" if selected_trust == "suspect" else ""}>Suspect</option>'
         "</select>"
-        '<select name="approval">'
-        f'<option value=""{" selected" if not selected_approval else ""}>All approval</option>'
-        f'<option value="approved"{" selected" if selected_approval == "approved" else ""}>Approved</option>'
-        f'<option value="in_review"{" selected" if selected_approval == "in_review" else ""}>In review</option>'
-        f'<option value="draft"{" selected" if selected_approval == "draft" else ""}>Draft</option>'
-        f'<option value="rejected"{" selected" if selected_approval == "rejected" else ""}>Rejected</option>'
+        '<select name="review_state">'
+        f'<option value=""{" selected" if not selected_review_state else ""}>All review states</option>'
+        f'<option value="approved"{" selected" if selected_review_state == "approved" else ""}>Approved</option>'
+        f'<option value="in_review"{" selected" if selected_review_state == "in_review" else ""}>In review</option>'
+        f'<option value="draft"{" selected" if selected_review_state == "draft" else ""}>Draft</option>'
+        f'<option value="rejected"{" selected" if selected_review_state == "rejected" else ""}>Rejected</option>'
         "</select>"
         '<button class="button button-primary" type="submit">Show best matches</button>'
         "</form>"

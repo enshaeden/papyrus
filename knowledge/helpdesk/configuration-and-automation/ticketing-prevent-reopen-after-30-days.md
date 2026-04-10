@@ -7,7 +7,7 @@ summary: "This <TICKETING_SYSTEM> automation rule prevents customers from \u201C
   \ that was resolved 30+ days ago . It then..."
 knowledge_object_type: runbook
 legacy_article_type: SOP
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

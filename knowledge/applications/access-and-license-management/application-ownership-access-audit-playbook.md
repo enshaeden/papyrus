@@ -6,7 +6,7 @@ summary: This article centralizes <BUSINESS_APPLICATION_C> emails, the <ASSET_MA
   and a plug and play <KNOWLEDGE_PORTAL> article template to use after owner confirmation.
 knowledge_object_type: runbook
 legacy_article_type: SOP
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

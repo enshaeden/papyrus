@@ -5,7 +5,7 @@ canonical_path: knowledge/troubleshooting/onsite-support/in-office-it-support-wa
 summary: Purpose
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

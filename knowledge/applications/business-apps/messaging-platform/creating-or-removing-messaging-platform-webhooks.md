@@ -6,7 +6,7 @@ summary: "Users will occasionally ask for <MESSAGING_PLATFORM> integration endpo
   \ they can automate notifications to their channels. Here\u2019s how."
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

@@ -6,7 +6,7 @@ summary: We are currently providing two licenses within the <BUSINESS_APPLICATIO
   approval is required before provisioning access to any user.
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

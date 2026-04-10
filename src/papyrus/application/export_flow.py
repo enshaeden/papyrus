@@ -33,7 +33,7 @@ def approved_export_object_ids(database_path: str | Path = DB_PATH) -> set[str]:
             """
             SELECT object_id
             FROM search_documents
-            WHERE approval_state = 'approved'
+            WHERE revision_review_state = 'approved'
             """
         ).fetchall()
         return {str(row["object_id"]) for row in rows}

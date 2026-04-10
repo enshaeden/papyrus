@@ -885,7 +885,7 @@ def render_explorer_page(articles: list, taxonomies: dict[str, dict[str, object]
                 "path": article.relative_path,
                 "site_path": site_href(current_relative, site_relative_path_for_article(article)),
                 "type": primary_object_type(article),
-                "status": article.metadata["status"],
+                "status": article.metadata["object_lifecycle_state"],
                 "owner": article.metadata["owner"],
                 "team": article.metadata["team"],
                 "audience": article.metadata["audience"],
@@ -1056,7 +1056,7 @@ def render_manager_page(
         (title, description, page_href(current_relative, target["page"]))
         for title, description, target in MANAGER_SHORTCUTS
     ]
-    status_counts = Counter(article.metadata["status"] for article in articles)
+    status_counts = Counter(article.metadata["object_lifecycle_state"] for article in articles)
     team_counts = Counter(article.metadata["team"] for article in articles)
     stale_rows = stale_articles(
         articles,
@@ -1206,7 +1206,7 @@ def render_content_health_page(
     missing_owners = missing_owner_articles(articles)
     isolated = relationless_articles(articles)
     stale_rows = stale_articles(articles, taxonomies, dt.date.today(), {"active", "deprecated"})
-    status_counts = Counter(article.metadata["status"] for article in articles)
+    status_counts = Counter(article.metadata["object_lifecycle_state"] for article in articles)
 
     lines = [
         "<!-- Generated from canonical source content. Do not edit here. -->",
@@ -1374,7 +1374,7 @@ def render_landing_page(
         ("By Service", "Browse approved export content grouped by service area.", page_href(current_relative, "by-service.md")),
         ("By Type", "Browse approved export content grouped by knowledge object type.", page_href(current_relative, "by-type.md")),
     ]
-    status_counts = Counter(article.metadata["status"] for article in articles)
+    status_counts = Counter(article.metadata["object_lifecycle_state"] for article in articles)
     metrics = [
         (str(len(visible_articles)), "approved navigation articles"),
         (str(len(articles)), "approved export knowledge objects"),
@@ -1450,8 +1450,8 @@ def main() -> int:
     by_id = {article.metadata["id"]: article for article in articles}
     visible_status_list = navigation_statuses(policy)
     visible_statuses = set(visible_status_list)
-    visible_articles = [article for article in articles if article.metadata["status"] in visible_statuses]
-    archived_articles = [article for article in articles if article.metadata["status"] == "archived"]
+    visible_articles = [article for article in articles if article.metadata["object_lifecycle_state"] in visible_statuses]
+    archived_articles = [article for article in articles if article.metadata["object_lifecycle_state"] == "archived"]
     outbound_graph = reference_graph(articles)
     inbound_graph = inverse_reference_graph(outbound_graph)
     allowed_repo_paths = {
@@ -1512,7 +1512,7 @@ def main() -> int:
             by_tag[tag].append(article)
 
     for article in articles:
-        by_status[article.metadata["status"]].append(article)
+        by_status[article.metadata["object_lifecycle_state"]].append(article)
 
     knowledge_root = GENERATED_SITE_DOCS_DIR / "knowledge"
     knowledge_root.mkdir(parents=True, exist_ok=True)

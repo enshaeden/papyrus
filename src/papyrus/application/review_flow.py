@@ -80,15 +80,15 @@ def _archive_canonical_path(canonical_path: str) -> str:
 
 
 def _object_lifecycle_state(row: sqlite3.Row) -> str:
-    return str(row["object_lifecycle_state"] or row["status"])
+    return str(row["object_lifecycle_state"])
 
 
 def _revision_review_state(row: sqlite3.Row) -> str:
-    return str(row["revision_review_state"] or row["revision_state"])
+    return str(row["revision_review_state"])
 
 
 def _draft_progress_state(row: sqlite3.Row) -> str:
-    return str(row["draft_progress_state"] or row["draft_state"] or DraftProgressState.READY_FOR_REVIEW.value)
+    return str(row["draft_progress_state"] or DraftProgressState.READY_FOR_REVIEW.value)
 
 
 def _source_sync_state(row: sqlite3.Row) -> str:
@@ -110,7 +110,7 @@ def _row_to_object(row: sqlite3.Row) -> KnowledgeObject:
         object_id=row["object_id"],
         object_type=row["object_type"],
         title=row["title"],
-        status=_object_lifecycle_state(row),
+        object_lifecycle_state=_object_lifecycle_state(row),
         owner=row["owner"],
         team=row["team"],
         canonical_path=row["canonical_path"],
@@ -243,7 +243,7 @@ class GovernanceWorkflow:
         team: str,
         canonical_path: str,
         actor: str,
-        status: str = KnowledgeLifecycleStatus.DRAFT.value,
+        object_lifecycle_state: str = KnowledgeLifecycleStatus.DRAFT.value,
         source_type: str = "native",
         source_system: str = "repository",
         source_title: str | None = None,
@@ -259,7 +259,7 @@ class GovernanceWorkflow:
             if get_knowledge_object(connection, object_id) is not None:
                 raise ValueError(f"knowledge object already exists: {object_id}")
             self.authority.validate_canonical_repo_relative_path(canonical_path)
-            ObjectLifecycleState(status)
+            ObjectLifecycleState(object_lifecycle_state)
 
             upsert_knowledge_object(
                 connection,
@@ -268,8 +268,7 @@ class GovernanceWorkflow:
                 legacy_type=legacy_type,
                 title=title,
                 summary=summary,
-                status=status,
-                object_lifecycle_state=status,
+                object_lifecycle_state=object_lifecycle_state,
                 owner=owner,
                 team=team,
                 canonical_path=canonical_path,
@@ -290,7 +289,7 @@ class GovernanceWorkflow:
             details = {
                 "object_type": object_type,
                 "canonical_path": canonical_path,
-                "status": status,
+                "object_lifecycle_state": object_lifecycle_state,
             }
             insert_audit_event(
                 connection,
@@ -346,7 +345,6 @@ class GovernanceWorkflow:
                 revision_id=revision_id,
                 object_id=object_id,
                 revision_number=revision_number,
-                revision_state=RevisionReviewStatus.DRAFT.value,
                 revision_review_state=RevisionReviewState.DRAFT.value,
                 draft_progress_state=DraftProgressState.READY_FOR_REVIEW.value,
                 source_path=str(parsed.metadata["canonical_path"]),
@@ -359,7 +357,7 @@ class GovernanceWorkflow:
             )
 
             current_object_lifecycle = _object_lifecycle_state(object_row)
-            next_object_lifecycle = str(parsed.metadata["status"])
+            next_object_lifecycle = str(parsed.metadata["object_lifecycle_state"])
             self.authority.require_object_lifecycle_transition(
                 current_object_lifecycle,
                 next_object_lifecycle,
@@ -371,7 +369,6 @@ class GovernanceWorkflow:
                 legacy_type=object_row["legacy_type"],
                 title=str(parsed.metadata["title"]),
                 summary=str(parsed.metadata["summary"]),
-                status=next_object_lifecycle,
                 object_lifecycle_state=next_object_lifecycle,
                 owner=str(parsed.metadata["owner"]),
                 team=str(parsed.metadata["team"]),
@@ -448,7 +445,6 @@ class GovernanceWorkflow:
             update_knowledge_revision_state(
                 connection,
                 revision_id=revision_id,
-                revision_state=RevisionReviewStatus.IN_REVIEW.value,
                 revision_review_state=RevisionReviewState.IN_REVIEW.value,
                 draft_progress_state=draft_progress_state,
             )
@@ -604,13 +600,12 @@ class GovernanceWorkflow:
             update_knowledge_revision_state(
                 connection,
                 revision_id=revision_id,
-                revision_state=RevisionReviewStatus.APPROVED.value,
                 revision_review_state=RevisionReviewState.APPROVED.value,
                 draft_progress_state=_draft_progress_state(revision_row),
             )
             payload = json.loads(revision_row["normalized_payload_json"])
             parsed = self.runtime.parse_revision(payload, revision_row["body_markdown"])
-            next_object_lifecycle = str(parsed.metadata["status"])
+            next_object_lifecycle = str(parsed.metadata["object_lifecycle_state"])
             object_decision = None
             current_object_lifecycle = _object_lifecycle_state(object_row)
             if current_object_lifecycle != next_object_lifecycle:
@@ -621,7 +616,6 @@ class GovernanceWorkflow:
             update_knowledge_object_runtime_state(
                 connection,
                 object_id=object_id,
-                status=next_object_lifecycle,
                 object_lifecycle_state=next_object_lifecycle,
                 trust_state=runtime_trust_state(
                     base_trust_state=parsed.trust_state,
@@ -726,7 +720,6 @@ class GovernanceWorkflow:
             update_knowledge_revision_state(
                 connection,
                 revision_id=revision_id,
-                revision_state=RevisionReviewStatus.REJECTED.value,
                 revision_review_state=RevisionReviewState.REJECTED.value,
                 draft_progress_state=_draft_progress_state(revision_row),
             )
@@ -810,7 +803,6 @@ class GovernanceWorkflow:
                     update_knowledge_revision_state(
                         connection,
                         revision_id=source_object["current_revision_id"],
-                        revision_state=RevisionReviewStatus.SUPERSEDED.value,
                         revision_review_state=RevisionReviewState.SUPERSEDED.value,
                     )
 
@@ -821,7 +813,6 @@ class GovernanceWorkflow:
             update_knowledge_object_runtime_state(
                 connection,
                 object_id=object_id,
-                status=KnowledgeLifecycleStatus.DEPRECATED.value,
                 object_lifecycle_state=ObjectLifecycleState.DEPRECATED.value,
                 trust_state=TrustState.SUSPECT.value,
             )
@@ -893,7 +884,7 @@ class GovernanceWorkflow:
 
             current_source_text = current_file_path.read_text(encoding="utf-8") if current_file_path.exists() else None
             archived_metadata = dict(metadata)
-            archived_metadata["status"] = ObjectLifecycleState.ARCHIVED.value
+            archived_metadata["object_lifecycle_state"] = ObjectLifecycleState.ARCHIVED.value
             archived_metadata["canonical_path"] = archived_canonical_path
             archived_metadata["retirement_reason"] = retirement_reason
             archived_metadata["updated"] = now.date().isoformat()
@@ -952,7 +943,6 @@ class GovernanceWorkflow:
                     body_markdown=str(revision_row["body_markdown"]),
                     normalized_payload_json=archived_payload_json,
                     blueprint_id=str(revision_row["blueprint_id"] or object_row["object_type"]),
-                    draft_state=str(revision_row["draft_state"] or _draft_progress_state(revision_row)),
                     draft_progress_state=_draft_progress_state(revision_row),
                     section_content_json=str(revision_row["section_content_json"]),
                     section_completion_json=str(revision_row["section_completion_json"]),
@@ -962,7 +952,6 @@ class GovernanceWorkflow:
                     connection,
                     object_id=object_id,
                     canonical_path=archived_canonical_path,
-                    status=ObjectLifecycleState.ARCHIVED.value,
                     object_lifecycle_state=ObjectLifecycleState.ARCHIVED.value,
                     source_sync_state=SourceSyncState.APPLIED.value,
                     source_sync_revision_id=current_revision_id,

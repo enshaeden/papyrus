@@ -6,7 +6,7 @@ summary: Restore common office printing failures by checking queue state, consum
   mappings.
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: native
 source_system: repository

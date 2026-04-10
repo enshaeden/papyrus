@@ -32,7 +32,7 @@ class KnowledgeObject:
     object_id: str
     object_type: str
     title: str
-    status: str
+    object_lifecycle_state: str
     owner: str
     team: str
     canonical_path: str
@@ -173,7 +173,6 @@ class ParsedKnowledgeObjectSource:
     related_services: list[str]
     related_object_ids: list[str]
     trust_state: str
-    approval_state: str
     freshness_rank: int
     citation_health_rank: int
     ownership_rank: int

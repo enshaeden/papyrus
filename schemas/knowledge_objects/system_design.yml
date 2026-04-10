@@ -23,7 +23,7 @@ fields:
   legacy_article_type:
     kind: string_or_null
     required: true
-  status:
+  object_lifecycle_state:
     kind: string
     required: true
     taxonomy: statuses

@@ -5,7 +5,7 @@ canonical_path: knowledge/assets/loaners/loaner-laptop-policy.md
 summary: Deprecated variant of the loaner policy. Use the shared loaner-device policy and the site-specific access page instead.
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: deprecated
+object_lifecycle_state: deprecated
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

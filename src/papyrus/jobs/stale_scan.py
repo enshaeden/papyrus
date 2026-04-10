@@ -23,8 +23,8 @@ def stale_documents(
 ) -> list[tuple[int, KnowledgeDocument, dt.date]]:
     stale_rows = []
     for document in documents:
-        status = document.metadata.get("status")
-        if allowed_statuses and status not in allowed_statuses:
+        object_lifecycle_state = document.metadata.get("object_lifecycle_state")
+        if allowed_statuses and object_lifecycle_state not in allowed_statuses:
             continue
         cadence_days = cadence_to_days(document.metadata["review_cadence"], taxonomies)
         if cadence_days is None:
@@ -43,7 +43,7 @@ class RuntimeStaleKnowledgeObject:
     title: str
     path: str
     due_date: dt.date
-    status: str
+    object_lifecycle_state: str
 
 
 def stale_runtime_objects(
@@ -54,15 +54,15 @@ def stale_runtime_objects(
 ) -> list[RuntimeStaleKnowledgeObject]:
     rows = connection.execute(
         """
-        SELECT object_id, title, canonical_path, status, last_reviewed, review_cadence
+        SELECT object_id, title, canonical_path, object_lifecycle_state, last_reviewed, review_cadence
         FROM knowledge_objects
         ORDER BY title
         """
     ).fetchall()
     stale_rows: list[RuntimeStaleKnowledgeObject] = []
     for row in rows:
-        status = str(row["status"])
-        if allowed_statuses and status not in allowed_statuses:
+        object_lifecycle_state = str(row["object_lifecycle_state"])
+        if allowed_statuses and object_lifecycle_state not in allowed_statuses:
             continue
         cadence_days = cadence_to_days(str(row["review_cadence"]), taxonomies)
         if cadence_days is None:
@@ -77,7 +77,7 @@ def stale_runtime_objects(
                     title=str(row["title"]),
                     path=str(row["canonical_path"]),
                     due_date=due_date,
-                    status=status,
+                    object_lifecycle_state=object_lifecycle_state,
                 )
             )
     return sorted(stale_rows, key=lambda row: (row.days_overdue, row.title), reverse=True)

@@ -116,7 +116,7 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
                 eyebrow="Services",
                 body_html=(
                     f"<p><strong>Linked guidance:</strong> {escape(detail['service_posture']['linked_object_count'])}</p>"
-                    f"<p><strong>Non-approved items:</strong> {escape(detail['service_posture']['non_approved_count'])}</p>"
+                    f"<p><strong>Items needing review:</strong> {escape(detail['service_posture']['review_required_count'])}</p>"
                     f"<p><strong>Degraded items:</strong> {escape(detail['service_posture']['degraded_count'])}</p>"
                 ),
             ),
@@ -134,7 +134,7 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
                         meta=[escape(item["object_id"])],
                     ),
                     components.decision_cell(
-                        title_html=escape(f"{item['trust_state']} / {item['approval_state'] or 'unknown'}"),
+                        title_html=escape(f"{item['trust_state']} / {item['revision_review_state'] or 'unknown'}"),
                         supporting_html=escape("Use this item when you need the service-specific operational answer."),
                     ),
                     components.decision_cell(

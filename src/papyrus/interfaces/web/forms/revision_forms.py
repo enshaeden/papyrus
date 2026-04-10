@@ -15,7 +15,7 @@ from papyrus.interfaces.web.view_helpers import parse_csvish, parse_multiline
 COMMON_FIELDS = (
     "title",
     "summary",
-    "status",
+    "object_lifecycle_state",
     "owner",
     "team",
     "review_cadence",
@@ -82,7 +82,11 @@ def build_revision_defaults(detail: dict[str, Any]) -> dict[str, str]:
     values = {
         "title": _metadata_value(metadata, "title", object_info["title"]),
         "summary": _metadata_value(metadata, "summary", object_info["summary"]),
-        "status": _metadata_value(metadata, "status", object_info["object_lifecycle_state"]),
+        "object_lifecycle_state": _metadata_value(
+            metadata,
+            "object_lifecycle_state",
+            object_info["object_lifecycle_state"],
+        ),
         "owner": _metadata_value(metadata, "owner", object_info["owner"]),
         "team": _metadata_value(metadata, "team", object_info["team"]),
         "review_cadence": _metadata_value(metadata, "review_cadence", object_info["review_cadence"]),
@@ -275,8 +279,8 @@ def validate_revision_form(
         add_error("review_cadence", "Choose a valid review cadence.")
     if values.get("audience", "") not in taxonomies["audiences"]["allowed_values"]:
         add_error("audience", "Choose a valid audience.")
-    if values.get("status", "") not in taxonomies["statuses"]["allowed_values"]:
-        add_error("status", "Choose a valid status.")
+    if values.get("object_lifecycle_state", "") not in taxonomies["statuses"]["allowed_values"]:
+        add_error("object_lifecycle_state", "Choose a valid lifecycle state.")
 
     citations = _citation_entries(values)
     if not citations:
@@ -325,7 +329,7 @@ def validate_revision_form(
         "summary": values["summary"].strip(),
         "knowledge_object_type": object_type,
         "legacy_article_type": metadata.get("legacy_article_type"),
-        "status": values["status"].strip(),
+        "object_lifecycle_state": values["object_lifecycle_state"].strip(),
         "owner": values["owner"].strip(),
         "source_type": str(metadata.get("source_type") or "native"),
         "source_system": str(metadata.get("source_system") or "repository"),

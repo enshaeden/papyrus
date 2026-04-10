@@ -6,7 +6,7 @@ summary: New hire onboarding sessions are typically held on Mondays or on the de
   by HR .
 knowledge_object_type: runbook
 legacy_article_type: onboarding
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

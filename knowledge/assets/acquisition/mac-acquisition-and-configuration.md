@@ -7,7 +7,7 @@ summary: All Mac laptops are configured through the automated device enrollment.
   and are automatically enrolled in our <ENDPOINT_MANAGEMENT_PLATFORM> environment during the... Deprecated duplicate; use the deployment guide instead.
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: deprecated
+object_lifecycle_state: deprecated
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

@@ -5,7 +5,7 @@ canonical_path: knowledge/applications/access-and-license-management/app-owner-r
 summary: Review and update application ownership records when the listed owner is no longer active.
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

@@ -58,7 +58,7 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("contract-driven surface boundary", readme)
         self.assertIn("backend/ui cut line", system_model)
         self.assertIn("do not reintroduce route-local policy checks", system_model)
-        self.assertIn("surfaces render `ui_projection`", operator_readiness)
+        self.assertIn("read, write, and review surfaces now use explicit lifecycle and review fields", operator_readiness)
         self.assertIn("should not derive governed action availability", operator_web_ui)
 
     def test_docs_record_recovery_behavior_and_remaining_fallback_debt(self) -> None:
@@ -70,8 +70,14 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("stale journals and stale locks", getting_started)
         self.assertIn("remaining technical debt", operator_readiness)
 
-    def test_operator_ui_docs_record_governed_tonal_language(self) -> None:
+    def test_operator_ui_docs_record_stable_shell_and_boundary_rules(self) -> None:
         operator_web_ui = (ROOT / "docs" / "reference" / "operator-web-ui.md").read_text(encoding="utf-8").lower()
-        self.assertIn("identity and intent", operator_web_ui)
-        self.assertIn("authority and depth", operator_web_ui)
-        self.assertIn("context and grouping", operator_web_ui)
+        self.assertIn("route handlers stay thin", operator_web_ui)
+        self.assertIn("shell variants are explicit", operator_web_ui)
+        self.assertIn("templates and routes should not derive governed action availability", operator_web_ui)
+
+    def test_docs_do_not_describe_removed_compatibility_aliases_as_active_contract(self) -> None:
+        system_model = (ROOT / "docs" / "reference" / "system-model.md").read_text(encoding="utf-8").lower()
+        operator_readiness = (ROOT / "docs" / "reference" / "operator-readiness.md").read_text(encoding="utf-8").lower()
+        self.assertNotIn("still projects compatibility aliases", system_model)
+        self.assertNotIn("still expose compatibility aliases", operator_readiness)

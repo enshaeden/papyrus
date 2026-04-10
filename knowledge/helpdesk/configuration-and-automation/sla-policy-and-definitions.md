@@ -5,7 +5,7 @@ canonical_path: knowledge/helpdesk/configuration-and-automation/sla-policy-and-d
 summary: 'Timezone: <TICKETING_SYSTEM> default (GMT 08:00) Los Angeles.'
 knowledge_object_type: service_record
 legacy_article_type: policy
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

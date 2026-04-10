@@ -7,7 +7,7 @@ summary: "If a user breaks or loses their phone (or cannot otherwise access it),
   \ it\u2019s necessary we take..."
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

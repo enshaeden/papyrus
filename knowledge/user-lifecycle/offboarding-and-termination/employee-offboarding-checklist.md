@@ -5,7 +5,7 @@ canonical_path: knowledge/user-lifecycle/offboarding-and-termination/employee-of
 summary: Disable access, recover assets, and preserve required records when a user leaves the organization.
 knowledge_object_type: runbook
 legacy_article_type: offboarding
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: native
 source_system: repository

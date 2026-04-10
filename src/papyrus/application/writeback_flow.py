@@ -43,7 +43,7 @@ def _source_sync_state(row: sqlite3.Row) -> str:
 
 
 def _revision_review_state(row: sqlite3.Row) -> str:
-    return str(row["revision_review_state"] or row["revision_state"])
+    return str(row["revision_review_state"])
 
 
 def _policy_authority(authority: PolicyAuthority | None) -> PolicyAuthority:
@@ -196,7 +196,7 @@ def _previous_approved_revision(
         FROM knowledge_revisions
         WHERE object_id = ?
           AND revision_id != ?
-          AND COALESCE(revision_review_state, revision_state) = 'approved'
+          AND revision_review_state = 'approved'
         ORDER BY revision_number DESC
         LIMIT 1
         """,
@@ -636,7 +636,7 @@ def write_all_approved_revisions(
             SELECT o.object_id, o.current_revision_id
             FROM knowledge_objects AS o
             JOIN knowledge_revisions AS r ON r.revision_id = o.current_revision_id
-            WHERE COALESCE(r.revision_review_state, r.revision_state) = 'approved'
+            WHERE r.revision_review_state = 'approved'
             ORDER BY o.object_id
             """
         ).fetchall()

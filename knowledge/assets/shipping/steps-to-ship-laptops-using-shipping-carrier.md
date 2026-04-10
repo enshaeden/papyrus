@@ -5,7 +5,7 @@ canonical_path: knowledge/assets/shipping/steps-to-ship-laptops-using-shipping-c
 summary: Quick-start guide for laptop shipments through the shared carrier workflow.
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

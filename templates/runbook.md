@@ -5,7 +5,7 @@ canonical_path: {{canonical_path}}
 summary: Replace with a concise operational summary.
 knowledge_object_type: runbook
 legacy_article_type: null
-status: {{status}}
+object_lifecycle_state: {{object_lifecycle_state}}
 owner: {{owner}}
 source_type: native
 source_system: repository

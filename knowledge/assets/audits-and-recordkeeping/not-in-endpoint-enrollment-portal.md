@@ -7,7 +7,7 @@ summary: To ensure all devices are properly accounted for in <ENDPOINT_ENROLLMEN
   <ENDPOINT_ENROLLMENT_PORTAL> and alerts the team when action is required.
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

@@ -269,7 +269,7 @@ class InterfaceSurfaceTests(unittest.TestCase):
                     "canonical_path": "knowledge/runbooks/api-created-object.md",
                     "actor": "tests",
                     "review_cadence": "quarterly",
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "systems": ["Remote Access Gateway"],
                     "tags": ["vpn"],
                 },

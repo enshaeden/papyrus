@@ -53,7 +53,7 @@ COMMON_STEWARDSHIP_SECTION = BlueprintSection(
         _field("summary", "Summary", kind="long_text", placeholder="Summarize the outcome and when to use it."),
         _field("owner", "Owner", kind="text", placeholder="Team or person responsible"),
         _field("team", "Team", kind="select", taxonomy="teams"),
-        _field("status", "Status", kind="select", taxonomy="statuses"),
+        _field("object_lifecycle_state", "Lifecycle state", kind="select", taxonomy="statuses"),
         _field("review_cadence", "Review cadence", kind="select", taxonomy="review_cadences"),
         _field("audience", "Audience", kind="select", taxonomy="audiences"),
         _field("systems", "Related systems", kind="list", required=False, placeholder="Add one related system per line."),
@@ -247,7 +247,7 @@ RUNBOOK_BLUEPRINT = Blueprint(
     ),
     validation_rules={"require_related_service": True},
     evidence_requirements={"minimum_citations": 1},
-    lifecycle_defaults={"status": "draft", "review_cadence": "quarterly"},
+    lifecycle_defaults={"object_lifecycle_state": "draft", "review_cadence": "quarterly"},
 )
 
 KNOWN_ERROR_BLUEPRINT = Blueprint(
@@ -328,7 +328,7 @@ KNOWN_ERROR_BLUEPRINT = Blueprint(
     ),
     validation_rules={"require_related_service": True},
     evidence_requirements={"minimum_citations": 1},
-    lifecycle_defaults={"status": "draft", "review_cadence": "after_change"},
+    lifecycle_defaults={"object_lifecycle_state": "draft", "review_cadence": "after_change"},
 )
 
 SERVICE_RECORD_BLUEPRINT = Blueprint(
@@ -416,7 +416,7 @@ SERVICE_RECORD_BLUEPRINT = Blueprint(
     ),
     validation_rules={"require_dependencies": True},
     evidence_requirements={"minimum_citations": 1},
-    lifecycle_defaults={"status": "draft", "review_cadence": "quarterly"},
+    lifecycle_defaults={"object_lifecycle_state": "draft", "review_cadence": "quarterly"},
 )
 
 POLICY_BLUEPRINT = Blueprint(
@@ -462,7 +462,7 @@ POLICY_BLUEPRINT = Blueprint(
     required_sections=("identity", "stewardship", "policy_scope", "controls", "evidence"),
     ordering=("identity", "stewardship", "policy_scope", "controls", "exceptions", "evidence", "relationships"),
     evidence_requirements={"minimum_citations": 1},
-    lifecycle_defaults={"status": "draft", "review_cadence": "annual"},
+    lifecycle_defaults={"object_lifecycle_state": "draft", "review_cadence": "annual"},
 )
 
 SYSTEM_DESIGN_BLUEPRINT = Blueprint(
@@ -545,7 +545,7 @@ SYSTEM_DESIGN_BLUEPRINT = Blueprint(
         "relationships",
     ),
     evidence_requirements={"minimum_citations": 1},
-    lifecycle_defaults={"status": "draft", "review_cadence": "after_change"},
+    lifecycle_defaults={"object_lifecycle_state": "draft", "review_cadence": "after_change"},
 )
 
 

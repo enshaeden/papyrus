@@ -39,7 +39,7 @@ class AuthoringFlowTests(unittest.TestCase):
                     "summary": "Govern runtime changes.",
                     "knowledge_object_type": "policy",
                     "legacy_article_type": None,
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "owner": "workflow_owner",
                     "source_type": "native",
                     "source_system": "repository",
@@ -91,7 +91,7 @@ class AuthoringFlowTests(unittest.TestCase):
                 "owner": "workflow_owner",
                 "team": "IT Operations",
                 "canonical_path": "knowledge/policies/artifact-policy.md",
-                "status": "draft",
+                "object_lifecycle_state": "draft",
                 "review_cadence": "annual",
                 "source_type": "native",
                 "source_system": "repository",
@@ -107,7 +107,7 @@ class AuthoringFlowTests(unittest.TestCase):
                     "summary": "Govern artifact updates.",
                     "owner": "workflow_owner",
                     "team": "IT Operations",
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "review_cadence": "annual",
                     "audience": "service_desk",
                     "systems": ["<VPN_SERVICE>"],
@@ -163,7 +163,7 @@ class AuthoringFlowTests(unittest.TestCase):
                 team="IT Operations",
                 canonical_path="knowledge/runbooks/blueprint-runbook.md",
                 review_cadence="quarterly",
-                status="draft",
+                object_lifecycle_state="draft",
             )
             created = create_draft_from_blueprint(
                 object_id="kb-blueprint-runbook",
@@ -220,7 +220,7 @@ class AuthoringFlowTests(unittest.TestCase):
                 team="IT Operations",
                 canonical_path="knowledge/imported/runbook.md",
                 review_cadence="quarterly",
-                status="draft",
+                object_lifecycle_state="draft",
             )
             created = create_draft_from_blueprint(
                 object_id="kb-imported-runbook",
@@ -290,7 +290,7 @@ class AuthoringFlowTests(unittest.TestCase):
                 team="IT Operations",
                 canonical_path="knowledge/policies/remote-access-change-policy.md",
                 review_cadence="annual",
-                status="draft",
+                object_lifecycle_state="draft",
             )
             created = create_draft_from_blueprint(
                 object_id="kb-policy-blueprint",
@@ -357,7 +357,7 @@ class AuthoringFlowTests(unittest.TestCase):
                 team="IT Operations",
                 canonical_path="knowledge/system-designs/identity-platform.md",
                 review_cadence="after_change",
-                status="draft",
+                object_lifecycle_state="draft",
             )
             created = create_draft_from_blueprint(
                 object_id="kb-system-design-blueprint",
@@ -429,7 +429,7 @@ class AuthoringFlowTests(unittest.TestCase):
                 team="IT Operations",
                 canonical_path="knowledge/runbooks/source-root-progress.md",
                 review_cadence="quarterly",
-                status="draft",
+                object_lifecycle_state="draft",
             )
             created = create_draft_from_blueprint(
                 object_id="kb-source-root-progress",
@@ -468,7 +468,7 @@ class AuthoringFlowTests(unittest.TestCase):
                     "summary": "Exercise evidence posture warnings.",
                     "owner": "workflow_owner",
                     "team": "IT Operations",
-                    "status": "draft",
+                    "object_lifecycle_state": "draft",
                     "review_cadence": "quarterly",
                     "audience": "service_desk",
                     "systems": ["<VPN_SERVICE>"],

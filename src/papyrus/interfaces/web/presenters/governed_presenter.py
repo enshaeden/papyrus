@@ -276,11 +276,10 @@ def render_projection_status_panel(
                 [
                     ("Next action", escape(use_guidance.get("next_action") or "Papyrus did not return a next action for this view.")),
                     ("Lifecycle", escape(state.get("object_lifecycle_state") or "unknown")),
-                    ("Revision", escape(state.get("revision_review_state") or "unknown")),
+                    ("Review state", escape(state.get("revision_review_state") or "unknown")),
                     ("Draft progress", escape(state.get("draft_progress_state") or "unknown")),
                     ("Source sync", escape(state.get("source_sync_state") or "unknown")),
                     ("Trust", escape(state.get("trust_state") or "unknown")),
-                    ("Approval", escape(state.get("approval_state") or "unknown")),
                 ]
             ),
             (

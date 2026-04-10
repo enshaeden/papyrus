@@ -46,7 +46,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "summary": f"Runbook for {title.lower()}",
         "knowledge_object_type": "runbook",
         "legacy_article_type": None,
-        "status": "active",
+        "object_lifecycle_state": "active",
         "owner": "workflow_owner",
         "source_type": "native",
         "source_system": "repository",
@@ -188,12 +188,12 @@ class GovernanceWorkflowTests(unittest.TestCase):
 
             search_row = read_row(
                 database_path,
-                "SELECT revision_id, approval_state FROM search_documents WHERE object_id = ?",
+                "SELECT revision_id, revision_review_state FROM search_documents WHERE object_id = ?",
                 (payload["id"],),
             )
             self.assertIsNotNone(search_row)
             self.assertEqual(search_row["revision_id"], approved.revision_id)
-            self.assertEqual(search_row["approval_state"], "approved")
+            self.assertEqual(search_row["revision_review_state"], "approved")
 
             audit_event_types = {
                 row["event_type"]
@@ -290,11 +290,11 @@ class GovernanceWorkflowTests(unittest.TestCase):
 
             search_row = read_row(
                 database_path,
-                "SELECT trust_state, citation_health_rank, approval_state FROM search_documents WHERE object_id = ?",
+                "SELECT trust_state, citation_health_rank, revision_review_state FROM search_documents WHERE object_id = ?",
                 (object_b.object_id,),
             )
             self.assertIsNotNone(search_row)
-            self.assertEqual(search_row["approval_state"], "approved")
+            self.assertEqual(search_row["revision_review_state"], "approved")
             self.assertEqual(search_row["citation_health_rank"], 1)
             self.assertEqual(search_row["trust_state"], "weak_evidence")
 
@@ -324,11 +324,11 @@ class GovernanceWorkflowTests(unittest.TestCase):
 
             object_a_row = read_row(
                 database_path,
-                "SELECT status FROM knowledge_objects WHERE object_id = ?",
+                "SELECT object_lifecycle_state FROM knowledge_objects WHERE object_id = ?",
                 (object_a.object_id,),
             )
             self.assertIsNotNone(object_a_row)
-            self.assertEqual(object_a_row["status"], "deprecated")
+            self.assertEqual(object_a_row["object_lifecycle_state"], "deprecated")
 
             relationship_row = read_row(
                 database_path,
@@ -471,12 +471,12 @@ class GovernanceWorkflowTests(unittest.TestCase):
 
             search_row = read_row(
                 database_path,
-                "SELECT trust_state, approval_state FROM search_documents WHERE object_id = ?",
+                "SELECT trust_state, revision_review_state FROM search_documents WHERE object_id = ?",
                 (object_id,),
             )
             self.assertIsNotNone(search_row)
             self.assertEqual(search_row["trust_state"], "suspect")
-            self.assertEqual(search_row["approval_state"], "approved")
+            self.assertEqual(search_row["revision_review_state"], "approved")
 
 
 if __name__ == "__main__":

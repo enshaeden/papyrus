@@ -29,11 +29,11 @@ fields:
     required: true
     taxonomy: article_types
     description: Controlled legacy article type.
-  status:
+  object_lifecycle_state:
     kind: string
     required: true
     taxonomy: statuses
-    description: Lifecycle status.
+    description: Lifecycle state.
   owner:
     kind: string
     required: true

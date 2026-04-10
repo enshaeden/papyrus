@@ -7,7 +7,7 @@ summary: This page provides end users with a simple, standardized way to report 
   all global offices.
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

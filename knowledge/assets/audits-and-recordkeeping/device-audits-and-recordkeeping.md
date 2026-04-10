@@ -5,7 +5,7 @@ canonical_path: knowledge/assets/audits-and-recordkeeping/device-audits-and-reco
 summary: Canonical article for Device Audits and Recordkeeping imported from <KNOWLEDGE_PORTAL>.
 knowledge_object_type: runbook
 legacy_article_type: asset
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: imported
 source_system: knowledge_portal_export

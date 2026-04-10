@@ -6,7 +6,7 @@ summary: Restore user access when the account password is unknown or repeated si
   an account lockout.
 knowledge_object_type: runbook
 legacy_article_type: access
-status: active
+object_lifecycle_state: active
 owner: service_owner
 source_type: native
 source_system: repository

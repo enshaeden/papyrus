@@ -32,7 +32,7 @@ def register(router, runtime) -> None:
                     "object_type": str(candidate["object_type"]),
                     "summary": str(reference_projection.get("summary") or use_guidance.get("summary") or ""),
                     "detail": (
-                        f"{state.get('approval_state') or candidate.get('approval_state') or 'unknown'} approval | "
+                        f"{state.get('revision_review_state') or candidate.get('revision_review_state') or 'unknown'} review | "
                         f"{state.get('trust_state') or candidate.get('trust_state') or 'unknown'} trust | "
                         f"{reference_projection.get('detail') or use_guidance.get('detail') or 'Reference available.'}"
                     ),
@@ -59,7 +59,7 @@ def register(router, runtime) -> None:
                     "detail": (
                         f"Ref {candidate['object_id']} | {candidate['path']} | "
                         f"{use_guidance.get('summary') or 'Guidance summary unavailable'} | "
-                        f"{state.get('approval_state') or 'unknown'} approval | "
+                        f"{state.get('revision_review_state') or 'unknown'} review | "
                         f"{state.get('trust_state') or 'unknown'} trust"
                     ),
                 }
