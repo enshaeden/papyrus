@@ -112,19 +112,17 @@ class PageRenderer:
                 for section in role_config.nav_sections
             ]
         )
-        actor_banner_html = ""
-        if shell_variant != "focus":
-            actor_banner_html = self.template_renderer.render(
-                "partials/actor_banner.html",
-                {
-                    "actor_display_name": escape(role_config.actor.display_name),
-                    "actor_role_summary": escape(role_config.summary),
-                    "actor_role_label": escape(actor_role_label),
-                    "actor_role_class": escape(actor_role_class),
-                    "current_view_label": escape(current_view_label),
-                    "quick_links_html": quick_links_html,
-                },
-            )
+        actor_banner_html = self.template_renderer.render(
+            "partials/actor_banner.html",
+            {
+                "actor_display_name": escape(role_config.actor.display_name),
+                "actor_role_summary": escape(role_config.summary),
+                "actor_role_label": escape(actor_role_label),
+                "actor_role_class": escape(actor_role_class),
+                "current_view_label": escape(current_view_label),
+                "quick_links_html": quick_links_html if shell_variant != "focus" else "",
+            },
+        )
         sidebar_html = ""
         if shell_variant != "focus":
             sidebar_html = self.template_renderer.render(

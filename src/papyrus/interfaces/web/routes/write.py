@@ -178,10 +178,10 @@ def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[
         + forms.button(label="Start drafting")
         + "</form>"
     )
-    guidance_html = components.section_card(
+    guidance_html = _support_details_html(
         title="What happens next",
-        eyebrow="Write",
-        body_html="<p>After setup, you will complete the first draft one section at a time and then send it for review.</p>",
+        summary="Papyrus opens the first required section after setup.",
+        body_html="<p>After setup, complete one required section at a time and then hand the revision to review.</p>",
     )
     return {
         "validation_html": validation_html,
@@ -345,10 +345,8 @@ def _submit_evidence_posture_detail(evidence_posture: dict[str, object]) -> str:
     return "No evidence references are recorded yet."
 
 
-def _evidence_guidance_section(
-    components,
+def _evidence_guidance_body_html(
     *,
-    title: str,
     include_action: bool = False,
     object_id: str | None = None,
 ) -> str:
@@ -358,15 +356,10 @@ def _evidence_guidance_section(
             '<p><strong>Next step:</strong> request evidence follow-up for any source that still needs stronger verification.</p>'
             + f'<p>{link("Request evidence revalidation", f"/manage/objects/{quoted_path(object_id)}/evidence/revalidate", css_class="button button-secondary")}</p>'
         )
-    return components.section_card(
-        title=title,
-        eyebrow="Evidence",
-        body_html=(
-            "<p>Use this form to link existing guidance or record a source title, reference, and note.</p>"
-            "<p>If a source needs stronger verification, complete evidence follow-up after the draft is saved so capture time, integrity details, and any needed snapshot are recorded.</p>"
-            + action_html
-        ),
-        tone="default",
+    return (
+        "<p>Use this form to link existing guidance or record a source title, reference, and note.</p>"
+        "<p>If a source needs stronger verification, complete evidence follow-up after the draft is saved so capture time, integrity details, and any needed snapshot are recorded.</p>"
+        + action_html
     )
 
 
@@ -1029,7 +1022,12 @@ def _render_fallback_revision_form(
         "validation_html": validation_html,
         "progress_html": _revision_progress_html(components, object_type=object_type, values=values, errors=errors, findings=findings),
         "form_html": components.section_card(title="Advanced draft editor", eyebrow="Write", body_html=body_html),
-        "guidance_html": guidance_html + _evidence_guidance_section(components, title="How evidence gets strengthened"),
+        "guidance_html": guidance_html
+        + _support_details_html(
+            title="How evidence gets strengthened",
+            summary="Use follow-up capture only when a source still needs stronger verification.",
+            body_html=_evidence_guidance_body_html(),
+        ),
     }
 
 
@@ -1070,31 +1068,17 @@ def _render_submit_page(
             + "</form>"
         ),
     )
-    summary_html = join_html(
-        [
-            render_projection_status_panel(
-                components,
-                title="Current governed posture",
-                ui_projection=object_detail.get("ui_projection"),
-            ),
-            render_action_contract_panel(
-                components,
-                title="Submission contract",
-                action=submit_action,
-            ),
-            components.section_card(
-                title="Submission summary",
-                eyebrow="Write",
-                body_html=(
-                    f"<p><strong>Revision:</strong> #{escape(revision['revision_number'])} · {escape(revision['revision_review_state'])}</p>"
-                    f"<p><strong>What changed:</strong> {escape(revision['change_summary'] or 'No change summary recorded.')}</p>"
-                    f"<p><strong>Citations:</strong> {escape(len(detail['citations']))}</p>"
-                    f"<p><strong>Evidence posture:</strong> {escape(evidence_posture['summary'])}</p>"
-                    f"<p><strong>Evidence note:</strong> {escape(_submit_evidence_posture_detail(evidence_posture))}</p>"
-                    f"<p><strong>Publishing location:</strong> {escape(detail['object']['canonical_path'])}</p>"
-                ),
-            ),
-        ]
+    summary_html = components.section_card(
+        title="Submission summary",
+        eyebrow="Write",
+        body_html=(
+            f"<p><strong>Revision:</strong> #{escape(revision['revision_number'])} · {escape(revision['revision_review_state'])}</p>"
+            f"<p><strong>What changed:</strong> {escape(revision['change_summary'] or 'No change summary recorded.')}</p>"
+            f"<p><strong>Citations:</strong> {escape(len(detail['citations']))}</p>"
+            f"<p><strong>Evidence posture:</strong> {escape(evidence_posture['summary'])}</p>"
+            f"<p><strong>Evidence note:</strong> {escape(_submit_evidence_posture_detail(evidence_posture))}</p>"
+            f"<p><strong>Publishing location:</strong> {escape(detail['object']['canonical_path'])}</p>"
+        ),
     )
     findings_html = components.validation_findings(title="Pre-submit validation", items=[escape(item) for item in findings] or ["No blocking findings detected."], tone="warning" if findings else "approved")
     progress_rows = [
@@ -1113,23 +1097,42 @@ def _render_submit_page(
         ),
         footer_html='<p class="section-footer">Send the revision only after the remaining warnings are understood.</p>',
     )
-    guidance_html = ""
-    if any("Evidence posture:" in item for item in findings):
-        guidance_html = _support_details_html(
-            title="How to strengthen weak evidence",
-            summary="Use the manage flow when reviewer confidence depends on stronger capture metadata.",
-            body_html=_evidence_guidance_section(
-                components,
-                title="How evidence gets strengthened",
-                include_action=True,
-                object_id=str(detail["object"]["object_id"]),
+    guidance_sections = [
+        _support_details_html(
+            title="Review the submission contract",
+            summary="See the governed posture and handoff rules without keeping them pinned beside the form.",
+            body_html=join_html(
+                [
+                    render_projection_status_panel(
+                        components,
+                        title="Current governed posture",
+                        ui_projection=object_detail.get("ui_projection"),
+                    ),
+                    render_action_contract_panel(
+                        components,
+                        title="Submission contract",
+                        action=submit_action,
+                    ),
+                ]
             ),
+        )
+    ]
+    if any("Evidence posture:" in item for item in findings):
+        guidance_sections.append(
+            _support_details_html(
+                title="How to strengthen weak evidence",
+                summary="Use the manage flow when reviewer confidence depends on stronger capture metadata.",
+                body_html=_evidence_guidance_body_html(
+                    include_action=True,
+                    object_id=str(detail["object"]["object_id"]),
+                ),
+            )
         )
     return {
         "summary_html": summary_html,
         "progress_html": progress_html,
         "findings_html": findings_html,
-        "guidance_html": guidance_html,
+        "guidance_html": join_html(guidance_sections),
         "form_html": form_html,
     }
 

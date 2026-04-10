@@ -95,7 +95,7 @@ def _dashboard_decision_card_html(components: ComponentPresenter, item: dict[str
         "</div>"
         f'<p class="decision-card-detail">{escape(_dashboard_next_action(item))}</p>'
         f'<div class="decision-card-meta"><span>{escape(item["object_id"])}</span></div>'
-        f'<div class="decision-card-actions">{link(_dashboard_decision_action_label(bucket), _dashboard_item_href(item), css_class="button button-primary" if bucket != "safe" else "button button-secondary")}</div>'
+        f'<div class="decision-card-actions">{link(_dashboard_decision_action_label(bucket), _dashboard_item_href(item), css_class="button button-secondary")}</div>'
         "</article>"
     )
 

@@ -31,12 +31,12 @@ This change does not rework repository schemas, canonical source layout, or the 
 - The shared shell renderer now consumes actor-scoped role configuration for:
   - role landing route
   - a single role-prioritized sidebar navigation section
-  - workflow summary and actor banner context
+  - compact actor context in the page header
   - role switch target path
-- Active actor state is now rendered in the main content area, not only the sidebar:
-  - every page includes an actor banner with the active actor name, role label, current view, and actor-specific priority actions
-  - the actor banner uses role-specific visual treatment so switching roles changes the page header immediately
-  - actor priority actions are derived from actor shell configuration so the visible action set changes with role context
+- Active actor state is now rendered in the page header, not only the shell controls:
+  - every page includes a compact actor strip with the active actor name, role label, current view, and actor-specific quick links when the surface is not in focus mode
+  - the actor strip uses role-specific visual treatment so switching roles changes the page header immediately
+  - actor quick links are derived from actor shell configuration so the visible action set changes with role context
 - The shared shell supports a focus variant for active write work so authoring screens can hide both side rails by default.
 - Surface actions now favor outcome-based labels rather than route names:
   - examples include `Read guidance`, `Review queue`, `Update guidance`, `Review service impact`, and `Create draft`
@@ -75,7 +75,7 @@ This change does not rework repository schemas, canonical source layout, or the 
 - Page headers must stay short and operational:
   - a clear title
   - a short next-step intro
-  - actor context from the shared banner
+  - compact actor context embedded in the same header block
 
 ## Action Hierarchy Rules
 
@@ -114,13 +114,12 @@ This change does not rework repository schemas, canonical source layout, or the 
 - Actor changes must be visible without inference.
 - The active actor must always be identifiable from the shared shell:
   - topbar selector
-  - sidebar role card
-  - actor banner in the main column
-- The actor banner must show:
+  - compact actor strip in the page header
+- The actor strip must show:
   - active actor name
   - role label
   - current view
-  - actor-priority actions
+  - actor-priority quick links on non-focus surfaces
 - Actor-specific action emphasis must change visibly by role, not only through subtle copy changes inside page content.
 
 ## Dependencies Introduced Or Modified
@@ -156,11 +155,10 @@ This change does not rework repository schemas, canonical source layout, or the 
 - Write screens use the focus shell, one active editor at a time, a single progress sidebar, and inline or end-of-step validation instead of persistent governance rails.
 - Queue and health screens now replace wide status tables with grouped decision cards ordered by `Requires attention`, `Needs review`, and `Safe`.
 - Object detail now uses the same risk, freshness, and approval badges as queue and health surfaces, with lifecycle state moved into reference metadata.
-- Actor context now propagates through the shell in three places:
+- Actor context now propagates through the shell in two places:
   - topbar selector for changing actor
-  - sidebar role card for persistent role identity
-  - actor banner in the main column for immediate page-level state, current view, and role-priority actions
-- Duplicate left-rail navigation structures were removed. Each role now sees one ordered navigation block rather than both `Lifecycle` and `Start Here` lists competing for the same destinations.
+  - compact actor strip in the page header for immediate page-level state, current view, and role-priority actions
+- Duplicate left-rail navigation structures were removed. Each role now sees one ordered navigation block without a separate workflow-summary card competing for the same space.
 - Home, read queue, knowledge health, and services index no longer reserve a persistent right rail for instructional filler. Those surfaces use the reclaimed width for primary work content instead.
 - Repeated framing was reduced across home, read, write, import, review, health, and activity surfaces:
   - page intros are now short action-oriented prompts instead of page-definition copy

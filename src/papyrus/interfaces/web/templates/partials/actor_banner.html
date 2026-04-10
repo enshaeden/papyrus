@@ -1,20 +1,12 @@
-<section class="actor-banner actor-banner--{{ actor_role_class }}" aria-label="Active actor context">
-  <div class="actor-banner-main">
-    <p class="actor-banner-kicker">Active actor</p>
-    <div class="actor-banner-heading">
-      <p class="actor-banner-name">{{ actor_display_name }}</p>
-      <span class="actor-banner-role">{{ actor_role_label }}</span>
-    </div>
-    <p class="actor-banner-summary">{{ actor_role_summary }}</p>
+<section class="actor-banner actor-banner--{{ actor_role_class }}" aria-label="Actor context">
+  <div class="actor-banner-primary">
+    <span class="actor-banner-chip-label">Working as</span>
+    <span class="actor-banner-chip actor-banner-chip-identity">{{ actor_display_name }}</span>
+    <span class="actor-banner-role">{{ actor_role_label }}</span>
+    <span class="actor-banner-chip actor-banner-chip-view">View: {{ current_view_label }}</span>
   </div>
-  <div class="actor-banner-context">
-    <p class="actor-banner-label">Current view</p>
-    <p class="actor-banner-value">{{ current_view_label }}</p>
-  </div>
-  <div class="actor-banner-actions">
-    <p class="actor-banner-label">Priority actions</p>
-    <div class="actor-banner-links">
-      {{ quick_links_html }}
-    </div>
+  <p class="actor-banner-summary">{{ actor_role_summary }}</p>
+  <div class="actor-banner-links">
+    {{ quick_links_html }}
   </div>
 </section>

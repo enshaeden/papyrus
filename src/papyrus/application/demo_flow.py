@@ -62,7 +62,7 @@ def _common_payload(
         "id": object_id,
         "title": title,
         "canonical_path": canonical_path,
-        "summary": f"Seeded operational record for {title.lower()}",
+        "summary": f"Operational guidance for {title.lower()}",
         "knowledge_object_type": object_type,
         "legacy_article_type": None,
         "status": "active",
@@ -85,7 +85,7 @@ def _common_payload(
         "services": services,
         "related_articles": [],
         "references": [{"title": item["source_title"], "path": item["source_ref"], "note": item["note"]} for item in citations],
-        "change_log": [{"date": "2026-04-07", "summary": "Seeded baseline revision.", "author": "seed.runtime"}],
+        "change_log": [{"date": "2026-04-07", "summary": "Initial reviewed baseline.", "author": "local.operator"}],
     }
 
 
@@ -236,7 +236,7 @@ def _approve_revision(
         revision_id=revision.revision_id,
         reviewer=reviewer,
         actor=actor,
-        notes="Seeded review assignment.",
+        notes="Assign the initial reviewer for the baseline guidance.",
     )
     approve_revision_command(
         database_path=database_path,
@@ -245,7 +245,7 @@ def _approve_revision(
         revision_id=revision.revision_id,
         reviewer=reviewer,
         actor=reviewer,
-        notes="Approved for the seeded operator runtime.",
+        notes="Approved for the initial local operator runtime.",
     )
     return revision.revision_id
 
@@ -290,7 +290,7 @@ def _scenario_summary(
 
 def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: Path = DEMO_SOURCE_ROOT) -> dict[str, object]:
     result = build_projection_command(database_path=database_path)
-    actor = "seed.runtime"
+    actor = "local.operator"
 
     create_object_command(
         database_path=database_path,
@@ -386,7 +386,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
             canonical_path="knowledge/services/remote-access-service-record.md",
             owner="remote_access_ops",
             service_name="Remote Access",
-            citations=[_citation(title="Remote Access ownership matrix", ref="docs/reference/system-model.md", note="Seeded evidence.", validity_status="verified")],
+            citations=[_citation(title="Remote Access ownership matrix", ref="docs/reference/system-model.md", note="Verified ownership reference.", validity_status="verified")],
             related_runbooks=["kb-remote-access-vpn-recovery"],
             related_known_errors=["kb-troubleshooting-vpn-connectivity", "kb-legacy-vpn-split-tunnel-failure"],
         ),
@@ -404,7 +404,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
             canonical_path="knowledge/runbooks/remote-access-vpn-recovery.md",
             owner="remote_access_ops",
             services=["Remote Access"],
-            citations=[_citation(title="VPN recovery validation", ref="docs/playbooks/read.md", note="Verified seeded evidence.", validity_status="verified")],
+            citations=[_citation(title="VPN recovery validation", ref="docs/playbooks/read.md", note="Verified recovery reference.", validity_status="verified")],
             related_object_ids=["kb-remote-access-service-record", "kb-troubleshooting-vpn-connectivity"],
         ),
         change_summary="Initial approved remote-access recovery runbook.",
@@ -421,7 +421,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
             canonical_path="knowledge/services/identity-service-record.md",
             owner="identity_ops",
             service_name="Identity",
-            citations=[_citation(title="Identity support model", ref="docs/playbooks/manage.md", note="Seeded evidence.", validity_status="verified")],
+            citations=[_citation(title="Identity support model", ref="docs/playbooks/manage.md", note="Verified support reference.", validity_status="verified")],
             related_runbooks=["kb-identity-fallback-sign-in", "kb-password-reset-escalation"],
             related_known_errors=["kb-identity-token-refresh-failure"],
         ),
@@ -439,7 +439,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
             canonical_path="knowledge/runbooks/identity-fallback-sign-in.md",
             owner="identity_ops",
             services=["Identity"],
-            citations=[_citation(title="Fallback access SOP", ref="docs/playbooks/write.md", note="Seeded evidence.", validity_status="verified")],
+            citations=[_citation(title="Fallback access SOP", ref="docs/playbooks/write.md", note="Verified fallback reference.", validity_status="verified")],
             related_object_ids=["kb-identity-service-record", "kb-identity-token-refresh-failure"],
             last_reviewed="2024-01-15",
             review_cadence="quarterly",
@@ -458,7 +458,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
             canonical_path="knowledge/known-errors/identity-token-refresh-failure.md",
             owner="identity_ops",
             services=["Identity"],
-            citations=[_citation(title="Identity change record", ref="docs/reference/operator-web-ui.md", note="Seeded evidence.", validity_status="verified")],
+            citations=[_citation(title="Identity change record", ref="docs/reference/operator-web-ui.md", note="Verified change reference.", validity_status="verified")],
             related_object_ids=["kb-identity-service-record", "kb-identity-fallback-sign-in"],
         ),
         change_summary="Approved known error before dependency drift.",
@@ -516,7 +516,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
         object_id="kb-password-reset-escalation",
         revision_id=pending_revision.revision_id,
         actor=actor,
-        notes="Queue for manager approval in the seeded runtime.",
+        notes="Queue for approval after the escalation threshold change.",
     )
     assign_reviewer_command(
         database_path=database_path,
@@ -525,18 +525,18 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
         revision_id=pending_revision.revision_id,
         reviewer="manager.identity",
         actor=actor,
-        notes="Review queue scenario for the seeded runtime.",
+        notes="Route the revision into the live review queue.",
     )
 
     record_validation_run_command(
         database_path=database_path,
-        run_id="seeded-operator-check-20260407",
+        run_id="operator-readiness-check-20260407",
         run_type="manual_operator_check",
         status="warning",
         finding_count=3,
         details={
-            "scenario": "operator_ready_seeded_runtime",
-            "summary": "Seeded runtime contains one stale runbook, one weak-evidence known error, and one in-review runbook.",
+            "scenario": "operator_readiness_runtime",
+            "summary": "The local runtime contains one stale runbook, one weak-evidence known error, and one in-review runbook.",
         },
         actor=actor,
     )
@@ -599,7 +599,7 @@ def run_operator_scenario(
     scenario: str,
     database_path: Path = DB_PATH,
     source_root: Path = DEMO_SOURCE_ROOT,
-    actor: str = "seed.runtime",
+    actor: str = "local.operator",
 ) -> dict[str, object]:
     normalized = scenario.strip().lower().replace("-", "_")
     if normalized not in OPERATOR_SCENARIOS:

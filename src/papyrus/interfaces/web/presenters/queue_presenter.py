@@ -132,7 +132,7 @@ def _decision_card_html(components: ComponentPresenter, item: dict[str, Any]) ->
         f"<span>Services: {linked_services_html}</span>"
         "</div>"
         f'<p class="decision-card-next"><strong>Next:</strong> {escape(_next_action_text(item))}</p>'
-        f'<div class="decision-card-actions">{link(_decision_action_label(bucket), _queue_item_href(item), css_class="button button-primary" if bucket != "safe" else "button button-secondary")}</div>'
+        f'<div class="decision-card-actions">{link(_decision_action_label(bucket), _queue_item_href(item), css_class="button button-secondary")}</div>'
         "</article>"
     )
 

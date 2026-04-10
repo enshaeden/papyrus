@@ -115,7 +115,7 @@ class OperatorReadinessTests(unittest.TestCase):
                     """
                     SELECT run_type, status
                     FROM validation_runs
-                    WHERE run_id = 'seeded-operator-check-20260407'
+                    WHERE run_id = 'operator-readiness-check-20260407'
                     """
                 ).fetchone()
             finally:
