@@ -8,7 +8,6 @@ import uuid
 
 from papyrus.application.authoring_flow import compute_completion_state, derive_section_content
 from papyrus.application.blueprint_registry import get_blueprint
-from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.validation_flow import validate_knowledge_documents
 from papyrus.application.runtime_projection import persist_revision_artifacts, refresh_current_object_projection, service_id
 from papyrus.domain.lifecycle import DraftProgressState, RevisionReviewState, SourceSyncState
@@ -42,10 +41,6 @@ from papyrus.jobs.stale_scan import cadence_to_days
 
 def _content_hash(normalized_metadata_json: str, body: str) -> str:
     return hashlib.sha256(f"{normalized_metadata_json}\n{body}".encode("utf-8")).hexdigest()
-
-
-AUTHORITY = PolicyAuthority.from_repository_policy()
-
 def _event_id(prefix: str, object_id: str | None, revision_id: str | None, now_iso: str) -> str:
     del object_id, revision_id, now_iso
     return f"{prefix}-{uuid.uuid4().hex[:12]}"

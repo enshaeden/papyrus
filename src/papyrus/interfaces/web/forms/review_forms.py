@@ -75,22 +75,31 @@ def validate_supersede_form(values: dict[str, str]) -> ReviewActionResult:
     )
 
 
-def validate_archive_form(values: dict[str, str]) -> ReviewActionResult:
+def validate_archive_form(
+    values: dict[str, str],
+    *,
+    selected_acknowledgements: list[str] | tuple[str, ...],
+    required_acknowledgements: list[str] | tuple[str, ...],
+) -> ReviewActionResult:
     errors: dict[str, list[str]] = {}
     retirement_reason = values.get("retirement_reason", "").strip()
     notes = values.get("notes", "").strip()
-    acknowledge_move = values.get("acknowledge_move", "").strip()
+    acknowledgements = [str(item).strip() for item in selected_acknowledgements if str(item).strip()]
+    required = [str(item).strip() for item in required_acknowledgements if str(item).strip()]
     if not retirement_reason:
         errors.setdefault("retirement_reason", []).append("A retirement rationale is required.")
-    if acknowledge_move != "yes":
-        errors.setdefault("acknowledge_move", []).append("You must acknowledge the archive move.")
+    missing = [item for item in required if item not in acknowledgements]
+    if missing:
+        errors.setdefault("acknowledgements", []).append(
+            "You must acknowledge: " + ", ".join(item.replace("_", " ") for item in missing) + "."
+        )
     return _result(
         values,
         errors,
         {
             "retirement_reason": retirement_reason,
             "notes": notes or None,
-            "acknowledgements": ["canonical_path_will_move_to_archive"] if acknowledge_move == "yes" else [],
+            "acknowledgements": acknowledgements,
         },
     )
 

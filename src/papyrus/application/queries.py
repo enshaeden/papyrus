@@ -5,6 +5,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.impact_flow import (
     calculate_blast_radius,
     docs_knowledge_like_warnings,
@@ -14,6 +15,13 @@ from papyrus.application.impact_flow import (
     relationless_documents,
 )
 from papyrus.application.posture import build_posture_summary
+from papyrus.application.runtime_projection import RuntimeStateSnapshot
+from papyrus.application.ui_projection import (
+    build_object_actions,
+    build_review_actions,
+    build_ui_projection,
+    ui_projection_payload,
+)
 from papyrus.application.validation_flow import orphaned_files
 from papyrus.domain.entities import SearchHit
 from papyrus.domain.policies import citation_health_label, searchable_statuses, status_rank_map
@@ -209,6 +217,34 @@ def _draft_progress_value(row: sqlite3.Row) -> str:
 
 def _source_sync_value(row: sqlite3.Row) -> str:
     return str(row["source_sync_state"] or "not_required")
+
+
+def _policy_authority(authority: PolicyAuthority | None) -> PolicyAuthority:
+    return authority or PolicyAuthority.from_repository_policy()
+
+
+def _runtime_state_snapshot(
+    row: sqlite3.Row,
+    *,
+    trust_state: str | None = None,
+    approval_state: str | None = None,
+) -> RuntimeStateSnapshot:
+    return RuntimeStateSnapshot(
+        object_lifecycle_state=_object_lifecycle_value(row),
+        revision_review_state=(
+            _revision_review_value(row)
+            if row["revision_review_state"] is not None or row["revision_state"] is not None
+            else None
+        ),
+        draft_progress_state=(
+            _draft_progress_value(row)
+            if row["draft_progress_state"] is not None or row["draft_state"] is not None
+            else None
+        ),
+        source_sync_state=_source_sync_value(row),
+        trust_state=trust_state,
+        approval_state=approval_state,
+    )
 
 
 def _trust_priority(trust_state: str) -> int:
@@ -479,7 +515,9 @@ def knowledge_queue(
     limit: int = 200,
     database_path: str | Path = DB_PATH,
     ranking: str = "operator",
+    authority: PolicyAuthority | None = None,
 ) -> list[dict[str, Any]]:
+    current_authority = _policy_authority(authority)
     connection = require_runtime_connection(database_path)
     try:
         rows = connection.execute(
@@ -487,6 +525,27 @@ def knowledge_queue(
         ).fetchall()
         items = [_queue_item_from_projection_row(row) for row in rows]
         _augment_queue_items(connection, items)
+        for item in items:
+            snapshot = RuntimeStateSnapshot(
+                object_lifecycle_state=str(item["object_lifecycle_state"]),
+                revision_review_state=str(item["revision_review_state"]),
+                draft_progress_state=str(item["draft_progress_state"]),
+                source_sync_state=str(item["source_sync_state"]),
+                trust_state=str(item["trust_state"]),
+                approval_state=str(item["approval_state"]),
+            )
+            item["ui_projection"] = ui_projection_payload(
+                build_ui_projection(
+                    state=snapshot,
+                    posture=item["posture"],
+                    reasons=item["reasons"],
+                    actions=build_object_actions(
+                        authority=current_authority,
+                        state=snapshot,
+                        current_revision_id=item["current_revision_id"],
+                    ),
+                )
+            )
         if ranking == "triage":
             items.sort(
                 key=lambda item: (
@@ -523,7 +582,9 @@ def search_knowledge_objects(
     *,
     limit: int = 50,
     database_path: str | Path = DB_PATH,
+    authority: PolicyAuthority | None = None,
 ) -> list[dict[str, Any]]:
+    current_authority = _policy_authority(authority)
     connection = require_runtime_connection(database_path)
     try:
         candidate_limit = max(limit * 5, 100)
@@ -619,6 +680,27 @@ def search_knowledge_objects(
         rows = list(rows_by_object_id.values())
         items = [_queue_item_from_projection_row(row) for row in rows]
         _augment_queue_items(connection, items)
+        for item in items:
+            snapshot = RuntimeStateSnapshot(
+                object_lifecycle_state=str(item["object_lifecycle_state"]),
+                revision_review_state=str(item["revision_review_state"]),
+                draft_progress_state=str(item["draft_progress_state"]),
+                source_sync_state=str(item["source_sync_state"]),
+                trust_state=str(item["trust_state"]),
+                approval_state=str(item["approval_state"]),
+            )
+            item["ui_projection"] = ui_projection_payload(
+                build_ui_projection(
+                    state=snapshot,
+                    posture=item["posture"],
+                    reasons=item["reasons"],
+                    actions=build_object_actions(
+                        authority=current_authority,
+                        state=snapshot,
+                        current_revision_id=item["current_revision_id"],
+                    ),
+                )
+            )
         items.sort(
             key=lambda item: (
                 _approval_priority(item["approval_state"]),
@@ -640,7 +722,9 @@ def knowledge_object_detail(
     object_id: str,
     *,
     database_path: str | Path = DB_PATH,
+    authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
+    current_authority = _policy_authority(authority)
     connection = require_runtime_connection(database_path)
     try:
         object_row = connection.execute(
@@ -847,6 +931,41 @@ def knowledge_object_detail(
                 None,
             ),
         )
+        state_snapshot = RuntimeStateSnapshot(
+            object_lifecycle_state=_object_lifecycle_value(object_row),
+            revision_review_state=(
+                str(object_row["revision_review_state"])
+                if object_row["revision_review_state"] is not None
+                else _revision_review_value(current_revision)
+                if current_revision is not None
+                else None
+            ),
+            draft_progress_state=(
+                str(object_row["draft_progress_state"])
+                if object_row["draft_progress_state"] is not None
+                else _draft_progress_value(current_revision)
+                if current_revision is not None
+                else None
+            ),
+            source_sync_state=_source_sync_value(object_row),
+            trust_state=str(object_row["trust_state"]),
+            approval_state=str(object_row["approval_state"]) if object_row["approval_state"] is not None else None,
+        )
+        ui_projection = ui_projection_payload(
+            build_ui_projection(
+                state=state_snapshot,
+                posture=posture,
+                reasons=[],
+                actions=build_object_actions(
+                    authority=current_authority,
+                    state=state_snapshot,
+                    current_revision_id=(
+                        str(object_row["current_revision_id"]) if object_row["current_revision_id"] is not None else None
+                    ),
+                    evidence_status=evidence_status,
+                ),
+            )
+        )
 
         return {
             "object": {
@@ -907,6 +1026,7 @@ def knowledge_object_detail(
             "inbound_relationships": inbound_relationships,
             "unresolved_relationships": unresolved_relationships,
             "audit_events": audit_events,
+            "ui_projection": ui_projection,
         }
     finally:
         connection.close()
@@ -1262,7 +1382,9 @@ def manage_queue(
     *,
     limit: int = 200,
     database_path: str | Path = DB_PATH,
+    authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
+    current_authority = _policy_authority(authority)
     connection = require_runtime_connection(database_path)
     try:
         rows = connection.execute(
@@ -1392,6 +1514,28 @@ def manage_queue(
                 item["reasons"].append(f"trust:{item['trust_state']}")
             items.append(item)
         _augment_queue_items(connection, items)
+        for item in items:
+            snapshot = RuntimeStateSnapshot(
+                object_lifecycle_state=str(item["object_lifecycle_state"]),
+                revision_review_state=str(item["revision_review_state"]),
+                draft_progress_state=str(item["draft_progress_state"]),
+                source_sync_state=str(item["source_sync_state"]),
+                trust_state=str(item["trust_state"]),
+                approval_state=str(item["approval_state"]),
+            )
+            item["ui_projection"] = ui_projection_payload(
+                build_ui_projection(
+                    state=snapshot,
+                    posture=item["posture"],
+                    reasons=item["reasons"],
+                    actions=build_object_actions(
+                        authority=current_authority,
+                        state=snapshot,
+                        current_revision_id=item["current_revision_id"],
+                        assignment=item["assignment"],
+                    ),
+                )
+            )
 
         def unique_by_object_id(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
             seen: set[str] = set()
@@ -1457,10 +1601,12 @@ def review_detail(
     revision_id: str,
     *,
     database_path: str | Path = DB_PATH,
+    authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
+    current_authority = _policy_authority(authority)
     connection = require_runtime_connection(database_path)
     try:
-        detail = knowledge_object_detail(object_id, database_path=database_path)
+        detail = knowledge_object_detail(object_id, database_path=database_path, authority=current_authority)
         history = revision_history(object_id, database_path=database_path)
         revision = next((item for item in history["revisions"] if item["revision_id"] == revision_id), None)
         if revision is None:
@@ -1512,9 +1658,30 @@ def review_detail(
                 (object_id, revision_id),
             ).fetchall()
         ]
+        state_snapshot = RuntimeStateSnapshot(
+            object_lifecycle_state=str(detail["object"]["object_lifecycle_state"]),
+            revision_review_state=_revision_review_value(revision_row),
+            draft_progress_state=_draft_progress_value(revision_row),
+            source_sync_state=str(detail["object"]["source_sync_state"]),
+            trust_state=str(detail["object"]["trust_state"]),
+            approval_state=str(detail["object"]["approval_state"]) if detail["object"]["approval_state"] is not None else None,
+        )
+        ui_projection = ui_projection_payload(
+            build_ui_projection(
+                state=state_snapshot,
+                posture=detail["posture"],
+                reasons=[],
+                actions=build_review_actions(
+                    authority=current_authority,
+                    state=state_snapshot,
+                    assignments=revision["review_assignments"],
+                ),
+            )
+        )
         return {
             "object": detail["object"],
             "current_revision": detail["current_revision"],
+            "posture": detail["posture"],
             "revision": {
                 **revision,
                 "body_markdown": str(revision_row["body_markdown"]),
@@ -1528,6 +1695,7 @@ def review_detail(
             "assignments": revision["review_assignments"],
             "citations": citations,
             "audit_events": revision_audit,
+            "ui_projection": ui_projection,
         }
     finally:
         connection.close()

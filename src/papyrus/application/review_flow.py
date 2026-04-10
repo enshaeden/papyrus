@@ -10,7 +10,7 @@ from typing import Any
 
 from papyrus.application.revision_runtime import RevisionRuntimeServices
 from papyrus.application import writeback_flow
-from papyrus.application.policy_authority import PolicyAuthority
+from papyrus.application.policy_authority import PolicyAuthority, policy_decision_payload
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.entities import AuditEvent, KnowledgeObject, KnowledgeRevision, ReviewAssignment
 from papyrus.domain.lifecycle import (
@@ -50,7 +50,7 @@ from papyrus.infrastructure.repositories.review_repo import (
     update_review_assignment,
 )
 from papyrus.infrastructure.search.indexer import fts5_available
-from papyrus.infrastructure.transactional_mutation import TransactionalMutation
+from papyrus.infrastructure.transactional_mutation import MutationRecoveryError, TransactionalMutation
 from papyrus.application.runtime_projection import persist_revision_artifacts
 
 
@@ -95,21 +95,14 @@ def _source_sync_state(row: sqlite3.Row) -> str:
     return str(row["source_sync_state"] or SourceSyncState.NOT_REQUIRED.value)
 
 
-def _policy_payload(decision: object | None) -> dict[str, Any] | None:
-    if decision is None:
-        return None
-    return {
-        "allowed": bool(getattr(decision, "allowed", False)),
-        "required_acknowledgements": list(getattr(decision, "required_acknowledgements", ())),
-        "source_of_truth": str(getattr(decision, "source_of_truth", "")),
-        "state_change": {
-            "machine": str(getattr(getattr(decision, "state_change", None), "machine", "")),
-            "from_state": str(getattr(getattr(decision, "state_change", None), "from_state", "")),
-            "to_state": str(getattr(getattr(decision, "state_change", None), "to_state", "")),
-        },
-        "invalidated_assumptions": list(getattr(decision, "invalidated_assumptions", ())),
-        "operator_message": str(getattr(decision, "operator_message", "")),
-    }
+def _ensure_mutation_recovery(*, source_root: Path, authority: PolicyAuthority) -> None:
+    try:
+        TransactionalMutation.recover_pending_mutations(
+            source_root=source_root,
+            authority=authority,
+        )
+    except MutationRecoveryError as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def _row_to_object(row: sqlite3.Row) -> KnowledgeObject:
@@ -184,11 +177,18 @@ def _revision_author_actor(connection: sqlite3.Connection, revision_id: str) -> 
 
 
 class GovernanceWorkflow:
-    def __init__(self, database_path: Path = DB_PATH, source_root: Path = ROOT):
+    def __init__(
+        self,
+        database_path: Path = DB_PATH,
+        source_root: Path = ROOT,
+        *,
+        authority: PolicyAuthority | None = None,
+    ):
         self.database_path = Path(database_path)
         self.source_root = Path(source_root).resolve()
         self.runtime = RevisionRuntimeServices(source_root=self.source_root)
-        self.authority = PolicyAuthority.from_repository_policy()
+        self.authority = authority or PolicyAuthority.from_repository_policy()
+        _ensure_mutation_recovery(source_root=self.source_root, authority=self.authority)
 
     def _connection(self) -> sqlite3.Connection:
         connection = open_runtime_database(self.database_path, minimum_schema_version=RUNTIME_SCHEMA_VERSION)
@@ -463,7 +463,7 @@ class GovernanceWorkflow:
             event_id = _event_id("revision-submitted")
             details = {
                 "notes": notes,
-                "policy_decision": _policy_payload(decision),
+                "policy_decision": policy_decision_payload(decision),
             }
             insert_audit_event(
                 connection,
@@ -637,17 +637,19 @@ class GovernanceWorkflow:
                 revision_id=revision_id,
                 actor=actor,
                 root_path=self.source_root,
+                authority=self.authority,
             )
             writeback_result = pending_writeback.result
             self.runtime.refresh_object_projection(connection, object_id=object_id)
 
+            recorded_at = _now_utc()
             event_id = _event_id("revision-approved")
             details = {
                 "reviewer": reviewer,
                 "assignment_id": active_assignment["assignment_id"],
                 "notes": notes,
-                "policy_decision": _policy_payload(revision_decision),
-                "object_lifecycle_decision": _policy_payload(object_decision),
+                "policy_decision": policy_decision_payload(revision_decision),
+                "object_lifecycle_decision": policy_decision_payload(object_decision),
                 "previous_revision_id": writeback_result.previous_revision_id,
                 "source_writeback_path": writeback_result.file_path.relative_to(self.source_root).as_posix(),
                 "writeback_backup_path": (
@@ -660,7 +662,7 @@ class GovernanceWorkflow:
                 connection,
                 event_id=event_id,
                 event_type="revision_approved",
-                occurred_at=now.isoformat(),
+                occurred_at=recorded_at.isoformat(),
                 actor=actor,
                 object_id=object_id,
                 revision_id=revision_id,
@@ -741,7 +743,7 @@ class GovernanceWorkflow:
                 "reviewer": reviewer,
                 "assignment_id": active_assignment["assignment_id"],
                 "notes": notes,
-                "policy_decision": _policy_payload(decision),
+                "policy_decision": policy_decision_payload(decision),
             }
             insert_audit_event(
                 connection,
@@ -829,7 +831,7 @@ class GovernanceWorkflow:
             details = {
                 "replacement_object_id": replacement_object_id,
                 "notes": notes,
-                "policy_decision": _policy_payload(decision),
+                "policy_decision": policy_decision_payload(decision),
             }
             insert_audit_event(
                 connection,
@@ -862,12 +864,13 @@ class GovernanceWorkflow:
         connection = self._connection()
         now = _now_utc()
         try:
+            acknowledgement_list = tuple(str(item) for item in acknowledgements or [])
             object_row = self._require_object(connection, object_id)
             decision = self.authority.require_object_lifecycle_transition(
                 _object_lifecycle_state(object_row),
                 ObjectLifecycleState.ARCHIVED.value,
             )
-            self.authority.assert_acknowledgements(decision, acknowledgements)
+            self.authority.assert_acknowledgements(decision, acknowledgement_list)
 
             current_revision_id = str(object_row["current_revision_id"] or "").strip()
             if not current_revision_id:
@@ -988,7 +991,18 @@ class GovernanceWorkflow:
                                 else None
                             ),
                             "mutation_id": mutation_id,
-                            "policy_decision": _policy_payload(decision),
+                            "transition": policy_decision_payload(decision)["transition"],
+                            "required_acknowledgements": list(decision.required_acknowledgements),
+                            "acknowledgements": list(acknowledgement_list),
+                            "source_of_truth": decision.source_of_truth,
+                            "state_change": {
+                                "machine": decision.transition.machine,
+                                "from_state": decision.transition.from_state,
+                                "to_state": decision.transition.to_state,
+                            },
+                            "invalidated_assumptions": list(decision.invalidated_assumptions),
+                            "operator_message": decision.operator_message,
+                            "policy_decision": policy_decision_payload(decision),
                         }
                     ),
                 )
@@ -1005,8 +1019,14 @@ class GovernanceWorkflow:
                 "mutation_id": mutation_id,
                 "object_lifecycle_state": ObjectLifecycleState.ARCHIVED.value,
                 "required_acknowledgements": decision.required_acknowledgements,
+                "acknowledgements": acknowledgement_list,
                 "source_of_truth": decision.source_of_truth,
-                "state_change": _policy_payload(decision)["state_change"],
+                "transition": policy_decision_payload(decision)["transition"],
+                "state_change": {
+                    "machine": decision.transition.machine,
+                    "from_state": decision.transition.from_state,
+                    "to_state": decision.transition.to_state,
+                },
                 "invalidated_assumptions": decision.invalidated_assumptions,
                 "operator_message": decision.operator_message,
             }
@@ -1020,14 +1040,20 @@ class GovernanceWorkflow:
 def mark_object_suspect_due_to_change(
     *,
     database_path: Path = DB_PATH,
+    source_root: Path = ROOT,
     object_id: str,
     actor: str,
     reason: str,
     changed_entity_type: str,
     changed_entity_id: str | None = None,
+    authority: PolicyAuthority | None = None,
 ) -> AuditEvent:
     actor = require_actor_id(actor)
-    workflow = GovernanceWorkflow(database_path)
+    workflow = GovernanceWorkflow(
+        database_path,
+        source_root=source_root,
+        authority=authority,
+    )
     connection = workflow._connection()
     now = _now_utc()
     try:

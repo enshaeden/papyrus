@@ -8,6 +8,7 @@ from typing import Any
 import yaml
 
 from papyrus.application.runtime_projection import refresh_current_object_projection
+from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.domain.events import EventBase
 from papyrus.domain.entities import AuditEvent, DocsPlacementWarning, DuplicateCandidate, KnowledgeDocument
 from papyrus.domain.policies import worse_trust_state
@@ -201,17 +202,21 @@ def mark_object_suspect_due_to_change(
     reason: str,
     changed_entity_type: str,
     changed_entity_id: str | None = None,
+    source_root: Path = ROOT,
+    authority: PolicyAuthority | None = None,
     database_path=DB_PATH,
 ) -> AuditEvent:
     from papyrus.application.review_flow import mark_object_suspect_due_to_change as review_flow_mark_suspect
 
     return review_flow_mark_suspect(
         database_path=database_path,
+        source_root=source_root,
         object_id=object_id,
         actor=actor,
         reason=reason,
         changed_entity_type=changed_entity_type,
         changed_entity_id=changed_entity_id,
+        authority=authority,
     )
 
 

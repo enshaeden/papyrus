@@ -16,6 +16,7 @@ from papyrus.domain.lifecycle import (
     ObjectLifecycleState,
     RevisionReviewState,
     SourceSyncState,
+    TransitionSemantics,
 )
 
 
@@ -71,6 +72,31 @@ class PolicyAuthorityTests(unittest.TestCase):
                 IngestionLifecycleState.UPLOADED.value,
                 IngestionLifecycleState.CONVERTED.value,
             )
+
+    def test_transition_semantics_distinguish_noop_allowed_and_illegal(self) -> None:
+        no_op = self.authority.evaluate_object_lifecycle_transition(
+            ObjectLifecycleState.ACTIVE.value,
+            ObjectLifecycleState.ACTIVE.value,
+        )
+        self.assertTrue(no_op.allowed)
+        self.assertEqual(no_op.transition.semantics, TransitionSemantics.NO_OP)
+        self.assertFalse(no_op.transition.changes_state)
+
+        allowed = self.authority.evaluate_object_lifecycle_transition(
+            ObjectLifecycleState.DRAFT.value,
+            ObjectLifecycleState.ACTIVE.value,
+        )
+        self.assertTrue(allowed.allowed)
+        self.assertEqual(allowed.transition.semantics, TransitionSemantics.ALLOWED)
+        self.assertTrue(allowed.transition.changes_state)
+
+        illegal = self.authority.evaluate_object_lifecycle_transition(
+            ObjectLifecycleState.ACTIVE.value,
+            ObjectLifecycleState.DRAFT.value,
+        )
+        self.assertFalse(illegal.allowed)
+        self.assertEqual(illegal.transition.semantics, TransitionSemantics.ILLEGAL)
+        self.assertIn("illegal object_lifecycle_state transition", illegal.operator_message)
 
     def test_local_ingest_policy_rejects_root_escape_and_symlink_escape(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -45,7 +45,8 @@ def _artifact_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:12]}"
 
 
-AUTHORITY = PolicyAuthority.from_repository_policy()
+def _policy_authority(authority: PolicyAuthority | None) -> PolicyAuthority:
+    return authority or PolicyAuthority.from_repository_policy()
 
 
 def _truthful_status_from_row(row: sqlite3.Row) -> IngestionStatus:
@@ -351,12 +352,14 @@ def ingest_file(
     payload: bytes | None = None,
     database_path: Path = DB_PATH,
     source_root: Path = ROOT,
+    authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
+    current_authority = _policy_authority(authority)
     resolved_source_root = Path(source_root).resolve()
     path = Path(file_path)
     safe_filename = _safe_ingestion_filename(file_path)
     if payload is None:
-        path = AUTHORITY.validate_local_ingest_source_path(
+        path = current_authority.validate_local_ingest_source_path(
             source_root=resolved_source_root,
             candidate_path=path,
         )
@@ -524,7 +527,9 @@ def update_ingestion_mapping(
     mapping_result: dict[str, Any],
     blueprint_id: str | None,
     database_path: Path = DB_PATH,
+    authority: PolicyAuthority | None = None,
 ) -> None:
+    current_authority = _policy_authority(authority)
     if not has_mapping_result(mapping_result):
         raise ValueError("ingestion cannot be marked mapped before a real mapping result exists")
     connection = _connection(Path(database_path))
@@ -535,7 +540,7 @@ def update_ingestion_mapping(
         current_status = _truthful_status_from_row(row)
         if current_status not in {IngestionStatus.CLASSIFIED, IngestionStatus.MAPPED}:
             raise ValueError("ingestion mapping can only be recorded after classification and before review")
-        AUTHORITY.require_ingestion_transition(current_status.value, IngestionStatus.MAPPED.value)
+        current_authority.require_ingestion_transition(current_status.value, IngestionStatus.MAPPED.value)
         created_at = _now_utc().isoformat()
         update_ingestion_job(
             connection,
@@ -578,7 +583,9 @@ def mark_ingestion_converted(
     object_id: str,
     revision_id: str,
     database_path: Path = DB_PATH,
+    authority: PolicyAuthority | None = None,
 ) -> None:
+    current_authority = _policy_authority(authority)
     connection = _connection(Path(database_path))
     try:
         row = get_ingestion_job(connection, ingestion_id)
@@ -587,7 +594,7 @@ def mark_ingestion_converted(
         mapping_result = json.loads(str(row["mapping_result_json"]))
         if _truthful_status_from_row(row) != IngestionStatus.MAPPED or not has_mapping_result(mapping_result):
             raise ValueError("ingestion must have a real mapping result before it can be reviewed and converted")
-        AUTHORITY.require_ingestion_transition(IngestionStatus.MAPPED.value, IngestionStatus.CONVERTED.value)
+        current_authority.require_ingestion_transition(IngestionStatus.MAPPED.value, IngestionStatus.CONVERTED.value)
         created_at = _now_utc().isoformat()
         update_ingestion_job(
             connection,

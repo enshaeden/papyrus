@@ -146,6 +146,70 @@ class ComponentPresenter:
             {"items_html": join_html(items)},
         )
 
+    def governed_status_panel(
+        self,
+        *,
+        title: str,
+        summary: str,
+        body_html: str,
+        eyebrow: str = "Governance",
+        footer_html: str = "",
+        tone: str = "context",
+    ) -> str:
+        return self.renderer.render(
+            "partials/governed_status_panel.html",
+            {
+                "title": escape(title),
+                "summary": escape(summary),
+                "body_html": body_html,
+                "eyebrow": escape(eyebrow),
+                "footer_html": footer_html,
+                "tone": escape(tone),
+            },
+        )
+
+    def governed_action_panel(
+        self,
+        *,
+        title: str,
+        body_html: str,
+        eyebrow: str = "Actions",
+        footer_html: str = "",
+        tone: str = "context",
+    ) -> str:
+        return self.renderer.render(
+            "partials/governed_action_panel.html",
+            {
+                "title": escape(title),
+                "body_html": body_html,
+                "eyebrow": escape(eyebrow),
+                "footer_html": footer_html,
+                "tone": escape(tone),
+            },
+        )
+
+    def governed_acknowledgement_panel(
+        self,
+        *,
+        title: str,
+        summary: str,
+        body_html: str,
+        eyebrow: str = "Acknowledgements",
+        footer_html: str = "",
+        tone: str = "warning",
+    ) -> str:
+        return self.renderer.render(
+            "partials/governed_acknowledgement_panel.html",
+            {
+                "title": escape(title),
+                "summary": escape(summary),
+                "body_html": body_html,
+                "eyebrow": escape(eyebrow),
+                "footer_html": footer_html,
+                "tone": escape(tone),
+            },
+        )
+
     def filter_bar(self, *, title: str, controls_html: str) -> str:
         return self.renderer.render(
             "partials/filter_bar.html",

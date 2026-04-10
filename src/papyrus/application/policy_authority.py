@@ -8,8 +8,10 @@ from papyrus.domain.lifecycle import (
     ObjectLifecycleState,
     RevisionReviewState,
     SourceSyncState,
-    StateChange,
-    require_transition,
+    TransitionDescriptor,
+    TransitionSemantics,
+    evaluate_transition,
+    illegal_transition_message,
 )
 from papyrus.infrastructure.repositories.knowledge_repo import load_policy
 
@@ -19,9 +21,40 @@ class PolicyDecision:
     allowed: bool
     required_acknowledgements: tuple[str, ...]
     source_of_truth: str
-    state_change: StateChange
+    transition: TransitionDescriptor
     invalidated_assumptions: tuple[str, ...]
     operator_message: str
+
+    @property
+    def state_change(self) -> TransitionDescriptor:
+        return self.transition
+
+
+def transition_payload(transition: TransitionDescriptor | None) -> dict[str, Any] | None:
+    if transition is None:
+        return None
+    return {
+        "machine": transition.machine,
+        "from_state": transition.from_state,
+        "to_state": transition.to_state,
+        "semantics": transition.semantics.value,
+        "allowed_targets": list(transition.allowed_targets),
+        "allowed": transition.allowed,
+        "changes_state": transition.changes_state,
+    }
+
+
+def policy_decision_payload(decision: PolicyDecision | None) -> dict[str, Any] | None:
+    if decision is None:
+        return None
+    return {
+        "allowed": decision.allowed,
+        "required_acknowledgements": list(decision.required_acknowledgements),
+        "source_of_truth": decision.source_of_truth,
+        "transition": transition_payload(decision.transition),
+        "invalidated_assumptions": list(decision.invalidated_assumptions),
+        "operator_message": decision.operator_message,
+    }
 
 
 class PolicyAuthority:
@@ -109,35 +142,95 @@ class PolicyAuthority:
         current_state: str,
         target_state: str,
     ) -> PolicyDecision:
-        return self._decision_for_change(require_transition("object_lifecycle_state", current_state, target_state))
+        decision = self.evaluate_object_lifecycle_transition(current_state, target_state)
+        if not decision.allowed:
+            raise ValueError(illegal_transition_message("object_lifecycle_state", current_state, target_state))
+        return decision
+
+    def evaluate_object_lifecycle_transition(
+        self,
+        current_state: str,
+        target_state: str,
+    ) -> PolicyDecision:
+        return self._decision_for_transition(
+            evaluate_transition("object_lifecycle_state", current_state, target_state)
+        )
 
     def require_revision_review_transition(
         self,
         current_state: str,
         target_state: str,
     ) -> PolicyDecision:
-        return self._decision_for_change(require_transition("revision_review_state", current_state, target_state))
+        decision = self.evaluate_revision_review_transition(current_state, target_state)
+        if not decision.allowed:
+            raise ValueError(illegal_transition_message("revision_review_state", current_state, target_state))
+        return decision
+
+    def evaluate_revision_review_transition(
+        self,
+        current_state: str,
+        target_state: str,
+    ) -> PolicyDecision:
+        return self._decision_for_transition(
+            evaluate_transition("revision_review_state", current_state, target_state)
+        )
 
     def require_draft_progress_transition(
         self,
         current_state: str,
         target_state: str,
     ) -> PolicyDecision:
-        return self._decision_for_change(require_transition("draft_progress_state", current_state, target_state))
+        decision = self.evaluate_draft_progress_transition(current_state, target_state)
+        if not decision.allowed:
+            raise ValueError(illegal_transition_message("draft_progress_state", current_state, target_state))
+        return decision
+
+    def evaluate_draft_progress_transition(
+        self,
+        current_state: str,
+        target_state: str,
+    ) -> PolicyDecision:
+        return self._decision_for_transition(
+            evaluate_transition("draft_progress_state", current_state, target_state)
+        )
 
     def require_ingestion_transition(
         self,
         current_state: str,
         target_state: str,
     ) -> PolicyDecision:
-        return self._decision_for_change(require_transition("ingestion_state", current_state, target_state))
+        decision = self.evaluate_ingestion_transition(current_state, target_state)
+        if not decision.allowed:
+            raise ValueError(illegal_transition_message("ingestion_state", current_state, target_state))
+        return decision
+
+    def evaluate_ingestion_transition(
+        self,
+        current_state: str,
+        target_state: str,
+    ) -> PolicyDecision:
+        return self._decision_for_transition(
+            evaluate_transition("ingestion_state", current_state, target_state)
+        )
 
     def require_source_sync_transition(
         self,
         current_state: str,
         target_state: str,
     ) -> PolicyDecision:
-        return self._decision_for_change(require_transition("source_sync_state", current_state, target_state))
+        decision = self.evaluate_source_sync_transition(current_state, target_state)
+        if not decision.allowed:
+            raise ValueError(illegal_transition_message("source_sync_state", current_state, target_state))
+        return decision
+
+    def evaluate_source_sync_transition(
+        self,
+        current_state: str,
+        target_state: str,
+    ) -> PolicyDecision:
+        return self._decision_for_transition(
+            evaluate_transition("source_sync_state", current_state, target_state)
+        )
 
     def assert_acknowledgements(
         self,
@@ -149,45 +242,82 @@ class PolicyAuthority:
         if missing:
             raise ValueError("missing required acknowledgements: " + ", ".join(missing))
 
-    def _decision_for_change(self, change: StateChange) -> PolicyDecision:
+    def _decision_for_transition(self, transition: TransitionDescriptor) -> PolicyDecision:
+        if transition.semantics == TransitionSemantics.ILLEGAL:
+            return PolicyDecision(
+                allowed=False,
+                required_acknowledgements=(),
+                source_of_truth="canonical_markdown",
+                transition=transition,
+                invalidated_assumptions=(),
+                operator_message=illegal_transition_message(
+                    transition.machine,
+                    transition.from_state,
+                    transition.to_state,
+                ),
+            )
         source_of_truth = "canonical_markdown"
         required_acknowledgements: tuple[str, ...] = ()
         invalidated_assumptions: tuple[str, ...] = ()
-        operator_message = (
-            f"{change.machine} will change from {change.from_state} to {change.to_state}. "
-            f"Canonical source remains the source of truth."
-        )
-        if change.machine == "source_sync_state":
+        if transition.semantics == TransitionSemantics.NO_OP:
+            operator_message = (
+                f"{transition.machine} remains {transition.to_state}. "
+                "The requested action is idempotent and does not produce a new transition."
+            )
+        else:
+            operator_message = (
+                f"{transition.machine} will change from {transition.from_state} to {transition.to_state}. "
+                "Canonical source remains the source of truth."
+            )
+        if transition.machine == "source_sync_state":
             source_of_truth = (
                 "runtime_projection_pending_sync"
-                if change.to_state == SourceSyncState.PENDING.value
+                if transition.to_state == SourceSyncState.PENDING.value
                 else "canonical_markdown"
             )
-            if change.to_state == SourceSyncState.APPLIED.value:
+            if transition.to_state == SourceSyncState.APPLIED.value and transition.changes_state:
                 required_acknowledgements = ("canonical_source_will_change",)
                 invalidated_assumptions = ("previous_runtime_preview_matches_live_source",)
-            elif change.to_state == SourceSyncState.RESTORED.value:
+            elif transition.to_state == SourceSyncState.RESTORED.value and transition.changes_state:
                 required_acknowledgements = ("restore_can_remove_current_canonical_text",)
                 invalidated_assumptions = ("current_canonical_text_remains_authoritative",)
-            operator_message = (
-                f"Source sync state will change from {change.from_state} to {change.to_state}. "
-                "Canonical Markdown will win after this action, and previously observed source text may no longer be valid."
-            )
-        elif change.machine == "object_lifecycle_state" and change.to_state == ObjectLifecycleState.ARCHIVED.value:
+            if transition.semantics == TransitionSemantics.NO_OP:
+                operator_message = (
+                    f"Source sync state remains {transition.to_state}. "
+                    "Canonical Markdown remains authoritative, and the action is a no-op."
+                )
+            else:
+                operator_message = (
+                    f"Source sync state will change from {transition.from_state} to {transition.to_state}. "
+                    "Canonical Markdown will win after this action, and previously observed source text may no longer be valid."
+                )
+        elif (
+            transition.machine == "object_lifecycle_state"
+            and transition.to_state == ObjectLifecycleState.ARCHIVED.value
+            and transition.changes_state
+        ):
             required_acknowledgements = ("canonical_path_will_move_to_archive",)
             invalidated_assumptions = ("current_knowledge_path_remains_live",)
             operator_message = (
                 "Object lifecycle will move to archived. Canonical source will move under archive/knowledge/, "
                 "and operators must stop assuming the current knowledge path remains active guidance."
             )
-        elif change.machine == "revision_review_state" and change.to_state == RevisionReviewState.APPROVED.value:
+        elif (
+            transition.machine == "revision_review_state"
+            and transition.to_state == RevisionReviewState.APPROVED.value
+            and transition.changes_state
+        ):
             required_acknowledgements = ("approval_makes_revision_authoritative",)
             invalidated_assumptions = ("draft_revision_is_non_authoritative",)
             operator_message = (
                 "Revision review state will move to approved. The approved revision becomes authoritative for runtime use, "
                 "subject to source sync state and trust posture."
             )
-        elif change.machine == "revision_review_state" and change.to_state == RevisionReviewState.SUPERSEDED.value:
+        elif (
+            transition.machine == "revision_review_state"
+            and transition.to_state == RevisionReviewState.SUPERSEDED.value
+            and transition.changes_state
+        ):
             required_acknowledgements = ("previous_revision_will_stop_being_current",)
             invalidated_assumptions = ("current_revision_remains_primary",)
             operator_message = (
@@ -197,7 +327,7 @@ class PolicyAuthority:
             allowed=True,
             required_acknowledgements=required_acknowledgements,
             source_of_truth=source_of_truth,
-            state_change=change,
+            transition=transition,
             invalidated_assumptions=invalidated_assumptions,
             operator_message=operator_message,
         )

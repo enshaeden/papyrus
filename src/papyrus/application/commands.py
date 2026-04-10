@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from papyrus.application import evidence_flow, event_flow, impact_flow, review_flow, sync_flow, validation_flow, writeback_flow
+from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.entities import AuditEvent, KnowledgeObject, KnowledgeRevision, ReviewAssignment, ValidationIssue
 from papyrus.infrastructure.paths import DB_PATH, ROOT
@@ -39,7 +40,9 @@ class ArchiveObjectCommandResult:
     backup_path: Path | None
     mutation_id: str
     object_lifecycle_state: str
+    transition: dict[str, Any]
     required_acknowledgements: tuple[str, ...]
+    acknowledgements: tuple[str, ...]
     source_of_truth: str
     state_change: dict[str, str]
     invalidated_assumptions: tuple[str, ...]
@@ -53,7 +56,9 @@ class SourceWritebackCommandResult:
     file_path: Path
     mutation_id: str
     source_sync_state: str
+    transition: dict[str, Any]
     required_acknowledgements: tuple[str, ...]
+    acknowledgements: tuple[str, ...]
     source_of_truth: str
     state_change: dict[str, str]
     invalidated_assumptions: tuple[str, ...]
@@ -69,6 +74,7 @@ class SourceWritebackPreviewCommandResult:
     changed_sections: list[str]
     conflict_detected: bool
     source_sync_state: str
+    transition: dict[str, Any]
     required_acknowledgements: tuple[str, ...]
     source_of_truth: str
     state_change: dict[str, str]
@@ -86,7 +92,9 @@ class SourceWritebackRestoreCommandResult:
     restored_to_missing: bool
     mutation_id: str
     source_sync_state: str
+    transition: dict[str, Any]
     required_acknowledgements: tuple[str, ...]
+    acknowledgements: tuple[str, ...]
     source_of_truth: str
     state_change: dict[str, str]
     invalidated_assumptions: tuple[str, ...]
@@ -109,12 +117,21 @@ class EvidenceCommandResult:
     snapshot_path: str | None = None
 
 
+def _policy_authority(authority: PolicyAuthority | None) -> PolicyAuthority:
+    return authority or PolicyAuthority.from_repository_policy()
+
+
 def governance_workflow(
     database_path: Path = DB_PATH,
     *,
     source_root: Path = ROOT,
+    authority: PolicyAuthority | None = None,
 ) -> review_flow.GovernanceWorkflow:
-    return review_flow.GovernanceWorkflow(database_path, source_root=source_root)
+    return review_flow.GovernanceWorkflow(
+        database_path,
+        source_root=source_root,
+        authority=_policy_authority(authority),
+    )
 
 
 def validate_repository_command(include_rendered_site: bool = False) -> ValidationCommandResult:
@@ -140,50 +157,60 @@ def _require_actor_in_kwargs(kwargs: dict[str, Any]) -> None:
 
 def create_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeObject:
     source_root = Path(kwargs.pop("source_root", ROOT))
+    authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return governance_workflow(database_path, source_root=source_root).create_object(**kwargs)
+    return governance_workflow(database_path, source_root=source_root, authority=authority).create_object(**kwargs)
 
 
 def create_revision_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeRevision:
     source_root = Path(kwargs.pop("source_root", ROOT))
+    authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return governance_workflow(database_path, source_root=source_root).create_revision(**kwargs)
+    return governance_workflow(database_path, source_root=source_root, authority=authority).create_revision(**kwargs)
 
 
 def submit_for_review_command(database_path: Path = DB_PATH, **kwargs: Any) -> WorkflowAuditResult:
     source_root = Path(kwargs.pop("source_root", ROOT))
+    authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return WorkflowAuditResult(governance_workflow(database_path, source_root=source_root).submit_for_review(**kwargs))
+    return WorkflowAuditResult(
+        governance_workflow(database_path, source_root=source_root, authority=authority).submit_for_review(**kwargs)
+    )
 
 
 def assign_reviewer_command(database_path: Path = DB_PATH, **kwargs: Any) -> ReviewAssignment:
     source_root = Path(kwargs.pop("source_root", ROOT))
+    authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return governance_workflow(database_path, source_root=source_root).assign_reviewer(**kwargs)
+    return governance_workflow(database_path, source_root=source_root, authority=authority).assign_reviewer(**kwargs)
 
 
 def approve_revision_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeRevision:
     source_root = Path(kwargs.pop("source_root", ROOT))
+    authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return governance_workflow(database_path, source_root=source_root).approve_revision(**kwargs)
+    return governance_workflow(database_path, source_root=source_root, authority=authority).approve_revision(**kwargs)
 
 
 def reject_revision_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeRevision:
     source_root = Path(kwargs.pop("source_root", ROOT))
+    authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return governance_workflow(database_path, source_root=source_root).reject_revision(**kwargs)
+    return governance_workflow(database_path, source_root=source_root, authority=authority).reject_revision(**kwargs)
 
 
 def supersede_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeObject:
     source_root = Path(kwargs.pop("source_root", ROOT))
+    authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return governance_workflow(database_path, source_root=source_root).supersede_object(**kwargs)
+    return governance_workflow(database_path, source_root=source_root, authority=authority).supersede_object(**kwargs)
 
 
 def archive_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> ArchiveObjectCommandResult:
     source_root = Path(kwargs.pop("source_root", ROOT))
+    authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    result = governance_workflow(database_path, source_root=source_root).archive_object(**kwargs)
+    result = governance_workflow(database_path, source_root=source_root, authority=authority).archive_object(**kwargs)
     return ArchiveObjectCommandResult(
         object_id=str(result["object_id"]),
         revision_id=str(result["revision_id"]),
@@ -192,7 +219,9 @@ def archive_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> Arch
         backup_path=result["backup_path"],
         mutation_id=str(result["mutation_id"]),
         object_lifecycle_state=str(result["object_lifecycle_state"]),
+        transition=dict(result["transition"]),
         required_acknowledgements=tuple(str(item) for item in result["required_acknowledgements"]),
+        acknowledgements=tuple(str(item) for item in result.get("acknowledgements") or ()),
         source_of_truth=str(result["source_of_truth"]),
         state_change=dict(result["state_change"]),
         invalidated_assumptions=tuple(str(item) for item in result["invalidated_assumptions"]),
@@ -206,13 +235,18 @@ def writeback_object_command(
     object_id: str,
     actor: str,
     source_root: Path | None = None,
+    authority: PolicyAuthority | None = None,
+    acknowledgements: list[str] | tuple[str, ...] | set[str] | None = None,
 ) -> SourceWritebackCommandResult:
     actor = require_actor_id(actor)
+    current_authority = _policy_authority(authority)
     result = writeback_flow.write_object_to_source(
         database_path=database_path,
         object_id=object_id,
         actor=actor,
         root_path=source_root or ROOT,
+        authority=current_authority,
+        acknowledgements=acknowledgements,
     )
     return SourceWritebackCommandResult(
         object_id=result.object_id,
@@ -220,7 +254,9 @@ def writeback_object_command(
         file_path=result.file_path,
         mutation_id=result.mutation_id,
         source_sync_state=result.source_sync_state,
+        transition=result.transition,
         required_acknowledgements=result.required_acknowledgements,
+        acknowledgements=result.acknowledgements,
         source_of_truth=result.source_of_truth,
         state_change=result.state_change,
         invalidated_assumptions=result.invalidated_assumptions,
@@ -233,12 +269,15 @@ def writeback_all_command(
     database_path: Path = DB_PATH,
     actor: str,
     source_root: Path | None = None,
+    authority: PolicyAuthority | None = None,
 ) -> list[SourceWritebackCommandResult]:
     actor = require_actor_id(actor)
+    current_authority = _policy_authority(authority)
     results = writeback_flow.write_all_approved_revisions(
         database_path=database_path,
         actor=actor,
         root_path=source_root or ROOT,
+        authority=current_authority,
     )
     return [
         SourceWritebackCommandResult(
@@ -247,7 +286,9 @@ def writeback_all_command(
             file_path=result.file_path,
             mutation_id=result.mutation_id,
             source_sync_state=result.source_sync_state,
+            transition=result.transition,
             required_acknowledgements=result.required_acknowledgements,
+            acknowledgements=result.acknowledgements,
             source_of_truth=result.source_of_truth,
             state_change=result.state_change,
             invalidated_assumptions=result.invalidated_assumptions,
@@ -263,12 +304,15 @@ def preview_writeback_command(
     object_id: str,
     revision_id: str,
     source_root: Path | None = None,
+    authority: PolicyAuthority | None = None,
 ) -> SourceWritebackPreviewCommandResult:
+    current_authority = _policy_authority(authority)
     result = writeback_flow.preview_revision_writeback(
         database_path=database_path,
         object_id=object_id,
         revision_id=revision_id,
         root_path=source_root or ROOT,
+        authority=current_authority,
     )
     return SourceWritebackPreviewCommandResult(
         object_id=result.object_id,
@@ -278,6 +322,7 @@ def preview_writeback_command(
         changed_sections=result.changed_sections,
         conflict_detected=result.conflict_detected,
         source_sync_state=result.source_sync_state,
+        transition=result.transition,
         required_acknowledgements=result.required_acknowledgements,
         source_of_truth=result.source_of_truth,
         state_change=result.state_change,
@@ -293,14 +338,19 @@ def restore_writeback_command(
     actor: str,
     revision_id: str | None = None,
     source_root: Path | None = None,
+    authority: PolicyAuthority | None = None,
+    acknowledgements: list[str] | tuple[str, ...] | set[str] | None = None,
 ) -> SourceWritebackRestoreCommandResult:
     actor = require_actor_id(actor)
+    current_authority = _policy_authority(authority)
     result = writeback_flow.restore_last_writeback(
         database_path=database_path,
         object_id=object_id,
         revision_id=revision_id,
         actor=actor,
         root_path=source_root or ROOT,
+        authority=current_authority,
+        acknowledgements=acknowledgements,
     )
     return SourceWritebackRestoreCommandResult(
         object_id=result.object_id,
@@ -311,7 +361,9 @@ def restore_writeback_command(
         restored_to_missing=result.restored_to_missing,
         mutation_id=result.mutation_id,
         source_sync_state=result.source_sync_state,
+        transition=result.transition,
         required_acknowledgements=result.required_acknowledgements,
+        acknowledgements=result.acknowledgements,
         source_of_truth=result.source_of_truth,
         state_change=result.state_change,
         invalidated_assumptions=result.invalidated_assumptions,
@@ -447,15 +499,19 @@ def mark_object_suspect_due_to_change_command(
     reason: str,
     changed_entity_type: str,
     changed_entity_id: str | None = None,
+    source_root: Path = ROOT,
+    authority: PolicyAuthority | None = None,
 ) -> WorkflowAuditResult:
     actor = require_actor_id(actor)
     return WorkflowAuditResult(
         impact_flow.mark_object_suspect_due_to_change(
             database_path=database_path,
+            source_root=source_root,
             object_id=object_id,
             actor=actor,
             reason=reason,
             changed_entity_type=changed_entity_type,
             changed_entity_id=changed_entity_id,
+            authority=_policy_authority(authority),
         )
     )

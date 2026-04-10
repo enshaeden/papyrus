@@ -16,9 +16,12 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.application.review_flow import GovernanceWorkflow
+from papyrus.application.sync_flow import build_search_projection
+from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.interfaces.api import app as api_app
 from papyrus.interfaces.cli import operator_main
 from papyrus.interfaces.web import app as web_app
+from papyrus.infrastructure.transactional_mutation import TransactionalMutation
 
 
 def call_wsgi(
@@ -198,7 +201,7 @@ def read_archive_truth(database_path: Path, *, object_id: str, source_root: Path
         ).fetchone()
         latest_event = connection.execute(
             """
-            SELECT event_type
+            SELECT event_type, details_json
             FROM audit_events
             WHERE object_id = ?
             ORDER BY occurred_at DESC, rowid DESC
@@ -220,10 +223,35 @@ def read_archive_truth(database_path: Path, *, object_id: str, source_root: Path
         "revision_status": str(metadata["status"]),
         "revision_canonical_path": str(metadata["canonical_path"]),
         "latest_event_type": str(latest_event["event_type"]),
+        "latest_event_details": json.loads(str(latest_event["details_json"]) or "{}"),
     }
 
 
 class SurfaceConformanceTests(unittest.TestCase):
+    def _seed_pending_mutation(self, temp_dir: str) -> tuple[Path, Path, Path]:
+        database_path = Path(temp_dir) / "runtime.db"
+        source_root = Path(temp_dir) / "repo"
+        build_search_projection(database_path)
+        target_path = source_root / "knowledge" / "runbooks" / "startup-recovery.md"
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_text("before\n", encoding="utf-8")
+        authority = PolicyAuthority.from_repository_policy()
+        with TransactionalMutation(
+            source_root=source_root,
+            mutation_id="mutation-surface-startup-recovery",
+            mutation_type="source_sync_apply",
+            object_id="kb-surface-startup-recovery",
+            authority=authority,
+        ) as mutation:
+            mutation.stage_write(
+                target_path=target_path,
+                previous_text="before\n",
+                new_text="after\n",
+            )
+            mutation.apply_files()
+        self.assertEqual(target_path.read_text(encoding="utf-8"), "after\n")
+        return database_path, source_root, target_path
+
     def _seed_candidate(self, temp_dir: str, *, submitted: bool) -> tuple[Path, Path, str, str]:
         database_path = Path(temp_dir) / "runtime.db"
         source_root = Path(temp_dir) / "repo"
@@ -465,7 +493,7 @@ class SurfaceConformanceTests(unittest.TestCase):
                 form={
                     "retirement_reason": "Retired through web archive conformance test.",
                     "notes": "",
-                    "acknowledge_move": "yes",
+                    "acknowledgements": ["canonical_path_will_move_to_archive"],
                 },
             )
             self.assertIn(status, {"302 Found", "303 See Other"})
@@ -512,3 +540,41 @@ class SurfaceConformanceTests(unittest.TestCase):
             self.assertEqual(result["revision_status"], "archived")
             self.assertEqual(result["revision_canonical_path"], expected_path)
             self.assertEqual(result["latest_event_type"], "object_archived")
+            self.assertEqual(
+                result["latest_event_details"]["required_acknowledgements"],
+                ["canonical_path_will_move_to_archive"],
+            )
+            self.assertEqual(
+                result["latest_event_details"]["acknowledgements"],
+                ["canonical_path_will_move_to_archive"],
+            )
+            self.assertEqual(result["latest_event_details"]["transition"]["to_state"], "archived")
+            self.assertIn("policy_decision", result["latest_event_details"])
+
+    def test_startup_recovery_runs_before_cli_api_and_web_surface_access(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path, source_root, target_path = self._seed_pending_mutation(temp_dir)
+            self._run_cli(
+                [
+                    "papyrus-operator",
+                    "queue",
+                    "--db",
+                    str(database_path),
+                    "--source-root",
+                    str(source_root),
+                    "--allow-noncanonical-source-root",
+                    "--format",
+                    "json",
+                ]
+            )
+            self.assertEqual(target_path.read_text(encoding="utf-8"), "before\n")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path, source_root, target_path = self._seed_pending_mutation(temp_dir)
+            api_app(database_path, source_root, allow_noncanonical_source_root=True)
+            self.assertEqual(target_path.read_text(encoding="utf-8"), "before\n")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path, source_root, target_path = self._seed_pending_mutation(temp_dir)
+            web_app(database_path, source_root, allow_noncanonical_source_root=True)
+            self.assertEqual(target_path.read_text(encoding="utf-8"), "before\n")

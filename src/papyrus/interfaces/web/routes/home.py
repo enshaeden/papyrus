@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from papyrus.application.queries import event_history, knowledge_queue, manage_queue, service_catalog
 from papyrus.interfaces.web.http import Request, html_response
+from papyrus.interfaces.web.presenters.governed_presenter import projection_use_guidance
 from papyrus.interfaces.web.presenters.home_presenter import present_home_page
 from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
 
@@ -20,7 +21,7 @@ def register(router, runtime) -> None:
                 "read_ready": sum(
                     1
                     for item in read_queue
-                    if item["approval_state"] == "approved" and item["trust_state"] == "trusted"
+                    if bool(projection_use_guidance(item.get("ui_projection")).get("safe_to_use"))
                 ),
                 "drafts": len(manage["draft_items"]),
                 "review_required": len(manage["review_required"]),

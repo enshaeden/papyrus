@@ -12,6 +12,7 @@ from papyrus.application.authoring_flow import (
 )
 from papyrus.application.blueprint_registry import get_blueprint
 from papyrus.application.ingestion_flow import ingestion_detail, mark_ingestion_converted, update_ingestion_mapping
+from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.ingestion import has_mapping_result
@@ -746,6 +747,7 @@ def convert_to_draft(
     actor: str,
     database_path: Path = DB_PATH,
     source_root: Path = ROOT,
+    authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
     actor = require_actor_id(actor)
     detail = ingestion_detail(ingestion_id=ingestion_id, database_path=database_path)
@@ -758,7 +760,11 @@ def convert_to_draft(
         database_path=database_path,
     )
     blueprint = get_blueprint(str(mapping_result["blueprint_id"]))
-    workflow = GovernanceWorkflow(Path(database_path), source_root=Path(source_root))
+    workflow = GovernanceWorkflow(
+        Path(database_path),
+        source_root=Path(source_root),
+        authority=authority,
+    )
 
     try:
         workflow.create_object(

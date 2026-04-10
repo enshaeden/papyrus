@@ -3,16 +3,18 @@ from __future__ import annotations
 from typing import Any
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
+from papyrus.interfaces.web.presenters.governed_presenter import primary_surface_href, projection_use_guidance
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path
 
 
 def _queue_item_href(item: dict[str, Any]) -> str:
-    if str(item.get("approval_state") or "") in {"draft", "rejected"}:
-        return f"/write/objects/{quoted_path(item['object_id'])}/revisions/new#revision-form"
-    if item.get("current_revision_id"):
-        return f"/objects/{quoted_path(item['object_id'])}"
-    return f"/write/objects/{quoted_path(item['object_id'])}/revisions/new#revision-form"
+    return primary_surface_href(
+        object_id=str(item["object_id"]),
+        revision_id=str(item.get("revision_id") or item.get("current_revision_id") or "").strip() or None,
+        current_revision_id=str(item.get("current_revision_id") or "").strip() or None,
+        ui_projection=item.get("ui_projection"),
+    )
 
 
 def _use_when_text(item: dict[str, Any]) -> str:
@@ -34,21 +36,12 @@ def _use_when_text(item: dict[str, Any]) -> str:
 
 
 def _next_action_text(item: dict[str, Any]) -> str:
-    approval_state = str(item.get("approval_state") or "")
-    trust_state = str(item.get("trust_state") or "")
-    if approval_state == "approved" and trust_state == "trusted":
-        return "Safe to use now."
-    if approval_state in {"draft", "rejected"}:
-        return "Complete or revise this guidance before relying on it."
-    if approval_state == "in_review":
-        return "Use the last approved guidance and route this revision through review."
-    if trust_state == "weak_evidence":
-        return "Verify the supporting evidence before use."
-    if trust_state == "stale":
-        return "Revalidate freshness before use."
-    if trust_state == "suspect":
-        return "Escalate or review the object before use."
-    return "Inspect the detail page for the next safe step."
+    use_guidance = projection_use_guidance(item.get("ui_projection"))
+    return str(
+        use_guidance.get("next_action")
+        or use_guidance.get("detail")
+        or "Inspect the governed detail before acting."
+    )
 
 
 def present_queue_page(
@@ -71,8 +64,24 @@ def present_queue_page(
         title="Read posture",
         badges=[
             components.badge(label="Items", value=len(normalized_items), tone="brand"),
-            components.badge(label="Safe to use", value=sum(1 for item in normalized_items if item["approval_state"] == "approved" and item["trust_state"] == "trusted"), tone="approved"),
-            components.badge(label="Review before use", value=sum(1 for item in normalized_items if item["approval_state"] != "approved" or item["trust_state"] != "trusted"), tone="pending"),
+            components.badge(
+                label="Safe to use",
+                value=sum(
+                    1
+                    for item in normalized_items
+                    if bool((item.get("ui_projection") or {}).get("use_guidance", {}).get("safe_to_use"))
+                ),
+                tone="approved",
+            ),
+            components.badge(
+                label="Review before use",
+                value=sum(
+                    1
+                    for item in normalized_items
+                    if not bool((item.get("ui_projection") or {}).get("use_guidance", {}).get("safe_to_use"))
+                ),
+                tone="pending",
+            ),
             components.badge(label="Weak evidence", value=sum(1 for item in normalized_items if item["citation_health_rank"] > 0), tone="warning"),
             components.badge(label="Needs freshness check", value=sum(1 for item in normalized_items if item["freshness_rank"] > 0), tone="danger"),
         ],
@@ -127,7 +136,8 @@ def present_queue_page(
                 if item["linked_services"]
                 else '<span class="cell-meta">No linked service context.</span>'
             ),
-            escape(_next_action_text(item)),
+            escape(_next_action_text(item))
+            + f'<p class="cell-meta">{escape(projection_use_guidance(item.get("ui_projection")).get("summary") or "No governed summary returned.")}</p>',
         ]
         for item in normalized_items
     ]

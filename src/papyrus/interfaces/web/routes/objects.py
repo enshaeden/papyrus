@@ -25,7 +25,8 @@ def register(router, runtime) -> None:
     def object_revision_history_page(request: Request):
         object_id = request.route_value("object_id")
         history = revision_history(object_id, database_path=runtime.database_path)
-        page = present_revision_history(runtime.template_renderer, history=history)
+        detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        page = present_revision_history(runtime.template_renderer, history=history, detail=detail)
         return html_response(
             runtime.page_renderer.render_page(
                 search_value=request.query_value("query"),

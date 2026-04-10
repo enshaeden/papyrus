@@ -41,7 +41,7 @@ from papyrus.domain.policies import searchable_statuses
 from papyrus.infrastructure.markdown.serializer import parse_iso_date
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.infrastructure.repositories.knowledge_repo import load_policy
-from papyrus.interfaces.startup_guard import resolve_operator_source_root
+from papyrus.interfaces.startup_guard import prepare_operator_source_root
 
 
 def validate_main() -> int:
@@ -218,6 +218,13 @@ def _safe_to_use_text(*, approval_state: str | None, trust_state: str | None) ->
     return "inspect the lifecycle posture before use"
 
 
+def _projection_use_text(projection: dict[str, object] | None, *, approval_state: str | None, trust_state: str | None) -> str:
+    use_guidance = (projection or {}).get("use_guidance") if isinstance(projection, dict) else None
+    if isinstance(use_guidance, dict) and use_guidance.get("summary"):
+        return str(use_guidance["summary"])
+    return _safe_to_use_text(approval_state=approval_state, trust_state=trust_state)
+
+
 def _line_block(*lines: str) -> list[str]:
     return [line for line in lines if line]
 
@@ -367,18 +374,20 @@ def operator_main() -> int:
 
     apply_sync_parser = subparsers.add_parser("apply-source-sync", help="Apply canonical source sync for the current approved revision.", parents=[common])
     apply_sync_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    apply_sync_parser.add_argument("--ack", action="append", default=[], help="Required acknowledgement token. Repeat for multiple acknowledgements.")
     apply_sync_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
 
     restore_sync_parser = subparsers.add_parser("restore-source-sync", help="Restore the last canonical source sync.", parents=[common])
     restore_sync_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
     restore_sync_parser.add_argument("--revision", default=None, dest="revision_id", help="Optional revision ID.")
+    restore_sync_parser.add_argument("--ack", action="append", default=[], help="Required acknowledgement token. Repeat for multiple acknowledgements.")
     restore_sync_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
 
     args = parser.parse_args()
     database_path = args.db or str(DB_PATH)
     output_format = args.format or "text"
     try:
-        source_root = resolve_operator_source_root(
+        source_root = prepare_operator_source_root(
             args.source_root,
             allow_noncanonical=args.allow_noncanonical_source_root,
         )
@@ -396,9 +405,9 @@ def operator_main() -> int:
             lines.extend(
                 _line_block(
                     f"{item['object_id']} | {item['title']}",
-                    f"  use_now={_safe_to_use_text(approval_state=item.get('approval_state'), trust_state=item.get('trust_state'))}",
+                    f"  use_now={_projection_use_text(item.get('ui_projection'), approval_state=item.get('approval_state'), trust_state=item.get('trust_state'))}",
                     f"  trust={item['trust_state']} | approval={item['approval_state']} | services={linked_services}",
-                    f"  next={item['posture']['trust_summary']}",
+                    f"  next={(item.get('ui_projection') or {}).get('use_guidance', {}).get('next_action') or item['posture']['trust_summary']}",
                 )
             )
         return _emit_payload(lines, output_format="text")
@@ -570,7 +579,9 @@ def operator_main() -> int:
                 "backup_path": str(result.backup_path) if result.backup_path is not None else None,
                 "mutation_id": result.mutation_id,
                 "object_lifecycle_state": result.object_lifecycle_state,
+                "transition": result.transition,
                 "required_acknowledgements": list(result.required_acknowledgements),
+                "acknowledgements": list(result.acknowledgements),
                 "source_of_truth": result.source_of_truth,
                 "state_change": result.state_change,
                 "invalidated_assumptions": list(result.invalidated_assumptions),
@@ -648,6 +659,7 @@ def operator_main() -> int:
                 "changed_sections": preview.changed_sections,
                 "conflict_detected": preview.conflict_detected,
                 "source_sync_state": preview.source_sync_state,
+                "transition": preview.transition,
                 "required_acknowledgements": list(preview.required_acknowledgements),
                 "source_of_truth": preview.source_of_truth,
                 "state_change": preview.state_change,
@@ -663,6 +675,7 @@ def operator_main() -> int:
             object_id=args.object_id,
             actor=args.actor,
             source_root=source_root,
+            acknowledgements=args.ack,
         )
         return _emit_payload(
             {
@@ -671,7 +684,9 @@ def operator_main() -> int:
                 "file_path": str(result.file_path),
                 "mutation_id": result.mutation_id,
                 "source_sync_state": result.source_sync_state,
+                "transition": result.transition,
                 "required_acknowledgements": list(result.required_acknowledgements),
+                "acknowledgements": list(result.acknowledgements),
                 "source_of_truth": result.source_of_truth,
                 "state_change": result.state_change,
                 "invalidated_assumptions": list(result.invalidated_assumptions),
@@ -687,6 +702,7 @@ def operator_main() -> int:
             actor=args.actor,
             revision_id=args.revision_id,
             source_root=source_root,
+            acknowledgements=args.ack,
         )
         return _emit_payload(
             {
@@ -698,7 +714,9 @@ def operator_main() -> int:
                 "restored_to_missing": result.restored_to_missing,
                 "mutation_id": result.mutation_id,
                 "source_sync_state": result.source_sync_state,
+                "transition": result.transition,
                 "required_acknowledgements": list(result.required_acknowledgements),
+                "acknowledgements": list(result.acknowledgements),
                 "source_of_truth": result.source_of_truth,
                 "state_change": result.state_change,
                 "invalidated_assumptions": list(result.invalidated_assumptions),
@@ -733,11 +751,11 @@ def operator_main() -> int:
         latest_event = audit_events[0] if audit_events else None
         lines = [
             f"{payload['object']['object_id']} | {payload['object']['title']}",
-            f"use_now={_safe_to_use_text(approval_state=payload['object']['approval_state'], trust_state=payload['object']['trust_state'])}",
+            f"use_now={_projection_use_text(payload.get('ui_projection'), approval_state=payload['object']['approval_state'], trust_state=payload['object']['trust_state'])}",
             f"trust={payload['object']['trust_state']} | approval={payload['object']['approval_state']} | owner={payload['object']['owner']}",
             f"last_reviewed={payload['object'].get('last_reviewed') or 'unknown'} | cadence={payload['object'].get('review_cadence') or 'unknown'}",
-            "guidance=" + str(payload["posture"]["trust_summary"]),
-            "detail=" + str(payload["posture"]["trust_detail"]),
+            "guidance=" + str((payload.get("ui_projection") or {}).get("use_guidance", {}).get("summary") or payload["posture"]["trust_summary"]),
+            "detail=" + str((payload.get("ui_projection") or {}).get("use_guidance", {}).get("detail") or payload["posture"]["trust_detail"]),
         ]
         if current_revision:
             lines.append(
@@ -813,7 +831,7 @@ def operator_main() -> int:
             f"stale={len(payload['stale_items'])}",
         ]
         lines.extend(
-            f"decision | {item['object_id']} | revision={item['revision_id']} | next={item['posture']['trust_summary']}"
+            f"decision | {item['object_id']} | revision={item['revision_id']} | next={(item.get('ui_projection') or {}).get('use_guidance', {}).get('next_action') or item['posture']['trust_summary']}"
             for item in payload["review_required"][:10]
         )
         return _emit_payload(lines, output_format="text")

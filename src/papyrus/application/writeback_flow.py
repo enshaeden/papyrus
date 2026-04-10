@@ -11,7 +11,7 @@ from typing import Any
 
 import yaml
 
-from papyrus.application.policy_authority import PolicyAuthority
+from papyrus.application.policy_authority import PolicyAuthority, policy_decision_payload
 from papyrus.domain.lifecycle import RevisionReviewState, SourceSyncState
 from papyrus.domain.actor import require_actor_id
 from papyrus.infrastructure.markdown.serializer import slugify
@@ -24,7 +24,7 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     load_object_schemas,
     update_knowledge_object_runtime_state,
 )
-from papyrus.infrastructure.transactional_mutation import TransactionalMutation
+from papyrus.infrastructure.transactional_mutation import MutationRecoveryError, TransactionalMutation
 
 
 SECTION_PATTERN = re.compile(r"^## (?P<title>.+?)\n\n(?P<body>.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL)
@@ -38,9 +38,6 @@ def _event_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:12]}"
 
 
-AUTHORITY = PolicyAuthority.from_repository_policy()
-
-
 def _source_sync_state(row: sqlite3.Row) -> str:
     return str(row["source_sync_state"] or SourceSyncState.NOT_REQUIRED.value)
 
@@ -49,11 +46,25 @@ def _revision_review_state(row: sqlite3.Row) -> str:
     return str(row["revision_review_state"] or row["revision_state"])
 
 
+def _policy_authority(authority: PolicyAuthority | None) -> PolicyAuthority:
+    return authority or PolicyAuthority.from_repository_policy()
+
+
+def _ensure_mutation_recovery(*, source_root: Path, authority: PolicyAuthority) -> None:
+    try:
+        TransactionalMutation.recover_pending_mutations(
+            source_root=source_root,
+            authority=authority,
+        )
+    except MutationRecoveryError as exc:
+        raise ValueError(str(exc)) from exc
+
+
 def _state_change_payload(decision) -> dict[str, str]:
     return {
-        "machine": str(decision.state_change.machine),
-        "from_state": str(decision.state_change.from_state),
-        "to_state": str(decision.state_change.to_state),
+        "machine": str(decision.transition.machine),
+        "from_state": str(decision.transition.from_state),
+        "to_state": str(decision.transition.to_state),
     }
 
 
@@ -71,6 +82,7 @@ class SourceWritebackPreview:
     conflict_detected: bool
     conflict_reason: str | None
     source_sync_state: str
+    transition: dict[str, Any]
     required_acknowledgements: tuple[str, ...]
     source_of_truth: str
     state_change: dict[str, str]
@@ -92,7 +104,9 @@ class SourceWritebackResult:
     changed: bool
     mutation_id: str
     source_sync_state: str
+    transition: dict[str, Any]
     required_acknowledgements: tuple[str, ...]
+    acknowledgements: tuple[str, ...]
     source_of_truth: str
     state_change: dict[str, str]
     invalidated_assumptions: tuple[str, ...]
@@ -109,7 +123,9 @@ class SourceWritebackRestoreResult:
     restored_to_missing: bool
     mutation_id: str
     source_sync_state: str
+    transition: dict[str, Any]
     required_acknowledgements: tuple[str, ...]
+    acknowledgements: tuple[str, ...]
     source_of_truth: str
     state_change: dict[str, str]
     invalidated_assumptions: tuple[str, ...]
@@ -234,7 +250,9 @@ def _writeback_preview_from_connection(
     revision_id: str,
     root_path: Path = ROOT,
     writer: MarkdownWriter | None = None,
+    authority: PolicyAuthority | None = None,
 ) -> SourceWritebackPreview:
+    current_authority = _policy_authority(authority)
     object_row = get_knowledge_object(connection, object_id)
     if object_row is None:
         raise ValueError(f"knowledge object not found: {object_id}")
@@ -250,7 +268,7 @@ def _writeback_preview_from_connection(
         metadata=metadata,
         body_markdown=str(revision_row["body_markdown"]),
     )
-    current_writer = writer or MarkdownWriter(root_path)
+    current_writer = writer or MarkdownWriter(root_path, authority=current_authority)
     file_path, current_source_text = current_writer.read_current_text(
         object_type=str(object_row["object_type"]),
         canonical_path=str(metadata.get("canonical_path") or object_row["canonical_path"]),
@@ -297,10 +315,11 @@ def _writeback_preview_from_connection(
             "Canonical source changed unexpectedly relative to the last approved revision or expected empty state."
         )
     current_source_sync_state = _source_sync_state(object_row)
-    decision = AUTHORITY.require_source_sync_transition(
+    decision = current_authority.require_source_sync_transition(
         current_source_sync_state,
         SourceSyncState.CONFLICTED.value if conflict_detected else SourceSyncState.APPLIED.value,
     )
+    decision_payload = policy_decision_payload(decision)
 
     return SourceWritebackPreview(
         object_id=object_id,
@@ -315,6 +334,7 @@ def _writeback_preview_from_connection(
         conflict_detected=conflict_detected,
         conflict_reason=conflict_reason,
         source_sync_state=current_source_sync_state,
+        transition=decision_payload["transition"],
         required_acknowledgements=decision.required_acknowledgements,
         source_of_truth=decision.source_of_truth,
         state_change=_state_change_payload(decision),
@@ -329,8 +349,11 @@ def preview_revision_writeback(
     object_id: str,
     revision_id: str,
     root_path: Path = ROOT,
+    authority: PolicyAuthority | None = None,
 ) -> SourceWritebackPreview:
+    current_authority = _policy_authority(authority)
     root_path = Path(root_path).resolve()
+    _ensure_mutation_recovery(source_root=root_path, authority=current_authority)
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
     try:
@@ -339,6 +362,7 @@ def preview_revision_writeback(
             object_id=object_id,
             revision_id=revision_id,
             root_path=root_path,
+            authority=current_authority,
         )
     finally:
         connection.close()
@@ -353,6 +377,9 @@ def write_revision_to_source(
     root_path: Path = ROOT,
     writer: MarkdownWriter | None = None,
     record_audit: bool = True,
+    authority: PolicyAuthority | None = None,
+    acknowledgements: list[str] | tuple[str, ...] | set[str] | None = None,
+    require_acknowledgements: bool = False,
 ) -> SourceWritebackResult:
     pending = prepare_revision_writeback(
         connection,
@@ -362,6 +389,9 @@ def write_revision_to_source(
         root_path=root_path,
         writer=writer,
         record_audit=record_audit,
+        authority=authority,
+        acknowledgements=acknowledgements,
+        require_acknowledgements=require_acknowledgements,
     )
     try:
         return pending.commit(connection)
@@ -379,9 +409,14 @@ def prepare_revision_writeback(
     root_path: Path = ROOT,
     writer: MarkdownWriter | None = None,
     record_audit: bool = True,
+    authority: PolicyAuthority | None = None,
+    acknowledgements: list[str] | tuple[str, ...] | set[str] | None = None,
+    require_acknowledgements: bool = False,
 ) -> PendingSourceWriteback:
+    current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
     root_path = Path(root_path).resolve()
+    acknowledgement_list = tuple(str(item) for item in acknowledgements or [])
     revision_row = get_knowledge_revision(connection, revision_id)
     if revision_row is None:
         raise ValueError(f"knowledge revision not found: {revision_id}")
@@ -396,7 +431,13 @@ def prepare_revision_writeback(
         revision_id=revision_id,
         root_path=root_path,
         writer=writer,
+        authority=current_authority,
     )
+    if require_acknowledgements and preview.required_acknowledgements:
+        provided = set(acknowledgement_list)
+        missing = [item for item in preview.required_acknowledgements if item not in provided]
+        if missing:
+            raise ValueError("missing required acknowledgements: " + ", ".join(missing))
     object_row = get_knowledge_object(connection, object_id)
     if object_row is None:
         raise ValueError(f"knowledge object not found: {object_id}")
@@ -417,14 +458,18 @@ def prepare_revision_writeback(
     backup_path: Path | None = None
     if current_text is not None:
         timestamp = _now_utc().strftime("%Y%m%dT%H%M%SZ")
-        backup_path = AUTHORITY.backup_root(source_root=root_path) / slugify(object_id) / f"{timestamp}-{preview.file_path.name}"
+        backup_path = (
+            current_authority.backup_root(source_root=root_path)
+            / slugify(object_id)
+            / f"{timestamp}-{preview.file_path.name}"
+        )
 
     mutation = TransactionalMutation(
         source_root=root_path,
         mutation_id=mutation_id,
         mutation_type="source_sync_apply",
         object_id=object_id,
-        authority=AUTHORITY,
+        authority=current_authority,
     ).start()
     try:
         mutation.set_metadata(
@@ -477,11 +522,21 @@ def prepare_revision_writeback(
                         "changed_sections": preview.changed_sections,
                         "mutation_id": mutation_id,
                         "source_sync_state": SourceSyncState.APPLIED.value,
+                        "transition": preview.transition,
                         "required_acknowledgements": list(preview.required_acknowledgements),
+                        "acknowledgements": list(acknowledgement_list),
                         "source_of_truth": preview.source_of_truth,
                         "state_change": preview.state_change,
                         "invalidated_assumptions": list(preview.invalidated_assumptions),
                         "operator_message": preview.operator_message,
+                        "policy_decision": {
+                            "allowed": True,
+                            "required_acknowledgements": list(preview.required_acknowledgements),
+                            "source_of_truth": preview.source_of_truth,
+                            "transition": preview.transition,
+                            "invalidated_assumptions": list(preview.invalidated_assumptions),
+                            "operator_message": preview.operator_message,
+                        },
                     },
                     sort_keys=True,
                     ensure_ascii=True,
@@ -510,7 +565,9 @@ def prepare_revision_writeback(
             changed=current_text != preview.rendered_text,
             mutation_id=mutation_id,
             source_sync_state=SourceSyncState.APPLIED.value,
+            transition=preview.transition,
             required_acknowledgements=preview.required_acknowledgements,
+            acknowledgements=acknowledgement_list,
             source_of_truth=preview.source_of_truth,
             state_change=preview.state_change,
             invalidated_assumptions=preview.invalidated_assumptions,
@@ -525,9 +582,13 @@ def write_object_to_source(
     object_id: str,
     actor: str,
     root_path: Path = ROOT,
+    authority: PolicyAuthority | None = None,
+    acknowledgements: list[str] | tuple[str, ...] | set[str] | None = None,
 ) -> SourceWritebackResult:
+    current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
     root_path = Path(root_path).resolve()
+    _ensure_mutation_recovery(source_root=root_path, authority=current_authority)
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
     try:
@@ -543,6 +604,9 @@ def write_object_to_source(
             revision_id=revision_id,
             actor=actor,
             root_path=root_path,
+            authority=current_authority,
+            acknowledgements=acknowledgements,
+            require_acknowledgements=True,
         )
         return result
     except Exception:
@@ -557,9 +621,12 @@ def write_all_approved_revisions(
     database_path: Path = DB_PATH,
     actor: str,
     root_path: Path = ROOT,
+    authority: PolicyAuthority | None = None,
 ) -> list[SourceWritebackResult]:
+    current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
     root_path = Path(root_path).resolve()
+    _ensure_mutation_recovery(source_root=root_path, authority=current_authority)
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
     pending_results: list[PendingSourceWriteback] = []
@@ -581,6 +648,7 @@ def write_all_approved_revisions(
                     revision_id=str(row["current_revision_id"]),
                     actor=actor,
                     root_path=root_path,
+                    authority=current_authority,
                 )
             )
         connection.commit()
@@ -606,12 +674,17 @@ def restore_last_writeback(
     actor: str,
     revision_id: str | None = None,
     root_path: Path = ROOT,
+    authority: PolicyAuthority | None = None,
+    acknowledgements: list[str] | tuple[str, ...] | set[str] | None = None,
 ) -> SourceWritebackRestoreResult:
+    current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
     root_path = Path(root_path).resolve()
+    _ensure_mutation_recovery(source_root=root_path, authority=current_authority)
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
     try:
+        acknowledgement_list = tuple(str(item) for item in acknowledgements or [])
         object_row = get_knowledge_object(connection, object_id)
         if object_row is None:
             raise ValueError(f"knowledge object not found: {object_id}")
@@ -647,15 +720,17 @@ def restore_last_writeback(
             previous_text = backup_path.read_text(encoding="utf-8")
         current_text = file_path.read_text(encoding="utf-8") if file_path.exists() else None
         mutation_id = f"source-sync-restore-{uuid.uuid4().hex[:12]}"
-        decision = AUTHORITY.require_source_sync_transition(
+        decision = current_authority.require_source_sync_transition(
             _source_sync_state(object_row),
             SourceSyncState.RESTORED.value,
         )
+        current_authority.assert_acknowledgements(decision, acknowledgement_list)
+        decision_payload = policy_decision_payload(decision)
         restore_backup_path: Path | None = None
         if current_text is not None:
             timestamp = _now_utc().strftime("%Y%m%dT%H%M%SZ")
             restore_backup_path = (
-                AUTHORITY.backup_root(source_root=root_path)
+                current_authority.backup_root(source_root=root_path)
                 / slugify(object_id)
                 / f"{timestamp}-restore-{file_path.name}"
             )
@@ -664,7 +739,7 @@ def restore_last_writeback(
             mutation_id=mutation_id,
             mutation_type="source_sync_restore",
             object_id=object_id,
-            authority=AUTHORITY,
+            authority=current_authority,
         ) as mutation:
             mutation.set_metadata(
                 restored_from_event_id=str(row["event_id"]),
@@ -708,11 +783,14 @@ def restore_last_writeback(
                     "restored_to_missing": previous_text is None,
                     "mutation_id": mutation_id,
                     "source_sync_state": SourceSyncState.RESTORED.value,
+                    "transition": decision_payload["transition"],
                     "required_acknowledgements": list(decision.required_acknowledgements),
+                    "acknowledgements": list(acknowledgement_list),
                     "source_of_truth": decision.source_of_truth,
                     "state_change": _state_change_payload(decision),
                     "invalidated_assumptions": list(decision.invalidated_assumptions),
                     "operator_message": decision.operator_message,
+                    "policy_decision": decision_payload,
                 },
                 sort_keys=True,
                 ensure_ascii=True,
@@ -728,7 +806,9 @@ def restore_last_writeback(
             restored_to_missing=previous_text is None,
             mutation_id=mutation_id,
             source_sync_state=SourceSyncState.RESTORED.value,
+            transition=decision_payload["transition"],
             required_acknowledgements=decision.required_acknowledgements,
+            acknowledgements=acknowledgement_list,
             source_of_truth=decision.source_of_truth,
             state_change=_state_change_payload(decision),
             invalidated_assumptions=decision.invalidated_assumptions,

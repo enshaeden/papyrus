@@ -3,11 +3,17 @@ from __future__ import annotations
 from typing import Any
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
+from papyrus.interfaces.web.presenters.governed_presenter import render_governed_action_panel, render_projection_status_panel
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, tone_for_revision
 
 
-def present_revision_history(renderer: TemplateRenderer, *, history: dict[str, Any]) -> dict[str, Any]:
+def present_revision_history(
+    renderer: TemplateRenderer,
+    *,
+    history: dict[str, Any],
+    detail: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     object_info = history["object"]
     rows = [
@@ -46,18 +52,35 @@ def present_revision_history(renderer: TemplateRenderer, *, history: dict[str, A
             ]
         ) or '<p class="empty-state-copy">No audit events recorded.</p>',
     )
-    aside_html = join_html(
-        [
-            components.validation_summary(
-                title="Comparison cues",
-                findings=[
-                    "Look for the current marker before using the revision body.",
-                    "Citation counts show evidence drift even without a diff view.",
-                    "Assignment state exposes whether a review actually closed.",
-                ],
-            )
-        ]
+    aside_sections = []
+    if detail is not None:
+        aside_sections.extend(
+            [
+                render_projection_status_panel(
+                    components,
+                    title="Current governed posture",
+                    ui_projection=detail.get("ui_projection"),
+                ),
+                render_governed_action_panel(
+                    components,
+                    title="Current governed actions",
+                    ui_projection=detail.get("ui_projection"),
+                    object_id=str(object_info["object_id"]),
+                    revision_id=str((detail.get("current_revision") or {}).get("revision_id") or "") or None,
+                ),
+            ]
+        )
+    aside_sections.append(
+        components.validation_summary(
+            title="Comparison cues",
+            findings=[
+                "Look for the current marker before using the revision body.",
+                "Citation counts show evidence drift even without a diff view.",
+                "Assignment state exposes whether a review actually closed.",
+            ],
+        )
     )
+    aside_html = join_html(aside_sections)
     return {
         "page_template": "pages/revision_history.html",
         "page_title": f"{object_info['title']} revision history",

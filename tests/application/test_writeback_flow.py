@@ -20,6 +20,7 @@ from papyrus.application.writeback_flow import (
     restore_last_writeback,
     write_object_to_source,
 )
+from papyrus.infrastructure.transactional_mutation import TransactionalMutation
 from papyrus.infrastructure.markdown.serializer import json_dump
 from papyrus.infrastructure.paths import FRONT_MATTER_PATTERN
 
@@ -185,7 +186,157 @@ class WritebackFlowTests(unittest.TestCase):
             self.assertEqual(audit_rows[0]["event_type"], "source_writeback")
             self.assertEqual(audit_rows[0]["actor"], "local.reviewer")
             self.assertEqual(audit_rows[1]["actor"], "tests")
+            first_audit = json.loads(str(audit_rows[0]["details_json"]))
             self.assertIn("knowledge/runbooks/writeback-approved.md", str(audit_rows[0]["details_json"]))
+            self.assertEqual(first_audit["transition"]["to_state"], "applied")
+            self.assertEqual(first_audit["required_acknowledgements"], ["canonical_source_will_change"])
+            self.assertEqual(first_audit["acknowledgements"], [])
+            self.assertIn("policy_decision", first_audit)
+
+    def test_manual_writeback_requires_acknowledgement_when_transition_changes_source_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_root = Path(temp_dir) / "repo"
+            target_path = source_root / "knowledge" / "runbooks" / "writeback-manual-ack.md"
+            target_path.parent.mkdir(parents=True)
+            database_path = Path(temp_dir) / "runtime.db"
+            workflow = GovernanceWorkflow(database_path, source_root=source_root)
+
+            created = workflow.create_object(
+                object_id="kb-writeback-manual-ack",
+                object_type="runbook",
+                title="Writeback Manual Ack",
+                summary="Manual writeback acknowledgement coverage.",
+                owner="workflow_owner",
+                team="IT Operations",
+                canonical_path="knowledge/runbooks/writeback-manual-ack.md",
+                actor="tests",
+            )
+            payload = runbook_payload(created.object_id, created.canonical_path, created.title)
+            revision = workflow.create_revision(
+                object_id=created.object_id,
+                normalized_payload=payload,
+                body_markdown="## Use When\n\nManual acknowledgement coverage.\n",
+                actor="tests",
+                change_summary="Approved revision for manual acknowledgement coverage.",
+            )
+            workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.assign_reviewer(
+                object_id=created.object_id,
+                revision_id=revision.revision_id,
+                reviewer="reviewer_a",
+                actor="tests",
+            )
+            workflow.approve_revision(
+                object_id=created.object_id,
+                revision_id=revision.revision_id,
+                reviewer="reviewer_a",
+                actor="local.reviewer",
+                notes="Approve for manual acknowledgement coverage.",
+            )
+
+            connection = sqlite3.connect(database_path)
+            try:
+                connection.execute(
+                    """
+                    UPDATE knowledge_objects
+                    SET source_sync_state = 'not_required'
+                    WHERE object_id = ?
+                    """,
+                    (created.object_id,),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+
+            with self.assertRaisesRegex(ValueError, "missing required acknowledgements"):
+                write_object_to_source(
+                    database_path=database_path,
+                    object_id=created.object_id,
+                    actor="tests",
+                    root_path=source_root,
+                )
+
+            result = write_object_to_source(
+                database_path=database_path,
+                object_id=created.object_id,
+                actor="tests",
+                root_path=source_root,
+                acknowledgements=["canonical_source_will_change"],
+            )
+            self.assertEqual(result.acknowledgements, ("canonical_source_will_change",))
+            self.assertTrue(target_path.exists())
+
+    def test_manual_writeback_recovers_pending_mutation_before_applying(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_root = Path(temp_dir) / "repo"
+            pending_target = source_root / "knowledge" / "runbooks" / "pending-writeback-recovery.md"
+            pending_target.parent.mkdir(parents=True)
+            pending_target.write_text("original pending content\n", encoding="utf-8")
+
+            pending_mutation = TransactionalMutation(
+                source_root=source_root,
+                mutation_id="mutation-writeback-recovery",
+                mutation_type="source_writeback",
+                object_id="kb-pending-writeback-recovery",
+            ).start()
+            pending_mutation.stage_write(
+                target_path=pending_target,
+                previous_text="original pending content\n",
+                new_text="interrupted pending content\n",
+            )
+            pending_mutation.apply_files()
+            pending_mutation.close()
+
+            self.assertEqual(pending_target.read_text(encoding="utf-8"), "interrupted pending content\n")
+
+            target_path = source_root / "knowledge" / "runbooks" / "writeback-recovery-target.md"
+            database_path = Path(temp_dir) / "runtime.db"
+            workflow = GovernanceWorkflow(database_path, source_root=source_root)
+
+            created = workflow.create_object(
+                object_id="kb-writeback-recovery-target",
+                object_type="runbook",
+                title="Writeback Recovery Target",
+                summary="Direct writeback recovery coverage.",
+                owner="workflow_owner",
+                team="IT Operations",
+                canonical_path="knowledge/runbooks/writeback-recovery-target.md",
+                actor="tests",
+            )
+            payload = runbook_payload(created.object_id, created.canonical_path, created.title)
+            revision = workflow.create_revision(
+                object_id=created.object_id,
+                normalized_payload=payload,
+                body_markdown="## Use When\n\nRecovery runs before manual writeback.\n",
+                actor="tests",
+                change_summary="Manual writeback recovery coverage.",
+            )
+            workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.assign_reviewer(
+                object_id=created.object_id,
+                revision_id=revision.revision_id,
+                reviewer="reviewer_a",
+                actor="tests",
+            )
+            workflow.approve_revision(
+                object_id=created.object_id,
+                revision_id=revision.revision_id,
+                reviewer="reviewer_a",
+                actor="local.reviewer",
+                notes="Approve for direct recovery coverage.",
+            )
+
+            result = write_object_to_source(
+                database_path=database_path,
+                object_id=created.object_id,
+                actor="tests",
+                root_path=source_root,
+                acknowledgements=["canonical_source_will_change"],
+            )
+
+            self.assertEqual(result.acknowledgements, ("canonical_source_will_change",))
+            self.assertEqual(pending_target.read_text(encoding="utf-8"), "original pending content\n")
+            self.assertTrue(target_path.exists())
 
     def test_preview_reports_changed_sections_and_detects_conflict(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -332,10 +483,15 @@ class WritebackFlowTests(unittest.TestCase):
                 object_id=created.object_id,
                 actor="local.manager",
                 root_path=source_root,
+                acknowledgements=["restore_can_remove_current_canonical_text"],
             )
             self.assertEqual(target_path.read_text(encoding="utf-8"), first_text)
             self.assertIsNotNone(restore_result.backup_path)
             self.assertFalse(restore_result.restored_to_missing)
+            self.assertEqual(
+                restore_result.acknowledgements,
+                ("restore_can_remove_current_canonical_text",),
+            )
 
             connection = sqlite3.connect(database_path)
             connection.row_factory = sqlite3.Row
@@ -356,7 +512,18 @@ class WritebackFlowTests(unittest.TestCase):
             self.assertIsNotNone(restored_row)
             self.assertEqual(restored_row["event_type"], "source_writeback_restored")
             self.assertEqual(restored_row["actor"], "local.manager")
+            restored_details = json.loads(str(restored_row["details_json"]))
             self.assertIn("knowledge/runbooks/writeback-restore.md", str(restored_row["details_json"]))
+            self.assertEqual(restored_details["transition"]["to_state"], "restored")
+            self.assertEqual(
+                restored_details["required_acknowledgements"],
+                ["restore_can_remove_current_canonical_text"],
+            )
+            self.assertEqual(
+                restored_details["acknowledgements"],
+                ["restore_can_remove_current_canonical_text"],
+            )
+            self.assertIn("policy_decision", restored_details)
 
 
 if __name__ == "__main__":

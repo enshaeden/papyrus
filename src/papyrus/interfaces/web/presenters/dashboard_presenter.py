@@ -3,20 +3,62 @@ from __future__ import annotations
 from typing import Any
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
+from papyrus.interfaces.web.presenters.governed_presenter import primary_surface_href, projection_state, projection_use_guidance
 from papyrus.interfaces.web.rendering import TemplateRenderer
-from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path
+from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link
 
 
-def _health_action(item: dict[str, Any]) -> str:
-    if item["approval_state"] == "in_review":
-        return "Open the review decision."
-    if item["trust_state"] == "stale":
-        return "Revalidate freshness before use."
-    if item["trust_state"] == "weak_evidence":
-        return "Strengthen or revalidate evidence."
-    if item["trust_state"] == "suspect":
-        return "Review the suspect reason before use."
-    return "Inspect the object detail for the next step."
+def _dashboard_item_href(item: dict[str, Any]) -> str:
+    return primary_surface_href(
+        object_id=str(item["object_id"]),
+        revision_id=str(item.get("revision_id") or item.get("current_revision_id") or "").strip() or None,
+        current_revision_id=str(item.get("current_revision_id") or "").strip() or None,
+        ui_projection=item.get("ui_projection"),
+    )
+
+
+def _dashboard_safe_now_html(components: ComponentPresenter, item: dict[str, Any]) -> str:
+    use_guidance = projection_use_guidance(item.get("ui_projection"))
+    state = projection_state(item.get("ui_projection"))
+    return join_html(
+        [
+            components.badge(
+                label="Use",
+                value="Safe now" if bool(use_guidance.get("safe_to_use")) else "Review first",
+                tone="approved" if bool(use_guidance.get("safe_to_use")) else "warning",
+            ),
+            components.badge(
+                label="Approval",
+                value=str(state.get("approval_state") or item.get("approval_state") or "unknown"),
+                tone="approved" if str(state.get("approval_state") or item.get("approval_state") or "") == "approved" else "pending",
+            ),
+            components.badge(
+                label="Trust",
+                value=str(state.get("trust_state") or item.get("trust_state") or "unknown"),
+                tone="approved" if str(state.get("trust_state") or item.get("trust_state") or "") == "trusted" else "warning",
+            ),
+        ],
+        " ",
+    )
+
+
+def _dashboard_why_now(item: dict[str, Any]) -> str:
+    use_guidance = projection_use_guidance(item.get("ui_projection"))
+    return str(
+        use_guidance.get("summary")
+        or use_guidance.get("detail")
+        or item.get("posture", {}).get("trust_summary")
+        or "Inspect the governed detail before acting."
+    )
+
+
+def _dashboard_next_action(item: dict[str, Any]) -> str:
+    use_guidance = projection_use_guidance(item.get("ui_projection"))
+    return str(
+        use_guidance.get("next_action")
+        or use_guidance.get("detail")
+        or "Inspect the governed detail before acting."
+    )
 
 
 def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, Any]) -> dict[str, Any]:
@@ -58,10 +100,10 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
             headers=["Guidance", "Safe now?", "Why now", "Next action"],
             rows=[
                 [
-                    link(item["title"], f"/objects/{quoted_path(item['object_id'])}"),
-                    escape(f"{item['trust_state']} / {item['approval_state']}"),
-                    escape(item["posture"]["trust_summary"]),
-                    escape(_health_action(item)),
+                    link(item["title"], _dashboard_item_href(item)),
+                    _dashboard_safe_now_html(components, item),
+                    escape(_dashboard_why_now(item)),
+                    escape(_dashboard_next_action(item)),
                 ]
                 for item in dashboard["queue"]
             ],
@@ -91,7 +133,7 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
         findings=[
             dashboard["validation_posture"]["summary"] + ": " + dashboard["validation_posture"]["detail"],
             "Use this page for stewardship work, not for passive observation.",
-            "Every queue item links directly to the object detail so the next decision is inspectable.",
+            "Every queue item links to the contract-selected next surface so the next decision stays in the right governed context.",
         ],
     )
     return {

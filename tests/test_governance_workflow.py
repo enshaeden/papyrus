@@ -17,6 +17,7 @@ from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.application.validation_flow import record_validation_run
 from papyrus.infrastructure.markdown.parser import parse_knowledge_document
+from papyrus.infrastructure.transactional_mutation import TransactionalMutation
 
 
 def read_row(database_path: Path, query: str, parameters: tuple = ()) -> sqlite3.Row | None:
@@ -82,6 +83,47 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
 
 
 class GovernanceWorkflowTests(unittest.TestCase):
+    def test_workflow_constructor_recovers_pending_mutation_before_review_operations(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "workflow.db"
+            build_search_projection(database_path)
+            source_root = Path(temp_dir) / "repo"
+            pending_target = source_root / "knowledge" / "runbooks" / "pending-governance-recovery.md"
+            pending_target.parent.mkdir(parents=True, exist_ok=True)
+            pending_target.write_text("original review content\n", encoding="utf-8")
+
+            pending_mutation = TransactionalMutation(
+                source_root=source_root,
+                mutation_id="mutation-governance-recovery",
+                mutation_type="archive",
+                object_id="kb-governance-recovery",
+            ).start()
+            pending_mutation.stage_write(
+                target_path=pending_target,
+                previous_text="original review content\n",
+                new_text="interrupted review content\n",
+            )
+            pending_mutation.apply_files()
+            pending_mutation.close()
+
+            self.assertEqual(pending_target.read_text(encoding="utf-8"), "interrupted review content\n")
+
+            workflow = GovernanceWorkflow(database_path, source_root=source_root)
+
+            self.assertEqual(pending_target.read_text(encoding="utf-8"), "original review content\n")
+
+            created = workflow.create_object(
+                object_id="kb-governance-recovery-target",
+                object_type="runbook",
+                title="Governance Recovery Target",
+                summary="Workflow constructor recovery coverage.",
+                owner="workflow_owner",
+                team="IT Operations",
+                canonical_path="knowledge/runbooks/governance-recovery-target.md",
+                actor="tests",
+            )
+            self.assertEqual(created.object_id, "kb-governance-recovery-target")
+
     def test_existing_object_revision_review_flow_updates_runtime_state(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"

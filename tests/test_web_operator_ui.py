@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.interfaces.web import app as web_app
 
@@ -74,6 +75,50 @@ def read_row(database_path: Path, query: str, parameters: tuple = ()) -> sqlite3
         return connection.execute(query, parameters).fetchone()
     finally:
         connection.close()
+
+
+def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str, object]:
+    return {
+        "id": object_id,
+        "title": title,
+        "canonical_path": canonical_path,
+        "summary": f"Runbook payload for {title.lower()}",
+        "knowledge_object_type": "runbook",
+        "legacy_article_type": None,
+        "status": "active",
+        "owner": "workflow_owner",
+        "source_type": "native",
+        "source_system": "repository",
+        "source_title": title,
+        "team": "IT Operations",
+        "systems": ["<VPN_SERVICE>"],
+        "tags": ["vpn"],
+        "created": "2026-04-09",
+        "updated": "2026-04-09",
+        "last_reviewed": "2026-04-09",
+        "review_cadence": "quarterly",
+        "audience": "service_desk",
+        "related_services": ["Remote Access"],
+        "prerequisites": ["Open the incident ticket."],
+        "steps": ["Perform the primary remediation step."],
+        "verification": ["Confirm the workflow completed successfully."],
+        "rollback": ["Undo the last remediation step."],
+        "citations": [
+            {
+                "source_title": "Seed import manifest",
+                "source_type": "document",
+                "source_ref": "migration/import-manifest.yml",
+                "note": "Archive acknowledgement rendering coverage.",
+            }
+        ],
+        "related_object_ids": [],
+        "superseded_by": None,
+        "retirement_reason": None,
+        "services": ["Remote Access"],
+        "related_articles": [],
+        "references": [{"title": "Seed import manifest", "path": "migration/import-manifest.yml"}],
+        "change_log": [{"date": "2026-04-09", "summary": "Initial draft.", "author": "tests"}],
+    }
 
 
 class WebOperatorUiTests(unittest.TestCase):
@@ -181,7 +226,8 @@ class WebOperatorUiTests(unittest.TestCase):
             status, _, decision_body = call_wsgi(application, decision_path)
             self.assertEqual(status, "200 OK")
             self.assertIn("Approve revision", decision_body)
-            self.assertIn("Writeback preview", decision_body)
+            self.assertIn("Writeback contract", decision_body)
+            self.assertIn("Writeback acknowledgement requirements", decision_body)
             self.assertIn("Likely downstream effect", decision_body)
 
             status, headers, _ = call_wsgi(
@@ -451,7 +497,7 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, body = call_wsgi(application, f"/manage/objects/{object_id}/suspect")
             self.assertEqual(status, "200 OK")
-            self.assertIn("Suspect posture context", body)
+            self.assertIn("Suspect contract", body)
             self.assertIn("Mark object suspect", body)
 
             status, _, body = call_wsgi(
@@ -478,8 +524,24 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, body = call_wsgi(application, f"/manage/objects/{object_id}/supersede")
             self.assertEqual(status, "200 OK")
-            self.assertIn("Supersession context", body)
+            self.assertIn("Supersession contract", body)
             self.assertIn("Supersede object", body)
+
+            status, _, body = call_wsgi(application, f"/manage/objects/{object_id}/archive")
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Archive contract", body)
+            self.assertIn("Required acknowledgements", body)
+            self.assertIn("No acknowledgements are required.", body)
+
+            status, _, body = call_wsgi(
+                application,
+                f"/manage/objects/{object_id}/archive",
+                method="POST",
+                form={"retirement_reason": "", "notes": ""},
+            )
+            self.assertEqual(status, "200 OK")
+            self.assertIn("A retirement rationale is required.", body)
+            self.assertNotIn("You must acknowledge: canonical path will move to archive.", body)
 
             status, _, body = call_wsgi(
                 application,
@@ -619,6 +681,70 @@ class WebOperatorUiTests(unittest.TestCase):
             actors = {str(row["event_type"]): str(row["actor"]) for row in audit_rows}
             self.assertEqual(actors["object_created"], "local.manager")
             self.assertEqual(actors["evidence_revalidation_requested"], "local.manager")
+
+    def test_archive_form_renders_backend_required_acknowledgements(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root = Path(temp_dir) / "repo"
+            workflow = GovernanceWorkflow(database_path, source_root=source_root)
+            replacement = workflow.create_object(
+                object_id="kb-archive-replacement-ui",
+                object_type="runbook",
+                title="Archive Replacement UI",
+                summary="Replacement object for archive UI coverage.",
+                owner="workflow_owner",
+                team="IT Operations",
+                canonical_path="knowledge/runbooks/archive-replacement-ui.md",
+                actor="tests",
+            )
+            archived = workflow.create_object(
+                object_id="kb-archive-ui",
+                object_type="runbook",
+                title="Archive UI",
+                summary="Archive acknowledgement rendering coverage.",
+                owner="workflow_owner",
+                team="IT Operations",
+                canonical_path="knowledge/runbooks/archive-ui.md",
+                actor="tests",
+            )
+            revision = workflow.create_revision(
+                object_id=archived.object_id,
+                normalized_payload=runbook_payload(archived.object_id, archived.canonical_path, archived.title),
+                body_markdown="## Use When\n\nExercise archive acknowledgement rendering.\n",
+                actor="tests",
+                change_summary="Archive acknowledgement rendering coverage.",
+            )
+            workflow.submit_for_review(object_id=archived.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.assign_reviewer(
+                object_id=archived.object_id,
+                revision_id=revision.revision_id,
+                reviewer="reviewer_a",
+                actor="tests",
+            )
+            workflow.approve_revision(
+                object_id=archived.object_id,
+                revision_id=revision.revision_id,
+                reviewer="reviewer_a",
+                actor="local.reviewer",
+                notes="Approve before archive UI test.",
+            )
+            workflow.supersede_object(
+                object_id=archived.object_id,
+                replacement_object_id=replacement.object_id,
+                actor="tests",
+                notes="Deprecate before archive UI test.",
+            )
+
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+            )
+            status, _, body = call_wsgi(application, f"/manage/objects/{archived.object_id}/archive")
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Archive contract", body)
+            self.assertIn("canonical path will move to archive", body)
+            self.assertIn('name="acknowledgements"', body)
 
     def test_role_selection_redirects_to_role_home_and_scopes_shell_navigation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -17,7 +17,7 @@ from papyrus.interfaces.web.rendering import PageRenderer
 from papyrus.interfaces.web.route_utils import actor_for_request, actor_home_path, actor_shell_for_id
 from papyrus.interfaces.web.runtime import WebRuntime
 from papyrus.interfaces.web.routes import dashboard, home, impact, ingest, manage, objects, queue, services, write
-from papyrus.interfaces.startup_guard import resolve_operator_source_root
+from papyrus.interfaces.startup_guard import prepare_operator_source_root
 
 
 @dataclass(frozen=True)
@@ -99,7 +99,7 @@ def app(
     allow_web_ingest_local_paths: bool = False,
 ) -> Callable:
     resolved_database_path = Path(database_path)
-    resolved_source_root = resolve_operator_source_root(
+    resolved_source_root = prepare_operator_source_root(
         source_root,
         allow_noncanonical=allow_noncanonical_source_root,
     )

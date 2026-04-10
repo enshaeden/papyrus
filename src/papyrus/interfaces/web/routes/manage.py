@@ -27,59 +27,95 @@ from papyrus.interfaces.web.forms.review_forms import (
 from papyrus.interfaces.web.http import Request, html_response, redirect_response
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
+from papyrus.interfaces.web.presenters.governed_presenter import (
+    action_descriptor,
+    compact_action_menu_html,
+    primary_surface_href,
+    projection_reasons,
+    projection_state,
+    projection_use_guidance,
+    render_acknowledgement_panel,
+    render_action_contract_panel,
+    render_contract_status_panel,
+    render_governed_action_panel,
+    render_projection_status_panel,
+)
 from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
-from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, render_list, tone_for_approval, tone_for_trust
+from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, render_list
 
 
 def _manage_item_detail_href(item: dict[str, object]) -> str:
-    current_revision_id = str(item.get("current_revision_id") or "").strip()
-    revision_review_state = str(item.get("revision_review_state") or "")
-    if not current_revision_id or revision_review_state in {"draft", "rejected"}:
-        return f"/write/objects/{quoted_path(str(item['object_id']))}/revisions/new#revision-form"
-    if revision_review_state == "in_review" and item.get("revision_id"):
-        return f"/manage/reviews/{quoted_path(str(item['object_id']))}/{quoted_path(str(item['revision_id']))}"
-    return f"/objects/{quoted_path(str(item['object_id']))}"
-
-
-def _manage_item_actions(item: dict[str, object]) -> str:
-    object_id = quoted_path(str(item["object_id"]))
-    revision_id = str(item.get("revision_id") or "").strip()
-    current_revision_id = str(item.get("current_revision_id") or "").strip()
-    revision_review_state = str(item.get("revision_review_state") or "")
-    actions: list[str] = []
-
-    if not current_revision_id:
-        actions.append(link("Draft first revision", f"/write/objects/{object_id}/revisions/new#revision-form", css_class="button button-primary"))
-    elif revision_review_state in {"draft", "rejected"}:
-        actions.append(link("Continue draft", f"/write/objects/{object_id}/revisions/new#revision-form", css_class="button button-primary"))
-        if revision_id:
-            actions.append(link("Submit for review", f"/write/objects/{object_id}/submit?revision_id={quoted_path(revision_id)}", css_class="button button-secondary"))
-    elif revision_review_state == "in_review" and revision_id:
-        actions.append(link("Assign reviewer", f"/manage/reviews/{object_id}/{quoted_path(revision_id)}/assign", css_class="button button-secondary"))
-        actions.append(link("Review decision", f"/manage/reviews/{object_id}/{quoted_path(revision_id)}", css_class="button button-primary"))
-
-    actions.extend(
-        [
-            link("Mark suspect", f"/manage/objects/{object_id}/suspect", css_class="button button-secondary"),
-            link("Supersede", f"/manage/objects/{object_id}/supersede", css_class="button button-secondary"),
-            link("Archive", f"/manage/objects/{object_id}/archive", css_class="button button-secondary"),
-        ]
+    return primary_surface_href(
+        object_id=str(item["object_id"]),
+        revision_id=str(item.get("revision_id") or item.get("current_revision_id") or "").strip() or None,
+        current_revision_id=str(item.get("current_revision_id") or "").strip() or None,
+        ui_projection=item.get("ui_projection"),
     )
-    return join_html(actions, " ")
+
+
+def _manage_item_actions(components: ComponentPresenter, item: dict[str, object]) -> str:
+    return compact_action_menu_html(
+        components,
+        ui_projection=item.get("ui_projection"),
+        object_id=str(item["object_id"]),
+        revision_id=str(item.get("revision_id") or item.get("current_revision_id") or "").strip() or None,
+        current_revision_id=str(item.get("current_revision_id") or "").strip() or None,
+    )
+
+
+def _governed_context_html(
+    components: ComponentPresenter,
+    *,
+    detail: dict[str, object],
+    status_title: str,
+    action_id: str | None = None,
+    action_title: str | None = None,
+    show_actions: bool = False,
+) -> str:
+    panels = [
+        render_projection_status_panel(
+            components,
+            title=status_title,
+            ui_projection=detail.get("ui_projection"),
+        )
+    ]
+    if action_id is not None:
+        panels.append(
+            render_action_contract_panel(
+                components,
+                title=action_title or "Action contract",
+                action=action_descriptor(detail.get("ui_projection"), action_id),
+            )
+        )
+    if show_actions:
+        panels.append(
+            render_governed_action_panel(
+                components,
+                title="Governed actions",
+                ui_projection=detail.get("ui_projection"),
+                object_id=str(detail["object"]["object_id"]),
+                revision_id=str((detail.get("revision") or detail.get("current_revision") or {}).get("revision_id") or "") or None,
+                show_ctas=False,
+            )
+        )
+    return join_html(panels)
 
 
 def _manage_table(components, title: str, items: list[dict[str, object]], *, show_actions: bool = False) -> str:
     del show_actions
     rows = []
     for item in items:
+        use_guidance = projection_use_guidance(item.get("ui_projection"))
+        state = projection_state(item.get("ui_projection"))
+        reasons = projection_reasons(item.get("ui_projection")) or [str(reason) for reason in item.get("reasons", [])]
         rows.append(
             [
                 link(str(item["title"]), _manage_item_detail_href(item)),
-                f'{escape(item["revision_review_state"])}<p class="cell-meta">{escape(item.get("change_summary") or item.get("summary") or "No recent summary recorded.")}</p>',
-                f'{escape(item["trust_state"])} / {escape(item["approval_state"])}<p class="cell-meta">{escape(item["posture"]["trust_summary"])}</p>',
-                escape(", ".join(item["reasons"])),
+                f'{escape(state.get("revision_review_state") or item["revision_review_state"])}<p class="cell-meta">{escape(item.get("change_summary") or item.get("summary") or "No recent summary recorded.")}</p>',
+                f'{escape(use_guidance.get("summary") or "No governed summary returned.")}<p class="cell-meta">{escape(use_guidance.get("detail") or item["posture"]["trust_summary"])}</p>',
+                escape(", ".join(reasons) or "No explicit reasons returned."),
                 escape(item["owner"]),
-                _manage_item_actions(item),
+                _manage_item_actions(components, item),
             ]
         )
     return components.section_card(
@@ -162,14 +198,12 @@ def register(router, runtime) -> None:
                     f"/objects/{quoted_path(object_id)}?notice={quote_plus('Object superseded and audit trail recorded')}"
                 )
             errors = result.errors
-        summary_html = components.section_card(
-            title="Supersession context",
-            eyebrow="Manage",
-            body_html=(
-                f"<p><strong>{escape(detail['object']['title'])}</strong></p>"
-                f"<p>Trust: {escape(detail['object']['trust_state'])} · Approval: {escape(detail['object']['approval_state'] or 'unknown')}</p>"
-                f"<p>{escape(detail['posture']['trust_detail'])}</p>"
-            ),
+        summary_html = _governed_context_html(
+            components,
+            detail=detail,
+            status_title=f"{detail['object']['title']} governed posture",
+            action_id="supersede_object",
+            action_title="Supersession contract",
         )
         form_html = components.section_card(
             title="Supersede object",
@@ -236,13 +270,12 @@ def register(router, runtime) -> None:
                     f"/objects/{quoted_path(object_id)}?notice={quote_plus('Object marked suspect with explicit rationale')}"
                 )
             errors = result.errors
-        summary_html = components.section_card(
-            title="Suspect posture context",
-            eyebrow="Manage",
-            body_html=(
-                f"<p><strong>{escape(detail['object']['title'])}</strong></p>"
-                f"<p>{escape(detail['posture']['trust_detail'])}</p>"
-            ),
+        summary_html = _governed_context_html(
+            components,
+            detail=detail,
+            status_title=f"{detail['object']['title']} governed posture",
+            action_id="mark_suspect",
+            action_title="Suspect contract",
         )
         form_html = components.section_card(
             title="Mark object suspect",
@@ -298,11 +331,20 @@ def register(router, runtime) -> None:
         values = {
             "retirement_reason": request.form_value("retirement_reason"),
             "notes": request.form_value("notes"),
-            "acknowledge_move": request.form_value("acknowledge_move"),
         }
+        selected_acknowledgements = request.form_values("acknowledgements")
+        archive_action = action_descriptor(detail.get("ui_projection"), "archive_object") or {}
+        required_acknowledgements = [
+            str(item)
+            for item in ((archive_action.get("policy") or {}).get("required_acknowledgements") or [])
+        ]
         errors: dict[str, list[str]] = {}
         if request.method == "POST":
-            result = validate_archive_form(values)
+            result = validate_archive_form(
+                values,
+                selected_acknowledgements=selected_acknowledgements,
+                required_acknowledgements=required_acknowledgements,
+            )
             if result.is_valid:
                 archive_object_command(
                     database_path=runtime.database_path,
@@ -317,14 +359,12 @@ def register(router, runtime) -> None:
                     f"/objects/{quoted_path(object_id)}?notice={quote_plus('Object archived and canonical path moved under archive/knowledge/')}"
                 )
             errors = result.errors
-        summary_html = components.section_card(
-            title="Archive context",
-            eyebrow="Manage",
-            body_html=(
-                f"<p><strong>{escape(detail['object']['title'])}</strong></p>"
-                f"<p>Lifecycle: {escape(detail['object']['object_lifecycle_state'])} · Canonical path: {escape(detail['object']['canonical_path'])}</p>"
-                f"<p>{escape(detail['posture']['trust_detail'])}</p>"
-            ),
+        summary_html = _governed_context_html(
+            components,
+            detail=detail,
+            status_title=f"{detail['object']['title']} governed posture",
+            action_id="archive_object",
+            action_title="Archive contract",
         )
         form_html = components.section_card(
             title="Archive object",
@@ -344,17 +384,14 @@ def register(router, runtime) -> None:
                     control_html=forms.textarea(field_id="notes", name="notes", value=values["notes"], rows=3),
                     hint="Optional notes stored with the archive audit event.",
                 )
-                + forms.field(
-                    field_id="acknowledge_move",
-                    label="Acknowledgement",
-                    control_html=forms.select(
-                        field_id="acknowledge_move",
-                        name="acknowledge_move",
-                        value=values["acknowledge_move"],
-                        options=["", "yes"],
-                    ),
-                    hint="Select yes to confirm the canonical file will move under archive/knowledge/.",
-                    errors=errors.get("acknowledge_move"),
+                + render_acknowledgement_panel(
+                    components,
+                    forms,
+                    title="Required acknowledgements",
+                    required_acknowledgements=required_acknowledgements,
+                    selected_acknowledgements=selected_acknowledgements,
+                    operator_message=str(archive_action.get("detail") or "Review the required acknowledgements before continuing."),
+                    errors=errors.get("acknowledgements"),
                 )
                 + forms.button(label="Archive object")
                 + "</form>"
@@ -392,13 +429,12 @@ def register(router, runtime) -> None:
             return redirect_response(
                 f"/objects/{quoted_path(object_id)}?notice={quote_plus('Evidence revalidation requested')}"
             )
-        summary_html = components.section_card(
-            title="Evidence status context",
-            eyebrow="Evidence",
-            body_html=(
-                f"<p><strong>{escape(detail['object']['title'])}</strong></p>"
-                f"<p>{escape(detail['evidence_status']['summary'])}</p>"
-            ),
+        summary_html = _governed_context_html(
+            components,
+            detail=detail,
+            status_title=f"{detail['object']['title']} governed posture",
+            action_id="request_evidence_revalidation",
+            action_title="Evidence follow-up contract",
         )
         form_html = components.section_card(
             title="Revalidate evidence",
@@ -460,13 +496,13 @@ def register(router, runtime) -> None:
                     f"/manage/reviews/{quoted_path(object_id)}/{quoted_path(revision_id)}?notice={quote_plus('Reviewer assigned')}"
                 )
             errors = result.errors
-        summary_html = components.section_card(
-            title="Revision review context",
-            eyebrow="Manage",
-            body_html=(
-                f"<p><strong>{escape(detail['object']['title'])}</strong> · revision #{escape(detail['revision']['revision_number'])}</p>"
-                f"<p>State: {escape(detail['revision']['revision_review_state'])} · citations: {escape(len(detail['citations']))}</p>"
-            ),
+        summary_html = _governed_context_html(
+            components,
+            detail=detail,
+            status_title=f"{detail['object']['title']} review posture",
+            action_id="assign_reviewer",
+            action_title="Reviewer assignment contract",
+            show_actions=True,
         )
         assignment_html = components.audit_panel(
             title="Current assignments",
@@ -565,14 +601,13 @@ def register(router, runtime) -> None:
                         body=str(exc),
                         tone="warning",
                     )
-        summary_html = components.section_card(
-            title="Decision context",
-            eyebrow="Review",
-            body_html=(
-                f"<p><strong>{escape(detail['object']['title'])}</strong> · revision #{escape(detail['revision']['revision_number'])}</p>"
-                f"<p>Current state: {escape(detail['revision']['revision_review_state'])}</p>"
-                f"<p>Assignments: {escape(len(detail['assignments']))} · citations: {escape(len(detail['citations']))} · downstream objects: {escape(len(impact['impacted_objects']))}</p>"
-            ),
+        summary_html = _governed_context_html(
+            components,
+            detail=detail,
+            status_title=f"{detail['object']['title']} review posture",
+            action_id="approve_revision",
+            action_title="Review decision contract",
+            show_actions=True,
         )
         decisions_html = join_html(
             [
@@ -598,16 +633,28 @@ def register(router, runtime) -> None:
                         )
                     ),
                 ),
-                components.section_card(
-                    title="Writeback preview",
-                    eyebrow="Writeback",
-                    tone="danger" if preview.conflict_detected else "default",
-                    body_html=(
-                        f"<p><strong>Canonical path:</strong> {escape(preview.file_path)}</p>"
-                        f"<p><strong>Previous approved revision:</strong> {escape(preview.previous_revision_id or 'None')}</p>"
-                        f"<p><strong>Conflict status:</strong> {escape(preview.conflict_reason or 'No writeback conflict detected.')}</p>"
-                        "<p><strong>Recovery:</strong> if approval writes new canonical text, the previous source text is backed up under <code>build/writeback-backups/</code>.</p>"
+                render_contract_status_panel(
+                    components,
+                    title="Writeback contract",
+                    summary="Approval writeback preview",
+                    operator_message=preview.operator_message,
+                    source_of_truth=preview.source_of_truth,
+                    transition=preview.transition,
+                    invalidated_assumptions=list(preview.invalidated_assumptions),
+                    required_acknowledgements=list(preview.required_acknowledgements),
+                    tone="danger" if preview.conflict_detected else "context",
+                    footer_html=(
+                        f'<p class="section-footer">Canonical path {escape(preview.file_path)} · previous approved revision {escape(preview.previous_revision_id or "None")} · conflict {escape(preview.conflict_reason or "none")}</p>'
                     ),
+                ),
+                render_acknowledgement_panel(
+                    components,
+                    forms,
+                    title="Writeback acknowledgement requirements",
+                    required_acknowledgements=list(preview.required_acknowledgements),
+                    selected_acknowledgements=[],
+                    operator_message=preview.operator_message,
+                    read_only=True,
                 ),
                 components.section_card(
                     title="Likely downstream effect",

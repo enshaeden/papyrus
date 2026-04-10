@@ -116,11 +116,27 @@ MACHINE_TRANSITIONS = {
 }
 
 
+class TransitionSemantics(StrEnum):
+    NO_OP = "no_op"
+    ALLOWED = "allowed_transition"
+    ILLEGAL = "illegal_transition"
+
+
 @dataclass(frozen=True)
-class StateChange:
+class TransitionDescriptor:
     machine: str
     from_state: str
     to_state: str
+    semantics: TransitionSemantics
+    allowed_targets: tuple[str, ...]
+
+    @property
+    def allowed(self) -> bool:
+        return self.semantics != TransitionSemantics.ILLEGAL
+
+    @property
+    def changes_state(self) -> bool:
+        return self.semantics == TransitionSemantics.ALLOWED
 
 
 def allowed_transitions(machine: str, current_state: str) -> tuple[str, ...]:
@@ -141,15 +157,43 @@ def allowed_transitions(machine: str, current_state: str) -> tuple[str, ...]:
 
 
 def transition_is_allowed(machine: str, current_state: str, target_state: str) -> bool:
-    return target_state in allowed_transitions(machine, current_state)
+    return evaluate_transition(machine, current_state, target_state).allowed
 
 
-def require_transition(machine: str, current_state: str, target_state: str) -> StateChange:
+def illegal_transition_message(machine: str, current_state: str, target_state: str) -> str:
+    allowed = ", ".join(allowed_transitions(machine, current_state)) or "no further transitions"
+    return f"illegal {machine} transition: {current_state} -> {target_state}; allowed: {allowed}"
+
+
+def evaluate_transition(machine: str, current_state: str, target_state: str) -> TransitionDescriptor:
+    allowed_targets = allowed_transitions(machine, current_state)
     if current_state == target_state:
-        return StateChange(machine=machine, from_state=current_state, to_state=target_state)
-    if not transition_is_allowed(machine, current_state, target_state):
-        allowed = ", ".join(allowed_transitions(machine, current_state)) or "no further transitions"
-        raise ValueError(
-            f"illegal {machine} transition: {current_state} -> {target_state}; allowed: {allowed}"
+        return TransitionDescriptor(
+            machine=machine,
+            from_state=current_state,
+            to_state=target_state,
+            semantics=TransitionSemantics.NO_OP,
+            allowed_targets=allowed_targets,
         )
-    return StateChange(machine=machine, from_state=current_state, to_state=target_state)
+    if target_state not in allowed_targets:
+        return TransitionDescriptor(
+            machine=machine,
+            from_state=current_state,
+            to_state=target_state,
+            semantics=TransitionSemantics.ILLEGAL,
+            allowed_targets=allowed_targets,
+        )
+    return TransitionDescriptor(
+        machine=machine,
+        from_state=current_state,
+        to_state=target_state,
+        semantics=TransitionSemantics.ALLOWED,
+        allowed_targets=allowed_targets,
+    )
+
+
+def require_transition(machine: str, current_state: str, target_state: str) -> TransitionDescriptor:
+    transition = evaluate_transition(machine, current_state, target_state)
+    if transition.semantics == TransitionSemantics.ILLEGAL:
+        raise ValueError(illegal_transition_message(machine, current_state, target_state))
+    return transition

@@ -5,6 +5,11 @@ from typing import Any
 
 from papyrus.application.authoring_flow import derive_section_content
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
+from papyrus.interfaces.web.presenters.governed_presenter import (
+    projection_state,
+    render_governed_action_panel,
+    render_projection_status_panel,
+)
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import (
     escape,
@@ -27,29 +32,6 @@ def _body_sections(body_markdown: str) -> dict[str, str]:
         match.group("title").strip(): match.group("body").strip()
         for match in SECTION_PATTERN.finditer(str(body_markdown or "").strip())
     }
-
-
-def _safe_to_use_summary(item: dict[str, Any]) -> str:
-    approval_state = str(item.get("approval_state") or "")
-    trust_state = str(item.get("trust_state") or "")
-    if approval_state == "approved" and trust_state == "trusted":
-        return "Safe to use now if the linked service context still matches the situation."
-    if approval_state == "in_review":
-        return "Do not treat this revision as canonical guidance yet. Use the last approved guidance or escalate."
-    if approval_state in {"draft", "rejected"}:
-        return "This guidance is not ready for operational use yet."
-    if trust_state == "weak_evidence":
-        return "Use cautiously and verify the evidence trail before relying on it."
-    if trust_state == "stale":
-        return "Revalidate freshness before relying on this guidance."
-    if trust_state == "suspect":
-        return "Treat this guidance as unsafe until the suspect reason is reviewed."
-    return "Inspect the trust and approval context before relying on this guidance."
-
-
-def _next_action(posture: dict[str, Any]) -> str:
-    approval = posture.get("approval") or {}
-    return str(approval.get("action") or "Inspect the detail, review, or health surfaces before acting.")
 
 
 def _runbook_guidance(components: ComponentPresenter, metadata: dict[str, Any], sections: dict[str, str]) -> list[str]:
@@ -212,6 +194,8 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
     revision = detail["current_revision"]
     metadata = detail.get("metadata") or {}
     posture = detail.get("posture") or {}
+    ui_projection = detail.get("ui_projection") or {}
+    projection_state_values = projection_state(ui_projection)
     evidence_status = detail.get("evidence_status") or {}
     body_sections = _body_sections(revision["body_markdown"] if revision is not None else "")
     if revision is not None and not revision.get("section_content"):
@@ -228,8 +212,16 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         title=item["title"],
         summary=item["summary"],
         badges=[
-            components.badge(label="Trust", value=item["trust_state"], tone=tone_for_trust(item["trust_state"])),
-            components.badge(label="Approval", value=item["approval_state"] or "unknown", tone=tone_for_approval(item["approval_state"])),
+            components.badge(
+                label="Trust",
+                value=projection_state_values.get("trust_state") or item["trust_state"],
+                tone=tone_for_trust(str(projection_state_values.get("trust_state") or item["trust_state"])),
+            ),
+            components.badge(
+                label="Approval",
+                value=projection_state_values.get("approval_state") or item["approval_state"] or "unknown",
+                tone=tone_for_approval(str(projection_state_values.get("approval_state") or item["approval_state"])),
+            ),
             components.badge(label="Freshness", value=item["freshness_rank"], tone=tone_for_health(item["freshness_rank"])),
             components.badge(label="Evidence", value=item["citation_health_rank"], tone=tone_for_health(item["citation_health_rank"])),
         ],
@@ -238,22 +230,26 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                 link("Revision history", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
                 link("Revise guidance", f"/write/objects/{quoted_path(item['object_id'])}/revisions/new", css_class="button button-primary"),
                 link("Impact view", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
-                link("Mark suspect", f"/manage/objects/{quoted_path(item['object_id'])}/suspect", css_class="button button-secondary"),
             ],
             " ",
         ),
     )
 
     top_cards = [
-        components.section_card(
-            title="Safe to use now?",
-            eyebrow="Use",
-            tone="approved" if item["approval_state"] == "approved" and item["trust_state"] == "trusted" else "warning",
-            body_html=(
-                f"<p>{escape(_safe_to_use_summary(item))}</p>"
-                f"<p><strong>Last reviewed:</strong> {escape(item['last_reviewed'])} · <strong>Cadence:</strong> {escape(item['review_cadence'])}</p>"
-                f"<p><strong>Next action:</strong> {escape(_next_action(posture))}</p>"
+        render_projection_status_panel(
+            components,
+            title="Current governed posture",
+            ui_projection=ui_projection,
+            footer_html=(
+                f'<p class="section-footer">Last reviewed {escape(item["last_reviewed"])} · cadence {escape(item["review_cadence"])}</p>'
             ),
+        ),
+        render_governed_action_panel(
+            components,
+            title="Governed actions",
+            ui_projection=ui_projection,
+            object_id=str(item["object_id"]),
+            revision_id=str(revision["revision_id"]) if revision is not None else None,
         ),
         components.section_card(
             title="Linked service context",
@@ -365,11 +361,27 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
             components.trust_summary(
                 title="Safety and lifecycle",
                 badges=[
-                    components.badge(label="Trust", value=item["trust_state"], tone=tone_for_trust(item["trust_state"])),
-                    components.badge(label="Approval", value=item["approval_state"] or "unknown", tone=tone_for_approval(item["approval_state"])),
-                    components.badge(label="Status", value=item["object_lifecycle_state"], tone="context"),
+                    components.badge(
+                        label="Trust",
+                        value=projection_state_values.get("trust_state") or item["trust_state"],
+                        tone=tone_for_trust(str(projection_state_values.get("trust_state") or item["trust_state"])),
+                    ),
+                    components.badge(
+                        label="Approval",
+                        value=projection_state_values.get("approval_state") or item["approval_state"] or "unknown",
+                        tone=tone_for_approval(str(projection_state_values.get("approval_state") or item["approval_state"])),
+                    ),
+                    components.badge(
+                        label="Status",
+                        value=projection_state_values.get("object_lifecycle_state") or item["object_lifecycle_state"],
+                        tone="context",
+                    ),
                 ],
-                summary=str(posture.get("trust_detail") or "Inspect trust, approval, and lifecycle cues before relying on the guidance."),
+                summary=str(
+                    (ui_projection.get("use_guidance") or {}).get("detail")
+                    or posture.get("trust_detail")
+                    or "Inspect trust, approval, and lifecycle cues before relying on the guidance."
+                ),
             ),
             components.section_card(
                 title="Evidence follow-up",

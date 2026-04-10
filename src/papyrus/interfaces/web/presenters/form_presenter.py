@@ -62,6 +62,24 @@ class FormPresenter:
             f'placeholder="{escape(placeholder)}">{escape(value)}</textarea>'
         )
 
+    def checkbox(
+        self,
+        *,
+        field_id: str,
+        name: str,
+        value: str,
+        label: str,
+        checked: bool = False,
+    ) -> str:
+        return (
+            f'<label class="checkbox-field" for="{escape(field_id)}">'
+            f'<input id="{escape(field_id)}" name="{escape(name)}" type="checkbox" value="{escape(value)}"'
+            + (" checked" if checked else "")
+            + " />"
+            f'<span>{escape(label)}</span>'
+            "</label>"
+        )
+
     def select(
         self,
         *,

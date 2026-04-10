@@ -4,6 +4,7 @@ import datetime as dt
 import hashlib
 import json
 import sqlite3
+from dataclasses import dataclass
 
 from papyrus.domain.entities import KnowledgeDocument
 from papyrus.domain.lifecycle import DraftProgressState, RevisionReviewState, SourceSyncState
@@ -35,6 +36,16 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
 from papyrus.infrastructure.repositories.service_repo import upsert_service
 from papyrus.infrastructure.search.indexer import summarize_for_search
 from papyrus.jobs.stale_scan import cadence_to_days
+
+
+@dataclass(frozen=True)
+class RuntimeStateSnapshot:
+    object_lifecycle_state: str
+    revision_review_state: str | None
+    draft_progress_state: str | None
+    source_sync_state: str
+    trust_state: str | None
+    approval_state: str | None
 
 
 def relationship_id(

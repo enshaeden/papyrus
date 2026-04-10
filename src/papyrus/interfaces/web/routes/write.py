@@ -14,6 +14,13 @@ from papyrus.interfaces.web.forms.review_forms import validate_submit_form
 from papyrus.interfaces.web.http import Request, html_response, json_response, redirect_response
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
+from papyrus.interfaces.web.presenters.governed_presenter import (
+    action_descriptor,
+    projection_use_guidance,
+    render_action_contract_panel,
+    render_contract_status_panel,
+    render_projection_status_panel,
+)
 from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
 from papyrus.interfaces.web.view_helpers import escape, join_html, link, parse_multiline, quoted_path
 
@@ -131,32 +138,33 @@ def _common_revision_aside(runtime, detail) -> str:
     components = ComponentPresenter(runtime.template_renderer)
     item = detail["object"]
     current_revision = detail.get("current_revision")
+    submit_action = action_descriptor(detail.get("ui_projection"), "submit_for_review")
     return join_html(
         [
-            components.trust_summary(
-                title="Current object posture",
-                badges=[
-                    components.badge(label="Trust", value=item["trust_state"], tone="approved" if item["trust_state"] == "trusted" else "warning"),
-                    components.badge(label="Approval", value=item["approval_state"] or "unknown", tone="approved" if item["approval_state"] == "approved" else "pending"),
-                    components.badge(label="Owner", value=item["owner"], tone="muted"),
+            render_projection_status_panel(
+                components,
+                title="Governed posture",
+                ui_projection=detail.get("ui_projection"),
+            ),
+            render_action_contract_panel(
+                components,
+                title="Submission contract",
+                action=submit_action,
+            ),
+            components.metadata_list(
+                title="Revision context",
+                rows=[
+                    (
+                        "Current revision",
+                        escape(
+                            f"#{current_revision['revision_number']} · {current_revision['revision_review_state']}"
+                            if current_revision
+                            else "No revision attached yet"
+                        ),
+                    ),
+                    ("Owner", escape(item["owner"])),
+                    ("Canonical path", escape(item["canonical_path"])),
                 ],
-                summary="Lifecycle guardrails stay visible while the author moves work toward review.",
-            ),
-            components.section_card(
-                title="Current revision context",
-                eyebrow="Lifecycle",
-                body_html=(
-                    f"<p><strong>Current attached revision:</strong> {escape(current_revision['revision_review_state'])} · #{escape(current_revision['revision_number'])}</p>"
-                    if current_revision
-                    else "<p>No revision is attached yet. The first approved revision becomes the first canonical guidance for this object.</p>"
-                )
-                + f"<p><strong>Canonical path:</strong> {escape(item['canonical_path'])}</p>"
-                + "<p><strong>If approved:</strong> this revision becomes canonical guidance for operators.</p>",
-            ),
-            components.section_card(
-                title="Next steward role",
-                eyebrow="Lifecycle",
-                body_html="<p>After submission, the next explicit step is reviewer assignment and a recorded approval or rejection decision.</p>",
             ),
         ]
     )
@@ -576,21 +584,31 @@ def _progress_bar_html(runtime, *, blueprint, completion: dict[str, object], cur
     )
 
 
-def _next_action_panel_html(components, *, blueprint, completion: dict[str, object]) -> str:
+def _next_action_panel_html(components, *, detail, blueprint, completion: dict[str, object]) -> str:
     next_section_id = str(completion.get("next_section_id") or "")
     next_label = blueprint.section(next_section_id).display_name if next_section_id else "Review readiness"
     tone = "warning" if completion["draft_progress_state"] != "ready_for_review" else "approved"
     evidence_posture = completion.get("evidence_posture") or {}
-    evidence_summary = str(evidence_posture.get("summary") or "No evidence references recorded yet.")
-    return components.section_card(
-        title="Next action",
-        eyebrow="Guidance",
+    submit_action = action_descriptor(detail.get("ui_projection"), "submit_for_review")
+    use_guidance = projection_use_guidance(detail.get("ui_projection"))
+    return render_contract_status_panel(
+        components,
+        title="Draft readiness contract",
+        summary=str(use_guidance.get("summary") or "Draft guidance in progress"),
+        operator_message=str(
+            (submit_action or {}).get("detail")
+            or use_guidance.get("detail")
+            or "Continue the guided draft until the revision is ready for review."
+        ),
+        source_of_truth=str(((submit_action or {}).get("policy") or {}).get("source_of_truth") or "repository_policy"),
+        transition=dict(((submit_action or {}).get("policy") or {}).get("transition") or {}),
+        required_acknowledgements=[
+            str(item)
+            for item in (((submit_action or {}).get("policy") or {}).get("required_acknowledgements") or [])
+        ],
         tone=tone,
-        body_html=(
-            f"<p><strong>Current draft state:</strong> {escape(completion['draft_progress_state'])}</p>"
-            f"<p><strong>Continue with:</strong> {escape(next_label)}</p>"
-            f"<p><strong>Evidence posture:</strong> {escape(evidence_summary)}</p>"
-            "<p>Required sections unlock sequentially through the visible progress bar. Review stays blocked until blockers are cleared.</p>"
+        footer_html=(
+            f'<p class="section-footer">Current draft state {escape(completion["draft_progress_state"])} · continue with {escape(next_label)} · evidence posture {escape(evidence_posture.get("summary") or "No evidence references recorded yet.")}</p>'
         ),
     )
 
@@ -780,7 +798,12 @@ def _render_guided_revision_page(
                 "fields_html": section_form_html,
             },
         ),
-        "next_action_html": _next_action_panel_html(components, blueprint=blueprint, completion=completion),
+        "next_action_html": _next_action_panel_html(
+            components,
+            detail=object_detail,
+            blueprint=blueprint,
+            completion=completion,
+        ),
         "fallback_html": _guided_fallback_html(
             components,
             object_id=str(object_detail["object"]["object_id"]),
@@ -1013,11 +1036,20 @@ def _render_fallback_revision_form(
     }
 
 
-def _render_submit_page(runtime, detail, completion: dict[str, object], findings: list[str], form_errors: dict[str, list[str]], values: dict[str, str]) -> dict[str, str]:
+def _render_submit_page(
+    runtime,
+    detail,
+    object_detail,
+    completion: dict[str, object],
+    findings: list[str],
+    form_errors: dict[str, list[str]],
+    values: dict[str, str],
+) -> dict[str, str]:
     forms = FormPresenter(runtime.template_renderer)
     components = ComponentPresenter(runtime.template_renderer)
     revision = detail["revision"]
     evidence_posture = completion.get("evidence_posture") or summarize_evidence_posture(detail.get("citations", []))
+    submit_action = action_descriptor(object_detail.get("ui_projection"), "submit_for_review")
     form_html = components.section_card(
         title="Submit for review",
         eyebrow="Write",
@@ -1034,17 +1066,31 @@ def _render_submit_page(runtime, detail, completion: dict[str, object], findings
             + "</form>"
         ),
     )
-    summary_html = components.section_card(
-        title="Submission summary",
-        eyebrow="Write",
-        body_html=(
-            f"<p><strong>Revision:</strong> #{escape(revision['revision_number'])} · {escape(revision['revision_review_state'])}</p>"
-            f"<p><strong>Change summary:</strong> {escape(revision['change_summary'] or 'No change summary recorded.')}</p>"
-            f"<p><strong>Citations:</strong> {escape(len(detail['citations']))}</p>"
-            f"<p><strong>Evidence posture:</strong> {escape(evidence_posture['summary'])}</p>"
-            f"<p><strong>Evidence note:</strong> {escape(_submit_evidence_posture_detail(evidence_posture))}</p>"
-            f"<p><strong>If approved:</strong> this revision becomes canonical guidance at {escape(detail['object']['canonical_path'])}</p>"
-        ),
+    summary_html = join_html(
+        [
+            render_projection_status_panel(
+                components,
+                title="Current governed posture",
+                ui_projection=object_detail.get("ui_projection"),
+            ),
+            render_action_contract_panel(
+                components,
+                title="Submission contract",
+                action=submit_action,
+            ),
+            components.section_card(
+                title="Submission summary",
+                eyebrow="Write",
+                body_html=(
+                    f"<p><strong>Revision:</strong> #{escape(revision['revision_number'])} · {escape(revision['revision_review_state'])}</p>"
+                    f"<p><strong>Change summary:</strong> {escape(revision['change_summary'] or 'No change summary recorded.')}</p>"
+                    f"<p><strong>Citations:</strong> {escape(len(detail['citations']))}</p>"
+                    f"<p><strong>Evidence posture:</strong> {escape(evidence_posture['summary'])}</p>"
+                    f"<p><strong>Evidence note:</strong> {escape(_submit_evidence_posture_detail(evidence_posture))}</p>"
+                    f"<p><strong>Canonical target:</strong> {escape(detail['object']['canonical_path'])}</p>"
+                ),
+            ),
+        ]
     )
     findings_html = components.validation_findings(title="Pre-submit validation", items=[escape(item) for item in findings] or ["No blocking findings detected."], tone="warning" if findings else "approved")
     progress_html = components.section_card(
@@ -1387,6 +1433,7 @@ def register(router, runtime) -> None:
     def submit_revision_page(request: Request):
         object_id = request.route_value("object_id")
         revision_id = request.query_value("revision_id") or str(knowledge_object_detail(object_id, database_path=runtime.database_path)["current_revision"]["revision_id"])
+        object_detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
         detail = review_detail(object_id, revision_id, database_path=runtime.database_path)
         values = {"notes": request.form_value("notes")}
         form_errors: dict[str, list[str]] = {}
@@ -1421,7 +1468,15 @@ def register(router, runtime) -> None:
             form_errors = result.errors
             if draft_status["completion"]["blockers"]:
                 form_errors.setdefault("notes", []).append("Clear the draft blockers before submitting for review.")
-        page_context = _render_submit_page(runtime, detail, draft_status["completion"], findings, form_errors, values)
+        page_context = _render_submit_page(
+            runtime,
+            detail,
+            object_detail,
+            draft_status["completion"],
+            findings,
+            form_errors,
+            values,
+        )
         return html_response(
             runtime.page_renderer.render_page(
                 page_template="pages/review_submit.html",
@@ -1434,7 +1489,7 @@ def register(router, runtime) -> None:
                 actor_id=actor_for_request(request),
                 current_path=request.path,
                 header_detail_html=_write_timeline_html(stage="submit", is_first_revision=detail["revision"]["revision_number"] == 1),
-                aside_html=_common_revision_aside(runtime, {"object": detail["object"]}),
+                aside_html=_common_revision_aside(runtime, object_detail),
                 page_context=page_context,
             )
         )

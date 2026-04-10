@@ -49,10 +49,6 @@ SECTION_PATTERN = re.compile(r"^## (?P<title>.+?)\n\n(?P<body>.*?)(?=^## |\Z)", 
 FIELD_PROVENANCE_KEY = "_field_provenance"
 CONVERSION_GAPS_KEY = "_conversion_gaps"
 
-
-AUTHORITY = PolicyAuthority.from_repository_policy()
-
-
 @dataclass(frozen=True)
 class DraftRevisionArtifacts:
     payload: dict[str, Any]
@@ -72,6 +68,10 @@ def _event_id(prefix: str) -> str:
 
 def _content_hash(normalized_payload_json: str, body_markdown: str) -> str:
     return hashlib.sha256(f"{normalized_payload_json}\n{body_markdown}".encode("utf-8")).hexdigest()
+
+
+def _policy_authority(authority: PolicyAuthority | None) -> PolicyAuthority:
+    return authority or PolicyAuthority.from_repository_policy()
 
 
 def _body_sections(body_markdown: str) -> dict[str, str]:
@@ -438,7 +438,9 @@ def _validate_field(
     field: dict[str, Any],
     value: Any,
     taxonomies: dict[str, dict[str, Any]],
+    authority: PolicyAuthority | None = None,
 ) -> list[str]:
+    current_authority = _policy_authority(authority)
     errors: list[str] = []
     name = str(field["name"])
     kind = str(field.get("kind") or "text")
@@ -471,7 +473,7 @@ def _validate_field(
         errors.append("Object ID must match kb-slug format.")
     if name == "canonical_path" and text:
         try:
-            AUTHORITY.validate_canonical_repo_relative_path(text)
+            current_authority.validate_canonical_repo_relative_path(text)
         except ValueError as exc:
             errors.append(str(exc))
     if taxonomy and text:
@@ -486,7 +488,9 @@ def compute_completion_state(
     blueprint: Blueprint,
     section_content: dict[str, dict[str, Any]],
     taxonomies: dict[str, dict[str, Any]],
+    authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
+    current_authority = _policy_authority(authority)
     section_completion_map: dict[str, dict[str, Any]] = {}
     completed_required = 0
     required_section_ids = set(blueprint.required_sections)
@@ -519,6 +523,7 @@ def compute_completion_state(
                 field=field,
                 value=value,
                 taxonomies=taxonomies,
+                authority=current_authority,
             )
             errors.extend(field_errors)
             value_present = (
@@ -627,6 +632,7 @@ def build_draft_revision_artifacts(
     existing_metadata: dict[str, Any] | None,
     runtime: RevisionRuntimeServices,
     taxonomies: dict[str, dict[str, Any]] | None = None,
+    authority: PolicyAuthority | None = None,
 ) -> DraftRevisionArtifacts:
     payload, body_markdown = _payload_from_sections(
         blueprint=blueprint,
@@ -639,6 +645,7 @@ def build_draft_revision_artifacts(
         blueprint=blueprint,
         section_content=section_content,
         taxonomies=taxonomies or runtime.taxonomies(),
+        authority=authority,
     )
     parsed = runtime.parse_revision(payload, body_markdown)
     return DraftRevisionArtifacts(
@@ -656,10 +663,12 @@ def _sync_object_from_parsed_revision(
     object_row: sqlite3.Row,
     revision_id: str,
     parsed: Any,
+    authority: PolicyAuthority | None = None,
 ) -> None:
+    current_authority = _policy_authority(authority)
     current_object_lifecycle = str(object_row["object_lifecycle_state"] or object_row["status"])
     next_object_lifecycle = str(parsed.metadata["status"])
-    AUTHORITY.require_object_lifecycle_transition(current_object_lifecycle, next_object_lifecycle)
+    current_authority.require_object_lifecycle_transition(current_object_lifecycle, next_object_lifecycle)
     source_sync_state = (
         SourceSyncState.APPLIED.value
         if str(parsed.metadata.get("source_type") or object_row["source_type"] or "native") != "native"
@@ -705,7 +714,9 @@ def create_draft_from_blueprint(
     actor: str,
     database_path: Path = DB_PATH,
     source_root: Path = ROOT,
+    authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
+    current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
     blueprint = get_blueprint(blueprint_id)
     runtime = RevisionRuntimeServices(source_root=Path(source_root))
@@ -733,6 +744,7 @@ def create_draft_from_blueprint(
                         blueprint=blueprint,
                         section_content=json.loads(str(current_revision_row["section_content_json"] or "{}")),
                         taxonomies=taxonomies,
+                        authority=current_authority,
                     ),
                 }
 
@@ -755,6 +767,7 @@ def create_draft_from_blueprint(
             existing_metadata=existing_metadata,
             runtime=runtime,
             taxonomies=taxonomies,
+            authority=current_authority,
         )
         revision_id = f"{object_id}-rev-{uuid.uuid4().hex[:12]}"
         revision_number = next_revision_number(connection, object_id)
@@ -783,6 +796,7 @@ def create_draft_from_blueprint(
             object_row=object_row,
             revision_id=revision_id,
             parsed=artifacts.parsed,
+            authority=current_authority,
         )
         runtime.refresh_object_projection(connection, object_id=object_id)
         insert_audit_event(
@@ -826,7 +840,9 @@ def update_section(
     actor: str,
     database_path: Path = DB_PATH,
     source_root: Path = ROOT,
+    authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
+    current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
     runtime = RevisionRuntimeServices(source_root=Path(source_root))
     taxonomies = runtime.taxonomies()
@@ -864,6 +880,7 @@ def update_section(
             existing_metadata=existing_metadata,
             runtime=runtime,
             taxonomies=taxonomies,
+            authority=current_authority,
         )
         update_knowledge_revision_content(
             connection,
@@ -883,6 +900,7 @@ def update_section(
             object_row=object_row,
             revision_id=revision_id,
             parsed=artifacts.parsed,
+            authority=current_authority,
         )
         runtime.refresh_object_projection(connection, object_id=object_id)
         insert_audit_event(
@@ -921,7 +939,9 @@ def validate_draft_progress(
     revision_id: str,
     database_path: Path = DB_PATH,
     source_root: Path,
+    authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
+    current_authority = _policy_authority(authority)
     connection = _connection(Path(database_path))
     try:
         object_row = get_knowledge_object(connection, object_id)
@@ -942,6 +962,7 @@ def validate_draft_progress(
                 blueprint=blueprint,
                 section_content=section_content,
                 taxonomies=runtime.taxonomies(),
+                authority=current_authority,
             ),
         }
     finally:

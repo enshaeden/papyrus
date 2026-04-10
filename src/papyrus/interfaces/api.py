@@ -49,7 +49,7 @@ from papyrus.application.queries import (
 from papyrus.domain.actor import require_actor_id
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.infrastructure.repositories.knowledge_repo import get_knowledge_revision
-from papyrus.interfaces.startup_guard import resolve_operator_source_root
+from papyrus.interfaces.startup_guard import prepare_operator_source_root
 
 
 def _json_response(start_response, status: str, payload: object) -> list[bytes]:
@@ -126,7 +126,7 @@ def app(
     allow_noncanonical_source_root: bool = False,
 ) -> Callable:
     resolved_database_path = Path(database_path)
-    resolved_source_root = resolve_operator_source_root(
+    resolved_source_root = prepare_operator_source_root(
         source_root,
         allow_noncanonical=allow_noncanonical_source_root,
     )
@@ -452,7 +452,9 @@ def app(
                         "backup_path": str(result.backup_path) if result.backup_path is not None else None,
                         "mutation_id": result.mutation_id,
                         "object_lifecycle_state": result.object_lifecycle_state,
+                        "transition": result.transition,
                         "required_acknowledgements": list(result.required_acknowledgements),
+                        "acknowledgements": list(result.acknowledgements),
                         "source_of_truth": result.source_of_truth,
                         "state_change": result.state_change,
                         "invalidated_assumptions": list(result.invalidated_assumptions),
@@ -499,6 +501,7 @@ def app(
                             "changed_sections": preview.changed_sections,
                             "conflict_detected": preview.conflict_detected,
                             "source_sync_state": preview.source_sync_state,
+                            "transition": preview.transition,
                             "required_acknowledgements": list(preview.required_acknowledgements),
                             "source_of_truth": preview.source_of_truth,
                             "state_change": preview.state_change,
@@ -513,6 +516,7 @@ def app(
                         object_id=parts[1],
                         actor=actor,
                         source_root=resolved_source_root,
+                        acknowledgements=request_payload.get("acknowledgements") or [],
                     )
                     return _json_response(
                         start_response,
@@ -525,7 +529,9 @@ def app(
                             "file_path": str(result.file_path),
                             "mutation_id": result.mutation_id,
                             "source_sync_state": result.source_sync_state,
+                            "transition": result.transition,
                             "required_acknowledgements": list(result.required_acknowledgements),
+                            "acknowledgements": list(result.acknowledgements),
                             "source_of_truth": result.source_of_truth,
                             "state_change": result.state_change,
                             "invalidated_assumptions": list(result.invalidated_assumptions),
@@ -545,6 +551,7 @@ def app(
                             else None
                         ),
                         source_root=resolved_source_root,
+                        acknowledgements=request_payload.get("acknowledgements") or [],
                     )
                     return _json_response(
                         start_response,
@@ -560,7 +567,9 @@ def app(
                             "restored_to_missing": result.restored_to_missing,
                             "mutation_id": result.mutation_id,
                             "source_sync_state": result.source_sync_state,
+                            "transition": result.transition,
                             "required_acknowledgements": list(result.required_acknowledgements),
+                            "acknowledgements": list(result.acknowledgements),
                             "source_of_truth": result.source_of_truth,
                             "state_change": result.state_change,
                             "invalidated_assumptions": list(result.invalidated_assumptions),
