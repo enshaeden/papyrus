@@ -12,7 +12,7 @@ from papyrus.application.queries import KnowledgeObjectNotFoundError, RuntimeUna
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.infrastructure.repositories.knowledge_repo import load_taxonomies
 from papyrus.interfaces.web.http import Request, html_response, redirect_response, request_from_environ, static_response
-from papyrus.interfaces.web.presenters.common import ComponentPresenter
+from papyrus.interfaces.web.presenters.system_presenter import present_error_page
 from papyrus.interfaces.web.rendering import PageRenderer
 from papyrus.interfaces.web.route_utils import actor_for_request, actor_home_path, actor_shell_for_id
 from papyrus.interfaces.web.runtime import WebRuntime
@@ -72,21 +72,15 @@ def _error_page(
     action: str,
     active_nav: str = "manage",
 ) -> str:
-    components = ComponentPresenter(runtime.template_renderer)
-    error_html = components.section_card(
-        title=title,
-        eyebrow="System",
-        body_html=f"<p>{detail}</p><p><strong>Next action:</strong> {action}</p><p class=\"section-footer\">HTTP status: {status}</p>",
-        tone="danger" if status.startswith("5") else "default",
-    )
     return runtime.page_renderer.render_page(
-        page_template="pages/error.html",
-        page_title=title,
-        page_header={"headline": title},
-        active_nav=active_nav,
-        aside_html="",
-        shell_variant="minimal",
-        page_context={"error_html": error_html},
+        **present_error_page(
+            runtime.template_renderer,
+            title=title,
+            detail=detail,
+            status=status,
+            action=action,
+            active_nav=active_nav,
+        )
     )
 
 

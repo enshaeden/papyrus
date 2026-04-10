@@ -1,131 +1,52 @@
 # Operator Readiness
 
-This document records the current operator-readiness boundary. Papyrus remains a governed local-first operational knowledge system, and the operator surfaces now emphasize guided work, next actions, lifecycle progression, and stewardship instead of compatibility-era governance aliases.
+This reference records the current operator-ready boundary for Papyrus and the runtime behaviors maintainers should preserve.
 
-## What This Pass Accomplished
+## Supported Operator Boundary
 
-- Reframed the product model around the lifecycle of operational knowledge:
-  - draft
-  - revise
-  - review
-  - approve
-  - use
-  - revalidate
-  - supersede or archive
-- Added a real home page with:
-  - primary work areas
-  - outstanding work counts
-  - recent activity
-  - actor-specific next actions
-- Changed top-level navigation to:
-  - `Read`
-  - `Write`
-  - `Review / Approvals`
-  - `Knowledge Health`
-  - `Services`
-  - `Activity / History`
-- Reworked read surfaces so object detail and search results answer:
-  - what this is
-  - when to use it
-  - whether it is safe now
-  - what changed recently
-  - what to do next if it is not safe or current
-- Reworked write surfaces so guided authoring shows:
-  - progress through the draft flow
-  - required versus optional work
-  - validation blockers versus warnings
-  - lifecycle context and publication outcome
-- Reworked review and manage surfaces so stewardship work is grouped as:
-  - ready for review
-  - needs decision
-  - needs revalidation
+- Papyrus is a local-first operational knowledge system with governed read, write, review, and manage surfaces.
+- Canonical source remains Markdown under `knowledge/` and `archive/knowledge/`.
+- Runtime projections, reports, search indexes, and static exports are rebuildable and non-authoritative.
+- Read, write, review, and health surfaces rely on explicit lifecycle, review, trust, and next-action contracts rather than compatibility-era aliases.
+
+## Supported Startup And Recovery Paths
+
+- Build or rebuild the runtime with `python3 scripts/build_index.py`.
+- Start the local operator runtime with `python3 scripts/run.py --operator`.
+- Inspect or apply governed source sync with `python3 scripts/source_sync.py`.
+- Startup and governed mutation entrypoints run pending mutation recovery before proceeding.
+- Recovery may reclaim stale journals and stale locks only when the active mutation state can be resolved safely.
+- If recovery cannot prove a safe result, Papyrus fails closed.
+
+## UI And Backend Contract Boundary
+
+- Governed meaning comes from shared backend contracts:
+  - `ui_projection`
+  - workflow projections
+  - action descriptors
+  - acknowledgement payloads
+- The web, CLI, and API should render those contracts without reintroducing route-local policy checks.
+- Presenter and template changes must preserve structured posture meaning even when page layout or copy changes.
+
+## Operational Usefulness Signals
+
+- Content-health reporting should prioritize cleanup signals that affect operator usefulness:
+  - placeholder-heavy content
+  - legacy blueprint fallback usage
+  - unclear ownership
   - weak evidence
-  - recently changed
-  - superseded guidance still in view
-- Added source-sync preview and conflict detection so canonical publication is inspectable before approval or explicit apply.
-- Added source-sync recovery through journaled mutation rollback and governed backup restoration.
-- Reframed event and impact history around operational consequences instead of raw payload inspection.
-- Expanded local actor handling with registry-backed display names, role hints, default actor selection, explicit actor propagation, and self-approval prevention.
-- Aligned CLI language with the lifecycle-guided model so queue, health, review, object detail, activity, and validation output describe next actions instead of only raw state.
-- Moved governed status, actions, acknowledgements, and operator messages onto shared backend contracts so CLI, API, and web render the same meaning instead of keeping separate local rules.
+  - unresolved migration-era gaps
+- Those signals are intended to drive cleanup sequencing, not tighter prose rules or extra governance ceremony.
 
-## Product Decisions
+## Explicitly Deferred
 
-- Governance remains visible as a guardrail, not the lead headline on every primary screen.
-- Read surfaces lead with safe use, freshness, service context, and recent change.
-- Write surfaces lead with progress and readiness to submit.
-- Review surfaces lead with decision support and downstream effect.
-- Knowledge health is separate from approval work.
-- Activity and history explain what happened, what it affected, and what should happen next.
-- Source sync is explicit, inspectable, and recoverable, but Papyrus only claims safety within the configured canonical roots and local ingest allowlist.
-- Actor attribution is lightweight and local-first. This pass does not introduce enterprise authentication.
-
-## Recovery And Inspection
-
-- Inspect a pending or approved writeback:
-
-```bash
-python3 scripts/source_sync.py preview --object <object_id>
-```
-
-- Apply explicit source writeback:
-
-```bash
-python3 scripts/source_sync.py writeback --object <object_id>
-```
-
-- Restore the most recent backed-up canonical state:
-
-```bash
-python3 scripts/source_sync.py restore-last --object <object_id>
-```
-
-- Review recent operational consequences:
-
-```bash
-python3 scripts/operator_view.py activity --db build/knowledge.db
-```
-
-- Startup and governed mutation entry points run pending mutation recovery before they proceed.
-- Recovery reclaims stale journals and stale locks only when the current record can be resolved safely.
-- If recovery cannot prove a safe result, Papyrus fails closed and surfaces the blocking reason instead of continuing with silent drift.
-
-## Current Boundary
-
-In scope after this pass:
-
-- lifecycle-guided web UX
-- lifecycle-aligned CLI wording
-- stewardship-oriented review and knowledge-health surfaces
-- inspectable writeback preview, conflict detection, and recovery
-- consequence-oriented event and impact presentation
-- lightweight local actor accountability
-
-Still deferred after this pass:
-
-- enterprise auth and RBAC
+- enterprise authentication and RBAC
 - realtime collaboration
 - notifications and subscriptions
-- advanced diffs
-- external integrations
-- connectors to external systems
-- LLM, AI, embeddings, or vector infrastructure
-
-## Dependencies And Operational Risk
-
-- No new third-party dependencies were introduced.
-- Source of truth remains canonical Markdown under `knowledge/` and `archive/knowledge/`.
-- Derived output remains non-authoritative.
-- Governed mutation policy now terminates in `papyrus.domain.lifecycle`, `papyrus.application.policy_authority`, and `papyrus.infrastructure.transactional_mutation`. CLI, API, and web actions call those flows instead of each surface owning path or lifecycle checks.
-- The backend/UI cut line is now explicit: backend contracts define governed meaning, and surfaces render `ui_projection`, workflow projection, action descriptor, and acknowledgement payloads without recreating the policy.
-- Read, write, and review surfaces now use explicit lifecycle and review fields for knowledge objects. Unrelated entities such as services and validation runs still keep their own canonical `status` fields.
+- advanced diff tooling
+- heavy external integrations
 
 ## Remaining Technical Debt
 
-- Guided authoring now owns citation lookup and searchable multi-select controls inside the primary revision flow.
-
-## Rollback Reference
-
-- If the runtime is unavailable, rebuild it with `python3 scripts/build_index.py`.
-- If a revision should not become canonical, do not bypass the workflow; use rejection or do not approve it.
-- If canonical writeback needs recovery after approval, use `scripts/source_sync.py restore-last` so the restore is recorded in audit history.
+- Guided authoring still depends on blueprint-derived section content and compatibility handling for older migrated material.
+- Migration cleanup remains ongoing for legacy placeholder density, fallback structure, ownership quality, and evidence maturity.

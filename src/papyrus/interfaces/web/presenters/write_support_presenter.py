@@ -34,7 +34,7 @@ def render_object_progress_html(components: ComponentPresenter, *, values: dict[
     )
     source_completed, source_total = completion_ratio(values, ["object_id", "canonical_path"])
     blockers = sum(len(messages) for messages in errors.values())
-    return components.section_card(
+    return components.surface_panel(
         title="Step 1 of 3",
         eyebrow="Progress",
         tone="warning" if blockers else "brand",
@@ -51,6 +51,8 @@ def render_object_progress_html(components: ComponentPresenter, *, values: dict[
             + f"<p><strong>Blocking fields:</strong> {escape(blockers)}</p>"
         ),
         footer_html='<p class="section-footer">Next: Papyrus opens the first required section.</p>',
+        variant="object-progress",
+        surface="write-object",
     )
 
 
@@ -100,17 +102,49 @@ def render_next_action_panel_html(components: ComponentPresenter, *, detail, blu
     ]
     reasons = [str(reason) for reason in draft_projection.get("reasons", [])]
     warnings = [str(warning) for warning in draft_projection.get("warnings", [])]
-    return components.section_card(
+    warning_panels = []
+    if reasons:
+        warning_panels.append(
+            components.surface_panel(
+                title="Still blocking",
+                eyebrow="Review readiness",
+                body_html=components.list_body(
+                    items=[escape(item) for item in reasons],
+                    empty_label="No blocking items recorded.",
+                    css_class="validation-findings",
+                ),
+                tone="warning",
+                variant="blocking-findings",
+                surface="write-revision",
+            )
+        )
+    if warnings:
+        warning_panels.append(
+            components.surface_panel(
+                title="Review before handoff",
+                eyebrow="Review readiness",
+                body_html=components.list_body(
+                    items=[escape(item) for item in warnings],
+                    empty_label="No warnings recorded.",
+                    css_class="validation-findings",
+                ),
+                tone="warning",
+                variant="warning-findings",
+                surface="write-revision",
+            )
+        )
+    return components.surface_panel(
         title="Ready for handoff?",
         eyebrow="Progress",
         tone=str(draft_projection.get("tone") or "default"),
         body_html=(
             f"<p>{escape(draft_projection.get('summary') or 'Draft status available.')}</p>"
             + (render_list([escape(item) for item in progress_rows], css_class="stack-list") if progress_rows else "")
-            + (components.validation_findings(title="Still blocking", items=[escape(item) for item in reasons], tone="warning") if reasons else "")
-            + (components.validation_findings(title="Review before handoff", items=[escape(item) for item in warnings], tone="warning") if warnings else "")
+            + join_html(warning_panels)
         ),
         footer_html='<p class="section-footer">Keep saving the active section until the draft is ready for review.</p>',
+        variant="handoff-readiness",
+        surface="write-revision",
     )
 
 
@@ -159,7 +193,7 @@ def evidence_guidance_body_html(*, include_action: bool = False, object_id: str 
     if include_action and object_id:
         action_html = (
             '<p><strong>Next step:</strong> request evidence follow-up for any source that still needs stronger verification.</p>'
-            + f'<p>{link("Request evidence revalidation", f"/manage/objects/{quoted_path(object_id)}/evidence/revalidate", css_class="button button-secondary")}</p>'
+            + f'<p>{link("Request evidence revalidation", f"/manage/objects/{quoted_path(object_id)}/evidence/revalidate", css_class="button button-secondary", attrs={"data-component": "action-link", "data-action-id": "request_evidence_revalidation"})}</p>'
         )
     return (
         "<p>Link existing guidance or record a source title, reference, and note.</p>"
@@ -248,7 +282,14 @@ def render_revision_error_summary_html(components: ComponentPresenter, errors: d
             items.append(f"{label}: {escape(message)}")
     if not items:
         return ""
-    return components.validation_summary(title="Blocking validation", findings=items, empty_label="")
+    return components.surface_panel(
+        title="Blocking validation",
+        eyebrow="Validation",
+        body_html=components.list_body(items=items, empty_label="", css_class="validation-findings"),
+        tone="context",
+        variant="blocking-validation",
+        surface="write-revision",
+    )
 
 
 def _widget_config(field) -> dict[str, object]:

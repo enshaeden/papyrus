@@ -48,6 +48,7 @@ class PageRenderer:
         actor_id: str = "",
         current_path: str = "",
         shell_variant: str = "normal",
+        page_surface: str = "",
     ) -> str:
         role_config = actor_shell_for_id(actor_id)
         normalized_shell_variant = shell_variant if shell_variant in {"normal", "focus", "minimal"} else "normal"
@@ -139,6 +140,7 @@ class PageRenderer:
                 "scripts_html": scripts_html,
                 "shell_variant_class": escape(f"shell-{normalized_shell_variant} actor-{actor_class}"),
                 "shell_columns_class": escape(" ".join(shell_columns_classes)),
+                "page_surface": escape(page_surface or active_nav or page_title),
             },
         )
 

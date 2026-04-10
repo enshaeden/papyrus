@@ -6,6 +6,7 @@ from typing import Any
 from papyrus.domain.policies import citation_health_label
 from papyrus.infrastructure.paths import DB_PATH
 
+from .content_health import collect_content_health_sections
 from .queue_search import knowledge_queue
 from .support import ServiceNotFoundError, _json_dict, _json_list, require_runtime_connection
 
@@ -162,6 +163,13 @@ def trust_dashboard(
     *,
     database_path: str | Path = DB_PATH,
 ) -> dict[str, Any]:
+    cleanup_sections = [
+        "placeholder-heavy",
+        "legacy-blueprint-fallback",
+        "unclear-ownership",
+        "weak-evidence",
+        "migration-gaps",
+    ]
     connection = require_runtime_connection(database_path)
     try:
         object_count = int(
@@ -225,6 +233,7 @@ def trust_dashboard(
                 "action": "Inspect validation run history for the exact findings before approving risky changes.",
                 "severity": "informational" if latest_validation["status"] == "passed" else "serious",
             }
+        cleanup_outputs = collect_content_health_sections(cleanup_sections, database_path=database_path)
         return {
             "object_count": object_count,
             "trust_counts": trust_counts,
@@ -234,6 +243,7 @@ def trust_dashboard(
             "queue": knowledge_queue(limit=25, database_path=database_path, ranking="triage"),
             "validation_runs": validation_runs,
             "validation_posture": validation_posture,
+            "cleanup_counts": {section: len(cleanup_outputs.get(section, [])) for section in cleanup_sections},
         }
     finally:
         connection.close()

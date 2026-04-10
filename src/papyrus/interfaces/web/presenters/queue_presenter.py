@@ -116,24 +116,27 @@ def _decision_card_html(components: ComponentPresenter, item: dict[str, Any]) ->
         if item["linked_services"]
         else "No linked service context."
     )
-    return (
-        f'<article class="decision-card decision-card-{escape(bucket)}">'
-        '<div class="decision-card-header">'
-        '<div class="decision-card-heading">'
-        f'<h3>{link(item["title"], _queue_item_href(item))}</h3>'
-        f'<p class="decision-card-summary">{escape(_decision_summary_text(item))}</p>'
-        "</div>"
-        f'<div class="badge-row">{_decision_status_badges_html(components, item)}</div>'
-        "</div>"
-        f'<p class="decision-card-detail">{escape(_status_detail_text(item))}</p>'
-        '<div class="decision-card-meta">'
-        f'<span>{escape(item["object_type"])} · {escape(item["object_id"])}</span>'
-        f'<span>Last reviewed {escape(item.get("last_reviewed") or "unknown")} · cadence {escape(item.get("review_cadence") or "unknown")}</span>'
-        f"<span>Services: {linked_services_html}</span>"
-        "</div>"
-        f'<p class="decision-card-next"><strong>Next:</strong> {escape(_next_action_text(item))}</p>'
-        f'<div class="decision-card-actions">{link(_decision_action_label(bucket), _queue_item_href(item), css_class="button button-secondary")}</div>'
-        "</article>"
+    return components.decision_card(
+        title_html=link(item["title"], _queue_item_href(item)),
+        summary=_decision_summary_text(item),
+        detail=_status_detail_text(item),
+        meta=[
+            escape(f'{item["object_type"]} · {item["object_id"]}'),
+            escape(
+                f'Last reviewed {item.get("last_reviewed") or "unknown"} · cadence {item.get("review_cadence") or "unknown"}'
+            ),
+            f"Services: {linked_services_html}",
+        ],
+        badges=[_decision_status_badges_html(components, item)],
+        next_action=_next_action_text(item),
+        actions_html=link(
+            _decision_action_label(bucket),
+            _queue_item_href(item),
+            css_class="button button-secondary",
+            attrs={"data-component": "action-link", "data-action-id": "open-primary-surface"},
+        ),
+        tone=bucket,
+        surface="read-queue",
     )
 
 
@@ -155,7 +158,7 @@ def present_queue_page(
     grouped_items: dict[str, list[dict[str, Any]]] = {"safe": [], "review": [], "attention": []}
     for item in normalized_items:
         grouped_items[_decision_bucket(item)].append(item)
-    summary_html = components.trust_summary(
+    summary_html = components.summary_strip(
         title="Decision view",
         badges=[
             components.badge(label="Safe", value=len(grouped_items["safe"]), tone="approved"),
@@ -163,6 +166,8 @@ def present_queue_page(
             components.badge(label="Requires attention", value=len(grouped_items["attention"]), tone="danger"),
         ],
         summary="Choose the next click by urgency, not by raw state.",
+        surface="read-queue",
+        variant="triage",
     )
     filter_controls_html = (
         '<form class="filter-form" method="get" action="/read">'
@@ -204,13 +209,15 @@ def present_queue_page(
             continue
         title, description, tone = group_config[group_key]
         group_sections.append(
-            components.section_card(
+            components.surface_panel(
                 title=title,
                 eyebrow="Read",
                 tone=tone,
                 body_html=f'<p class="decision-group-summary">{escape(description)}</p>' + join_html(
                     [_decision_card_html(components, item) for item in group_items]
                 ),
+                variant=group_key,
+                surface="read-queue",
             )
         )
     queue_html = (
@@ -232,9 +239,10 @@ def present_queue_page(
         "active_nav": "read",
         "aside_html": "",
         "page_context": {
-            "filter_bar_html": components.filter_bar(title="Read filters", controls_html=filter_controls_html),
+            "filter_bar_html": components.filter_bar(title="Read filters", controls_html=filter_controls_html, surface="read-queue"),
             "summary_html": summary_html,
             "queue_html": queue_html,
             "secondary_html": "",
         },
+        "page_surface": "read-queue",
     }

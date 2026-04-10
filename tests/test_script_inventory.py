@@ -35,3 +35,10 @@ class ScriptInventoryTests(unittest.TestCase):
             script_text = (SCRIPTS_DIR / script_name).read_text(encoding="utf-8")
             self.assertIn(expected_import, script_text, msg=f"{script_name} should delegate to a packaged module")
             self.assertIn("ensure_src_path()", script_text, msg=f"{script_name} should bootstrap src/ before import")
+
+    def test_retired_import_shim_points_to_decision_and_migration_record(self) -> None:
+        script_text = (SCRIPTS_DIR / "import_knowledge_portal.py").read_text(encoding="utf-8")
+        self.assertIn("retired and unsupported", script_text)
+        self.assertIn("decisions/index.md", script_text)
+        self.assertIn("migration/seed-plan.yml", script_text)
+        self.assertIn("migration/import-manifest.yml", script_text)

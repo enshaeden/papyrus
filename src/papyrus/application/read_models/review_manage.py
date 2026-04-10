@@ -14,6 +14,7 @@ from papyrus.application.ui_projection import (
 from papyrus.domain.policies import citation_health_label
 from papyrus.infrastructure.paths import DB_PATH
 
+from .content_health import collect_content_health_sections
 from .object_detail import knowledge_object_detail, revision_history
 from .queue_search import _augment_queue_items
 from .support import (
@@ -33,6 +34,13 @@ def manage_queue(
     database_path: str | Path = DB_PATH,
     authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
+    cleanup_sections = [
+        "placeholder-heavy",
+        "legacy-blueprint-fallback",
+        "unclear-ownership",
+        "weak-evidence",
+        "migration-gaps",
+    ]
     current_authority = _policy_authority(authority)
     connection = require_runtime_connection(database_path)
     try:
@@ -211,6 +219,7 @@ def manage_queue(
             or item["revision_review_state"] == "superseded"
         ]
         needs_attention = unique_by_object_id(review_required + needs_revalidation + ownership_items)
+        cleanup_outputs = collect_content_health_sections(cleanup_sections, database_path=database_path)
 
         return {
             "items": items,
@@ -226,6 +235,7 @@ def manage_queue(
             "recently_changed": recently_changed,
             "superseded_items": superseded_items,
             "needs_attention": needs_attention,
+            "cleanup_counts": {section: len(cleanup_outputs.get(section, [])) for section in cleanup_sections},
         }
     finally:
         connection.close()

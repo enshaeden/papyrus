@@ -271,6 +271,39 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("[knowledge-like-docs]", result.stdout)
 
+    def test_content_health_report_usefulness_sections(self) -> None:
+        build_result = run_command("scripts/build_index.py")
+        self.assertEqual(build_result.returncode, 0, msg=build_result.stderr)
+        result = run_command(
+            "scripts/report_content_health.py",
+            "--section",
+            "placeholder-heavy",
+            "--section",
+            "weak-evidence",
+            "--section",
+            "migration-gaps",
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("[placeholder-heavy]", result.stdout)
+        self.assertIn("[weak-evidence]", result.stdout)
+        self.assertIn("[migration-gaps]", result.stdout)
+        self.assertIn(
+            "kb-applications-access-and-license-management-add-productivity-platform-licenses",
+            result.stdout,
+        )
+        self.assertIn(
+            "kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide",
+            result.stdout,
+        )
+
+    def test_retired_import_shim_returns_deterministic_message(self) -> None:
+        result = run_command("scripts/import_knowledge_portal.py")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("retired and unsupported", result.stderr)
+        self.assertIn("decisions/index.md", result.stderr)
+        self.assertIn("migration/import-manifest.yml", result.stderr)
+        self.assertIn("scripts/validate_migration.py", result.stderr)
+
     def test_validate_migration_cli(self) -> None:
         result = run_command("scripts/validate_migration.py")
         self.assertEqual(result.returncode, 0, msg=result.stderr)

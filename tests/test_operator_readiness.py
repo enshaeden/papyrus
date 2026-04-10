@@ -351,7 +351,7 @@ class OperatorReadinessTests(unittest.TestCase):
             self.assertEqual(api_status, "200 OK")
             web_status, _, body = call_wsgi(web_application, "/queue")
             self.assertEqual(web_status, "200 OK")
-            self.assertIn("Read guidance", body)
+            self.assertIn('data-surface="read-queue"', body)
 
     def test_degraded_surfaces_return_actionable_runtime_unavailable_responses(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -365,7 +365,7 @@ class OperatorReadinessTests(unittest.TestCase):
 
             web_status, _, web_body = call_wsgi(web_app(missing_database_path), "/queue")
             self.assertEqual(web_status, "503 Service Unavailable")
-            self.assertIn("Runtime unavailable", web_body)
+            self.assertIn('data-surface="system-error"', web_body)
             self.assertIn("build_index.py", web_body)
 
 

@@ -305,6 +305,7 @@ def present_home_page(
     return {
         "page_template": "pages/home.html",
         "page_title": "Home",
+        "page_surface": "home",
         "page_header": {
             "headline": "Home",
             "show_actor_banner": True,

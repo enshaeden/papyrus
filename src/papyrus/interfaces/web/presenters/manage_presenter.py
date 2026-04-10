@@ -14,7 +14,7 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
     render_acknowledgement_panel,
     render_action_contract_panel,
     render_contract_status_panel,
-    render_governed_action_panel,
+    render_projection_overview_panel,
     render_projection_status_panel,
 )
 from papyrus.interfaces.web.rendering import TemplateRenderer
@@ -99,11 +99,24 @@ def _governed_context_html(
     action_title: str | None = None,
     show_actions: bool = False,
 ) -> str:
+    object_id = str(detail["object"]["object_id"])
+    revision_record = (detail.get("revision") or detail.get("current_revision") or {})
+    revision_id = str(revision_record.get("revision_id") or "").strip() or None
     panels = [
-        render_projection_status_panel(
-            components,
-            title=status_title,
-            ui_projection=detail.get("ui_projection"),
+        (
+            render_projection_overview_panel(
+                components,
+                title=status_title,
+                ui_projection=detail.get("ui_projection"),
+                object_id=object_id,
+                revision_id=revision_id,
+            )
+            if show_actions
+            else render_projection_status_panel(
+                components,
+                title=status_title,
+                ui_projection=detail.get("ui_projection"),
+            )
         )
     ]
     if action_id is not None:
@@ -112,17 +125,6 @@ def _governed_context_html(
                 components,
                 title=action_title or "Action contract",
                 action=action_descriptor(detail.get("ui_projection"), action_id),
-            )
-        )
-    if show_actions:
-        panels.append(
-            render_governed_action_panel(
-                components,
-                title="Governed actions",
-                ui_projection=detail.get("ui_projection"),
-                object_id=str(detail["object"]["object_id"]),
-                revision_id=str((detail.get("revision") or detail.get("current_revision") or {}).get("revision_id") or "") or None,
-                show_ctas=False,
             )
         )
     return join_html(panels)
@@ -235,7 +237,7 @@ def present_manage_queue_page(
     queue: dict[str, Any],
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
-    overview_html = components.trust_summary(
+    overview_html = components.summary_strip(
         title="Stewardship workload",
         badges=[
             components.badge(label="Ready for review", value=len(queue["ready_for_review"]), tone="pending"),
@@ -244,9 +246,30 @@ def present_manage_queue_page(
             components.badge(label="Recently changed", value=len(queue["recently_changed"]), tone="brand"),
         ],
         summary="Work is grouped by the next decision, not by raw state.",
+        surface="review-queue",
+        variant="overview",
+    )
+    cleanup_counts = queue.get("cleanup_counts") or {}
+    cleanup_html = components.surface_panel(
+        title="Cleanup priorities",
+        eyebrow="Cleanup",
+        summary="Prioritize operational usefulness gaps before adding more governance ceremony.",
+        body_html=render_list(
+            [
+                escape(f"Placeholder-heavy items: {cleanup_counts.get('placeholder-heavy', 0)}"),
+                escape(f"Legacy blueprint fallback: {cleanup_counts.get('legacy-blueprint-fallback', 0)}"),
+                escape(f"Unclear ownership: {cleanup_counts.get('unclear-ownership', 0)}"),
+                escape(f"Weak evidence: {cleanup_counts.get('weak-evidence', 0)}"),
+                escape(f"Migration gaps: {cleanup_counts.get('migration-gaps', 0)}"),
+            ],
+            css_class="panel-list",
+        ),
+        tone="context",
+        variant="cleanup-priorities",
+        surface="review-queue",
     )
     tables_html = join_html(
-        [
+        [cleanup_html,
             _manage_table(components, title="Ready for review", items=queue["ready_for_review"]),
             _manage_table(components, title="Needs decision", items=queue["needs_decision"]),
             _manage_table(components, title="Needs revalidation", items=queue["needs_revalidation"]),
@@ -461,15 +484,21 @@ def present_review_assignment_page(
         action_title="Reviewer assignment contract",
         show_actions=True,
     )
-    assignment_html = components.audit_panel(
+    assignment_html = components.surface_panel(
         title="Current assignments",
-        items=[
-            f"{escape(assignment['reviewer'])} · {escape(assignment['state'])} · assigned {escape(format_timestamp(assignment['assigned_at']))}"
-            for assignment in detail["assignments"]
-        ],
-        empty_label="No reviewers assigned yet.",
+        eyebrow="Audit",
+        body_html=components.list_body(
+            items=[
+                f"{escape(assignment['reviewer'])} · {escape(assignment['state'])} · assigned {escape(format_timestamp(assignment['assigned_at']))}"
+                for assignment in detail["assignments"]
+            ],
+            empty_label="No reviewers assigned yet.",
+        ),
+        tone="context",
+        variant="assignments",
+        surface="review-assignment",
     )
-    form_html = components.section_card(
+    form_html = components.surface_panel(
         title="Assign reviewer",
         eyebrow="Manage",
         body_html=(
@@ -477,9 +506,11 @@ def present_review_assignment_page(
             + forms.field(field_id="reviewer", label="Reviewer", control_html=forms.input(field_id="reviewer", name="reviewer", value=values["reviewer"]), errors=errors.get("reviewer"))
             + forms.field(field_id="due_at", label="Due date", control_html=forms.input(field_id="due_at", name="due_at", value=values["due_at"], input_type="date"), errors=errors.get("due_at"))
             + forms.field(field_id="notes", label="Assignment notes", control_html=forms.textarea(field_id="notes", name="notes", value=values["notes"], rows=3))
-            + forms.button(label="Assign reviewer")
+            + forms.button(label="Assign reviewer", action_id="assign_reviewer")
             + "</form>"
         ),
+        variant="assignment-form",
+        surface="review-assignment",
     )
     return _page_definition(
         page_template="pages/review_assignment.html",
@@ -566,13 +597,19 @@ def present_review_decision_page(
                     f"<p><strong>What to review next:</strong> {escape(' | '.join(impact['current_impact']['revalidate']))}</p>"
                 ),
             ),
-            components.audit_panel(
+            components.surface_panel(
                 title="Revision audit",
-                items=[
-                    f"{escape(format_timestamp(event['occurred_at']))} · {escape(event['event_type'])} · {escape(event['actor'])}"
-                    for event in detail["audit_events"]
-                ],
-                empty_label="No revision audit events recorded.",
+                eyebrow="Audit",
+                body_html=components.list_body(
+                    items=[
+                        f"{escape(format_timestamp(event['occurred_at']))} · {escape(event['event_type'])} · {escape(event['actor'])}"
+                        for event in detail["audit_events"]
+                    ],
+                    empty_label="No revision audit events recorded.",
+                ),
+                tone="context",
+                variant="revision-audit",
+                surface="review-decision",
             ),
             components.section_card(
                 title="Approve or reject",
@@ -582,8 +619,8 @@ def present_review_decision_page(
                     + forms.field(field_id="reviewer", label="Reviewer", control_html=forms.input(field_id="reviewer", name="reviewer", value=values["reviewer"]), errors=errors.get("reviewer"))
                     + forms.field(field_id="notes", label="Decision notes", control_html=forms.textarea(field_id="notes", name="notes", value=values["notes"], rows=4), hint="Required for rejection; optional for approval. Use notes to explain the decision or the reason for a block.", errors=errors.get("notes"))
                     + '<div class="button-row">'
-                    + '<button class="button button-primary" type="submit" name="decision" value="approve">Approve revision</button>'
-                    + '<button class="button button-danger" type="submit" name="decision" value="reject">Reject revision</button>'
+                    + '<button class="button button-primary" type="submit" name="decision" value="approve" data-component="button" data-action-id="approve_revision">Approve revision</button>'
+                    + '<button class="button button-danger" type="submit" name="decision" value="reject" data-component="button" data-action-id="reject_revision">Reject revision</button>'
                     + "</div></form>"
                 ),
             ),

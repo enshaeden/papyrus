@@ -64,6 +64,19 @@ Papyrus supports deterministic seeding from legacy exports without promoting raw
 - Reports and seed-review artifacts must avoid reversible mappings back to sensitive source material.
 - Sanitized reports can be versioned for audit and handoff, but they must not become substitutes for canonical knowledge articles or decision records.
 
+### Retired Legacy Import Shim
+
+- `scripts/import_knowledge_portal.py` is intentionally retained as a stable filename but is retired and unsupported.
+- The repository does not contain a verified, maintainable implementation of a live legacy import workflow.
+- The checked-in historical script body was not recoverable to a standard fit for supported operator use.
+- Papyrus treats the legacy export as temporary migration input only.
+- The maintained migration record is the combination of:
+  - `migration/seed-plan.yml`
+  - `migration/import-manifest.yml`
+  - `docs/migration/seed-migration-rationale.md`
+  - `scripts/validate_migration.py`
+- Future migration cleanup should work from those audited artifacts rather than reintroducing a direct legacy import command unless a new decision explicitly restores that capability.
+
 ## Control-Plane Architecture
 
 Papyrus is intentionally knowledge-object-centric rather than article-centric.

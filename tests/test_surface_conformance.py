@@ -22,6 +22,7 @@ from papyrus.application.commands import archive_object_command
 from papyrus.interfaces.api import app as api_app
 from papyrus.interfaces.cli import operator_main
 from papyrus.interfaces.web import app as web_app
+from papyrus.interfaces.web.presenters.governed_presenter import action_href
 from papyrus.infrastructure.transactional_mutation import TransactionalMutation
 from papyrus.application.writeback_flow import restore_last_writeback
 
@@ -814,16 +815,18 @@ class SurfaceConformanceTests(unittest.TestCase):
                 object_id=object_id,
             )
             self.assertEqual(cli_payload["ui_projection"], api_payload["ui_projection"])
+            self.assertIn('data-surface="posture"', web_body)
+            self.assertIn('data-component="action-cluster"', web_body)
             for action in cli_payload["ui_projection"]["actions"]:
-                self.assertIn(str(action["label"]), web_body)
-                required_acknowledgements = (
-                    (action.get("policy") or {}).get("required_acknowledgements") or []
-                )
-                for token in required_acknowledgements:
-                    self.assertIn(humanize_token(str(token)), web_body)
+                if str(action.get("availability") or "") != "allowed":
+                    continue
+                action_id = str(action.get("action_id") or "")
+                if action_href(action_id=action_id, object_id=object_id, revision_id=revision_id) is None:
+                    continue
+                self.assertIn(f'data-action-id="{action_id}"', web_body)
             self.assertIn(cli_payload["ui_projection"]["use_guidance"]["summary"], web_body)
             self.assertIn(cli_payload["ui_projection"]["use_guidance"]["detail"], web_body)
-            self.assertEqual(web_body.count("Governed actions"), 1)
+            self.assertEqual(web_body.count('data-component="action-cluster"'), 1)
 
     def test_archive_contract_and_acknowledgement_copy_match_across_cli_api_and_web(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -954,5 +957,5 @@ class SurfaceConformanceTests(unittest.TestCase):
                 cli_payload["ui_projection"]["state"]["object_lifecycle_state"],
                 "archived",
             )
-            self.assertIn("Lifecycle", web_body)
+            self.assertIn('data-surface="object-detail"', web_body)
             self.assertIn("archived", web_body)

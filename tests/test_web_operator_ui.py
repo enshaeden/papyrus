@@ -302,11 +302,10 @@ class WebOperatorUiTests(unittest.TestCase):
             revision_id = urllib.parse.parse_qs(submit_path.split("?", 1)[1])["revision_id"][0]
             status, _, submit_body = call_wsgi(application, submit_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn("Step 3 of 3", submit_body)
-            self.assertIn("Pre-submit validation", submit_body)
-            self.assertIn("How to strengthen weak evidence", submit_body)
-            self.assertIn("/manage/objects/kb-operator-ui-approve/evidence/revalidate", submit_body)
-            self.assertIn("Send to review", submit_body)
+            self.assertIn('data-surface="write"', submit_body)
+            self.assertIn('data-surface="write-submit"', submit_body)
+            self.assertIn('data-action-id="submit_for_review"', submit_body)
+            self.assertIn('data-action-id="request_evidence_revalidation"', submit_body)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -319,7 +318,8 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, assign_body = call_wsgi(application, assign_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn("Assign reviewer", assign_body)
+            self.assertIn('data-surface="review"', assign_body)
+            self.assertIn('data-action-id="assign_reviewer"', assign_body)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -332,10 +332,11 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, decision_body = call_wsgi(application, decision_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn("Approve revision", decision_body)
-            self.assertIn("Writeback contract", decision_body)
-            self.assertIn("Writeback acknowledgement requirements", decision_body)
-            self.assertIn("Likely downstream effect", decision_body)
+            self.assertIn('data-surface="review"', decision_body)
+            self.assertIn('data-surface="review-decision"', decision_body)
+            self.assertIn('data-surface="contract"', decision_body)
+            self.assertIn('data-action-id="approve_revision"', decision_body)
+            self.assertIn('data-action-id="reject_revision"', decision_body)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -823,17 +824,20 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, object_body = call_wsgi(application, f"/objects/{created.object_id}")
             self.assertEqual(status, "200 OK")
-            self.assertEqual(object_body.count("Governed actions"), 1)
+            self.assertEqual(object_body.count('data-surface="posture"'), 1)
+            self.assertEqual(object_body.count('data-component="action-cluster"'), 1)
 
             status, _, history_body = call_wsgi(application, f"/objects/{created.object_id}/revisions")
             self.assertEqual(status, "200 OK")
-            self.assertEqual(history_body.count("Current governed actions"), 1)
+            self.assertEqual(history_body.count('data-surface="posture"'), 1)
+            self.assertEqual(history_body.count('data-component="action-cluster"'), 1)
 
             status, _, review_body = call_wsgi(application, f"/manage/reviews/{created.object_id}/{revision.revision_id}")
             self.assertEqual(status, "200 OK")
-            self.assertEqual(review_body.count("Governed actions"), 1)
-            self.assertEqual(review_body.count("Writeback contract"), 1)
-            self.assertEqual(review_body.count("Writeback acknowledgement requirements"), 1)
+            self.assertEqual(review_body.count('data-surface="posture"'), 1)
+            self.assertEqual(review_body.count('data-component="action-cluster"'), 1)
+            self.assertEqual(review_body.count('data-surface="contract"'), 2)
+            self.assertEqual(review_body.count('data-surface="acknowledgements"'), 1)
 
     def test_role_selection_redirects_to_role_home_and_scopes_shell_navigation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

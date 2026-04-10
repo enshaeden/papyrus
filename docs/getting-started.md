@@ -119,5 +119,6 @@ Guardrail:
 | --- | --- | --- |
 | Bootstrap and build | `_bootstrap.py`, `bootstrap.sh`, `build.sh`, `build_index.py`, `build_site_docs.py`, `build_static_export.sh`, `validate.py` | Local environment setup, validation, runtime rebuild, and static/export build entrypoints. |
 | Serve and operator entrypoints | `run.py`, `serve.sh`, `serve_web.py`, `serve_api.py`, `serve_static_export.sh`, `operator_view.py`, `search.py` | Web, API, shell, and operator-facing read/manage entrypoints. |
-| Authoring, import, and source mutation | `new_article.py`, `ingest.py`, `ingest_event.py`, `source_sync.py`, `import_knowledge_portal.py` | Create or ingest knowledge, record events, and manage governed source synchronization. |
+| Authoring, import, and source mutation | `new_article.py`, `ingest.py`, `ingest_event.py`, `source_sync.py` | Create or ingest knowledge, record events, and manage governed source synchronization. |
 | Reporting, demo, and migration | `report_stale.py`, `report_content_health.py`, `demo_runtime.py`, `run_scenario.py`, `validate_migration.py` | Reporting, demo/runtime seeding, scenario exercises, and migration validation. |
+| Retired legacy migration shim | `import_knowledge_portal.py` | Stable filename kept for compatibility only. The command is retired and points operators to `decisions/index.md` plus the maintained migration artifacts under `migration/` and `docs/migration/`. |

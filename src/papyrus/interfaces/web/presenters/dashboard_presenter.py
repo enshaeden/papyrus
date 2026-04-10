@@ -5,7 +5,7 @@ from typing import Any
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import primary_surface_href, projection_state, projection_use_guidance
 from papyrus.interfaces.web.rendering import TemplateRenderer
-from papyrus.interfaces.web.view_helpers import escape, format_timestamp, freshness_status, join_html, link, review_state_status, risk_status
+from papyrus.interfaces.web.view_helpers import escape, format_timestamp, freshness_status, join_html, link, render_definition_rows, review_state_status, risk_status
 
 
 def _dashboard_item_href(item: dict[str, Any]) -> str:
@@ -84,19 +84,20 @@ def _dashboard_decision_action_label(bucket: str) -> str:
 
 def _dashboard_decision_card_html(components: ComponentPresenter, item: dict[str, Any]) -> str:
     bucket = _dashboard_bucket(item)
-    return (
-        f'<article class="decision-card decision-card-{escape(bucket)}">'
-        '<div class="decision-card-header">'
-        '<div class="decision-card-heading">'
-        f'<h3>{link(item["title"], _dashboard_item_href(item))}</h3>'
-        f'<p class="decision-card-summary">{escape(_dashboard_why_now(item))}</p>'
-        "</div>"
-        f'<div class="badge-row">{_dashboard_status_badges_html(components, item)}</div>'
-        "</div>"
-        f'<p class="decision-card-detail">{escape(_dashboard_next_action(item))}</p>'
-        f'<div class="decision-card-meta"><span>{escape(item["object_id"])}</span></div>'
-        f'<div class="decision-card-actions">{link(_dashboard_decision_action_label(bucket), _dashboard_item_href(item), css_class="button button-secondary")}</div>'
-        "</article>"
+    return components.decision_card(
+        title_html=link(item["title"], _dashboard_item_href(item)),
+        summary=_dashboard_why_now(item),
+        detail=_dashboard_next_action(item),
+        meta=[escape(item["object_id"])],
+        badges=[_dashboard_status_badges_html(components, item)],
+        actions_html=link(
+            _dashboard_decision_action_label(bucket),
+            _dashboard_item_href(item),
+            css_class="button button-secondary",
+            attrs={"data-component": "action-link", "data-action-id": "open-primary-surface"},
+        ),
+        tone=bucket,
+        surface="knowledge-health",
     )
 
 
@@ -111,31 +112,39 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
     components = ComponentPresenter(renderer)
     summary_cards_html = join_html(
         [
-            components.section_card(
+            components.surface_panel(
                 title="Knowledge in scope",
                 eyebrow="Health",
                 body_html=f"<p class=\"metric-value\">{escape(dashboard['object_count'])}</p><p>Operational knowledge objects currently in the runtime.</p>",
                 footer_html=link("Find guidance", "/read", css_class="button button-secondary"),
+                variant="knowledge-in-scope",
+                surface="knowledge-health",
             ),
-            components.section_card(
+            components.surface_panel(
                 title="Review pressure",
                 eyebrow="Health",
                 body_html=f"<p class=\"metric-value\">{escape(dashboard['review_counts'].get('in_review', 0))}</p><p>Revisions currently waiting on a review decision.</p>",
                 footer_html=link("Review decisions", "/review", css_class="button button-primary"),
                 tone="warning" if dashboard["review_counts"].get("in_review", 0) else "approved",
+                variant="review-pressure",
+                surface="knowledge-health",
             ),
-            components.section_card(
+            components.surface_panel(
                 title="Needs revalidation",
                 eyebrow="Health",
                 body_html=f"<p class=\"metric-value\">{escape(dashboard['trust_counts'].get('stale', 0) + dashboard['trust_counts'].get('weak_evidence', 0) + dashboard['trust_counts'].get('suspect', 0))}</p><p>Guidance that needs evidence, freshness, or trust follow-up.</p>",
                 footer_html=link("Resolve risk", "/health", css_class="button button-secondary"),
                 tone="warning" if (dashboard["trust_counts"].get("stale", 0) + dashboard["trust_counts"].get("weak_evidence", 0) + dashboard["trust_counts"].get("suspect", 0)) else "approved",
+                variant="needs-revalidation",
+                surface="knowledge-health",
             ),
-            components.section_card(
+            components.surface_panel(
                 title="Evidence posture",
                 eyebrow="Health",
                 body_html="<p>" + escape(", ".join(f"{key}={value}" for key, value in sorted(dashboard["evidence_counts"].items()))) + "</p>",
                 footer_html=link("See history", "/activity", css_class="button button-secondary"),
+                variant="evidence-posture",
+                surface="knowledge-health",
             ),
         ]
     )
@@ -154,43 +163,71 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
             continue
         title, description, tone = group_config[group_key]
         grouped_sections.append(
-            components.section_card(
+            components.surface_panel(
                 title=title,
                 eyebrow="Health",
                 tone=tone,
                 body_html=f'<p class="decision-group-summary">{escape(description)}</p>' + join_html(
                     [_dashboard_decision_card_html(components, item) for item in group_items]
                 ),
+                variant=group_key,
+                surface="knowledge-health",
             )
         )
-    primary_html = components.section_card(
+    cleanup_counts = dashboard.get("cleanup_counts") or {}
+    primary_html = components.surface_panel(
         title="Needs attention",
         eyebrow="Health",
         body_html=join_html(grouped_sections),
+        variant="triage",
+        surface="knowledge-health",
     )
-    secondary_html = components.section_card(
-        title="Recent validation runs",
-        eyebrow="Activity",
-        body_html=(
-            f'<p class="decision-group-summary">{escape(dashboard["validation_posture"]["summary"])}: {escape(dashboard["validation_posture"]["detail"])}</p>'
-            + join_html(
-                [
-                    (
-                        f'<article class="decision-card decision-card-{escape(_validation_run_bucket(run["status"]))}">'
-                        '<div class="decision-card-header">'
-                        '<div class="decision-card-heading">'
-                        f'<h3>{escape(run["run_type"])}</h3>'
-                        f'<p class="decision-card-summary">Completed {escape(format_timestamp(run["completed_at"]))}</p>'
-                        "</div>"
-                        "</div>"
-                        f'<div class="decision-card-meta"><span>Status {escape(run["status"])}</span><span>Findings recorded: {escape(run["finding_count"])}</span></div>'
-                        '<p class="decision-card-next"><strong>Next:</strong> Inspect the recorded run if it affects approval or revalidation work.</p>'
-                        "</article>"
-                    )
-                    for run in dashboard["validation_runs"]
-                ]
+    validation_runs_html = join_html(
+        [
+            components.decision_card(
+                title_html=escape(run["run_type"]),
+                summary=f"Completed {format_timestamp(run['completed_at'])}",
+                meta=[
+                    escape(f"Status {run['status']}"),
+                    escape(f"Findings recorded: {run['finding_count']}"),
+                ],
+                next_action="Inspect the recorded run if it affects approval or revalidation work.",
+                tone=_validation_run_bucket(run["status"]),
+                surface="knowledge-health",
             )
-        ),
+            for run in dashboard["validation_runs"]
+        ]
+    )
+    secondary_html = join_html(
+        [
+            components.surface_panel(
+                title="Recent validation runs",
+                eyebrow="Activity",
+                body_html=(
+                    f'<p class="decision-group-summary">{escape(dashboard["validation_posture"]["summary"])}: {escape(dashboard["validation_posture"]["detail"])}</p>'
+                    + validation_runs_html
+                ),
+                variant="validation-runs",
+                surface="knowledge-health",
+            ),
+            components.surface_panel(
+                title="Operational usefulness cleanup",
+                eyebrow="Cleanup",
+                body_html=render_definition_rows(
+                    [
+                        ("Placeholder-heavy", escape(cleanup_counts.get("placeholder-heavy", 0))),
+                        ("Legacy blueprint fallback", escape(cleanup_counts.get("legacy-blueprint-fallback", 0))),
+                        ("Unclear ownership", escape(cleanup_counts.get("unclear-ownership", 0))),
+                        ("Weak evidence", escape(cleanup_counts.get("weak-evidence", 0))),
+                        ("Migration gaps", escape(cleanup_counts.get("migration-gaps", 0))),
+                    ]
+                ),
+                summary="Use these counts to prioritize cleanup work that most affects operational usefulness.",
+                tone="context",
+                variant="cleanup",
+                surface="knowledge-health",
+            ),
+        ]
     )
     return {
         "page_template": "pages/dashboard_trust.html",
@@ -207,4 +244,5 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
             "primary_html": primary_html,
             "secondary_html": secondary_html,
         },
+        "page_surface": "knowledge-health",
     }

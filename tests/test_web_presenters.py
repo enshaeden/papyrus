@@ -57,7 +57,10 @@ class WebPresenterTests(unittest.TestCase):
             operator_message="Review the archive acknowledgement before continuing.",
         )
 
+        self.assertIn('data-component="surface-panel"', action_html)
+        self.assertIn('data-surface="contract"', action_html)
         self.assertIn("Papyrus will move the canonical file under archive/knowledge", action_html)
+        self.assertIn('data-surface="acknowledgements"', acknowledgement_html)
         self.assertIn("Review the archive acknowledgement before continuing.", acknowledgement_html)
         self.assertIn("canonical path will move to archive", acknowledgement_html)
 
@@ -79,7 +82,8 @@ class WebPresenterTests(unittest.TestCase):
                 "reasons": ["Verification: This field is required."],
             },
         )
-        self.assertIn("Draft readiness contract", html)
+        self.assertIn('data-component="surface-panel"', html)
+        self.assertIn('data-surface="workflow"', html)
         self.assertIn("Continue guided authoring before routing this revision into review.", html)
         self.assertIn("References: 1 external/manual citation remains weak.", html)
         self.assertIn("Verification: This field is required.", html)
@@ -129,8 +133,9 @@ class WebPresenterTests(unittest.TestCase):
             },
         )
         self.assertIn("/manage/reviews/kb-review/kb-review-r1", page["page_context"]["primary_html"])
+        self.assertIn('data-component="decision-card"', page["page_context"]["primary_html"])
+        self.assertIn('data-action-id="open-primary-surface"', page["page_context"]["primary_html"])
         self.assertIn("Review the decision.", page["page_context"]["primary_html"])
-        self.assertIn("Review decision", page["page_context"]["primary_html"])
         self.assertIn("Review decision pending", page["page_context"]["primary_html"])
 
     def test_queue_presenter_keeps_trust_and_filters_visible(self) -> None:
@@ -165,9 +170,10 @@ class WebPresenterTests(unittest.TestCase):
         )
         self.assertEqual(page["page_title"], "Read Guidance")
         self.assertEqual(page["aside_html"], "")
-        self.assertIn("Read filters", page["page_context"]["filter_bar_html"])
-        self.assertIn("Decision view", page["page_context"]["summary_html"])
-        self.assertIn("Requires attention", page["page_context"]["queue_html"])
+        self.assertIn('data-component="filter-bar"', page["page_context"]["filter_bar_html"])
+        self.assertIn('data-component="summary-strip"', page["page_context"]["summary_html"])
+        self.assertIn('data-component="decision-card"', page["page_context"]["queue_html"])
+        self.assertIn('data-surface="read-queue"', page["page_context"]["queue_html"])
         self.assertIn(
             "Backend contract says this guidance is still in review.",
             page["page_context"]["queue_html"],
@@ -260,10 +266,11 @@ class WebPresenterTests(unittest.TestCase):
         self.assertIn("Supporting evidence", page["page_context"]["related_sections_html"])
         self.assertIn("Recent audit trail", page["page_context"]["related_sections_html"])
         self.assertIn("Linked service context", page["page_context"]["content_sections_html"])
-        self.assertIn("Current status", page["aside_html"])
-        self.assertIn("Governed actions", page["page_context"]["content_sections_html"])
+        self.assertNotIn("Current status", page["aside_html"])
+        self.assertIn('data-component="object-header"', page["page_context"]["header_html"])
+        self.assertIn('data-component="surface-panel"', page["page_context"]["content_sections_html"])
+        self.assertIn('data-action-id="mark_suspect"', page["page_context"]["content_sections_html"])
         self.assertIn("The runtime contract marks this object safe for use.", page["page_context"]["content_sections_html"])
-        self.assertEqual(page["page_context"]["content_sections_html"].count("Governed actions"), 1)
         self.assertIn("Risk", page["page_context"]["header_html"])
         self.assertIn("Freshness", page["page_context"]["header_html"])
         self.assertIn("Review", page["page_context"]["header_html"])
@@ -382,6 +389,7 @@ class WebPresenterTests(unittest.TestCase):
         queue_html = page["page_context"]["queue_html"]
         self.assertIn("Projection summary wins", queue_html)
         self.assertIn("Follow the projection-backed next step.", queue_html)
+        self.assertIn('data-component="decision-card"', queue_html)
         self.assertNotIn("Raw queue fallback should not render.", queue_html)
         self.assertNotIn("Safe to use now", queue_html)
 
@@ -442,8 +450,8 @@ class WebPresenterTests(unittest.TestCase):
                 "current_revision": {"revision_id": "kb-history-rev-1"},
             },
         )
-        self.assertEqual(page["aside_html"].count("Current governed actions"), 1)
-        self.assertIn("Mark suspect", page["aside_html"])
+        self.assertEqual(page["aside_html"].count('data-action-id="mark_suspect"'), 1)
+        self.assertIn('data-surface="posture"', page["aside_html"])
 
 
 if __name__ == "__main__":

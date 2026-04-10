@@ -58,18 +58,22 @@ def _service_decision_card_html(components: ComponentPresenter, service: dict[st
         "review": "This service is usable, but the path still deserves review before it becomes the default choice.",
         "safe": "This service has linked guidance and is ready to use as an entry point.",
     }[bucket]
-    return (
-        f'<article class="decision-card decision-card-{escape(bucket)}">'
-        '<div class="decision-card-header">'
-        '<div class="decision-card-heading">'
-        f'<h3>{link(service["service_name"], f"/services/{quoted_path(service["service_id"])}")}</h3>'
-        f'<p class="decision-card-summary">{escape(summary)}</p>'
-        "</div>"
-        f'<div class="badge-row">{_service_badges_html(components, service)}</div>'
-        "</div>"
-        f'<div class="decision-card-meta"><span>{escape(service["service_id"])}</span><span>Owner {escape(owner)} · {escape(team)}</span></div>'
-        f'<div class="decision-card-actions">{link(_service_card_action_label(bucket), f"/services/{quoted_path(service["service_id"])}", css_class="button button-secondary")}</div>'
-        "</article>"
+    return components.decision_card(
+        title_html=link(service["service_name"], f"/services/{quoted_path(service['service_id'])}"),
+        summary=summary,
+        meta=[
+            escape(service["service_id"]),
+            f"Owner {escape(owner)} · {escape(team)}",
+        ],
+        badges=[_service_badges_html(components, service)],
+        actions_html=link(
+            _service_card_action_label(bucket),
+            f"/services/{quoted_path(service['service_id'])}",
+            css_class="button button-secondary",
+            attrs={"data-component": "action-link", "data-action-id": "open-service-path"},
+        ),
+        tone=bucket,
+        surface="services",
     )
 
 

@@ -169,13 +169,24 @@ def compact_action_menu_html(
         current_revision_id=current_revision_id,
     )
     if authoring_label and authoring_href:
-        links.append(link(authoring_label, authoring_href, css_class="button button-primary"))
+        links.append(
+            link(
+                authoring_label,
+                authoring_href,
+                css_class="button button-primary",
+                attrs={
+                    "data-component": "action-link",
+                    "data-action-id": "authoring_entry",
+                },
+            )
+        )
 
     for action in projection_actions(ui_projection):
+        action_id = str(action.get("action_id") or "")
         if str(action.get("availability") or "") != "allowed":
             continue
         href = action_href(
-            action_id=str(action.get("action_id") or ""),
+            action_id=action_id,
             object_id=object_id,
             revision_id=revision_id,
         )
@@ -186,6 +197,10 @@ def compact_action_menu_html(
                 str(action.get("label") or action.get("action_id") or "Open action"),
                 href,
                 css_class="button button-secondary",
+                attrs={
+                    "data-component": "action-link",
+                    "data-action-id": action_id,
+                },
             )
         )
 
@@ -248,13 +263,15 @@ def render_workflow_projection_panel(
             + render_list([escape(item) for item in reasons], css_class="panel-list")
             + "</div>"
         )
-    return components.governed_status_panel(
+    return components.surface_panel(
         title=title,
         eyebrow="Workflow",
         summary=str(data.get("summary") or "Backend workflow guidance unavailable"),
         body_html=join_html(body_parts),
         tone=str(data.get("tone") or "context"),
         footer_html=footer_html,
+        variant="workflow",
+        surface="workflow",
     )
 
 
@@ -293,13 +310,72 @@ def render_projection_status_panel(
             ),
         ]
     )
-    return components.governed_status_panel(
+    return components.surface_panel(
         title=title,
         eyebrow="Governance",
         summary=str(use_guidance.get("summary") or "Backend guidance unavailable"),
         body_html=body_html,
         tone="approved" if bool(use_guidance.get("safe_to_use")) else "context",
         footer_html=footer_html,
+        variant="posture",
+        surface="posture",
+    )
+
+
+def render_projection_overview_panel(
+    components: ComponentPresenter,
+    *,
+    title: str,
+    ui_projection: dict[str, Any] | None,
+    object_id: str,
+    revision_id: str | None,
+    current_revision_id: str | None = None,
+    footer_html: str = "",
+) -> str:
+    state = projection_state(ui_projection)
+    use_guidance = projection_use_guidance(ui_projection)
+    reasons = projection_reasons(ui_projection)
+    body_parts = [
+        f'<p class="governed-summary"><strong>{escape(use_guidance.get("summary") or "Backend guidance unavailable")}</strong></p>',
+        f'<p>{escape(use_guidance.get("detail") or "Papyrus did not return a governed use-guidance detail for this view.")}</p>',
+        render_definition_rows(
+            [
+                ("Next action", escape(use_guidance.get("next_action") or "Papyrus did not return a next action for this view.")),
+                ("Lifecycle", escape(state.get("object_lifecycle_state") or "unknown")),
+                ("Review state", escape(state.get("revision_review_state") or "unknown")),
+                ("Draft progress", escape(state.get("draft_progress_state") or "unknown")),
+                ("Source sync", escape(state.get("source_sync_state") or "unknown")),
+                ("Trust", escape(state.get("trust_state") or "unknown")),
+            ]
+        ),
+    ]
+    if reasons:
+        body_parts.append(
+            '<div class="governed-reasons">'
+            '<p class="governed-list-label">Why Papyrus says this now</p>'
+            + (
+                render_list([escape(item) for item in reasons], css_class="panel-list")
+                or '<p class="empty-state-copy">No explicit reasons were attached to this projection.</p>'
+            )
+            + "</div>"
+        )
+    action_html = compact_action_menu_html(
+        components,
+        ui_projection=ui_projection,
+        object_id=object_id,
+        revision_id=revision_id,
+        current_revision_id=current_revision_id,
+    )
+    body_parts.append(f'<div class="governed-action-cta" data-component="action-cluster">{action_html}</div>')
+    return components.surface_panel(
+        title=title,
+        eyebrow="Current posture",
+        summary=str(use_guidance.get("summary") or "Backend guidance unavailable"),
+        body_html=join_html(body_parts),
+        tone="approved" if bool(use_guidance.get("safe_to_use")) else "context",
+        footer_html=footer_html,
+        variant="projection-overview",
+        surface="posture",
     )
 
 
@@ -342,13 +418,15 @@ def render_contract_status_panel(
             )
             + "</div>"
         )
-    return components.governed_status_panel(
+    return components.surface_panel(
         title=title,
         eyebrow="Contract",
         summary=summary,
         body_html=join_html(body_parts),
         tone=tone,
         footer_html=footer_html,
+        variant="contract",
+        surface="contract",
     )
 
 
@@ -395,6 +473,7 @@ def render_action_descriptor_panel(
 ) -> str:
     items_html = []
     for action in actions:
+        action_id = str(action.get("action_id") or "")
         availability = str(action.get("availability") or "illegal")
         tone = ACTION_AVAILABILITY_TONES.get(availability, "warning")
         policy = dict(action.get("policy") or {})
@@ -408,9 +487,13 @@ def render_action_descriptor_panel(
                 str(action.get("label") or action.get("action_id") or "Open action"),
                 href,
                 css_class="button button-secondary",
+                attrs={
+                    "data-component": "action-link",
+                    "data-action-id": action_id,
+                },
             )
         items_html.append(
-            '<article class="governed-action-item">'
+            f'<article class="governed-action-item" data-component="action-descriptor" data-action-id="{escape(action_id or "unknown")}" data-variant="{escape(tone)}">'
             + f'<div class="governed-action-heading"><h3>{escape(action.get("label") or action.get("action_id") or "Action")}</h3>'
             + components.badge(
                 label="Availability",
@@ -440,11 +523,14 @@ def render_action_descriptor_panel(
             + (f'<div class="governed-action-cta">{cta_html}</div>' if cta_html else "")
             + "</article>"
         )
-    return components.governed_action_panel(
+    return components.surface_panel(
         title=title,
         eyebrow="Actions",
         body_html=join_html(items_html) or '<p class="empty-state-copy">No actions were returned for this screen.</p>',
         tone="context",
+        variant="actions",
+        surface="actions",
+        body_class="section-card-body governed-action-list",
     )
 
 
@@ -523,10 +609,12 @@ def render_acknowledgement_panel(
             ),
         ]
     )
-    return components.governed_acknowledgement_panel(
+    return components.surface_panel(
         title=title,
         eyebrow="Acknowledgements",
         summary=operator_message or "Review the required acknowledgements before continuing.",
         body_html=body_html,
         tone="warning" if required else "context",
+        variant="acknowledgements",
+        surface="acknowledgements",
     )

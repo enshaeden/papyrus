@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
-from papyrus.interfaces.web.presenters.governed_presenter import render_governed_action_panel, render_projection_status_panel
+from papyrus.interfaces.web.presenters.governed_presenter import render_projection_overview_panel
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, tone_for_revision
 
@@ -59,17 +59,20 @@ def present_revision_history(
         ]
         for revision in history["revisions"]
     ]
-    history_table_html = components.section_card(
+    history_table_html = components.surface_panel(
         title="Revision history",
         eyebrow="Read",
-        body_html=components.queue_table(
+        body_html=components.table(
             headers=["Revision", "Status", "What changed"],
             rows=rows,
             table_id="revision-history",
+            surface="revision-history",
         ),
         footer_html=f'<p class="section-footer">{link(object_info["title"], f"/objects/{quoted_path(object_info['object_id'])}")} · {escape(object_info["canonical_path"])}</p>',
+        variant="history-table",
+        surface="revision-history",
     )
-    timeline_html = components.section_card(
+    timeline_html = components.surface_panel(
         title="Audit sequence",
         eyebrow="Governance",
         body_html=join_html(
@@ -78,33 +81,39 @@ def present_revision_history(
                 for event in history["audit_events"]
             ]
         ) or '<p class="empty-state-copy">No audit events recorded.</p>',
+        variant="audit-sequence",
+        surface="revision-history",
     )
     aside_sections = []
     if detail is not None:
         aside_sections.extend(
             [
-                render_projection_status_panel(
+                render_projection_overview_panel(
                     components,
-                    title="Current governed posture",
-                    ui_projection=detail.get("ui_projection"),
-                ),
-                render_governed_action_panel(
-                    components,
-                    title="Current governed actions",
+                    title="Current posture and next actions",
                     ui_projection=detail.get("ui_projection"),
                     object_id=str(object_info["object_id"]),
                     revision_id=str((detail.get("current_revision") or {}).get("revision_id") or "") or None,
+                    current_revision_id=str((detail.get("current_revision") or {}).get("revision_id") or "") or None,
                 ),
             ]
         )
     aside_sections.append(
-        components.validation_summary(
+        components.surface_panel(
             title="Comparison cues",
-            findings=[
-                "Look for the current marker before using the revision body.",
-                "Citation counts show evidence drift even without a diff view.",
-                "Assignment state exposes whether a review actually closed.",
-            ],
+            eyebrow="Read",
+            body_html=components.list_body(
+                items=[
+                    escape("Look for the current marker before using the revision body."),
+                    escape("Citation counts show evidence drift even without a diff view."),
+                    escape("Assignment state exposes whether a review actually closed."),
+                ],
+                empty_label="No comparison cues recorded.",
+                css_class="validation-findings",
+            ),
+            tone="context",
+            variant="comparison-cues",
+            surface="revision-history",
         )
     )
     aside_html = join_html(aside_sections)
@@ -122,4 +131,5 @@ def present_revision_history(
             "history_table_html": history_table_html,
             "timeline_html": timeline_html,
         },
+        "page_surface": "revision-history",
     }

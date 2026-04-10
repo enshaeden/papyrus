@@ -53,13 +53,14 @@ class FormPresenter:
     ) -> str:
         return (
             f'<input id="{escape(field_id)}" name="{escape(name)}" type="{escape(input_type)}" '
-            f'class="{escape(css_class)}" value="{escape(value)}" placeholder="{escape(placeholder)}" />'
+            f'class="{escape(css_class)}" value="{escape(value)}" placeholder="{escape(placeholder)}" '
+            f'data-component="form-control" data-control-type="{escape(input_type)}" />'
         )
 
     def textarea(self, *, field_id: str, name: str, value: str, rows: int = 4, placeholder: str = "") -> str:
         return (
             f'<textarea id="{escape(field_id)}" name="{escape(name)}" rows="{rows}" '
-            f'placeholder="{escape(placeholder)}">{escape(value)}</textarea>'
+            f'placeholder="{escape(placeholder)}" data-component="form-control" data-control-type="textarea">{escape(value)}</textarea>'
         )
 
     def checkbox(
@@ -74,6 +75,7 @@ class FormPresenter:
         return (
             f'<label class="checkbox-field" for="{escape(field_id)}">'
             f'<input id="{escape(field_id)}" name="{escape(name)}" type="checkbox" value="{escape(value)}"'
+            ' data-component="form-control" data-control-type="checkbox"'
             + (" checked" if checked else "")
             + " />"
             f'<span>{escape(label)}</span>'
@@ -92,13 +94,30 @@ class FormPresenter:
             f'<option value="{escape(option)}"{" selected" if option == value else ""}>{escape(option)}</option>'
             for option in options
         )
-        return f'<select id="{escape(field_id)}" name="{escape(name)}">{option_html}</select>'
+        return (
+            f'<select id="{escape(field_id)}" name="{escape(name)}" '
+            f'data-component="form-control" data-control-type="select">{option_html}</select>'
+        )
 
-    def button(self, *, label: str, variant: str = "primary", button_type: str = "submit") -> str:
-        return f'<button class="button button-{escape(variant)}" type="{escape(button_type)}">{escape(label)}</button>'
+    def button(
+        self,
+        *,
+        label: str,
+        variant: str = "primary",
+        button_type: str = "submit",
+        action_id: str = "",
+    ) -> str:
+        data_action = f' data-action-id="{escape(action_id)}"' if action_id else ""
+        return (
+            f'<button class="button button-{escape(variant)}" type="{escape(button_type)}"'
+            f' data-component="button"{data_action}>{escape(label)}</button>'
+        )
 
-    def link_button(self, *, label: str, href: str, variant: str = "secondary") -> str:
-        return link(label, href, css_class=f"button button-{variant}")
+    def link_button(self, *, label: str, href: str, variant: str = "secondary", action_id: str = "") -> str:
+        attrs = {"data-component": "button"}
+        if action_id:
+            attrs["data-action-id"] = action_id
+        return link(label, href, css_class=f"button button-{variant}", attrs=attrs)
 
     def flash(self, *, title: str, body: str, tone: str = "info") -> str:
         return (

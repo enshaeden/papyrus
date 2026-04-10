@@ -65,9 +65,26 @@ def quoted_path(segment: str) -> str:
     return quote(segment, safe="")
 
 
-def link(label: str, href: str, *, css_class: str = "") -> str:
-    class_attr = f' class="{escape(css_class)}"' if css_class else ""
-    return f'<a{class_attr} href="{escape(href)}">{escape(label)}</a>'
+def _html_attrs(attrs: dict[str, object] | None = None) -> str:
+    if not attrs:
+        return ""
+    rendered = []
+    for key, value in attrs.items():
+        if value is None or value is False:
+            continue
+        if value is True:
+            rendered.append(escape(key))
+            continue
+        rendered.append(f'{escape(key)}="{escape(value)}"')
+    return (" " + " ".join(rendered)) if rendered else ""
+
+
+def link(label: str, href: str, *, css_class: str = "", attrs: dict[str, object] | None = None) -> str:
+    rendered_attrs = dict(attrs or {})
+    if css_class:
+        rendered_attrs["class"] = css_class
+    rendered_attrs["href"] = href
+    return f'<a{_html_attrs(rendered_attrs)}>{escape(label)}</a>'
 
 
 def join_html(items: Iterable[str], separator: str = "") -> str:

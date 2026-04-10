@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -7,28 +8,25 @@ from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import escape, join_html, render_definition_rows, render_list, render_table
 
 
+def _data_token(value: object, *, fallback: str = "default") -> str:
+    normalized = re.sub(r"[^a-z0-9]+", "-", str(value or "").strip().lower()).strip("-")
+    return normalized or fallback
+
+
 @dataclass
 class ComponentPresenter:
     renderer: TemplateRenderer
 
-    def _list_panel(
+    def list_body(
         self,
         *,
-        title: str,
-        eyebrow: str,
         items: list[str],
         empty_label: str,
-        tone: str = "default",
+        css_class: str = "panel-list",
     ) -> str:
-        body_html = render_list(items, css_class="panel-list") or f'<p class="empty-state-copy">{escape(empty_label)}</p>'
-        return self.section_card(
-            title=title,
-            eyebrow=eyebrow,
-            body_html=body_html,
-            tone=tone,
-        )
+        return render_list(items, css_class=css_class) or f'<p class="empty-state-copy">{escape(empty_label)}</p>'
 
-    def section_card(
+    def surface_panel(
         self,
         *,
         title: str,
@@ -39,7 +37,11 @@ class ComponentPresenter:
         summary: str = "",
         css_class: str = "",
         body_class: str = "section-card-body",
+        variant: str = "",
+        surface: str = "",
     ) -> str:
+        normalized_variant = _data_token(variant or tone)
+        normalized_surface = _data_token(surface or eyebrow or title)
         return self.renderer.render(
             "partials/section_card.html",
             {
@@ -55,8 +57,13 @@ class ComponentPresenter:
                 "footer_html": footer_html,
                 "tone": escape(tone),
                 "css_class": escape(css_class),
+                "component_variant": escape(normalized_variant),
+                "component_surface": escape(normalized_surface),
             },
         )
+
+    def section_card(self, **kwargs) -> str:
+        return self.surface_panel(**kwargs)
 
     def badge(self, *, label: str, value: object, tone: str) -> str:
         return self.renderer.render(
@@ -68,57 +75,65 @@ class ComponentPresenter:
             },
         )
 
-    def trust_summary(self, *, title: str, badges: Iterable[str], summary: str = "") -> str:
+    def summary_strip(
+        self,
+        *,
+        title: str,
+        badges: Iterable[str],
+        summary: str = "",
+        surface: str = "",
+        variant: str = "default",
+    ) -> str:
         return self.renderer.render(
             "partials/trust_summary.html",
             {
                 "title": escape(title),
                 "badges_html": join_html(list(badges), " "),
                 "summary": escape(summary),
+                "component_surface": escape(_data_token(surface or title)),
+                "component_variant": escape(_data_token(variant)),
             },
         )
 
-    def metadata_list(self, *, title: str, rows: list[tuple[str, str]]) -> str:
-        return self.section_card(
+    def trust_summary(self, **kwargs) -> str:
+        return self.summary_strip(**kwargs)
+
+    def metadata_list(
+        self,
+        *,
+        title: str,
+        rows: list[tuple[str, str]],
+        surface: str = "metadata",
+    ) -> str:
+        return self.surface_panel(
             title=title,
             eyebrow="Metadata",
             body_html=render_definition_rows(rows),
             tone="context",
+            variant="metadata",
+            surface=surface,
         )
 
-    def citations_panel(self, *, title: str, items: list[str], empty_label: str) -> str:
-        return self._list_panel(
-            title=title,
-            eyebrow="Evidence",
-            items=items,
-            empty_label=empty_label,
-            tone="context",
-        )
-
-    def relationships_panel(self, *, title: str, items: list[str], empty_label: str) -> str:
-        return self._list_panel(
-            title=title,
-            eyebrow="Relationships",
-            items=items,
-            empty_label=empty_label,
-        )
-
-    def audit_panel(self, *, title: str, items: list[str], empty_label: str) -> str:
-        return self._list_panel(
-            title=title,
-            eyebrow="Audit",
-            items=items,
-            empty_label=empty_label,
-            tone="context",
-        )
-
-    def queue_table(self, *, headers: list[str], rows: list[list[str]], table_id: str) -> str:
+    def table(
+        self,
+        *,
+        headers: list[str],
+        rows: list[list[str]],
+        table_id: str,
+        surface: str = "table",
+        variant: str = "default",
+    ) -> str:
         return self.renderer.render(
             "partials/queue_table.html",
             {
                 "table_html": render_table(headers, rows, table_id=table_id),
+                "component_surface": escape(_data_token(surface)),
+                "component_variant": escape(_data_token(variant)),
             },
         )
+
+    def queue_table(self, **kwargs) -> str:
+        return self.table(**kwargs)
 
     def decision_cell(
         self,
@@ -132,7 +147,7 @@ class ComponentPresenter:
         badge_items = [item for item in badges if item]
         meta_items = [item for item in meta if item]
         return (
-            '<div class="decision-cell">'
+            '<div class="decision-cell" data-component="decision-cell">'
             + f'<div class="decision-primary">{title_html}</div>'
             + (
                 '<div class="decision-badges">'
@@ -157,21 +172,63 @@ class ComponentPresenter:
             + "</div>"
         )
 
+    def decision_card(
+        self,
+        *,
+        title_html: str,
+        summary: str = "",
+        detail: str = "",
+        meta: Iterable[str] = (),
+        badges: Iterable[str] = (),
+        next_action: str = "",
+        actions_html: str = "",
+        tone: str = "default",
+        surface: str = "decision",
+    ) -> str:
+        meta_items = [item for item in meta if item]
+        badge_items = [item for item in badges if item]
+        return (
+            f'<article class="decision-card decision-card-{escape(tone)}"'
+            f' data-component="decision-card" data-variant="{escape(_data_token(tone))}"'
+            f' data-surface="{escape(_data_token(surface))}">'
+            '<div class="decision-card-header">'
+            '<div class="decision-card-heading">'
+            f"<h3>{title_html}</h3>"
+            + (f'<p class="decision-card-summary">{escape(summary)}</p>' if summary else "")
+            + "</div>"
+            + (
+                f'<div class="badge-row">{join_html(badge_items, " ")}</div>'
+                if badge_items
+                else ""
+            )
+            + "</div>"
+            + (f'<p class="decision-card-detail">{escape(detail)}</p>' if detail else "")
+            + (
+                '<div class="decision-card-meta">'
+                + join_html([f"<span>{item}</span>" for item in meta_items])
+                + "</div>"
+                if meta_items
+                else ""
+            )
+            + (
+                f'<p class="decision-card-next"><strong>Next:</strong> {escape(next_action)}</p>'
+                if next_action
+                else ""
+            )
+            + (
+                f'<div class="decision-card-actions">{actions_html}</div>'
+                if actions_html
+                else ""
+            )
+            + "</article>"
+        )
+
     def inline_disclosure(self, *, label: str, body_html: str) -> str:
         return (
-            '<details class="inline-disclosure">'
+            '<details class="inline-disclosure" data-component="inline-disclosure">'
             f"<summary>{escape(label)}</summary>"
             f'<div class="inline-disclosure-body">{body_html}</div>'
             "</details>"
-        )
-
-    def validation_summary(self, *, title: str, findings: list[str], empty_label: str = "No validation findings.") -> str:
-        body_html = render_list(findings, css_class="validation-findings") or f'<p class="empty-state-copy">{escape(empty_label)}</p>'
-        return self.section_card(
-            title=title,
-            eyebrow="Validation",
-            body_html=body_html,
-            tone="context",
         )
 
     def object_header(
@@ -196,94 +253,56 @@ class ComponentPresenter:
             },
         )
 
-    def empty_state(self, *, title: str, description: str, action_html: str = "") -> str:
+    def empty_state(
+        self,
+        *,
+        title: str,
+        description: str,
+        action_html: str = "",
+        surface: str = "empty",
+        variant: str = "default",
+    ) -> str:
         return self.renderer.render(
             "partials/empty_state.html",
             {
                 "title": escape(title),
                 "description": escape(description),
                 "action_html": action_html,
+                "component_surface": escape(_data_token(surface or title)),
+                "component_variant": escape(_data_token(variant)),
             },
         )
 
-    def action_bar(self, *, items: list[str]) -> str:
+    def action_bar(
+        self,
+        *,
+        items: list[str],
+        surface: str = "actions",
+        variant: str = "default",
+    ) -> str:
         return self.renderer.render(
             "partials/action_bar.html",
-            {"items_html": join_html(items)},
+            {
+                "items_html": join_html(items),
+                "component_surface": escape(_data_token(surface)),
+                "component_variant": escape(_data_token(variant)),
+            },
         )
 
-    def governed_status_panel(
+    def filter_bar(
         self,
         *,
         title: str,
-        summary: str,
-        body_html: str,
-        eyebrow: str = "Governance",
-        footer_html: str = "",
-        tone: str = "context",
+        controls_html: str,
+        surface: str = "filters",
+        variant: str = "default",
     ) -> str:
-        return self.section_card(
-            title=title,
-            summary=summary,
-            body_html=body_html,
-            eyebrow=eyebrow,
-            footer_html=footer_html,
-            tone=tone,
-            css_class="governed-status-panel",
-        )
-
-    def governed_action_panel(
-        self,
-        *,
-        title: str,
-        body_html: str,
-        eyebrow: str = "Actions",
-        footer_html: str = "",
-        tone: str = "context",
-    ) -> str:
-        return self.section_card(
-            title=title,
-            body_html=body_html,
-            eyebrow=eyebrow,
-            footer_html=footer_html,
-            tone=tone,
-            css_class="governed-action-panel",
-            body_class="section-card-body governed-action-list",
-        )
-
-    def governed_acknowledgement_panel(
-        self,
-        *,
-        title: str,
-        summary: str,
-        body_html: str,
-        eyebrow: str = "Acknowledgements",
-        footer_html: str = "",
-        tone: str = "warning",
-    ) -> str:
-        return self.section_card(
-            title=title,
-            summary=summary,
-            body_html=body_html,
-            eyebrow=eyebrow,
-            footer_html=footer_html,
-            tone=tone,
-            css_class="governed-acknowledgement-panel",
-        )
-
-    def filter_bar(self, *, title: str, controls_html: str) -> str:
         return self.renderer.render(
             "partials/filter_bar.html",
             {
                 "title": escape(title),
                 "controls_html": controls_html,
+                "component_surface": escape(_data_token(surface or title)),
+                "component_variant": escape(_data_token(variant)),
             },
-        )
-
-    def validation_findings(self, *, title: str, items: list[str], tone: str = "warning") -> str:
-        return self.section_card(
-            title=title,
-            eyebrow="Review Readiness",
-            body_html=render_list(items, css_class="validation-findings") or "",
-            tone=tone,
         )

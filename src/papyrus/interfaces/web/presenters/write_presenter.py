@@ -263,7 +263,7 @@ def present_submit_page(
             submit_action=submit_action,
         )
     )
-    form_html = components.section_card(
+    form_html = components.surface_panel(
         title="Send to review",
         eyebrow="Write",
         body_html=(
@@ -275,11 +275,13 @@ def present_submit_page(
                 hint="Optional notes for reviewers and assignment triage.",
                 errors=form_errors.get("notes"),
             )
-            + forms.button(label="Send to review")
+            + forms.button(label="Send to review", action_id="submit_for_review")
             + "</form>"
         ),
+        variant="submit-form",
+        surface="write-submit",
     )
-    summary_html = components.section_card(
+    summary_html = components.surface_panel(
         title="Submission summary",
         eyebrow="Write",
         body_html=(
@@ -290,18 +292,27 @@ def present_submit_page(
             f"<p><strong>Evidence note:</strong> {escape(submit_evidence_posture_detail(evidence_posture))}</p>"
             f"<p><strong>Publishing location:</strong> {escape(detail['object']['canonical_path'])}</p>"
         ),
+        variant="submission-summary",
+        surface="write-submit",
     )
-    findings_html = components.validation_findings(
+    findings_html = components.surface_panel(
         title="Pre-submit validation",
-        items=[escape(item) for item in findings] or ["No blocking findings detected."],
+        eyebrow="Validation",
+        body_html=components.list_body(
+            items=[escape(item) for item in findings] or ["No blocking findings detected."],
+            empty_label="No blocking findings detected.",
+            css_class="validation-findings",
+        ),
         tone="warning" if findings else "approved",
+        variant="pre-submit-validation",
+        surface="write-submit",
     )
     progress_rows = [
         f"{row['label']}: {row['value']}"
         for row in draft_projection.get("rows", [])
         if row.get("label") and row.get("value")
     ]
-    progress_html = components.section_card(
+    progress_html = components.surface_panel(
         title="Step 3 of 3",
         eyebrow="Progress",
         tone=str(draft_projection.get("tone") or "default"),
@@ -311,6 +322,8 @@ def present_submit_page(
             + f"<p><strong>Warnings to review:</strong> {escape(len(findings))}</p>"
         ),
         footer_html='<p class="section-footer">Send the revision only after the remaining warnings are understood.</p>',
+        variant="submission-progress",
+        surface="write-submit",
     )
     guidance_sections = [
         support_details_html(
