@@ -82,11 +82,10 @@ def _error_page(
     return runtime.page_renderer.render_page(
         page_template="pages/error.html",
         page_title=title,
-        headline=title,
-        kicker="System",
-        intro="Papyrus keeps failures explicit so operators can diagnose state rather than guess.",
+        page_header={"headline": title},
         active_nav=active_nav,
         aside_html="",
+        shell_variant="minimal",
         page_context={"error_html": error_html},
     )
 

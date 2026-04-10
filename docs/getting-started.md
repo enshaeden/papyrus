@@ -34,7 +34,7 @@ What to expect:
 - `/` is the lifecycle-guided home page.
 - The home page shows likely next actions, work-area counts, recent activity, and the lifecycle model.
 - Navigation is organized as `Read`, `Write`, `Import`, `Review / Approvals`, `Knowledge Health`, `Services`, and `Activity / History`.
-- `/write` starts blueprint-driven guided section authoring. The separate bulk draft fallback route is retained only because searchable citation and multi-select controls have not yet moved into the shared guided surface.
+- `/write` starts blueprint-driven guided section authoring with citation lookup and searchable multi-select controls in the same flow.
 - `/ingest` starts the upload, parse, classify, map, review, and convert flow for external files.
 - Browser upload is the normal web ingest path. Browser-submitted local file paths are disabled unless you explicitly enable `--allow-web-ingest-local-paths` on the local operator web surface.
 - Markdown and DOCX parse locally. PDF import is limited to text-based PDFs and may surface degraded extraction warnings.

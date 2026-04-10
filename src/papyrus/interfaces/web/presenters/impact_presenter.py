@@ -79,9 +79,11 @@ def present_object_impact(renderer: TemplateRenderer, *, impact: dict[str, Any])
     return {
         "page_template": "pages/impact_object.html",
         "page_title": f"Impact {entity['title']}",
-        "headline": f"Change Consequences: {entity['title']}",
-        "kicker": "Health",
-        "intro": "See what changed, what it affects, and what to review next.",
+        "page_header": {
+            "headline": f"Change consequences: {entity['title']}",
+            "show_actor_banner": True,
+            "show_actor_links": True,
+        },
         "active_nav": "health",
         "aside_html": "",
         "page_context": {"summary_html": summary_html, "impacts_html": impacts_html},
@@ -136,9 +138,11 @@ def present_service_impact(renderer: TemplateRenderer, *, impact: dict[str, Any]
     return {
         "page_template": "pages/impact_service.html",
         "page_title": f"Impact {entity['service_name']}",
-        "headline": f"Change Consequences: {entity['service_name']}",
-        "kicker": "Health",
-        "intro": "See what changed around this service and what needs review next.",
+        "page_header": {
+            "headline": f"Change consequences: {entity['service_name']}",
+            "show_actor_banner": True,
+            "show_actor_links": True,
+        },
         "active_nav": "health",
         "aside_html": "",
         "page_context": {"summary_html": summary_html, "impacts_html": impacts_html},

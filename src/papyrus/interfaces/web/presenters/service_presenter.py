@@ -164,9 +164,11 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
     return {
         "page_template": "pages/service_detail.html",
         "page_title": service["service_name"],
-        "headline": service["service_name"],
-        "kicker": "Services",
-        "intro": "Use service context to pick the right guidance fast.",
+        "page_header": {
+            "headline": service["service_name"],
+            "show_actor_banner": True,
+            "show_actor_links": True,
+        },
         "active_nav": "services",
         "aside_html": aside_html,
         "page_context": {
@@ -242,9 +244,11 @@ def present_service_catalog(renderer: TemplateRenderer, *, services: list[dict[s
     return {
         "page_template": "pages/services.html",
         "page_title": "Services",
-        "headline": "Services",
-        "kicker": "Services",
-        "intro": "Start with the affected service, then move into the right guidance.",
+        "page_header": {
+            "headline": "Services",
+            "show_actor_banner": True,
+            "show_actor_links": True,
+        },
         "active_nav": "services",
         "aside_html": "",
         "page_context": {"services_html": services_html},

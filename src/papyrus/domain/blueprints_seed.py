@@ -12,6 +12,7 @@ def _field(
     placeholder: str = "",
     hint: str = "",
     taxonomy: str | None = None,
+    widget: dict[str, object] | None = None,
 ) -> dict[str, object]:
     return {
         "name": name,
@@ -21,6 +22,7 @@ def _field(
         "placeholder": placeholder,
         "hint": hint,
         "taxonomy": taxonomy,
+        "widget": widget or {},
     }
 
 
@@ -55,13 +57,33 @@ COMMON_STEWARDSHIP_SECTION = BlueprintSection(
         _field("review_cadence", "Review cadence", kind="select", taxonomy="review_cadences"),
         _field("audience", "Audience", kind="select", taxonomy="audiences"),
         _field("systems", "Related systems", kind="list", required=False, placeholder="Add one related system per line."),
-        _field("tags", "Tags", kind="list", required=False, placeholder="One controlled tag per line."),
+        _field(
+            "tags",
+            "Tags",
+            kind="list",
+            required=False,
+            placeholder="One controlled tag per line.",
+            widget={
+                "type": "taxonomy_multi_select",
+                "taxonomy": "tags",
+                "placeholder": "Search controlled tags",
+                "singular_label": "tag",
+                "manual_entry_label": "Manual tag entry",
+            },
+        ),
         _field(
             "related_services",
             "Related services",
             kind="list",
             required=False,
             placeholder="One controlled service per line.",
+            widget={
+                "type": "taxonomy_multi_select",
+                "taxonomy": "services",
+                "placeholder": "Search related services",
+                "singular_label": "service",
+                "manual_entry_label": "Manual service entry",
+            },
         ),
         _field(
             "related_object_ids",
@@ -69,6 +91,13 @@ COMMON_STEWARDSHIP_SECTION = BlueprintSection(
             kind="list",
             required=False,
             placeholder="Add one related guidance reference per line.",
+            widget={
+                "type": "object_search_multi_select",
+                "search_url": "/write/objects/search",
+                "placeholder": "Search related guidance",
+                "singular_label": "related guidance item",
+                "manual_entry_label": "Manual reference entry",
+            },
         ),
         _field(
             "change_summary",
@@ -87,7 +116,16 @@ COMMON_EVIDENCE_SECTION = BlueprintSection(
     description="Add the sources that support this draft before review.",
     section_type=SectionType.REFERENCES,
     fields=(
-        _field("citations", "Citations", kind="references"),
+        _field(
+            "citations",
+            "Citations",
+            kind="references",
+            widget={
+                "type": "citation_lookup",
+                "search_url": "/write/citations/search",
+                "slots": 3,
+            },
+        ),
     ),
     validation_rules={"minimum_items": 1},
     help_text="Every draft needs clear supporting sources before it goes to review.",

@@ -195,9 +195,11 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
     return {
         "page_template": "pages/dashboard_trust.html",
         "page_title": "Knowledge Health",
-        "headline": "Knowledge Health",
-        "kicker": "Health",
-        "intro": "See what needs review or revalidation next.",
+        "page_header": {
+            "headline": "Knowledge health",
+            "show_actor_banner": True,
+            "show_actor_links": True,
+        },
         "active_nav": "health",
         "aside_html": "",
         "page_context": {

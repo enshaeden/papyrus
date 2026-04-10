@@ -50,12 +50,8 @@ def request_path_without_fragment(path: str) -> str:
     return path.split("#", 1)[0]
 
 
-def fallback_revision_path(path: str) -> str:
-    return request_path_without_fragment(path).replace("/revisions/new", "/revisions/fallback", 1)
-
-
 class WriteUiTests(unittest.TestCase):
-    def test_policy_revision_page_shows_policy_fields_without_service_record_fallback(self) -> None:
+    def test_policy_revision_page_shows_guided_policy_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
@@ -75,32 +71,29 @@ class WriteUiTests(unittest.TestCase):
                     "canonical_path": "knowledge/policies/ui-policy.md",
                     "review_cadence": "annual",
                     "status": "draft",
-                    "systems": "<VPN_SERVICE>",
+                    "systems": "Remote Access Gateway",
                     "tags": "vpn",
                 },
             )
             self.assertEqual(status, "303 See Other")
 
             guided_path = request_path_without_fragment(headers["Location"])
-            fallback_path = fallback_revision_path(headers["Location"])
 
             status, _, guided_body = call_wsgi(application, guided_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn("Continue Policy", guided_body)
+            self.assertIn("Draft Policy", guided_body)
             self.assertIn("Policy scope", guided_body)
-            self.assertIn("Use advanced editor", guided_body)
             self.assertNotIn("Service name", guided_body)
             self.assertNotIn("Service criticality", guided_body)
+            self.assertIn("/static/js/citation_picker.js", guided_body)
+            self.assertIn("/static/js/multi_value_picker.js", guided_body)
+            self.assertNotIn("/revisions/fallback", guided_body)
 
-            status, _, fallback_body = call_wsgi(application, fallback_path)
-            self.assertEqual(status, "200 OK")
-            self.assertIn("Advanced draft editor", fallback_body)
-            self.assertIn("Controls", fallback_body)
-            self.assertIn("Exceptions", fallback_body)
-            self.assertNotIn("Service name", fallback_body)
-            self.assertNotIn("Service criticality", fallback_body)
+            status, _, removed_body = call_wsgi(application, guided_path.replace("/revisions/new", "/revisions/fallback", 1))
+            self.assertEqual(status, "404 Not Found")
+            self.assertIn("Not found", removed_body)
 
-    def test_system_design_revision_page_shows_system_design_fields_without_service_record_fallback(self) -> None:
+    def test_system_design_revision_page_shows_guided_system_design_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
@@ -120,31 +113,23 @@ class WriteUiTests(unittest.TestCase):
                     "canonical_path": "knowledge/system-designs/ui-system-design.md",
                     "review_cadence": "after_change",
                     "status": "draft",
-                    "systems": "<IDENTITY_PROVIDER>",
+                    "systems": "Identity Platform",
                     "tags": "identity",
                 },
             )
             self.assertEqual(status, "303 See Other")
 
             guided_path = request_path_without_fragment(headers["Location"])
-            fallback_path = fallback_revision_path(headers["Location"])
 
             status, _, guided_body = call_wsgi(application, guided_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn("Continue System Design", guided_body)
+            self.assertIn("Draft System Design", guided_body)
             self.assertIn("Architecture", guided_body)
-            self.assertIn("Use advanced editor", guided_body)
             self.assertNotIn("Service name", guided_body)
             self.assertNotIn("Service criticality", guided_body)
-
-            status, _, fallback_body = call_wsgi(application, fallback_path)
-            self.assertEqual(status, "200 OK")
-            self.assertIn("Advanced draft editor", fallback_body)
-            self.assertIn("Interfaces", fallback_body)
-            self.assertIn("Common failure modes", fallback_body)
-            self.assertIn("Operational notes", fallback_body)
-            self.assertNotIn("Service name", fallback_body)
-            self.assertNotIn("Service criticality", fallback_body)
+            self.assertIn("/static/js/citation_picker.js", guided_body)
+            self.assertIn("/static/js/multi_value_picker.js", guided_body)
+            self.assertNotIn("/revisions/fallback", guided_body)
 
     def test_read_filters_expose_policy_and_system_design_types(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -158,7 +143,7 @@ class WriteUiTests(unittest.TestCase):
             self.assertIn('option value="policy"', body)
             self.assertIn('option value="system_design"', body)
 
-    def test_guided_revision_page_isolates_bulk_fallback_route(self) -> None:
+    def test_guided_revision_page_owns_search_backed_controls(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
@@ -178,27 +163,31 @@ class WriteUiTests(unittest.TestCase):
                     "canonical_path": "knowledge/runbooks/guided-route.md",
                     "review_cadence": "quarterly",
                     "status": "draft",
-                    "systems": "<VPN_SERVICE>",
+                    "systems": "Remote Access Gateway",
                     "tags": "vpn",
                 },
             )
             self.assertEqual(status, "303 See Other")
 
             guided_path = request_path_without_fragment(headers["Location"])
-            fallback_path = fallback_revision_path(headers["Location"])
 
             status, _, guided_body = call_wsgi(application, guided_path)
             self.assertEqual(status, "200 OK")
             self.assertIn("Save and continue", guided_body)
-            self.assertIn("Use advanced editor", guided_body)
-            self.assertIn("/write/objects/kb-ui-guided-route/revisions/fallback?revision_id=", guided_body)
             self.assertIn("shell-columns-focus", guided_body)
-            self.assertNotIn("/static/js/citation_picker.js", guided_body)
-            self.assertNotIn("/static/js/multi_value_picker.js", guided_body)
-            self.assertNotIn("Bulk edit and search tools", guided_body)
+            self.assertIn("/static/js/citation_picker.js", guided_body)
+            self.assertIn("/static/js/multi_value_picker.js", guided_body)
+            self.assertNotIn("/revisions/fallback", guided_body)
+            self.assertNotIn("Advanced draft editor", guided_body)
 
-            status, _, fallback_body = call_wsgi(application, fallback_path)
+            status, _, stewardship_body = call_wsgi(application, guided_path + "&section=stewardship")
             self.assertEqual(status, "200 OK")
-            self.assertIn("Advanced draft editor", fallback_body)
-            self.assertIn("/static/js/citation_picker.js", fallback_body)
-            self.assertIn("/static/js/multi_value_picker.js", fallback_body)
+            self.assertIn("data-multi-value-picker", stewardship_body)
+            self.assertIn('data-search-url="/write/objects/search"', stewardship_body)
+            self.assertIn("Search controlled tags", stewardship_body)
+            self.assertIn("Search related services", stewardship_body)
+
+            status, _, evidence_body = call_wsgi(application, guided_path + "&section=evidence")
+            self.assertEqual(status, "200 OK")
+            self.assertIn("data-citation-picker", evidence_body)
+            self.assertIn('data-search-url="/write/citations/search"', evidence_body)

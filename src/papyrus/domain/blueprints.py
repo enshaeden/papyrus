@@ -4,6 +4,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+FieldWidget = dict[str, Any]
+BlueprintField = dict[str, Any]
+
 
 class SectionType(str, Enum):
     TEXT = "text"
@@ -22,7 +25,7 @@ class BlueprintSection:
     description: str
     section_type: SectionType
     required: bool = True
-    fields: tuple[dict[str, Any], ...] = ()
+    fields: tuple[BlueprintField, ...] = ()
     body_headings: tuple[str, ...] = ()
     validation_rules: dict[str, Any] = field(default_factory=dict)
     help_text: str = ""

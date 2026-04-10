@@ -111,9 +111,11 @@ def present_revision_history(
     return {
         "page_template": "pages/revision_history.html",
         "page_title": f"{object_info['title']} revision history",
-        "headline": "Revision History",
-        "kicker": "Read",
-        "intro": "Revision state, review assignments, and audit sequence are kept side-by-side for comparison-friendly reading.",
+        "page_header": {
+            "headline": "Revision history",
+            "show_actor_banner": True,
+            "show_actor_links": True,
+        },
         "active_nav": "read",
         "aside_html": aside_html,
         "page_context": {

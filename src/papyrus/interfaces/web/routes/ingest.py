@@ -324,9 +324,11 @@ def _ingest_list_page(runtime, *, request: Request, errors: list[str] | None = N
     return runtime.page_renderer.render_page(
         page_template="pages/ingest_list.html",
         page_title="Import workbench",
-        headline="Import Workbench",
-        kicker="Import",
-        intro="Bring in a document, review the mapping, then create a draft.",
+        page_header={
+            "headline": "Import workbench",
+            "show_actor_banner": True,
+            "show_actor_links": True,
+        },
         active_nav="import",
         flash_html=flash_html_for_request(runtime, request),
         actor_id=actor_for_request(request),
@@ -353,9 +355,11 @@ def _ingestion_detail_page(runtime, *, request: Request, detail: dict[str, objec
     return runtime.page_renderer.render_page(
         page_template="pages/ingest_detail.html",
         page_title=f"Ingestion {detail['filename']}",
-        headline=detail["filename"],
-        kicker="Import",
-        intro="Check what was extracted before you review the mapping and create the draft.",
+        page_header={
+            "headline": detail["filename"],
+            "show_actor_banner": True,
+            "show_actor_links": True,
+        },
         active_nav="import",
         flash_html=flash_html_for_request(runtime, request),
         actor_id=actor_for_request(request),
@@ -495,9 +499,11 @@ def _mapping_review_page(runtime, *, request: Request, detail: dict[str, object]
     return runtime.page_renderer.render_page(
         page_template="pages/ingest_mapping_review.html",
         page_title=f"Review mapping for {detail['filename']}",
-        headline=f"Review mapping for {detail['filename']}",
-        kicker="Import",
-        intro="Confirm the matches, fix the gaps, then create the draft.",
+        page_header={
+            "headline": f"Review mapping for {detail['filename']}",
+            "show_actor_banner": True,
+            "show_actor_links": True,
+        },
         active_nav="import",
         flash_html=flash_html_for_request(runtime, request),
         actor_id=actor_for_request(request),

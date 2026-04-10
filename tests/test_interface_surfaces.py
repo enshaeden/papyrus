@@ -157,18 +157,15 @@ class InterfaceSurfaceTests(unittest.TestCase):
 
         status, _, body = call_wsgi(application, "/")
         self.assertEqual(status, "200 OK")
-        self.assertIn("Guided Operational Knowledge", body)
-        self.assertIn("Working as", body)
-        self.assertIn("View: Read", body)
+        self.assertIn("<title>Home | Papyrus</title>", body)
+        self.assertIn("Local Operator", body)
         self.assertNotIn('<aside class="context-column">', body)
 
         status, _, body = call_wsgi(application, "/queue")
         self.assertEqual(status, "200 OK")
-        self.assertIn("Read Operational Guidance", body)
-        self.assertIn("View: Read", body)
-        self.assertIn("Read", body)
+        self.assertIn("<title>Read Guidance | Papyrus</title>", body)
+        self.assertIn("Decision view", body)
         self.assertIn("/objects/", body)
-        self.assertIn("current evidence posture is weak or unverified", body)
         self.assertNotIn('<aside class="context-column">', body)
 
         status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity")
@@ -197,16 +194,16 @@ class InterfaceSurfaceTests(unittest.TestCase):
 
         status, _, body = call_wsgi(application, "/manage/queue")
         self.assertEqual(status, "200 OK")
-        self.assertIn("Review And Approval Work", body)
+        self.assertIn("Review queue", body)
 
         status, _, body = call_wsgi(application, "/manage/audit")
         self.assertEqual(status, "200 OK")
-        self.assertIn("Activity And History", body)
+        self.assertIn("Activity", body)
         self.assertIn("Governed audit trail", body)
 
         status, _, body = call_wsgi(application, "/impact/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
-        self.assertIn("Change Consequences", body)
+        self.assertIn("Change consequences", body)
 
     def test_static_theme_assets_expose_governed_brand_tokens(self) -> None:
         application = web_app(self.database_path)
@@ -226,10 +223,28 @@ class InterfaceSurfaceTests(unittest.TestCase):
         status, _, body = call_wsgi(application, "/not-a-real-route")
         self.assertEqual(status, "404 Not Found")
         self.assertIn("Not found", body)
+        self.assertIn("shell-columns-minimal", body)
+        self.assertNotIn("actor-banner", body)
+        self.assertNotIn("page-kicker", body)
 
         status, _, body = call_wsgi(application, "/queue", method="POST", form={"query": "vpn"})
         self.assertEqual(status, "405 Method Not Allowed")
         self.assertIn("Method not allowed", body)
+        self.assertIn("shell-columns-minimal", body)
+        self.assertNotIn("actor-banner", body)
+        self.assertNotIn("page-intro", body)
+
+    def test_shell_templates_keep_behavior_in_static_script(self) -> None:
+        topbar_template = (
+            ROOT / "src" / "papyrus" / "interfaces" / "web" / "templates" / "partials" / "topbar.html"
+        ).read_text(encoding="utf-8")
+        base_template = (ROOT / "src" / "papyrus" / "interfaces" / "web" / "templates" / "base.html").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertNotIn("<script", topbar_template)
+        self.assertIn("{{ topbar_menu_html }}", topbar_template)
+        self.assertIn('/static/js/shell.js', base_template)
 
     def test_api_write_endpoint_creates_object(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -252,7 +267,7 @@ class InterfaceSurfaceTests(unittest.TestCase):
                     "actor": "tests",
                     "review_cadence": "quarterly",
                     "status": "draft",
-                    "systems": ["<VPN_SERVICE>"],
+                    "systems": ["Remote Access Gateway"],
                     "tags": ["vpn"],
                 },
             )

@@ -1,77 +1,14 @@
 <header class="topbar">
   <div class="identity-block">
     <a class="identity-mark" href="/">Papyrus</a>
-    <p class="identity-copy">Operational knowledge workspace</p>
+    <p class="identity-copy">Operational knowledge</p>
   </div>
-  <div class="topbar-command-zone" aria-label="Search and actor controls">
-    <form class="search-form topbar-search" action="/read" method="get">
+  <div class="topbar-utility" aria-label="Search and shell controls">
+    <form class="topbar-search" action="/read" method="get">
       <label class="sr-only" for="global-search">Search Papyrus</label>
-      <input id="global-search" name="query" type="search" placeholder="Search operational knowledge" value="{{ search_value }}" />
+      <input id="global-search" name="query" type="search" placeholder="Search knowledge" value="{{ search_value }}" />
       <button class="button button-secondary" type="submit">Search</button>
     </form>
-    <form class="topbar-actor" action="/actor/select" method="post">
-      <label class="sr-only" for="actor-select">Current actor</label>
-      <input type="hidden" name="next_path" value="" data-current-path />
-      <span class="topbar-control-label">Working as</span>
-      <select id="actor-select" name="actor" data-actor-select>
-        {{ actor_options_html }}
-      </select>
-    </form>
+    {{ topbar_menu_html }}
   </div>
 </header>
-<script>
-  (function () {
-    const nextPath = document.querySelector("[data-current-path]");
-    const select = document.querySelector("[data-actor-select]");
-    const form = select ? select.closest("form") : null;
-    if (!nextPath || !select || !form) {
-      return;
-    }
-    const cookie = document.cookie
-      .split("; ")
-      .find((item) => item.startsWith("papyrus_actor="));
-    const value = cookie ? decodeURIComponent(cookie.split("=")[1]) : "local.operator";
-    if ([...select.options].some((option) => option.value === value)) {
-      select.value = value;
-    }
-    const trackedForms = [...document.querySelectorAll("form.governed-form")];
-    const formSignature = (trackedForm) => {
-      const formData = new FormData(trackedForm);
-      return JSON.stringify(
-        [...formData.entries()].map(([name, fieldValue]) => [
-          name,
-          fieldValue instanceof File ? fieldValue.name : String(fieldValue),
-        ]),
-      );
-    };
-    const initialSignatures = new Map(
-      trackedForms.map((trackedForm) => [trackedForm, formSignature(trackedForm)]),
-    );
-    const hasUnsavedChanges = () =>
-      trackedForms.some((trackedForm) => formSignature(trackedForm) !== initialSignatures.get(trackedForm));
-    const syncNextPath = () => {
-      const selected = select.options[select.selectedIndex];
-      if (!selected) {
-        nextPath.value = window.location.pathname + window.location.search;
-        return;
-      }
-      nextPath.value = select.value === value
-        ? window.location.pathname + window.location.search
-        : (selected.dataset.home || "/");
-    };
-    syncNextPath();
-    select.addEventListener("change", () => {
-      syncNextPath();
-      if (hasUnsavedChanges() && !window.confirm("You have unsaved changes on this page. Switch views and discard them?")) {
-        select.value = value;
-        syncNextPath();
-        return;
-      }
-      if (typeof form.requestSubmit === "function") {
-        form.requestSubmit();
-        return;
-      }
-      form.submit();
-    });
-  })();
-</script>

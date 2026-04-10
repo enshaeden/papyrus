@@ -122,8 +122,7 @@ Still deferred after this pass:
 
 ## Remaining Technical Debt
 
-- The bulk draft fallback route is still present because searchable citation and multi-select controls have not yet been moved into the shared guided authoring surface.
-- That route should not gain new lifecycle, acknowledgement, or policy logic while the controls remain there.
+- Guided authoring now owns citation lookup and searchable multi-select controls inside the primary revision flow.
 
 ## Rollback Reference
 

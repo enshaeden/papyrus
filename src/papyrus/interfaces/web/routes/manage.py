@@ -199,9 +199,11 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_queue.html",
                 page_title="Review / Approvals",
-                headline="Review And Approval Work",
-                kicker="Stewardship",
-                intro="Review the queue and take the next decision.",
+                page_header={
+                    "headline": "Review queue",
+                    "show_actor_banner": True,
+                    "show_actor_links": True,
+                },
                 active_nav="review",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
@@ -270,14 +272,13 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_object_form.html",
                 page_title="Supersede object",
-                headline="Supersede Guidance",
-                kicker="Health",
-                intro="Replace this guidance with the correct successor.",
+                page_header={"headline": "Supersede guidance"},
                 active_nav="health",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
                 aside_html="",
+                shell_variant="minimal",
                 page_context={"summary_html": summary_html, "form_html": form_html},
             )
         )
@@ -349,14 +350,13 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_object_form.html",
                 page_title="Mark object suspect",
-                headline="Mark Guidance Suspect",
-                kicker="Health",
-                intro="Flag this guidance when a dependency change may have invalidated it.",
+                page_header={"headline": "Mark guidance suspect"},
                 active_nav="health",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
                 aside_html="",
+                shell_variant="minimal",
                 page_context={"summary_html": summary_html, "form_html": form_html},
             )
         )
@@ -439,14 +439,13 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_object_form.html",
                 page_title="Archive object",
-                headline="Archive Guidance",
-                kicker="Health",
-                intro="Archive this guidance with a clear rationale.",
+                page_header={"headline": "Archive guidance"},
                 active_nav="health",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
                 aside_html="",
+                shell_variant="minimal",
                 page_context={"summary_html": summary_html, "form_html": form_html},
             )
         )
@@ -493,14 +492,13 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_object_form.html",
                 page_title="Revalidate evidence",
-                headline="Revalidate Evidence",
-                kicker="Evidence",
-                intro="Request evidence follow-up when support needs confirmation.",
+                page_header={"headline": "Revalidate evidence"},
                 active_nav="health",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
                 aside_html="",
+                shell_variant="minimal",
                 page_context={"summary_html": summary_html, "form_html": form_html},
             )
         )
@@ -566,14 +564,13 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/review_assignment.html",
                 page_title="Assign reviewer",
-                headline="Assign Reviewer",
-                kicker="Review",
-                intro="Assign the next reviewer.",
+                page_header={"headline": "Assign reviewer"},
                 active_nav="review",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
                 aside_html="",
+                shell_variant="minimal",
                 page_context={"summary_html": summary_html, "assignment_html": assignment_html, "form_html": form_html},
             )
         )
@@ -729,14 +726,13 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_review_decision.html",
                 page_title="Review decision",
-                headline="Review Decision",
-                kicker="Review",
-                intro="Approve or reject with change, evidence, and impact visible.",
+                page_header={"headline": "Review decision"},
                 active_nav="review",
                 flash_html=page_flash_html,
                 actor_id=actor_for_request(request),
                 current_path=request.path,
                 aside_html="",
+                shell_variant="minimal",
                 page_context={"summary_html": summary_html, "decisions_html": decisions_html},
             )
         )
@@ -869,9 +865,11 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_audit.html",
                 page_title="Activity / History",
-                headline="Activity And History",
-                kicker="Activity",
-                intro="See what changed and what needs attention next.",
+                page_header={
+                    "headline": "Activity",
+                    "show_actor_banner": True,
+                    "show_actor_links": True,
+                },
                 active_nav="activity",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
@@ -917,15 +915,17 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_validation_runs.html",
                 page_title="Validation runs",
-                headline="Validation History",
-                kicker="Activity",
-                intro="Review recent validation results.",
+                page_header={
+                    "headline": "Validation runs",
+                    "actions_html": add_run_html,
+                    "show_actor_banner": True,
+                    "show_actor_links": True,
+                },
                 active_nav="activity",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
                 aside_html="",
-                action_bar_html=add_run_html,
                 page_context={"validation_table_html": validation_table_html},
             )
         )
@@ -977,14 +977,13 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/manage_validation_run_new.html",
                 page_title="Record validation run",
-                headline="Record Validation Run",
-                kicker="Activity",
-                intro="Record the validation result and its findings.",
+                page_header={"headline": "Record validation run"},
                 active_nav="activity",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
                 aside_html="",
+                shell_variant="minimal",
                 page_context={"form_html": form_html},
             )
         )

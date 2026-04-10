@@ -200,7 +200,7 @@ class WebPresenterTests(unittest.TestCase):
                     "citation_health_rank": 0,
                     "ownership_rank": 0,
                     "tags": ["vpn"],
-                    "systems": ["<VPN_SERVICE>"],
+                    "systems": ["Remote Access Gateway"],
                     "path": "knowledge/runbooks/test.md",
                 },
                 "ui_projection": {

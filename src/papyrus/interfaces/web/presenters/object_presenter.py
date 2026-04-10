@@ -404,9 +404,11 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
     return {
         "page_template": "pages/object_detail.html",
         "page_title": item["title"],
-        "headline": item["title"],
-        "kicker": "Use",
-        "intro": "Use the current guidance with safety, evidence, and recent change visible.",
+        "page_header": {
+            "headline": item["title"],
+            "show_actor_banner": True,
+            "show_actor_links": True,
+        },
         "active_nav": "read",
         "aside_html": aside_html,
         "page_context": {

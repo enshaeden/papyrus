@@ -24,9 +24,9 @@ class ShellSection:
 class ActorShellConfig:
     actor: Actor
     home_path: str
-    summary: str
     nav_sections: tuple[ShellSection, ...]
     quick_links: tuple[ShellLink, ...]
+    banner_summary: str = ""
 
 
 DEFAULT_WEB_ACTOR = resolve_actor(default_actor_id())
@@ -42,7 +42,7 @@ WEB_ACTOR_SHELLS = (
     ActorShellConfig(
         actor=DEFAULT_WEB_ACTOR,
         home_path="/",
-        summary="Use current guidance, update gaps, and keep work moving safely.",
+        banner_summary="Use current guidance, update gaps, and keep work moving safely.",
         nav_sections=(
             ShellSection(
                 title="Navigation",
@@ -54,8 +54,8 @@ WEB_ACTOR_SHELLS = (
     ),
     ActorShellConfig(
         actor=resolve_actor("local.reviewer"),
-        home_path="/",
-        summary="Steward submitted revisions and block weak guidance from slipping through.",
+        home_path="/review",
+        banner_summary="Steward submitted revisions and block weak guidance from slipping through.",
         nav_sections=(
             ShellSection(
                 title="Navigation",
@@ -67,8 +67,8 @@ WEB_ACTOR_SHELLS = (
     ),
     ActorShellConfig(
         actor=resolve_actor("local.manager"),
-        home_path="/",
-        summary="Shepherd knowledge health, review pressure, and change impact.",
+        home_path="/health",
+        banner_summary="Steward risk, review pressure, and change impact.",
         nav_sections=(
             ShellSection(
                 title="Navigation",

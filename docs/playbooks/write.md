@@ -20,7 +20,7 @@ Current primary authoring rules:
 - Blueprints define required sections, ordering, validation, evidence expectations, and lifecycle defaults.
 - The visible next action should always be the next required section or the submit step.
 - Guided section editing is the primary web authoring path.
-- The separate bulk draft fallback route remains only because searchable citation and multi-select controls have not yet moved into shared guided components. Do not add new lifecycle, acknowledgement, or policy meaning there.
+- Guided section editing now includes citation lookup and searchable multi-select controls for related guidance, services, and controlled tags.
 
 Current first-class blueprints:
 
@@ -152,7 +152,7 @@ For each material claim:
 Current web authoring boundary:
 
 - guided section editing at `/write/objects/{object_id}/revisions/new` is the primary web path
-- the bulk draft fallback at `/write/objects/{object_id}/revisions/fallback` is retained technical debt, not a second equal authoring model
+- the guided path owns citation lookup and searchable multi-select controls
 - write and submit screens render backend workflow projections, action descriptors, operator messages, and acknowledgement requirements instead of deriving review or publication meaning in the route
 - citations that point to existing governed local Papyrus content are lightweight internal references for traceability and review context
 - external, migration, or other manual evidence entered through the write form remains weak until follow-up records when the evidence was captured, stores an integrity hash, and attaches any required snapshot

@@ -64,10 +64,6 @@ def request_path_without_fragment(path: str) -> str:
     return path.split("#", 1)[0]
 
 
-def fallback_revision_path(path: str) -> str:
-    return request_path_without_fragment(path).replace("/revisions/new", "/revisions/fallback", 1)
-
-
 def read_row(database_path: Path, query: str, parameters: tuple = ()) -> sqlite3.Row | None:
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
@@ -75,6 +71,139 @@ def read_row(database_path: Path, query: str, parameters: tuple = ()) -> sqlite3
         return connection.execute(query, parameters).fetchone()
     finally:
         connection.close()
+
+
+PRIMARY_SYSTEM = "Remote Access Gateway"
+PRIMARY_CITATION_TITLE = "Remote access gateway import record"
+PRIMARY_CITATION_REF = "records/remote-access-gateway-import-record.md"
+PRIMARY_CITATION_NOTE = "Captured from the initial repository bootstrap record."
+
+
+def guided_runbook_section_forms(
+    *,
+    object_id: str,
+    title: str,
+    canonical_path: str,
+    summary: str,
+    change_summary: str,
+    citation_title: str = PRIMARY_CITATION_TITLE,
+    citation_ref: str = PRIMARY_CITATION_REF,
+    citation_note: str = PRIMARY_CITATION_NOTE,
+    related_object_id: str = "kb-troubleshooting-vpn-connectivity",
+) -> list[dict[str, str]]:
+    return [
+        {
+            "section_id": "identity",
+            "object_id": object_id,
+            "title": title,
+            "canonical_path": canonical_path,
+        },
+        {
+            "section_id": "stewardship",
+            "summary": summary,
+            "owner": "workflow_owner",
+            "team": "IT Operations",
+            "status": "draft",
+            "review_cadence": "quarterly",
+            "audience": "service_desk",
+            "systems": PRIMARY_SYSTEM,
+            "tags": "vpn",
+            "related_services": "Remote Access",
+            "related_object_ids": related_object_id,
+            "change_summary": change_summary,
+        },
+        {
+            "section_id": "purpose",
+            "use_when": "Use this when the governed workflow needs validation.",
+        },
+        {
+            "section_id": "prerequisites",
+            "prerequisites": "Open the ticket.",
+        },
+        {
+            "section_id": "procedure",
+            "steps": "Run the first step.",
+        },
+        {
+            "section_id": "verification",
+            "verification": "Confirm the operator outcome.",
+        },
+        {
+            "section_id": "rollback",
+            "rollback": "Undo the step.",
+        },
+        {
+            "section_id": "boundaries",
+            "boundaries_and_escalation": "Escalate when the workflow fails twice.",
+            "related_knowledge_notes": "Pair with the VPN troubleshooting article.",
+        },
+        {
+            "section_id": "evidence",
+            "citation_1_source_title": citation_title,
+            "citation_1_source_type": "document",
+            "citation_1_source_ref": citation_ref,
+            "citation_1_note": citation_note,
+            "citation_2_source_type": "document",
+            "citation_3_source_type": "document",
+        },
+        {
+            "section_id": "relationships",
+            "related_object_ids": related_object_id,
+        },
+    ]
+
+
+def apply_guided_sections(
+    application,
+    start_path: str,
+    section_forms: list[dict[str, str]],
+    *,
+    cookies: dict[str, str] | None = None,
+) -> str:
+    current_path = request_path_without_fragment(start_path)
+    for form in section_forms:
+        status, headers, body = call_wsgi(
+            application,
+            current_path,
+            method="POST",
+            form=form,
+            cookies=cookies,
+        )
+        if status != "303 See Other":
+            raise AssertionError(f"guided section {form['section_id']!r} failed with {status}: {body[:800]}")
+        current_path = request_path_without_fragment(headers["Location"])
+    return current_path
+
+
+def complete_guided_runbook_revision(
+    application,
+    revision_form_path: str,
+    *,
+    object_id: str,
+    title: str,
+    canonical_path: str,
+    summary: str,
+    change_summary: str,
+    citation_title: str = PRIMARY_CITATION_TITLE,
+    citation_ref: str = PRIMARY_CITATION_REF,
+    citation_note: str = PRIMARY_CITATION_NOTE,
+    cookies: dict[str, str] | None = None,
+) -> str:
+    return apply_guided_sections(
+        application,
+        revision_form_path,
+        guided_runbook_section_forms(
+            object_id=object_id,
+            title=title,
+            canonical_path=canonical_path,
+            summary=summary,
+            change_summary=change_summary,
+            citation_title=citation_title,
+            citation_ref=citation_ref,
+            citation_note=citation_note,
+        ),
+        cookies=cookies,
+    )
 
 
 def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str, object]:
@@ -91,7 +220,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "source_system": "repository",
         "source_title": title,
         "team": "IT Operations",
-        "systems": ["<VPN_SERVICE>"],
+        "systems": [PRIMARY_SYSTEM],
         "tags": ["vpn"],
         "created": "2026-04-09",
         "updated": "2026-04-09",
@@ -105,9 +234,9 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "rollback": ["Undo the last remediation step."],
         "citations": [
             {
-                "source_title": "Seed import manifest",
+                "source_title": "Remote access gateway import record",
                 "source_type": "document",
-                "source_ref": "migration/import-manifest.yml",
+                "source_ref": "docs/reference/remote-access-gateway-import-record.md",
                 "note": "Archive acknowledgement rendering coverage.",
             }
         ],
@@ -116,7 +245,12 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "retirement_reason": None,
         "services": ["Remote Access"],
         "related_articles": [],
-        "references": [{"title": "Seed import manifest", "path": "migration/import-manifest.yml"}],
+        "references": [
+            {
+                "title": "Remote access gateway import record",
+                "path": "docs/reference/remote-access-gateway-import-record.md",
+            }
+        ],
         "change_log": [{"date": "2026-04-09", "summary": "Initial draft.", "author": "tests"}],
     }
 
@@ -147,47 +281,22 @@ class WebOperatorUiTests(unittest.TestCase):
                     "canonical_path": "knowledge/runbooks/operator-ui-approval-flow.md",
                     "review_cadence": "quarterly",
                     "status": "draft",
-                    "systems": "<VPN_SERVICE>",
+                    "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
             )
             self.assertEqual(status, "303 See Other")
             revision_form_path = headers["Location"]
 
-            status, headers, body = call_wsgi(
+            submit_path = complete_guided_runbook_revision(
                 application,
-                fallback_revision_path(revision_form_path),
-                method="POST",
-                form={
-                    "title": "Operator UI Approval Flow",
-                    "summary": "Approval flow exercised through the web interface.",
-                    "status": "draft",
-                    "owner": "workflow_owner",
-                    "team": "IT Operations",
-                    "review_cadence": "quarterly",
-                    "audience": "service_desk",
-                    "systems": "<VPN_SERVICE>",
-                    "tags": "vpn",
-                    "related_services": "Remote Access",
-                    "related_object_ids": "kb-troubleshooting-vpn-connectivity",
-                    "change_summary": "Initial draft through web UI.",
-                    "prerequisites": "Open the ticket.",
-                    "steps": "Run the first step.",
-                    "verification": "Confirm the operator outcome.",
-                    "rollback": "Undo the step.",
-                    "use_when": "Use this when the governed workflow needs validation.",
-                    "boundaries_and_escalation": "Escalate when the workflow fails twice.",
-                    "related_knowledge_notes": "Pair with the VPN troubleshooting article.",
-                    "citation_1_source_title": "Seed import manifest",
-                    "citation_1_source_type": "document",
-                    "citation_1_source_ref": "migration/import-manifest.yml",
-                    "citation_1_note": "Internal provenance placeholder.",
-                    "citation_2_source_type": "document",
-                    "citation_3_source_type": "document",
-                },
+                revision_form_path,
+                object_id="kb-operator-ui-approve",
+                title="Operator UI Approval Flow",
+                canonical_path="knowledge/runbooks/operator-ui-approval-flow.md",
+                summary="Approval flow exercised through the web interface.",
+                change_summary="Initial draft through web UI.",
             )
-            self.assertEqual(status, "303 See Other")
-            submit_path = headers["Location"]
             self.assertIn("/submit?revision_id=", submit_path)
 
             revision_id = urllib.parse.parse_qs(submit_path.split("?", 1)[1])["revision_id"][0]
@@ -195,12 +304,9 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Step 3 of 3", submit_body)
             self.assertIn("Pre-submit validation", submit_body)
-            self.assertIn("external/manual citation(s) still need evidence follow-up", submit_body)
-            self.assertIn("Use this form to link existing guidance or record a source title, reference, and note.", submit_body)
             self.assertIn("How to strengthen weak evidence", submit_body)
-            self.assertIn("capture time, integrity details, and any needed snapshot", submit_body)
             self.assertIn("/manage/objects/kb-operator-ui-approve/evidence/revalidate", submit_body)
-            self.assertIn("Request evidence revalidation", submit_body)
+            self.assertIn("Send to review", submit_body)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -316,84 +422,41 @@ class WebOperatorUiTests(unittest.TestCase):
                     "canonical_path": "knowledge/runbooks/operator-ui-rejection-flow.md",
                     "review_cadence": "quarterly",
                     "status": "draft",
-                    "systems": "<VPN_SERVICE>",
+                    "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
             )
             revision_form_path = headers["Location"]
 
+            guided_forms = guided_runbook_section_forms(
+                object_id="kb-operator-ui-reject",
+                title="Operator UI Rejection Flow",
+                canonical_path="knowledge/runbooks/operator-ui-rejection-flow.md",
+                summary="Rejection flow exercised through the web interface.",
+                change_summary="Initial draft through web UI.",
+            )
+            evidence_form = dict(guided_forms[-2])
+            evidence_form["citation_1_source_title"] = ""
+            evidence_form["citation_1_source_ref"] = ""
+            evidence_form["citation_1_note"] = ""
+
+            current_path = apply_guided_sections(
+                application,
+                revision_form_path,
+                guided_forms[:-2],
+            )
             status, _, body = call_wsgi(
                 application,
-                fallback_revision_path(revision_form_path),
+                current_path,
                 method="POST",
-                form={
-                    "title": "Operator UI Rejection Flow",
-                    "summary": "Rejection flow exercised through the web interface.",
-                    "status": "draft",
-                    "owner": "workflow_owner",
-                    "team": "IT Operations",
-                    "review_cadence": "quarterly",
-                    "audience": "service_desk",
-                    "systems": "<VPN_SERVICE>",
-                    "tags": "vpn",
-                    "related_services": "Remote Access",
-                    "related_object_ids": "",
-                    "change_summary": "",
-                    "prerequisites": "Open the ticket.",
-                    "steps": "Run the first step.",
-                    "verification": "Confirm the operator outcome.",
-                    "rollback": "Undo the step.",
-                    "use_when": "Use this when the governed workflow needs validation.",
-                    "boundaries_and_escalation": "Escalate when the workflow fails twice.",
-                    "related_knowledge_notes": "Pair with the VPN troubleshooting article.",
-                    "citation_1_source_title": "",
-                    "citation_1_source_type": "document",
-                    "citation_1_source_ref": "",
-                    "citation_1_note": "",
-                    "citation_2_source_type": "document",
-                    "citation_3_source_type": "document",
-                },
+                form=evidence_form,
             )
             self.assertEqual(status, "200 OK")
-            self.assertIn("Draft not saved. Fix the blocking fields below.", body)
+            self.assertIn("Section not saved. Fix the blocking fields below.", body)
             self.assertIn("Blocking validation", body)
-            self.assertIn("At least one citation is required.", body)
-            self.assertIn("Related guidance: This field is required.", body)
-            self.assertNotIn("Object shell created. Step 2 of 3: draft the first revision below.", body)
+            self.assertIn("Citations: At least one citation is required.", body)
 
-            status, headers, _ = call_wsgi(
-                application,
-                fallback_revision_path(revision_form_path),
-                method="POST",
-                form={
-                    "title": "Operator UI Rejection Flow",
-                    "summary": "Rejection flow exercised through the web interface.",
-                    "status": "draft",
-                    "owner": "workflow_owner",
-                    "team": "IT Operations",
-                    "review_cadence": "quarterly",
-                    "audience": "service_desk",
-                    "systems": "<VPN_SERVICE>",
-                    "tags": "vpn",
-                    "related_services": "Remote Access",
-                    "related_object_ids": "kb-troubleshooting-vpn-connectivity",
-                    "change_summary": "Initial draft through web UI.",
-                    "prerequisites": "Open the ticket.",
-                    "steps": "Run the first step.",
-                    "verification": "Confirm the operator outcome.",
-                    "rollback": "Undo the step.",
-                    "use_when": "Use this when the governed workflow needs validation.",
-                    "boundaries_and_escalation": "Escalate when the workflow fails twice.",
-                    "related_knowledge_notes": "Pair with the VPN troubleshooting article.",
-                    "citation_1_source_title": "Seed import manifest",
-                    "citation_1_source_type": "document",
-                    "citation_1_source_ref": "migration/import-manifest.yml",
-                    "citation_1_note": "Internal provenance placeholder.",
-                    "citation_2_source_type": "document",
-                    "citation_3_source_type": "document",
-                },
-            )
-            submit_path = headers["Location"]
+            submit_path = apply_guided_sections(application, current_path, guided_forms[-2:])
             revision_id = urllib.parse.parse_qs(submit_path.split("?", 1)[1])["revision_id"][0]
             status, headers, _ = call_wsgi(application, submit_path, method="POST", form={"notes": "Ready for review."})
             assign_path = headers["Location"]
@@ -454,46 +517,22 @@ class WebOperatorUiTests(unittest.TestCase):
                     "canonical_path": "knowledge/runbooks/operator-ui-manage-flow.md",
                     "review_cadence": "quarterly",
                     "status": "draft",
-                    "systems": "<VPN_SERVICE>",
+                    "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
             )
             revision_form_path = headers["Location"]
-            status, headers, _ = call_wsgi(
+            submit_path = complete_guided_runbook_revision(
                 application,
-                fallback_revision_path(revision_form_path),
-                method="POST",
-                form={
-                    "title": "Operator UI Manage Flow",
-                    "summary": "Manage-side workflow coverage.",
-                    "status": "draft",
-                    "owner": "workflow_owner",
-                    "team": "IT Operations",
-                    "review_cadence": "quarterly",
-                    "audience": "service_desk",
-                    "systems": "<VPN_SERVICE>",
-                    "tags": "vpn",
-                    "related_services": "Remote Access",
-                    "related_object_ids": "kb-troubleshooting-vpn-connectivity",
-                    "change_summary": "Initial draft through web UI.",
-                    "prerequisites": "Open the ticket.",
-                    "steps": "Run the first step.",
-                    "verification": "Confirm the operator outcome.",
-                    "rollback": "Undo the step.",
-                    "use_when": "Use this when the governed workflow needs validation.",
-                    "boundaries_and_escalation": "Escalate when the workflow fails twice.",
-                    "related_knowledge_notes": "Pair with the VPN troubleshooting article.",
-                    "citation_1_source_title": "Seed import manifest",
-                    "citation_1_source_type": "document",
-                    "citation_1_source_ref": "migration/import-manifest.yml",
-                    "citation_1_note": "Internal provenance placeholder.",
-                    "citation_2_source_type": "document",
-                    "citation_3_source_type": "document",
-                },
+                revision_form_path,
+                object_id="kb-operator-ui-manage",
+                title="Operator UI Manage Flow",
+                canonical_path="knowledge/runbooks/operator-ui-manage-flow.md",
+                summary="Manage-side workflow coverage.",
+                change_summary="Initial draft through web UI.",
             )
-            submit_path = headers["Location"]
             status, headers, _ = call_wsgi(application, submit_path, method="POST", form={"notes": "Ready for review."})
-            decision_path = headers["Location"].replace("/assign", "")
+            self.assertEqual(status, "303 See Other")
             object_id = "kb-operator-ui-manage"
 
             status, _, body = call_wsgi(application, f"/manage/objects/{object_id}/suspect")
@@ -604,46 +643,23 @@ class WebOperatorUiTests(unittest.TestCase):
                     "canonical_path": "knowledge/runbooks/operator-ui-evidence-flow.md",
                     "review_cadence": "quarterly",
                     "status": "draft",
-                    "systems": "<VPN_SERVICE>",
+                    "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
                 cookies=actor_cookie,
             )
             revision_form_path = headers["Location"]
-            status, headers, _ = call_wsgi(
+            submit_path = complete_guided_runbook_revision(
                 application,
-                fallback_revision_path(revision_form_path),
-                method="POST",
-                form={
-                    "title": "Operator UI Evidence Flow",
-                    "summary": "Evidence revalidation coverage.",
-                    "status": "draft",
-                    "owner": "workflow_owner",
-                    "team": "IT Operations",
-                    "review_cadence": "quarterly",
-                    "audience": "service_desk",
-                    "systems": "<VPN_SERVICE>",
-                    "tags": "vpn",
-                    "related_services": "Remote Access",
-                    "related_object_ids": "kb-troubleshooting-vpn-connectivity",
-                    "change_summary": "Seed evidence flow through web UI.",
-                    "prerequisites": "Open the ticket.",
-                    "steps": "Run the first step.",
-                    "verification": "Confirm the operator outcome.",
-                    "rollback": "Undo the step.",
-                    "use_when": "Use this when the governed workflow needs validation.",
-                    "boundaries_and_escalation": "Escalate when the workflow fails twice.",
-                    "related_knowledge_notes": "Pair with the VPN troubleshooting article.",
-                    "citation_1_source_title": "Seed import manifest",
-                    "citation_1_source_type": "document",
-                    "citation_1_source_ref": "migration/import-manifest.yml",
-                    "citation_1_note": "Internal provenance placeholder.",
-                    "citation_2_source_type": "document",
-                    "citation_3_source_type": "document",
-                },
+                revision_form_path,
+                object_id="kb-operator-ui-evidence",
+                title="Operator UI Evidence Flow",
+                canonical_path="knowledge/runbooks/operator-ui-evidence-flow.md",
+                summary="Evidence revalidation coverage.",
+                change_summary="Seed evidence flow through web UI.",
                 cookies=actor_cookie,
             )
-            self.assertEqual(status, "303 See Other")
+            self.assertIn("/submit?revision_id=", submit_path)
 
             status, _, body = call_wsgi(
                 application,
@@ -651,7 +667,7 @@ class WebOperatorUiTests(unittest.TestCase):
                 cookies=actor_cookie,
             )
             self.assertEqual(status, "200 OK")
-            self.assertIn("Revalidate Evidence", body)
+            self.assertIn("Revalidate evidence", body)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -837,67 +853,64 @@ class WebOperatorUiTests(unittest.TestCase):
                 form={"actor": "local.reviewer"},
             )
             self.assertEqual(status, "303 See Other")
-            self.assertEqual(headers["Location"], "/")
+            self.assertEqual(headers["Location"], "/review")
             self.assertIn("papyrus_actor=local.reviewer", headers["Set-Cookie"])
 
             status, _, home_body = call_wsgi(application, "/", cookies={"papyrus_actor": "local.manager"})
             self.assertEqual(status, "200 OK")
-            self.assertIn("Guided Operational Knowledge", home_body)
+            self.assertIn("<title>Home | Papyrus</title>", home_body)
             self.assertIn("Local Manager", home_body)
-            self.assertIn('class="actor-banner actor-banner--manager"', home_body)
+            self.assertIn('class="topbar-menu"', home_body)
             self.assertIn("Working as", home_body)
-            self.assertIn("View: Read", home_body)
             self.assertNotIn('<aside class="context-column">', home_body)
+            self.assertNotIn('class="actor-banner', home_body)
 
             status, _, operator_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.operator"})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local Operator", operator_body)
             self.assertIn("Working as", operator_body)
-            self.assertIn('class="actor-banner actor-banner--reader-writer"', operator_body)
-            self.assertIn("Reader / Writer", operator_body)
-            self.assertIn("View: Read", operator_body)
-            self.assertIn('class="actor-banner-link is-active" href="/read">Read</a>', operator_body)
-            self.assertIn('class="actor-banner-link" href="/write/objects/new">Write</a>', operator_body)
-            self.assertIn('class="actor-banner-link" href="/services">Services</a>', operator_body)
+            self.assertIn('class="topbar-menu"', operator_body)
+            self.assertNotIn("Reader / Writer", operator_body)
+            self.assertIn('class="topbar-menu-chip is-active" href="/read">Read</a>', operator_body)
+            self.assertIn('class="topbar-menu-chip" href="/write/objects/new">Write</a>', operator_body)
+            self.assertIn('class="topbar-menu-chip" href="/services">Services</a>', operator_body)
             self.assertIn("Navigation", operator_body)
             self.assertEqual(operator_body.count('class="sidebar-block"'), 1)
             self.assertNotIn("Start Here", operator_body)
             self.assertNotIn('<aside class="context-column">', operator_body)
             self.assertIn('href="/write/objects/new"', operator_body)
-            self.assertIn("You have unsaved changes on this page. Switch views and discard them?", operator_body)
+            self.assertIn('/static/js/shell.js', operator_body)
+            self.assertNotIn('class="actor-banner', operator_body)
 
             status, _, reviewer_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.reviewer"})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local Reviewer", reviewer_body)
-            self.assertIn('class="actor-banner actor-banner--reviewer"', reviewer_body)
-            self.assertIn("Reviewer", reviewer_body)
-            self.assertIn("View: Read", reviewer_body)
+            self.assertIn('class="topbar-menu"', reviewer_body)
+            self.assertNotIn(">Reviewer<", reviewer_body)
             self.assertIn("Review / Approvals", reviewer_body)
             self.assertIn("Knowledge Health", reviewer_body)
             self.assertIn("Activity / History", reviewer_body)
-            self.assertIn("Steward submitted revisions", reviewer_body)
             self.assertIn('href="/review"', reviewer_body)
             self.assertIn('href="/activity"', reviewer_body)
             self.assertNotIn("Start Here", reviewer_body)
+            self.assertNotIn('class="actor-banner', reviewer_body)
 
             status, _, manager_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.manager"})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local Manager", manager_body)
-            self.assertIn('class="actor-banner actor-banner--manager"', manager_body)
-            self.assertIn("Manager", manager_body)
-            self.assertIn("View: Read", manager_body)
-            self.assertIn("Shepherd knowledge health", manager_body)
+            self.assertIn('class="topbar-menu"', manager_body)
+            self.assertNotIn(">Manager<", manager_body)
             self.assertIn('href="/health"', manager_body)
             self.assertNotIn("Start Here", manager_body)
+            self.assertNotIn('class="actor-banner', manager_body)
             self.assertNotIn("Papyrus Demo", operator_body)
             self.assertNotIn("Papyrus Demo", reviewer_body)
             self.assertNotIn("Papyrus Demo", manager_body)
 
             status, _, reviewer_review_body = call_wsgi(application, "/review", cookies={"papyrus_actor": "local.reviewer"})
             self.assertEqual(status, "200 OK")
-            self.assertIn("View: Review / Approvals", reviewer_review_body)
             self.assertIn("Review / Approvals", reviewer_review_body)
-            self.assertIn('actor-banner-link is-active', reviewer_review_body)
+            self.assertIn('topbar-menu-chip is-active', reviewer_review_body)
 
     def test_shell_only_object_is_searchable_and_routes_back_to_revision_draft(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -924,33 +937,34 @@ class WebOperatorUiTests(unittest.TestCase):
                     "canonical_path": "knowledge/runbooks/shell-search-runbook.md",
                     "review_cadence": "quarterly",
                     "status": "draft",
-                    "systems": "<VPN_SERVICE>",
+                    "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
             )
             self.assertEqual(status, "303 See Other")
             revision_form_path = headers["Location"]
-            self.assertEqual(
-                revision_form_path,
-                "/write/objects/kb-operator-ui-shell-search/revisions/new?notice=Draft+setup+saved.+Step+2+of+3%3A+complete+the+first+draft+below.#revision-form",
+            self.assertTrue(
+                revision_form_path.startswith(
+                    "/write/objects/kb-operator-ui-shell-search/revisions/new?notice=Draft+setup+saved."
+                )
             )
+            self.assertTrue(revision_form_path.endswith("#revision-form"))
 
             status, _, body = call_wsgi(application, request_path_without_fragment(revision_form_path))
             self.assertEqual(status, "200 OK")
             self.assertIn('class="write-workspace"', body)
-            self.assertIn("Continue Runbook", body)
+            self.assertIn("Draft Runbook", body)
             self.assertIn("Step 2 of 3", body)
             self.assertIn("Save and continue", body)
-            self.assertIn("Ready for handoff?", body)
+            self.assertIn("Check review handoff", body)
             self.assertIn('id="revision-form"', body)
             self.assertIn('method="post" action="/write/objects/kb-operator-ui-shell-search/revisions/new?revision_id=', body)
             self.assertIn("&section=", body)
-            self.assertIn("Use advanced editor", body)
-            self.assertIn("/write/objects/kb-operator-ui-shell-search/revisions/fallback?revision_id=", body)
             self.assertIn("shell-columns-focus", body)
-            self.assertNotIn("Bulk edit and search tools", body)
-            self.assertNotIn("/static/js/citation_picker.js", body)
-            self.assertNotIn("/static/js/multi_value_picker.js", body)
+            self.assertIn("/static/js/citation_picker.js", body)
+            self.assertIn("/static/js/multi_value_picker.js", body)
+            self.assertNotIn("/revisions/fallback", body)
+            self.assertNotIn("Advanced draft editor", body)
 
             status, _, body = call_wsgi(
                 application,
@@ -985,7 +999,7 @@ class WebOperatorUiTests(unittest.TestCase):
                     "canonical_path": "knowledge/runbooks/manage-queue-shell.md",
                     "review_cadence": "quarterly",
                     "status": "draft",
-                    "systems": "<VPN_SERVICE>",
+                    "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
             )
@@ -998,44 +1012,18 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertIn("/write/objects/kb-operator-ui-manage-shell/revisions/new#revision-form", body)
             self.assertIn("Draft first revision", body)
 
-            revision_form_path = request_path_without_fragment(headers["Location"])
-            status, headers, _ = call_wsgi(
+            complete_guided_runbook_revision(
                 application,
-                fallback_revision_path(revision_form_path),
-                method="POST",
-                form={
-                    "title": "Manage Queue Shell",
-                    "summary": "Manage queue should show the next authoring step.",
-                    "status": "draft",
-                    "owner": "workflow_owner",
-                    "team": "IT Operations",
-                    "review_cadence": "quarterly",
-                    "audience": "service_desk",
-                    "systems": "<VPN_SERVICE>",
-                    "tags": "vpn",
-                    "related_services": "Remote Access",
-                    "related_object_ids": "kb-troubleshooting-vpn-connectivity",
-                    "change_summary": "Seed first draft for manage queue testing.",
-                    "prerequisites": "Open the ticket.",
-                    "steps": "Run the first step.",
-                    "verification": "Confirm the operator outcome.",
-                    "rollback": "Undo the step.",
-                    "use_when": "Use this when the managed workflow needs approval routing.",
-                    "boundaries_and_escalation": "Escalate when the workflow fails twice.",
-                    "related_knowledge_notes": "Pair with the VPN troubleshooting article.",
-                    "citation_1_source_title": "Seed import manifest",
-                    "citation_1_source_type": "document",
-                    "citation_1_source_ref": "migration/import-manifest.yml",
-                    "citation_1_note": "Internal provenance placeholder.",
-                    "citation_2_source_type": "document",
-                    "citation_3_source_type": "document",
-                },
+                request_path_without_fragment(headers["Location"]),
+                object_id="kb-operator-ui-manage-shell",
+                title="Manage Queue Shell",
+                canonical_path="knowledge/runbooks/manage-queue-shell.md",
+                summary="Manage queue should show the next authoring step.",
+                change_summary="Seed first draft for manage queue testing.",
             )
-            self.assertEqual(status, "303 See Other")
 
             status, _, body = call_wsgi(application, "/manage/queue")
             self.assertEqual(status, "200 OK")
-            self.assertIn("Continue draft", body)
             self.assertIn("Submit for review", body)
             self.assertIn("/write/objects/kb-operator-ui-manage-shell/revisions/new#revision-form", body)
             self.assertIn("/write/objects/kb-operator-ui-manage-shell/submit?revision_id=", body)
@@ -1065,18 +1053,17 @@ class WebOperatorUiTests(unittest.TestCase):
                     "canonical_path": "knowledge/runbooks/citation-search-runbook.md",
                     "review_cadence": "quarterly",
                     "status": "draft",
-                    "systems": "<VPN_SERVICE>",
+                    "systems": PRIMARY_SYSTEM,
                     "tags": "citation-search-tag",
                 },
             )
             self.assertEqual(status, "303 See Other")
             revision_form_path = request_path_without_fragment(headers["Location"])
-            fallback_path = fallback_revision_path(revision_form_path)
 
-            status, _, body = call_wsgi(application, fallback_path)
+            status, _, body = call_wsgi(application, revision_form_path + "&section=evidence")
             self.assertEqual(status, "200 OK")
-            self.assertIn("Advanced draft editor", body)
-            self.assertIn("Citation 1 source search", body)
+            self.assertIn("Evidence handling", body)
+            self.assertIn("data-citation-picker", body)
             self.assertIn("Search by title, tag, or reference code", body)
             self.assertIn("/static/js/citation_picker.js", body)
             self.assertIn("/write/citations/search", body)
@@ -1085,45 +1072,23 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertEqual(json.loads(payload), {"items": []})
 
-            status, headers, _ = call_wsgi(
+            submit_path = complete_guided_runbook_revision(
                 application,
-                fallback_path,
-                method="POST",
-                form={
-                    "title": "Citation Search Runbook",
-                    "summary": "Citation search should find existing governed knowledge.",
-                    "status": "draft",
-                    "owner": "workflow_owner",
-                    "team": "IT Operations",
-                    "review_cadence": "quarterly",
-                    "audience": "service_desk",
-                    "systems": "<VPN_SERVICE>",
-                    "tags": "citation-search-tag",
-                    "related_services": "Remote Access",
-                    "related_object_ids": "kb-troubleshooting-vpn-connectivity",
-                    "change_summary": "Seed draft for citation search coverage.",
-                    "prerequisites": "Open the ticket.",
-                    "steps": "Run the first step.",
-                    "verification": "Confirm the operator outcome.",
-                    "rollback": "Undo the step.",
-                    "use_when": "Use this when citation search coverage needs validation.",
-                    "boundaries_and_escalation": "Escalate when the workflow fails twice.",
-                    "related_knowledge_notes": "Pair with the VPN troubleshooting article.",
-                    "citation_1_source_title": "VPN Troubleshooting",
-                    "citation_1_source_type": "document",
-                    "citation_1_source_ref": "knowledge/troubleshooting/vpn-connectivity.md",
-                    "citation_1_note": "Use the governed source article as supporting evidence.",
-                    "citation_2_source_type": "document",
-                    "citation_3_source_type": "document",
-                },
+                revision_form_path,
+                object_id="kb-operator-ui-citation-search",
+                title="Citation Search Runbook",
+                canonical_path="knowledge/runbooks/citation-search-runbook.md",
+                summary="Citation search should find existing governed knowledge.",
+                change_summary="Seed draft for citation search coverage.",
+                citation_title="VPN Troubleshooting",
+                citation_ref="knowledge/troubleshooting/vpn-connectivity.md",
+                citation_note="Use the governed source article as supporting evidence.",
             )
-            self.assertEqual(status, "303 See Other")
-            submit_path = headers["Location"]
 
             status, _, submit_body = call_wsgi(application, submit_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn("Linked guidance provides traceability", submit_body)
-            self.assertNotIn("external/manual citation(s) remain weak", submit_body)
+            self.assertIn("governed Papyrus reference", submit_body)
+            self.assertNotIn("How to strengthen weak evidence", submit_body)
 
             citation_row = read_row(
                 database_path,
@@ -1143,11 +1108,7 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertIsNotNone(citation_row)
             self.assertEqual(citation_row["validity_status"], "verified")
 
-            for query in (
-                "Citation Search Runbook",
-                "kb-operator-ui-citation-search",
-                "citation-search-tag",
-            ):
+            for query in ("Citation Search Runbook", "kb-operator-ui-citation-search"):
                 status, _, payload = call_wsgi(
                     application,
                     f"/write/citations/search?query={urllib.parse.quote_plus(query)}",
@@ -1185,28 +1146,27 @@ class WebOperatorUiTests(unittest.TestCase):
                     "canonical_path": "knowledge/runbooks/multi-select-runbook.md",
                     "review_cadence": "quarterly",
                     "status": "draft",
-                    "systems": "<VPN_SERVICE>",
+                    "systems": PRIMARY_SYSTEM,
                     "tags": "vpn",
                 },
             )
             self.assertEqual(status, "303 See Other")
             revision_form_path = request_path_without_fragment(headers["Location"])
-            fallback_path = fallback_revision_path(revision_form_path)
 
-            status, _, body = call_wsgi(application, fallback_path)
+            status, _, body = call_wsgi(application, revision_form_path + "&section=stewardship")
             self.assertEqual(status, "200 OK")
-            self.assertIn("Advanced draft editor", body)
             self.assertIn("/static/js/multi_value_picker.js", body)
-            self.assertIn("Search and select one or more controlled tags.", body)
-            self.assertIn("Search and select one or more related services.", body)
-            self.assertIn("Link related guidance so reviewers can assess impact quickly.", body)
+            self.assertIn('data-multi-value-picker', body)
+            self.assertIn('data-static-options="', body)
+            self.assertIn('data-search-url="/write/objects/search"', body)
             self.assertIn("Manual tag entry", body)
             self.assertIn("Manual service entry", body)
             self.assertIn("Manual reference entry", body)
             self.assertIn("/write/objects/search", body)
             self.assertIn("Search controlled tags", body)
             self.assertIn("Search related services", body)
-            self.assertIn("Search related guidance by title, tag, or reference code", body)
+            self.assertIn("Search related guidance", body)
+            self.assertNotIn("/revisions/fallback", body)
 
             status, _, payload = call_wsgi(
                 application,

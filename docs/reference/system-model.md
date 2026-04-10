@@ -75,7 +75,7 @@ python3 scripts/operator_view.py events --db build/knowledge.db --format json
 - Start new authoring from a blueprint, not from a blank editor.
 - Route external documents through the import workbench before they become drafts.
 - In web mode, browser upload is the normal import path; browser-submitted local file reads require explicit local-operator opt-in, an absolute host path, and an allowlisted local read root.
-- Use guided section editing as the primary web authoring path. The bulk draft fallback remains retained technical debt because searchable citation and multi-select controls have not yet moved into shared guided components.
+- Use guided section editing as the primary web authoring path. Citation lookup and searchable multi-select controls now live inside the guided flow.
 - Do not reintroduce route-local policy checks, template-local acknowledgement rules, or page-local governed action availability logic.
 - Treat `build/ingestions/` and any demo source created under `build/` as disposable runtime artifacts, not repository source.
 - Use governed source sync rather than manual file sync when an approved runtime revision becomes canonical.

@@ -92,7 +92,7 @@ def _next_action_definitions(actor_id: str, *, counts: dict[str, int]) -> list[d
     return [
         {
             "title": "Use current guidance",
-            "detail": "Go straight to the best current answer.",
+            "detail": "Start from the best current answer.",
             "href": "/read",
             "label": "Read guidance",
             "count": counts["read_ready"],
@@ -110,6 +110,98 @@ def _next_action_definitions(actor_id: str, *, counts: dict[str, int]) -> list[d
             "href": "/health",
             "label": "Review risky guidance",
             "count": shared["revalidate"],
+        },
+    ]
+
+
+def _area_definitions(actor_id: str, *, counts: dict[str, int]) -> list[dict[str, str | int]]:
+    if actor_id == "local.reviewer":
+        return [
+            {
+                "title": "Review / Approvals",
+                "metric_label": "Queued decisions",
+                "metric_value": counts["review_required"],
+                "description": "Move the review queue first.",
+                "href": "/review",
+                "action_label": "Review queue",
+                "tone": "brand",
+            },
+            {
+                "title": "Knowledge Health",
+                "metric_label": "Needs follow-up",
+                "metric_value": counts["needs_attention"],
+                "description": "Check weak, stale, or suspect guidance.",
+                "href": "/health",
+                "action_label": "Review risky guidance",
+                "tone": "warning" if counts["needs_attention"] else "approved",
+            },
+            {
+                "title": "Activity / History",
+                "metric_label": "Recent events",
+                "metric_value": counts["recent_activity"],
+                "description": "Inspect recent consequences when a queue item is unclear.",
+                "href": "/activity",
+                "action_label": "Inspect activity",
+                "tone": "default",
+            },
+        ]
+    if actor_id == "local.manager":
+        return [
+            {
+                "title": "Knowledge Health",
+                "metric_label": "Needs follow-up",
+                "metric_value": counts["needs_attention"],
+                "description": "Triage the highest-risk guidance first.",
+                "href": "/health",
+                "action_label": "Review risky guidance",
+                "tone": "brand" if counts["needs_attention"] else "approved",
+            },
+            {
+                "title": "Review / Approvals",
+                "metric_label": "Queued decisions",
+                "metric_value": counts["review_required"],
+                "description": "Reduce review pressure before it stalls changes.",
+                "href": "/review",
+                "action_label": "Review queue",
+                "tone": "warning" if counts["review_required"] else "default",
+            },
+            {
+                "title": "Services",
+                "metric_label": "Services in scope",
+                "metric_value": counts["services"],
+                "description": "Start from service impact when intervention is unclear.",
+                "href": "/services",
+                "action_label": "Browse services",
+                "tone": "default",
+            },
+        ]
+    return [
+        {
+            "title": "Read",
+            "metric_label": "Guidance items",
+            "metric_value": counts["read_ready"],
+            "description": "Find the current answer fast.",
+            "href": "/read",
+            "action_label": "Read guidance",
+            "tone": "brand",
+        },
+        {
+            "title": "Write",
+            "metric_label": "Drafts or rework items",
+            "metric_value": counts["drafts"],
+            "description": "Create a draft or finish one in progress.",
+            "href": "/write/objects/new",
+            "action_label": "Start a draft",
+            "tone": "default",
+        },
+        {
+            "title": "Services",
+            "metric_label": "Services in scope",
+            "metric_value": counts["services"],
+            "description": "Start from the affected service when you need context first.",
+            "href": "/services",
+            "action_label": "Browse services",
+            "tone": "default",
         },
     ]
 
@@ -162,78 +254,40 @@ def present_home_page(
         [
             _area_card(
                 components,
-                eyebrow="Lifecycle",
-                title="Read",
-                metric_label="Guidance items",
-                metric_value=counts["read_ready"],
-                description="Read the best current guidance and its trust signals.",
-                href="/read",
-                action_label="Read guidance",
-                tone="brand",
-            ),
-            _area_card(
-                components,
-                eyebrow="Lifecycle",
-                title="Write",
-                metric_label="Drafts or rework items",
-                metric_value=counts["drafts"],
-                description="Create or finish a draft.",
-                href="/write/objects/new",
-                action_label="Start a draft",
-            ),
-            _area_card(
-                components,
-                eyebrow="Lifecycle",
-                title="Review / Approvals",
-                metric_label="Review items",
-                metric_value=counts["review_required"],
-                description="Review changes and make the next decision.",
-                href="/review",
-                action_label="Review queued changes",
-            ),
-            _area_card(
-                components,
-                eyebrow="Lifecycle",
-                title="Knowledge Health",
-                metric_label="Needs attention",
-                metric_value=counts["needs_attention"],
-                description="Prioritize stale, weak, or suspect guidance.",
-                href="/health",
-                action_label="Review risky guidance",
-                tone="warning" if counts["needs_attention"] else "approved",
-            ),
-            _area_card(
-                components,
-                eyebrow="Context",
-                title="Services",
-                metric_label="Services in scope",
-                metric_value=counts["services"],
-                description="Start from a service and move into the linked guidance.",
-                href="/services",
-                action_label="Browse services",
-            ),
-            _area_card(
-                components,
-                eyebrow="Context",
-                title="Activity / History",
-                metric_label="Recent events",
-                metric_value=counts["recent_activity"],
-                description="Trace recent changes and their follow-up.",
-                href="/activity",
-                action_label="Inspect activity",
-            ),
+                eyebrow="Route",
+                title=str(item["title"]),
+                metric_label=str(item["metric_label"]),
+                metric_value=item["metric_value"],
+                description=str(item["description"]),
+                href=str(item["href"]),
+                action_label=str(item["action_label"]),
+                tone=str(item["tone"]),
+            )
+            for item in _area_definitions(actor_id, counts=counts)
         ]
     )
     summary_html = components.trust_summary(
-        title="Needs attention now",
-        badges=[
-            components.badge(label="Review needed", value=counts["review_required"], tone="pending"),
-            components.badge(label="Needs revalidation", value=counts["needs_revalidation"], tone="warning"),
-            components.badge(label="Weak evidence", value=counts["weak_evidence"], tone="warning"),
-            components.badge(label="Stale", value=counts["stale"], tone="danger"),
-            components.badge(label="Activity", value=counts["recent_activity"], tone="brand"),
-        ],
-        summary="Use this as the short list for what needs attention now.",
+        title="Current pressure",
+        badges=(
+            [
+                components.badge(label="Review needed", value=counts["review_required"], tone="pending"),
+                components.badge(label="Needs revalidation", value=counts["needs_revalidation"], tone="warning"),
+                components.badge(label="Activity", value=counts["recent_activity"], tone="brand"),
+            ]
+            if actor_id == "local.reviewer"
+            else [
+                components.badge(label="Needs attention", value=counts["needs_attention"], tone="warning"),
+                components.badge(label="Review needed", value=counts["review_required"], tone="pending"),
+                components.badge(label="Services", value=counts["services"], tone="brand"),
+            ]
+            if actor_id == "local.manager"
+            else [
+                components.badge(label="Read ready", value=counts["read_ready"], tone="approved"),
+                components.badge(label="Drafts", value=counts["drafts"], tone="pending"),
+                components.badge(label="Needs revalidation", value=counts["needs_revalidation"], tone="warning"),
+            ]
+        ),
+        summary="Use the top row to choose the next governed action.",
     )
     activity_html = components.section_card(
         title="Recent activity",
@@ -251,10 +305,12 @@ def present_home_page(
     return {
         "page_template": "pages/home.html",
         "page_title": "Home",
-        "headline": "Guided Operational Knowledge",
-        "kicker": "Lifecycle",
-        "intro": "Read, draft, review, and revalidate guidance from one place.",
-        "active_nav": "read",
+        "page_header": {
+            "headline": "Home",
+            "show_actor_banner": True,
+            "show_actor_links": True,
+        },
+        "active_nav": "",
         "aside_html": "",
         "page_context": {
             "summary_html": summary_html,

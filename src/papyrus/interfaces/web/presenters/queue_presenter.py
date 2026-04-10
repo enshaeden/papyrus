@@ -162,7 +162,7 @@ def present_queue_page(
             components.badge(label="Needs review", value=len(grouped_items["review"]), tone="warning"),
             components.badge(label="Requires attention", value=len(grouped_items["attention"]), tone="danger"),
         ],
-        summary="Papyrus groups guidance by decision urgency so the next click is driven by risk, freshness, and approval state.",
+        summary="Choose the next click by urgency, not by raw state.",
     )
     filter_controls_html = (
         '<form class="filter-form" method="get" action="/read">'
@@ -224,9 +224,11 @@ def present_queue_page(
     return {
         "page_template": "pages/queue.html",
         "page_title": "Read Guidance",
-        "headline": "Read Operational Guidance",
-        "kicker": "Read",
-        "intro": "Find the right guidance and see the next step immediately.",
+        "page_header": {
+            "headline": "Read guidance",
+            "show_actor_banner": True,
+            "show_actor_links": True,
+        },
         "active_nav": "read",
         "aside_html": "",
         "page_context": {

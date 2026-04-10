@@ -31,13 +31,18 @@ This change does not rework repository schemas, canonical source layout, or the 
 - The shared shell renderer now consumes actor-scoped role configuration for:
   - role landing route
   - a single role-prioritized sidebar navigation section
-  - compact actor context in the page header
   - role switch target path
-- Active actor state is now rendered in the page header, not only the shell controls:
-  - every page includes a compact actor strip with the active actor name, role label, current view, and actor-specific quick links when the surface is not in focus mode
-  - the actor strip uses role-specific visual treatment so switching roles changes the page header immediately
-  - actor quick links are derived from actor shell configuration so the visible action set changes with role context
-- The shared shell supports a focus variant for active write work so authoring screens can hide both side rails by default.
+- The shared shell supports three variants:
+  - `normal` for navigation-first work with optional rails
+  - `focus` for active drafting with no shell rails
+  - `minimal` for one-step decision screens and explicit system/error pages
+- Page chrome is explicit, not implied:
+  - routes pass a `page_header` object when they need headline, kicker, intro, context, detail, actions, or actor context
+  - pages that do not ask for a header render no ceremonial header block
+- Active actor state is available in two shell layers:
+  - topbar selector for role switching
+  - optional compact actor banner when the surface explicitly asks for actor context
+- Actor quick links are derived from actor shell configuration so the visible action set changes with role context.
 - Surface actions now favor outcome-based labels rather than route names:
   - examples include `Read guidance`, `Review queue`, `Update guidance`, `Review service impact`, and `Create draft`
   - primary actions should describe the user result, not the destination URL
@@ -67,22 +72,24 @@ This change does not rework repository schemas, canonical source layout, or the 
 ## Shell Rules
 
 - The shell must default to the widest useful working area for the current surface.
+- Shell variants are explicit:
+  - use `normal` for navigation and browsing surfaces
+  - use `focus` for active write work
+  - use `minimal` for decision forms and system/error pages
 - The right rail is opt-in:
   - render it only when the surface has actionable contextual support
   - do not reserve space for empty or instructional-only sidebars
 - The left rail provides one ordered navigation model per actor.
 - Duplicate navigation groups are not allowed.
-- Page headers must stay short and operational:
-  - a clear title
-  - a short next-step intro
-  - compact actor context embedded in the same header block
+- Page headers are optional.
+- When a page renders a header, it must only include the elements the route explicitly asked for.
+- Actor summary text is opt-in, not default.
 
 ## Action Hierarchy Rules
 
 - Every surface needs one obvious primary action.
 - Primary actions must describe the outcome, not the route name.
 - Use labels such as `Start drafting`, `Create draft`, `Send for review`, and `Review import`.
-- Secondary actions can support alternate paths such as `Return to guided editing` or `Switch to bulk edit`.
 - Tertiary actions belong in disclosures, table row menus, or supporting panels rather than competing with the main task.
 
 ## Sidebar Usage Rules
@@ -114,13 +121,13 @@ This change does not rework repository schemas, canonical source layout, or the 
 - Actor changes must be visible without inference.
 - The active actor must always be identifiable from the shared shell:
   - topbar selector
-  - compact actor strip in the page header
-- The actor strip must show:
+- optional compact actor banner when a surface needs page-level actor context
+- The actor banner, when rendered, must show:
   - active actor name
   - role label
   - current view
   - actor-priority quick links on non-focus surfaces
-- Actor-specific action emphasis must change visibly by role, not only through subtle copy changes inside page content.
+- Actor-specific action emphasis must change by role through landing route, quick-link order, and dominant next actions, not only banner copy.
 
 ## Dependencies Introduced Or Modified
 
@@ -136,14 +143,16 @@ This change does not rework repository schemas, canonical source layout, or the 
 - Revision history is comparison-friendly, but it does not yet implement a true side-by-side diff view.
 - The interface is still intended for local or otherwise trusted operator environments; it does not introduce an authentication or CSRF layer.
 - Form structure is typed and guided. Guided section editing is the primary revision path.
-- The separate bulk draft fallback route is retained technical debt because it still carries the search-backed citation picker and searchable multi-select helpers that have not yet moved into shared guided components.
 - Weak-evidence warnings on write and submit screens now distinguish between linked guidance and external/manual evidence, and point operators to the manage-side evidence follow-up flow when stronger verification details are still required.
 
 ## Operational Notes
 
 - The old inline-rendering `src/papyrus/interfaces/web.py` implementation was removed.
 - The compatibility import path remains the same: `papyrus.interfaces.web`.
-- Changing the role selector in the topbar now switches immediately to the selected role's primary page instead of requiring a second submit button or keeping every role on the same queue view.
+- Changing the role selector in the topbar switches immediately to the selected role's landing page:
+  - Local Operator: `/`
+  - Local Reviewer: `/review`
+  - Local Manager: `/health`
 - If the current page contains unsaved governed form changes, the role switch asks for confirmation before discarding them.
 - Seeded runtime content is implicit in the local runtime and does not appear as a separate selectable role in the shell.
 - The shared shell keeps the underlying routes intact, but the visible navigation differs by role:
@@ -152,23 +161,23 @@ This change does not rework repository schemas, canonical source layout, or the 
   - Local Manager: trust dashboard, review oversight, audit, and validation
 - Read surfaces preserve queue, object detail, revision history, service detail, dashboard, and impact coverage while improving decision visibility.
 - Shell-only objects created through the write flow remain discoverable in `/queue` before their first revision exists. Queue hits for those shells route back into `/write/objects/{object_id}/revisions/new#revision-form`, and write screens keep the current stage visible through the progress sidebar during object creation, revision drafting, and review submission.
-- Write screens use the focus shell, one active editor at a time, a single progress sidebar, and inline or end-of-step validation instead of persistent governance rails.
+- Write screens use the focus shell for drafting and the minimal shell for one-step submission and decision screens.
 - Queue and health screens now replace wide status tables with grouped decision cards ordered by `Requires attention`, `Needs review`, and `Safe`.
 - Object detail now uses the same risk, freshness, and approval badges as queue and health surfaces, with lifecycle state moved into reference metadata.
 - Actor context now propagates through the shell in two places:
   - topbar selector for changing actor
-  - compact actor strip in the page header for immediate page-level state, current view, and role-priority actions
+  - optional compact actor banner in pages that need page-level role context
 - Duplicate left-rail navigation structures were removed. Each role now sees one ordered navigation block without a separate workflow-summary card competing for the same space.
 - Home, read queue, knowledge health, and services index no longer reserve a persistent right rail for instructional filler. Those surfaces use the reclaimed width for primary work content instead.
 - Repeated framing was reduced across home, read, write, import, review, health, and activity surfaces:
-  - page intros are now short action-oriented prompts instead of page-definition copy
+  - many pages now render only a title plus optional actor context rather than the old stacked header bundle
   - route-like labels such as `Open ...` were replaced with outcome language on primary actions
   - lifecycle and governance context stays visible through status panels, badges, and contracts rather than repeated explanatory prose
 - Decision-heavy tables were rebalanced to improve scanability:
   - low-value metadata moved into disclosures or compact meta rows
   - risk, trust, freshness, approval, and current action now appear before archival identifiers
   - fixed table layout plus overflow handling prevents long text from collapsing action columns
-- The guided revision route remains the primary write path. `/write/objects/{object_id}/revisions/fallback` is a retained transitional route for citation lookup and searchable multi-select controls, not a second place to define lifecycle or acknowledgement meaning.
+- Guided revision editing now owns citation lookup and searchable multi-select controls inside the primary authoring flow.
 - Invalid object-shell creation attempts now render a warning flash and blocking validation summary at the top of the page so missing or malformed required fields are visible without hunting through the full form.
 - Invalid revision saves now post back to the clean revision URL instead of preserving the original shell-created success notice, and the page renders a top-of-form blocking validation summary so operators can see why the draft was not saved.
 - Write and manage flows now use redirect-after-post patterns so operator actions are explicit and inspectable.
