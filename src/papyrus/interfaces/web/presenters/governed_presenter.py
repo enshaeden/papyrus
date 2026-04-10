@@ -533,29 +533,6 @@ def render_action_descriptor_panel(
         body_class="section-card-body governed-action-list",
     )
 
-
-def render_governed_action_panel(
-    components: ComponentPresenter,
-    *,
-    title: str,
-    ui_projection: dict[str, Any] | None,
-    object_id: str,
-    revision_id: str | None,
-    show_ctas: bool = True,
-) -> str:
-    return render_action_descriptor_panel(
-        components,
-        title=title,
-        actions=projection_actions(ui_projection),
-        href_resolver=lambda action: action_href(
-            action_id=str(action.get("action_id") or ""),
-            object_id=object_id,
-            revision_id=revision_id,
-        ),
-        show_ctas=show_ctas,
-    )
-
-
 def render_acknowledgement_panel(
     components: ComponentPresenter,
     forms: FormPresenter,

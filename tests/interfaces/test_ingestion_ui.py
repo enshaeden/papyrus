@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.interfaces.web import app as web_app
+from tests.web_assertions import SemanticHookAssertions
 
 
 def governed_ingest_path(temp_dir: str, filename: str) -> tuple[Path, Path]:
@@ -112,7 +113,7 @@ def call_wsgi_multipart(
     return str(status_holder["status"]), dict(status_holder["headers"]), response_body
 
 
-class IngestionUiTests(unittest.TestCase):
+class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
     def test_local_path_ingestion_is_disabled_by_default_in_web_mode(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
@@ -126,7 +127,7 @@ class IngestionUiTests(unittest.TestCase):
             self.assertNotIn('name="source_path"', body)
             self.assertIn("Local source file unavailable", body)
             self.assertIn("This session accepts uploaded files only.", body)
-            self.assertIn('data-component="surface-panel"', body)
+            self.assert_component(body, "surface-panel")
 
             status, _, body = call_wsgi(application, "/ingest", method="POST", form={"source_path": str(source_file)})
             self.assertEqual(status, "200 OK")
@@ -151,21 +152,21 @@ class IngestionUiTests(unittest.TestCase):
             status, _, body = call_wsgi(application, detail_path)
             self.assertEqual(status, "200 OK")
             self.assertIn("Import started. Review the mapping before creating the draft.", body)
-            self.assertIn('data-surface="workflow"', body)
-            self.assertIn('data-surface="actions"', body)
+            self.assert_surface(body, "workflow")
+            self.assert_surface(body, "actions")
             self.assertIn("Mapping has not been generated yet.", body)
-            self.assertIn('data-component="surface-panel"', body)
-            self.assertIn('data-action-id="review_ingestion_mapping"', body)
+            self.assert_component(body, "surface-panel")
+            self.assert_action_id(body, "review_ingestion_mapping")
             self.assertNotIn("#convert-to-draft-form", body)
 
             review_path = detail_path.split("?", 1)[0].rstrip("/") + "/review"
             status, _, review_body = call_wsgi(application, review_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn('data-surface="workflow"', review_body)
-            self.assertIn('data-surface="actions"', review_body)
+            self.assert_surface(review_body, "workflow")
+            self.assert_surface(review_body, "actions")
             self.assertIn("Mapping review", review_body)
             self.assertIn("Missing required sections", review_body)
-            self.assertIn('data-action-id="convert_ingestion_to_draft"', review_body)
+            self.assert_action_id(review_body, "convert_ingestion_to_draft")
             self.assertNotIn("<h2>Next action</h2>", review_body)
 
     def test_ingestion_entry_shows_inline_error_when_no_source_is_provided(self) -> None:
@@ -178,7 +179,7 @@ class IngestionUiTests(unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Import blockers", body)
             self.assertIn("Select a file upload before starting ingestion.", body)
-            self.assertIn('data-surface="ingest"', body)
+            self.assert_primary_surface(body, "ingest")
 
     def test_local_path_ingestion_requires_explicit_opt_in_and_absolute_existing_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -258,7 +259,7 @@ class IngestionUiTests(unittest.TestCase):
 
             status, _, body = call_wsgi(application, review_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn('data-component="table"', body)
+            self.assert_component(body, "table")
             self.assertIn("Mapping conflicts", body)
             self.assertIn("Matched passage", body)
             self.assertIn("blocked_duplicate_source_reuse", body)
@@ -282,7 +283,7 @@ class IngestionUiTests(unittest.TestCase):
             self.assertIn("unsafe-import.md", body)
             self.assertNotIn("..\\..\\unsafe-import.md", body)
             self.assertNotIn("..\\\\..\\\\unsafe-import.md", body)
-            self.assertIn('data-surface="ingest-detail"', body)
+            self.assert_primary_surface(body, "ingest-detail")
 
     def test_ingest_entry_rejects_mixed_upload_and_local_path_submission(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

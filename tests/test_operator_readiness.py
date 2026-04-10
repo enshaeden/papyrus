@@ -20,6 +20,7 @@ from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.interfaces.api import app as api_app
 from papyrus.interfaces.web import app as web_app
+from tests.web_assertions import SemanticHookAssertions
 
 
 def call_wsgi(
@@ -70,7 +71,7 @@ def run_script(*args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-class OperatorReadinessTests(unittest.TestCase):
+class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
     def test_operator_cli_queue_matches_api_payload(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
@@ -351,7 +352,7 @@ class OperatorReadinessTests(unittest.TestCase):
             self.assertEqual(api_status, "200 OK")
             web_status, _, body = call_wsgi(web_application, "/queue")
             self.assertEqual(web_status, "200 OK")
-            self.assertIn('data-surface="read-queue"', body)
+            self.assert_surface(body, "read-queue")
 
     def test_degraded_surfaces_return_actionable_runtime_unavailable_responses(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -365,7 +366,7 @@ class OperatorReadinessTests(unittest.TestCase):
 
             web_status, _, web_body = call_wsgi(web_app(missing_database_path), "/queue")
             self.assertEqual(web_status, "503 Service Unavailable")
-            self.assertIn('data-surface="system-error"', web_body)
+            self.assert_surface(web_body, "system-error")
             self.assertIn("build_index.py", web_body)
 
 

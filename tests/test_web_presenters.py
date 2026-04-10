@@ -20,12 +20,13 @@ from papyrus.interfaces.web.presenters.queue_presenter import present_queue_page
 from papyrus.interfaces.web.presenters.revision_presenter import present_revision_history
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.rendering import TemplateRenderer
+from tests.web_assertions import SemanticHookAssertions
 
 
 TEMPLATE_RENDERER = TemplateRenderer(ROOT / "src" / "papyrus" / "interfaces" / "web" / "templates")
 
 
-class WebPresenterTests(unittest.TestCase):
+class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_governed_panels_render_operator_message_and_acknowledgements(self) -> None:
         components = ComponentPresenter(TEMPLATE_RENDERER)
         forms = FormPresenter(TEMPLATE_RENDERER)
@@ -57,10 +58,10 @@ class WebPresenterTests(unittest.TestCase):
             operator_message="Review the archive acknowledgement before continuing.",
         )
 
-        self.assertIn('data-component="surface-panel"', action_html)
-        self.assertIn('data-surface="contract"', action_html)
+        self.assert_component(action_html, "surface-panel")
+        self.assert_surface(action_html, "contract")
         self.assertIn("Papyrus will move the canonical file under archive/knowledge", action_html)
-        self.assertIn('data-surface="acknowledgements"', acknowledgement_html)
+        self.assert_surface(acknowledgement_html, "acknowledgements")
         self.assertIn("Review the archive acknowledgement before continuing.", acknowledgement_html)
         self.assertIn("canonical path will move to archive", acknowledgement_html)
 
@@ -82,8 +83,8 @@ class WebPresenterTests(unittest.TestCase):
                 "reasons": ["Verification: This field is required."],
             },
         )
-        self.assertIn('data-component="surface-panel"', html)
-        self.assertIn('data-surface="workflow"', html)
+        self.assert_component(html, "surface-panel")
+        self.assert_surface(html, "workflow")
         self.assertIn("Continue guided authoring before routing this revision into review.", html)
         self.assertIn("References: 1 external/manual citation remains weak.", html)
         self.assertIn("Verification: This field is required.", html)
@@ -133,8 +134,8 @@ class WebPresenterTests(unittest.TestCase):
             },
         )
         self.assertIn("/manage/reviews/kb-review/kb-review-r1", page["page_context"]["primary_html"])
-        self.assertIn('data-component="decision-card"', page["page_context"]["primary_html"])
-        self.assertIn('data-action-id="open-primary-surface"', page["page_context"]["primary_html"])
+        self.assert_component(page["page_context"]["primary_html"], "decision-card")
+        self.assert_action_id(page["page_context"]["primary_html"], "open-primary-surface")
         self.assertIn("Review the decision.", page["page_context"]["primary_html"])
         self.assertIn("Review decision pending", page["page_context"]["primary_html"])
 
@@ -170,10 +171,10 @@ class WebPresenterTests(unittest.TestCase):
         )
         self.assertEqual(page["page_title"], "Read Guidance")
         self.assertEqual(page["aside_html"], "")
-        self.assertIn('data-component="filter-bar"', page["page_context"]["filter_bar_html"])
-        self.assertIn('data-component="summary-strip"', page["page_context"]["summary_html"])
-        self.assertIn('data-component="decision-card"', page["page_context"]["queue_html"])
-        self.assertIn('data-surface="read-queue"', page["page_context"]["queue_html"])
+        self.assert_component(page["page_context"]["filter_bar_html"], "filter-bar")
+        self.assert_component(page["page_context"]["summary_html"], "summary-strip")
+        self.assert_component(page["page_context"]["queue_html"], "decision-card")
+        self.assert_surface(page["page_context"]["queue_html"], "read-queue")
         self.assertIn(
             "Backend contract says this guidance is still in review.",
             page["page_context"]["queue_html"],
@@ -267,9 +268,9 @@ class WebPresenterTests(unittest.TestCase):
         self.assertIn("Recent audit trail", page["page_context"]["related_sections_html"])
         self.assertIn("Linked service context", page["page_context"]["content_sections_html"])
         self.assertNotIn("Current status", page["aside_html"])
-        self.assertIn('data-component="object-header"', page["page_context"]["header_html"])
-        self.assertIn('data-component="surface-panel"', page["page_context"]["content_sections_html"])
-        self.assertIn('data-action-id="mark_suspect"', page["page_context"]["content_sections_html"])
+        self.assert_component(page["page_context"]["header_html"], "object-header")
+        self.assert_component(page["page_context"]["content_sections_html"], "surface-panel")
+        self.assert_action_id(page["page_context"]["content_sections_html"], "mark_suspect")
         self.assertIn("The runtime contract marks this object safe for use.", page["page_context"]["content_sections_html"])
         self.assertIn("Risk", page["page_context"]["header_html"])
         self.assertIn("Freshness", page["page_context"]["header_html"])
@@ -389,7 +390,7 @@ class WebPresenterTests(unittest.TestCase):
         queue_html = page["page_context"]["queue_html"]
         self.assertIn("Projection summary wins", queue_html)
         self.assertIn("Follow the projection-backed next step.", queue_html)
-        self.assertIn('data-component="decision-card"', queue_html)
+        self.assert_component(queue_html, "decision-card")
         self.assertNotIn("Raw queue fallback should not render.", queue_html)
         self.assertNotIn("Safe to use now", queue_html)
 
@@ -450,8 +451,8 @@ class WebPresenterTests(unittest.TestCase):
                 "current_revision": {"revision_id": "kb-history-rev-1"},
             },
         )
-        self.assertEqual(page["aside_html"].count('data-action-id="mark_suspect"'), 1)
-        self.assertIn('data-surface="posture"', page["aside_html"])
+        self.assert_action_id_count(page["aside_html"], "mark_suspect", 1)
+        self.assert_surface(page["aside_html"], "posture")
 
 
 if __name__ == "__main__":

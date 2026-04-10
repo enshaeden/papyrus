@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.interfaces.web import app as web_app
+from tests.web_assertions import SemanticHookAssertions
 
 
 def call_wsgi(
@@ -255,7 +256,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
     }
 
 
-class WebOperatorUiTests(unittest.TestCase):
+class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
     def test_write_and_manage_approval_flow_updates_runtime_state(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
@@ -302,10 +303,12 @@ class WebOperatorUiTests(unittest.TestCase):
             revision_id = urllib.parse.parse_qs(submit_path.split("?", 1)[1])["revision_id"][0]
             status, _, submit_body = call_wsgi(application, submit_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn('data-surface="write"', submit_body)
-            self.assertIn('data-surface="write-submit"', submit_body)
-            self.assertIn('data-action-id="submit_for_review"', submit_body)
-            self.assertIn('data-action-id="request_evidence_revalidation"', submit_body)
+            self.assert_page_contract(
+                submit_body,
+                primary_surface="write",
+                action_ids=("submit_for_review", "request_evidence_revalidation"),
+            )
+            self.assert_surface(submit_body, "write-submit")
 
             status, headers, _ = call_wsgi(
                 application,
@@ -318,8 +321,7 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, assign_body = call_wsgi(application, assign_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn('data-surface="review"', assign_body)
-            self.assertIn('data-action-id="assign_reviewer"', assign_body)
+            self.assert_page_contract(assign_body, primary_surface="review", action_ids=("assign_reviewer",))
 
             status, headers, _ = call_wsgi(
                 application,
@@ -332,11 +334,13 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, decision_body = call_wsgi(application, decision_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn('data-surface="review"', decision_body)
-            self.assertIn('data-surface="review-decision"', decision_body)
-            self.assertIn('data-surface="contract"', decision_body)
-            self.assertIn('data-action-id="approve_revision"', decision_body)
-            self.assertIn('data-action-id="reject_revision"', decision_body)
+            self.assert_page_contract(
+                decision_body,
+                primary_surface="review",
+                action_ids=("approve_revision", "reject_revision"),
+            )
+            self.assert_surface(decision_body, "review-decision")
+            self.assert_surface(decision_body, "contract")
 
             status, headers, _ = call_wsgi(
                 application,
@@ -824,20 +828,20 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, object_body = call_wsgi(application, f"/objects/{created.object_id}")
             self.assertEqual(status, "200 OK")
-            self.assertEqual(object_body.count('data-surface="posture"'), 1)
-            self.assertEqual(object_body.count('data-component="action-cluster"'), 1)
+            self.assert_surface_count(object_body, "posture", 1)
+            self.assert_component_count(object_body, "action-cluster", 1)
 
             status, _, history_body = call_wsgi(application, f"/objects/{created.object_id}/revisions")
             self.assertEqual(status, "200 OK")
-            self.assertEqual(history_body.count('data-surface="posture"'), 1)
-            self.assertEqual(history_body.count('data-component="action-cluster"'), 1)
+            self.assert_surface_count(history_body, "posture", 1)
+            self.assert_component_count(history_body, "action-cluster", 1)
 
             status, _, review_body = call_wsgi(application, f"/manage/reviews/{created.object_id}/{revision.revision_id}")
             self.assertEqual(status, "200 OK")
-            self.assertEqual(review_body.count('data-surface="posture"'), 1)
-            self.assertEqual(review_body.count('data-component="action-cluster"'), 1)
-            self.assertEqual(review_body.count('data-surface="contract"'), 2)
-            self.assertEqual(review_body.count('data-surface="acknowledgements"'), 1)
+            self.assert_surface_count(review_body, "posture", 1)
+            self.assert_component_count(review_body, "action-cluster", 1)
+            self.assert_surface_count(review_body, "contract", 2)
+            self.assert_surface_count(review_body, "acknowledgements", 1)
 
     def test_role_selection_redirects_to_role_home_and_scopes_shell_navigation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

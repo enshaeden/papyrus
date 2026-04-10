@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.interfaces.api import app as api_app
 from papyrus.interfaces.web import app as web_app
+from tests.web_assertions import SemanticHookAssertions
 
 
 def call_wsgi(
@@ -64,7 +65,7 @@ def call_wsgi(
     return str(status_holder["status"]), dict(status_holder["headers"]), body
 
 
-class InterfaceSurfaceTests(unittest.TestCase):
+class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.temp_dir = tempfile.TemporaryDirectory()
@@ -158,59 +159,51 @@ class InterfaceSurfaceTests(unittest.TestCase):
         status, _, body = call_wsgi(application, "/")
         self.assertEqual(status, "200 OK")
         self.assertIn("<title>Home | Papyrus</title>", body)
-        self.assertIn('data-surface="home"', body)
+        self.assert_primary_surface(body, "home")
         self.assertNotIn('<aside class="context-column">', body)
 
         status, _, body = call_wsgi(application, "/queue")
         self.assertEqual(status, "200 OK")
         self.assertIn("<title>Read Guidance | Papyrus</title>", body)
-        self.assertIn('data-surface="read-queue"', body)
-        self.assertIn('data-action-id="open-primary-surface"', body)
+        self.assert_page_contract(body, primary_surface="read-queue", action_ids=("open-primary-surface",))
         self.assertNotIn('<aside class="context-column">', body)
 
         status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
         self.assertIn("VPN Troubleshooting", body)
-        self.assertIn('data-surface="object-detail"', body)
-        self.assertIn('data-component="surface-panel"', body)
+        self.assert_page_contract(body, primary_surface="object-detail", components=("surface-panel",))
         self.assertIn('<aside class="context-column">', body)
 
         status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity/revisions")
         self.assertEqual(status, "200 OK")
-        self.assertIn('data-surface="revision-history"', body)
-        self.assertIn('data-component="table"', body)
+        self.assert_page_contract(body, primary_surface="revision-history", components=("table",))
 
         status, _, body = call_wsgi(application, f"/services/{self.remote_access_service_id}")
         self.assertEqual(status, "200 OK")
-        self.assertIn('data-surface="services"', body)
+        self.assert_primary_surface(body, "services")
         self.assertIn("Remote Access", body)
 
         status, _, body = call_wsgi(application, "/dashboard/trust")
         self.assertEqual(status, "200 OK")
-        self.assertIn('data-surface="knowledge-health"', body)
-        self.assertIn('data-component="surface-panel"', body)
+        self.assert_page_contract(body, primary_surface="knowledge-health", components=("surface-panel",))
         self.assertIn('data-variant="cleanup"', body)
 
         status, _, body = call_wsgi(application, "/services")
         self.assertEqual(status, "200 OK")
-        self.assertIn('data-surface="services"', body)
-        self.assertIn('data-component="decision-card"', body)
+        self.assert_page_contract(body, primary_surface="services", components=("decision-card",))
         self.assertNotIn('<aside class="context-column">', body)
 
         status, _, body = call_wsgi(application, "/manage/queue")
         self.assertEqual(status, "200 OK")
-        self.assertIn('data-surface="review"', body)
-        self.assertIn('data-component="summary-strip"', body)
+        self.assert_page_contract(body, primary_surface="review", components=("summary-strip",))
 
         status, _, body = call_wsgi(application, "/manage/audit")
         self.assertEqual(status, "200 OK")
-        self.assertIn('data-surface="activity"', body)
-        self.assertIn('data-component="table"', body)
+        self.assert_page_contract(body, primary_surface="activity", components=("table",))
 
         status, _, body = call_wsgi(application, "/impact/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
-        self.assertIn('data-surface="impact-object"', body)
-        self.assertIn('data-component="surface-panel"', body)
+        self.assert_page_contract(body, primary_surface="impact-object", components=("surface-panel",))
 
     def test_static_theme_assets_expose_governed_brand_tokens(self) -> None:
         application = web_app(self.database_path)
@@ -232,14 +225,14 @@ class InterfaceSurfaceTests(unittest.TestCase):
 
         status, _, body = call_wsgi(application, "/not-a-real-route")
         self.assertEqual(status, "404 Not Found")
-        self.assertIn('data-surface="system-error"', body)
+        self.assert_primary_surface(body, "system-error")
         self.assertIn("shell-columns-minimal", body)
         self.assertNotIn("actor-banner", body)
         self.assertNotIn("page-kicker", body)
 
         status, _, body = call_wsgi(application, "/queue", method="POST", form={"query": "vpn"})
         self.assertEqual(status, "405 Method Not Allowed")
-        self.assertIn('data-surface="system-error"', body)
+        self.assert_primary_surface(body, "system-error")
         self.assertIn("shell-columns-minimal", body)
         self.assertNotIn("actor-banner", body)
         self.assertNotIn("page-intro", body)

@@ -25,6 +25,7 @@ from papyrus.interfaces.web import app as web_app
 from papyrus.interfaces.web.presenters.governed_presenter import action_href
 from papyrus.infrastructure.transactional_mutation import TransactionalMutation
 from papyrus.application.writeback_flow import restore_last_writeback
+from tests.web_assertions import SemanticHookAssertions
 
 
 def humanize_token(token: str) -> str:
@@ -241,7 +242,7 @@ def read_archive_truth(database_path: Path, *, object_id: str, source_root: Path
     }
 
 
-class SurfaceConformanceTests(unittest.TestCase):
+class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
     def _seed_pending_mutation(self, temp_dir: str) -> tuple[Path, Path, Path]:
         database_path = Path(temp_dir) / "runtime.db"
         source_root = Path(temp_dir) / "repo"
@@ -815,18 +816,18 @@ class SurfaceConformanceTests(unittest.TestCase):
                 object_id=object_id,
             )
             self.assertEqual(cli_payload["ui_projection"], api_payload["ui_projection"])
-            self.assertIn('data-surface="posture"', web_body)
-            self.assertIn('data-component="action-cluster"', web_body)
+            self.assert_page_contract(web_body, primary_surface="object-detail", components=("action-cluster",))
+            self.assert_surface(web_body, "posture")
             for action in cli_payload["ui_projection"]["actions"]:
                 if str(action.get("availability") or "") != "allowed":
                     continue
                 action_id = str(action.get("action_id") or "")
                 if action_href(action_id=action_id, object_id=object_id, revision_id=revision_id) is None:
                     continue
-                self.assertIn(f'data-action-id="{action_id}"', web_body)
+                self.assert_action_id(web_body, action_id)
             self.assertIn(cli_payload["ui_projection"]["use_guidance"]["summary"], web_body)
             self.assertIn(cli_payload["ui_projection"]["use_guidance"]["detail"], web_body)
-            self.assertEqual(web_body.count('data-component="action-cluster"'), 1)
+            self.assert_component_count(web_body, "action-cluster", 1)
 
     def test_archive_contract_and_acknowledgement_copy_match_across_cli_api_and_web(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -957,5 +958,5 @@ class SurfaceConformanceTests(unittest.TestCase):
                 cli_payload["ui_projection"]["state"]["object_lifecycle_state"],
                 "archived",
             )
-            self.assertIn('data-surface="object-detail"', web_body)
+            self.assert_primary_surface(web_body, "object-detail")
             self.assertIn("archived", web_body)
