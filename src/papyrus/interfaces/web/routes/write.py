@@ -362,6 +362,15 @@ def _multi_value_picker_control_html(
 
 
 def _revision_error_label(field_name: str) -> str:
+    explicit_labels = {
+        "object_id": "Reference code",
+        "canonical_path": "Publishing location",
+        "status": "Status",
+        "change_summary": "What changed",
+        "related_object_ids": "Related guidance",
+    }
+    if field_name in explicit_labels:
+        return explicit_labels[field_name]
     label = field_name.replace("_", " ")
     label = label.replace(" id", " ID")
     label = label.replace(" ids", " IDs")

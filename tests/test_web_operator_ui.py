@@ -196,7 +196,7 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertIn("Step 3 of 3", submit_body)
             self.assertIn("Pre-submit validation", submit_body)
             self.assertIn("external/manual citation(s) remain weak", submit_body)
-            self.assertIn("write form only records title, reference, and note", submit_body)
+            self.assertIn("can record a manual source title, reference, and note for external/manual evidence", submit_body)
             self.assertIn("How to strengthen weak evidence", submit_body)
             self.assertIn("does not record capture time, integrity hash, expiry metadata, or evidence snapshots directly", submit_body)
             self.assertIn("/manage/objects/kb-operator-ui-approve/evidence/revalidate", submit_body)
@@ -297,10 +297,10 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Object shell not created. Fix the blocking fields below.", body)
             self.assertIn("Blocking validation", body)
-            self.assertIn("Object ID: Object ID must match kb-slug format.", body)
+            self.assertIn("Reference code: Reference code must use the kb-slug format.", body)
             self.assertIn("Title: Title is required.", body)
-            self.assertIn("Object ID must match kb-slug format.", body)
-            self.assertIn("Canonical path must stay under knowledge/", body)
+            self.assertIn("Reference code must use the kb-slug format.", body)
+            self.assertIn("Publishing location must stay under knowledge/", body)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -358,7 +358,7 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertIn("Draft not saved. Fix the blocking fields below.", body)
             self.assertIn("Blocking validation", body)
             self.assertIn("At least one citation is required.", body)
-            self.assertIn("Related object IDs: This field is required.", body)
+            self.assertIn("Related guidance: This field is required.", body)
             self.assertNotIn("Object shell created. Step 2 of 3: draft the first revision below.", body)
 
             status, headers, _ = call_wsgi(
