@@ -11,6 +11,23 @@ from papyrus.interfaces.web.view_helpers import escape, join_html, render_defini
 class ComponentPresenter:
     renderer: TemplateRenderer
 
+    def _list_panel(
+        self,
+        *,
+        title: str,
+        eyebrow: str,
+        items: list[str],
+        empty_label: str,
+        tone: str = "default",
+    ) -> str:
+        body_html = render_list(items, css_class="panel-list") or f'<p class="empty-state-copy">{escape(empty_label)}</p>'
+        return self.section_card(
+            title=title,
+            eyebrow=eyebrow,
+            body_html=body_html,
+            tone=tone,
+        )
+
     def section_card(
         self,
         *,
@@ -61,33 +78,29 @@ class ComponentPresenter:
         )
 
     def citations_panel(self, *, title: str, items: list[str], empty_label: str) -> str:
-        body_html = render_list(items, css_class="panel-list") or f'<p class="empty-state-copy">{escape(empty_label)}</p>'
-        return self.renderer.render(
-            "partials/citations_panel.html",
-            {
-                "title": escape(title),
-                "items_html": body_html,
-            },
+        return self._list_panel(
+            title=title,
+            eyebrow="Evidence",
+            items=items,
+            empty_label=empty_label,
+            tone="context",
         )
 
     def relationships_panel(self, *, title: str, items: list[str], empty_label: str) -> str:
-        body_html = render_list(items, css_class="panel-list") or f'<p class="empty-state-copy">{escape(empty_label)}</p>'
-        return self.renderer.render(
-            "partials/relationships_panel.html",
-            {
-                "title": escape(title),
-                "items_html": body_html,
-            },
+        return self._list_panel(
+            title=title,
+            eyebrow="Relationships",
+            items=items,
+            empty_label=empty_label,
         )
 
     def audit_panel(self, *, title: str, items: list[str], empty_label: str) -> str:
-        body_html = render_list(items, css_class="panel-list") or f'<p class="empty-state-copy">{escape(empty_label)}</p>'
-        return self.renderer.render(
-            "partials/audit_panel.html",
-            {
-                "title": escape(title),
-                "items_html": body_html,
-            },
+        return self._list_panel(
+            title=title,
+            eyebrow="Audit",
+            items=items,
+            empty_label=empty_label,
+            tone="context",
         )
 
     def queue_table(self, *, headers: list[str], rows: list[list[str]], table_id: str) -> str:
