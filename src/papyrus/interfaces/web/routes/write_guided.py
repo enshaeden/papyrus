@@ -180,14 +180,18 @@ def register(router, runtime) -> None:
                     runtime.page_renderer.render_page(
                         page_template="pages/write_revision_edit.html",
                         page_title=f"Draft {section.display_name}",
-                        page_header={"headline": f"Draft {blueprint.display_name}"},
+                        page_header={
+                            "headline": f"Draft {blueprint.display_name}",
+                            "show_actor_banner": True,
+                            "show_actor_links": True,
+                        },
                         active_nav="write",
                         flash_html=page_flash_html,
                         actor_id=actor_id,
                         current_path=request.path,
                         aside_html="",
                         scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
-                        shell_variant="focus",
+                        shell_variant="normal",
                         page_context=page_context,
                     )
                 )
@@ -223,14 +227,18 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/write_revision_edit.html",
                 page_title=f"Draft {blueprint.display_name}",
-                page_header={"headline": f"Draft {blueprint.display_name}"},
+                page_header={
+                    "headline": f"Draft {blueprint.display_name}",
+                    "show_actor_banner": True,
+                    "show_actor_links": True,
+                },
                 active_nav="write",
                 flash_html=page_flash_html,
                 actor_id=actor_id,
                 current_path=request.path,
                 aside_html="",
                 scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
-                shell_variant="focus",
+                shell_variant="normal",
                 page_context=page_context,
             )
         )

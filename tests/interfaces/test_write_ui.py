@@ -51,6 +51,19 @@ def request_path_without_fragment(path: str) -> str:
 
 
 class WriteUiTests(unittest.TestCase):
+    def test_write_entry_page_keeps_shared_shell_navigation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+
+            status, _, body = call_wsgi(application, "/write/objects/new")
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Start draft", body)
+            self.assertIn('class="sidebar"', body)
+            self.assertIn('class="topbar-menu"', body)
+            self.assertIn('class="topbar-menu-chip is-active" href="/write/objects/new">Write</a>', body)
+
     def test_policy_revision_page_shows_guided_policy_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
@@ -174,7 +187,10 @@ class WriteUiTests(unittest.TestCase):
             status, _, guided_body = call_wsgi(application, guided_path)
             self.assertEqual(status, "200 OK")
             self.assertIn("Save and continue", guided_body)
-            self.assertIn("shell-columns-focus", guided_body)
+            self.assertIn('class="sidebar"', guided_body)
+            self.assertIn('class="topbar-menu"', guided_body)
+            self.assertIn('class="topbar-menu-chip is-active" href="/write/objects/new">Write</a>', guided_body)
+            self.assertNotIn("shell-columns-focus", guided_body)
             self.assertIn("/static/js/citation_picker.js", guided_body)
             self.assertIn("/static/js/multi_value_picker.js", guided_body)
             self.assertNotIn("/revisions/fallback", guided_body)

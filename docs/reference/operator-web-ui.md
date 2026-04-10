@@ -167,7 +167,7 @@ This change does not rework repository schemas, canonical source layout, or the 
   - Local Manager: trust dashboard, review oversight, audit, and validation
 - Read surfaces preserve queue, object detail, revision history, service detail, dashboard, and impact coverage while improving decision visibility.
 - Shell-only objects created through the write flow remain discoverable in `/queue` before their first revision exists. Queue hits for those shells route back into `/write/objects/{object_id}/revisions/new#revision-form`, and write screens keep the current stage visible through the progress sidebar during object creation, revision drafting, and review submission.
-- Write screens use the focus shell for drafting and the minimal shell for one-step submission and decision screens.
+- Write object setup and guided drafting stay in the shared shell, while the one-step submission and decision screens use the minimal shell.
 - Queue and health screens now replace wide status tables with grouped decision cards ordered by `Requires attention`, `Needs review`, and `Safe`.
 - Object detail now uses the same risk, freshness, and approval badges as queue and health surfaces, with lifecycle state moved into reference metadata.
 - Actor context now propagates through the shell in two places:

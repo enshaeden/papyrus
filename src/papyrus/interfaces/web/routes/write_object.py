@@ -41,13 +41,17 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/write_object_new.html",
                 page_title="Start draft",
-                page_header={"headline": "Start draft"},
+                page_header={
+                    "headline": "Start draft",
+                    "show_actor_banner": True,
+                    "show_actor_links": True,
+                },
                 active_nav="write",
                 flash_html=page_flash_html,
                 actor_id=actor_for_request(request),
                 current_path=request.path,
                 aside_html="",
-                shell_variant="focus",
+                shell_variant="normal",
                 page_context=page_context,
             )
         )
