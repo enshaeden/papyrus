@@ -34,7 +34,6 @@ def _dashboard_next_action(item: dict[str, Any]) -> str:
         or "Papyrus did not return a next action for this queue item."
     )
 
-
 def _dashboard_state(item: dict[str, Any]) -> dict[str, str]:
     state = projection_state(item.get("ui_projection"))
     return {
@@ -108,8 +107,6 @@ def _validation_run_bucket(status: str) -> str:
     if normalized in {"warning", "degraded"}:
         return "review"
     return "attention"
-
-
 def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, Any]) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     summary_cards_html = join_html(
@@ -200,7 +197,7 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
         "page_title": "Knowledge Health",
         "headline": "Knowledge Health",
         "kicker": "Health",
-        "intro": "Track what needs review, revalidation, or evidence follow-up so governance supports operational usefulness instead of eclipsing it.",
+        "intro": "See what needs review or revalidation next.",
         "active_nav": "health",
         "aside_html": "",
         "page_context": {

@@ -406,7 +406,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         "page_title": item["title"],
         "headline": item["title"],
         "kicker": "Use",
-        "intro": "Use the current guidance with visible safety, freshness, service context, and change history before you act.",
+        "intro": "Use the current guidance with safety, evidence, and recent change visible.",
         "active_nav": "read",
         "aside_html": aside_html,
         "page_context": {

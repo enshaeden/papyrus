@@ -30,10 +30,24 @@ This change does not rework repository schemas, canonical source layout, or the 
 - Templates and routes should not derive governed action availability or acknowledgement rules from raw state fields.
 - The shared shell renderer now consumes actor-scoped role configuration for:
   - role landing route
-  - deduplicated navigation
-  - persistent actor indicator near the page title
+  - a single role-prioritized sidebar navigation section
+  - workflow summary and actor banner context
   - role switch target path
+- Active actor state is now rendered in the main content area, not only the sidebar:
+  - every page includes an actor banner with the active actor name, role label, current view, and actor-specific priority actions
+  - the actor banner uses role-specific visual treatment so switching roles changes the page header immediately
+  - actor priority actions are derived from actor shell configuration so the visible action set changes with role context
 - The shared shell supports a focus variant for active write work so authoring screens can hide both side rails by default.
+- Surface actions now favor outcome-based labels rather than route names:
+  - examples include `Read guidance`, `Review queue`, `Update guidance`, `Review service impact`, and `Create draft`
+  - primary actions should describe the user result, not the destination URL
+- Dense data views now use decision-oriented cells instead of raw export-style rows:
+  - the shared presenter layer provides decision cells with a primary fact, status badges, compact supporting text, and optional progressive disclosure
+  - read, review, health, services, activity, and revision-history tables now keep the next action and risk posture in the first scan line
+  - long secondary metadata remains available through disclosure instead of occupying primary columns
+- The shared shell now treats the right rail as conditional layout, not permanent chrome:
+  - pages that pass actionable contextual content still render the right rail
+  - pages that do not pass meaningful aside content render as a two-column shell with no empty rail
 - Templates live under `src/papyrus/interfaces/web/templates/` and are organized into:
   - shared shell layout
   - reusable partial components
@@ -50,6 +64,65 @@ This change does not rework repository schemas, canonical source layout, or the 
   - secondary buttons, selected rows, metadata and citation panels, and grouped picker states use contextual tokens while keeping most surfaces neutral
 - Minimal progressive enhancement lives in `src/papyrus/interfaces/web/static/js/` for search filtering, disclosure hooks, and path/id suggestions in forms.
 
+## Shell Rules
+
+- The shell must default to the widest useful working area for the current surface.
+- The right rail is opt-in:
+  - render it only when the surface has actionable contextual support
+  - do not reserve space for empty or instructional-only sidebars
+- The left rail provides one ordered navigation model per actor.
+- Duplicate navigation groups are not allowed.
+- Page headers must stay short and operational:
+  - a clear title
+  - a short next-step intro
+  - actor context from the shared banner
+
+## Action Hierarchy Rules
+
+- Every surface needs one obvious primary action.
+- Primary actions must describe the outcome, not the route name.
+- Use labels such as `Start drafting`, `Create draft`, `Send for review`, and `Review import`.
+- Secondary actions can support alternate paths such as `Return to guided editing` or `Switch to bulk edit`.
+- Tertiary actions belong in disclosures, table row menus, or supporting panels rather than competing with the main task.
+
+## Sidebar Usage Rules
+
+- Sidebars exist to support action, not to explain the product.
+- A sidebar is valid only when it adds one of:
+  - governed status or contract needed for the current decision
+  - an immediate supporting action
+  - compact contextual metadata that would otherwise interrupt the main flow
+- Do not use sidebars for repeated lifecycle teaching, page-definition copy, or empty placeholders.
+
+## Copy Standards
+
+- Use one concise, operational voice across the UI.
+- Assume the user is capable and focused on getting work done.
+- Prefer sequential guidance:
+  - what to do now
+  - what the system needs next
+  - what happens after submission
+- Avoid backend-facing labels in visible UI:
+  - use `Reference code` instead of `Object ID`
+  - use `Publishing location` instead of `Canonical path`
+  - use `Related guidance` instead of `Related object IDs`
+- Avoid internal implementation language such as control-plane terms, server topology, or framework boundaries unless it is truly required for a decision.
+- Remove demo-looking placeholders and angle-bracket tokens from visible UI text.
+
+## Actor-State Rules
+
+- Actor changes must be visible without inference.
+- The active actor must always be identifiable from the shared shell:
+  - topbar selector
+  - sidebar role card
+  - actor banner in the main column
+- The actor banner must show:
+  - active actor name
+  - role label
+  - current view
+  - actor-priority actions
+- Actor-specific action emphasis must change visibly by role, not only through subtle copy changes inside page content.
+
 ## Dependencies Introduced Or Modified
 
 - No new third-party Python dependencies were introduced.
@@ -65,7 +138,7 @@ This change does not rework repository schemas, canonical source layout, or the 
 - The interface is still intended for local or otherwise trusted operator environments; it does not introduce an authentication or CSRF layer.
 - Form structure is typed and guided. Guided section editing is the primary revision path.
 - The separate bulk draft fallback route is retained technical debt because it still carries the search-backed citation picker and searchable multi-select helpers that have not yet moved into shared guided components.
-- Weak-evidence warnings on write and submit screens now distinguish between governed local Papyrus references and external/manual evidence, and point operators to the manage-side evidence follow-up flow when capture metadata is still required.
+- Weak-evidence warnings on write and submit screens now distinguish between linked guidance and external/manual evidence, and point operators to the manage-side evidence follow-up flow when stronger verification details are still required.
 
 ## Operational Notes
 
@@ -83,6 +156,20 @@ This change does not rework repository schemas, canonical source layout, or the 
 - Write screens use the focus shell, one active editor at a time, a single progress sidebar, and inline or end-of-step validation instead of persistent governance rails.
 - Queue and health screens now replace wide status tables with grouped decision cards ordered by `Requires attention`, `Needs review`, and `Safe`.
 - Object detail now uses the same risk, freshness, and approval badges as queue and health surfaces, with lifecycle state moved into reference metadata.
+- Actor context now propagates through the shell in three places:
+  - topbar selector for changing actor
+  - sidebar role card for persistent role identity
+  - actor banner in the main column for immediate page-level state, current view, and role-priority actions
+- Duplicate left-rail navigation structures were removed. Each role now sees one ordered navigation block rather than both `Lifecycle` and `Start Here` lists competing for the same destinations.
+- Home, read queue, knowledge health, and services index no longer reserve a persistent right rail for instructional filler. Those surfaces use the reclaimed width for primary work content instead.
+- Repeated framing was reduced across home, read, write, import, review, health, and activity surfaces:
+  - page intros are now short action-oriented prompts instead of page-definition copy
+  - route-like labels such as `Open ...` were replaced with outcome language on primary actions
+  - lifecycle and governance context stays visible through status panels, badges, and contracts rather than repeated explanatory prose
+- Decision-heavy tables were rebalanced to improve scanability:
+  - low-value metadata moved into disclosures or compact meta rows
+  - risk, trust, freshness, approval, and current action now appear before archival identifiers
+  - fixed table layout plus overflow handling prevents long text from collapsing action columns
 - The guided revision route remains the primary write path. `/write/objects/{object_id}/revisions/fallback` is a retained transitional route for citation lookup and searchable multi-select controls, not a second place to define lifecycle or acknowledgement meaning.
 - Invalid object-shell creation attempts now render a warning flash and blocking validation summary at the top of the page so missing or malformed required fields are visible without hunting through the full form.
 - Invalid revision saves now post back to the clean revision URL instead of preserving the original shell-created success notice, and the page renders a top-of-form blocking validation summary so operators can see why the draft was not saved.

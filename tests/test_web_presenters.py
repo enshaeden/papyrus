@@ -114,7 +114,7 @@ class WebPresenterTests(unittest.TestCase):
                             "use_guidance": {
                                 "summary": "Review decision pending",
                                 "detail": "Papyrus requires a review decision before use.",
-                                "next_action": "Open the review decision.",
+                                "next_action": "Review the decision.",
                                 "safe_to_use": False,
                             },
                             "actions": [
@@ -130,7 +130,8 @@ class WebPresenterTests(unittest.TestCase):
             },
         )
         self.assertIn("/manage/reviews/kb-review/kb-review-r1", page["page_context"]["primary_html"])
-        self.assertIn("Open the review decision.", page["page_context"]["primary_html"])
+        self.assertIn("Review the decision.", page["page_context"]["primary_html"])
+        self.assertIn("Review decision", page["page_context"]["primary_html"])
         self.assertIn("Review decision pending", page["page_context"]["primary_html"])
 
     def test_queue_presenter_keeps_trust_and_filters_visible(self) -> None:

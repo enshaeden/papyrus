@@ -195,10 +195,10 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Step 3 of 3", submit_body)
             self.assertIn("Pre-submit validation", submit_body)
-            self.assertIn("external/manual citation(s) remain weak", submit_body)
-            self.assertIn("can record a manual source title, reference, and note for external/manual evidence", submit_body)
+            self.assertIn("external/manual citation(s) still need evidence follow-up", submit_body)
+            self.assertIn("Use this form to link existing guidance or record a source title, reference, and note.", submit_body)
             self.assertIn("How to strengthen weak evidence", submit_body)
-            self.assertIn("does not record capture time, integrity hash, expiry metadata, or evidence snapshots directly", submit_body)
+            self.assertIn("capture time, integrity details, and any needed snapshot", submit_body)
             self.assertIn("/manage/objects/kb-operator-ui-approve/evidence/revalidate", submit_body)
             self.assertIn("Request evidence revalidation", submit_body)
 
@@ -295,7 +295,7 @@ class WebOperatorUiTests(unittest.TestCase):
                 },
             )
             self.assertEqual(status, "200 OK")
-            self.assertIn("Object shell not created. Fix the blocking fields below.", body)
+            self.assertIn("Draft setup not saved. Fix the blocking fields below.", body)
             self.assertIn("Blocking validation", body)
             self.assertIn("Reference code: Reference code must use the kb-slug format.", body)
             self.assertIn("Title: Title is required.", body)
@@ -844,31 +844,62 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Guided Operational Knowledge", home_body)
             self.assertIn("Local Manager", home_body)
-            self.assertIn("Knowledge lifecycle", home_body)
+            self.assertIn('class="actor-banner actor-banner--manager"', home_body)
+            self.assertIn("Active actor", home_body)
+            self.assertIn("Priority actions", home_body)
+            self.assertNotIn('<aside class="context-column">', home_body)
 
             status, _, operator_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.operator"})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local Operator", operator_body)
             self.assertIn("Working as", operator_body)
             self.assertIn("Workflow map", operator_body)
+            self.assertIn('class="actor-banner actor-banner--reader-writer"', operator_body)
+            self.assertIn("Reader / Writer", operator_body)
+            self.assertIn("Current view", operator_body)
+            self.assertIn("Priority actions", operator_body)
+            self.assertIn('class="actor-banner-link is-active" href="/read">Read</a>', operator_body)
+            self.assertIn('class="actor-banner-link" href="/write/objects/new">Write</a>', operator_body)
+            self.assertIn('class="actor-banner-link" href="/services">Services</a>', operator_body)
+            self.assertIn("Navigation", operator_body)
+            self.assertEqual(operator_body.count('class="sidebar-block"'), 1)
+            self.assertNotIn("Start Here", operator_body)
+            self.assertNotIn('<aside class="context-column">', operator_body)
             self.assertIn('href="/write/objects/new"', operator_body)
             self.assertIn("You have unsaved changes on this page. Switch views and discard them?", operator_body)
 
             status, _, reviewer_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.reviewer"})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local Reviewer", reviewer_body)
+            self.assertIn('class="actor-banner actor-banner--reviewer"', reviewer_body)
+            self.assertIn("Reviewer", reviewer_body)
+            self.assertIn("Priority actions", reviewer_body)
+            self.assertIn("Review / Approvals", reviewer_body)
+            self.assertIn("Knowledge Health", reviewer_body)
+            self.assertIn("Activity / History", reviewer_body)
             self.assertIn("Steward submitted revisions", reviewer_body)
             self.assertIn('href="/review"', reviewer_body)
             self.assertIn('href="/activity"', reviewer_body)
+            self.assertNotIn("Start Here", reviewer_body)
 
             status, _, manager_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.manager"})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local Manager", manager_body)
+            self.assertIn('class="actor-banner actor-banner--manager"', manager_body)
+            self.assertIn("Manager", manager_body)
+            self.assertIn("Priority actions", manager_body)
             self.assertIn("Shepherd knowledge health", manager_body)
             self.assertIn('href="/health"', manager_body)
+            self.assertNotIn("Start Here", manager_body)
             self.assertNotIn("Papyrus Demo", operator_body)
             self.assertNotIn("Papyrus Demo", reviewer_body)
             self.assertNotIn("Papyrus Demo", manager_body)
+
+            status, _, reviewer_review_body = call_wsgi(application, "/review", cookies={"papyrus_actor": "local.reviewer"})
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Current view", reviewer_review_body)
+            self.assertIn("Review / Approvals", reviewer_review_body)
+            self.assertIn('actor-banner-link is-active', reviewer_review_body)
 
     def test_shell_only_object_is_searchable_and_routes_back_to_revision_draft(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -903,7 +934,7 @@ class WebOperatorUiTests(unittest.TestCase):
             revision_form_path = headers["Location"]
             self.assertEqual(
                 revision_form_path,
-                "/write/objects/kb-operator-ui-shell-search/revisions/new?notice=Object+shell+created.+Step+2+of+3%3A+draft+the+first+revision+below.#revision-form",
+                "/write/objects/kb-operator-ui-shell-search/revisions/new?notice=Draft+setup+saved.+Step+2+of+3%3A+complete+the+first+draft+below.#revision-form",
             )
 
             status, _, body = call_wsgi(application, request_path_without_fragment(revision_form_path))
@@ -1048,7 +1079,7 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Advanced draft editor", body)
             self.assertIn("Citation 1 source search", body)
-            self.assertIn("Search by title, tag, or object ID", body)
+            self.assertIn("Search by title, tag, or reference code", body)
             self.assertIn("/static/js/citation_picker.js", body)
             self.assertIn("/write/citations/search", body)
 
@@ -1093,8 +1124,7 @@ class WebOperatorUiTests(unittest.TestCase):
 
             status, _, submit_body = call_wsgi(application, submit_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn("governed Papyrus reference", submit_body)
-            self.assertIn("lightweight internal reference", submit_body)
+            self.assertIn("Linked guidance provides traceability", submit_body)
             self.assertNotIn("external/manual citation(s) remain weak", submit_body)
 
             citation_row = read_row(
@@ -1171,14 +1201,14 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertIn("/static/js/multi_value_picker.js", body)
             self.assertIn("Search and select one or more controlled tags.", body)
             self.assertIn("Search and select one or more related services.", body)
-            self.assertIn("Search existing knowledge objects and select one or more related objects for impact tracing.", body)
+            self.assertIn("Link related guidance so reviewers can assess impact quickly.", body)
             self.assertIn("Manual tag entry", body)
             self.assertIn("Manual service entry", body)
-            self.assertIn("Manual object ID entry", body)
+            self.assertIn("Manual reference entry", body)
             self.assertIn("/write/objects/search", body)
             self.assertIn("Search controlled tags", body)
             self.assertIn("Search related services", body)
-            self.assertIn("Search related objects by title, tag, or object ID", body)
+            self.assertIn("Search related guidance by title, tag, or reference code", body)
 
             status, _, payload = call_wsgi(
                 application,

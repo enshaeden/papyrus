@@ -1,16 +1,16 @@
 <header class="topbar">
   <div class="identity-block">
     <a class="identity-mark" href="/">Papyrus</a>
-    <p class="identity-copy">Operational knowledge control plane</p>
+    <p class="identity-copy">Operational knowledge workspace</p>
   </div>
   <div class="topbar-controls" aria-label="Global controls">
     <form class="search-form topbar-search" action="/read" method="get">
       <label class="sr-only" for="global-search">Search Papyrus</label>
       <input id="global-search" name="query" type="search" placeholder="Search operational knowledge" value="{{ search_value }}" />
-      <button class="button button-secondary" type="submit">Find guidance</button>
+      <button class="button button-secondary" type="submit">Search</button>
     </form>
     <form class="topbar-actor" action="/actor/select" method="post">
-      <label class="sr-only" for="actor-select">Select actor</label>
+      <label class="sr-only" for="actor-select">Current actor</label>
       <input type="hidden" name="next_path" value="" data-current-path />
       <span class="topbar-control-label">Working as</span>
       <select id="actor-select" name="actor" data-actor-select>

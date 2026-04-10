@@ -226,7 +226,7 @@ def present_queue_page(
         "page_title": "Read Guidance",
         "headline": "Read Operational Guidance",
         "kicker": "Read",
-        "intro": "Find the right operational guidance quickly, understand when to use it, and see what to do next if it is not yet safe to rely on.",
+        "intro": "Find the right guidance and see the next step immediately.",
         "active_nav": "read",
         "aside_html": "",
         "page_context": {
