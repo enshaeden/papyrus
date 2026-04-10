@@ -97,6 +97,28 @@ def tone_for_health(rank: int) -> str:
     return "danger"
 
 
+def risk_status(*, trust_state: str, safe_to_use: bool) -> tuple[str, str]:
+    normalized = str(trust_state or "unknown")
+    if normalized == "suspect":
+        return "High", "danger"
+    if not safe_to_use or normalized in {"weak_evidence", "stale"}:
+        return "Review", "warning"
+    return "Low", "approved"
+
+
+def freshness_status(rank: int) -> tuple[str, str]:
+    if rank <= 0:
+        return "Current", "approved"
+    if rank == 1:
+        return "Due soon", "warning"
+    return "Stale", "danger"
+
+
+def approval_status(approval_state: str | None) -> tuple[str, str]:
+    normalized = str(approval_state or "unknown")
+    return normalized.replace("_", " "), tone_for_approval(normalized)
+
+
 def format_timestamp(value: str | None) -> str:
     if not value:
         return "Unknown"

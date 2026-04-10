@@ -62,7 +62,7 @@ def _common_payload(
         "id": object_id,
         "title": title,
         "canonical_path": canonical_path,
-        "summary": f"Demo scenario object for {title.lower()}",
+        "summary": f"Seeded operational record for {title.lower()}",
         "knowledge_object_type": object_type,
         "legacy_article_type": None,
         "status": "active",
@@ -85,7 +85,7 @@ def _common_payload(
         "services": services,
         "related_articles": [],
         "references": [{"title": item["source_title"], "path": item["source_ref"], "note": item["note"]} for item in citations],
-        "change_log": [{"date": "2026-04-07", "summary": "Scenario seed revision.", "author": "papyrus-demo"}],
+        "change_log": [{"date": "2026-04-07", "summary": "Seeded baseline revision.", "author": "seed.runtime"}],
     }
 
 
@@ -109,7 +109,7 @@ def _runbook_payload(
         owner=owner,
         services=services,
         systems=["<VPN_SERVICE>"] if "Remote Access" in services else ["<IDENTITY_PROVIDER>"],
-        tags=["demo", "operator-ready"],
+        tags=["operator-ready"],
         citations=citations,
         last_reviewed=last_reviewed,
         review_cadence=review_cadence,
@@ -146,7 +146,7 @@ def _known_error_payload(
         owner=owner,
         services=services,
         systems=["<IDENTITY_PROVIDER>"],
-        tags=["demo", "known-error"],
+        tags=["known-error"],
         citations=citations,
     )
     payload.update(
@@ -184,7 +184,7 @@ def _service_record_payload(
         owner=owner,
         services=[service_name],
         systems=["<VPN_SERVICE>"] if service_name == "Remote Access" else ["<IDENTITY_PROVIDER>"],
-        tags=["demo", "service"],
+        tags=["service"],
         citations=citations,
     )
     payload.update(
@@ -216,7 +216,7 @@ def _approve_revision(
         source_root=source_root,
         object_id=object_id,
         normalized_payload=payload,
-        body_markdown=f"## Demo Narrative\n\n{change_summary}",
+        body_markdown=f"## Revision Narrative\n\n{change_summary}",
         actor=actor,
         legacy_metadata=payload,
         change_summary=change_summary,
@@ -236,7 +236,7 @@ def _approve_revision(
         revision_id=revision.revision_id,
         reviewer=reviewer,
         actor=actor,
-        notes="Demo review assignment.",
+        notes="Seeded review assignment.",
     )
     approve_revision_command(
         database_path=database_path,
@@ -245,7 +245,7 @@ def _approve_revision(
         revision_id=revision.revision_id,
         reviewer=reviewer,
         actor=reviewer,
-        notes="Approved for the operator-readiness demo.",
+        notes="Approved for the seeded operator runtime.",
     )
     return revision.revision_id
 
@@ -253,7 +253,7 @@ def _approve_revision(
 def _citation_id_for_object(database_path: Path, object_id: str) -> str:
     detail = knowledge_object_detail(object_id, database_path=database_path)
     if not detail["citations"]:
-        raise ValueError(f"demo object has no current citations: {object_id}")
+        raise ValueError(f"seeded object has no current citations: {object_id}")
     return str(detail["citations"][0]["citation_id"])
 
 
@@ -290,105 +290,105 @@ def _scenario_summary(
 
 def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: Path = DEMO_SOURCE_ROOT) -> dict[str, object]:
     result = build_projection_command(database_path=database_path)
-    actor = "papyrus-demo"
+    actor = "seed.runtime"
 
     create_object_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-remote-access-service-record",
+        object_id="kb-remote-access-service-record",
         object_type="service_record",
         title="Remote Access Service Record",
-        summary="Operator-ready demo service record for remote access.",
+        summary="Operator-ready service record for remote access.",
         owner="remote_access_ops",
         team="IT Operations",
-        canonical_path="knowledge/demo/remote-access-service-record.md",
+        canonical_path="knowledge/services/remote-access-service-record.md",
         actor=actor,
     )
     create_object_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-vpn-recovery-runbook",
+        object_id="kb-remote-access-vpn-recovery",
         object_type="runbook",
         title="Remote Access VPN Recovery",
-        summary="Trusted demo runbook for VPN recovery.",
+        summary="Trusted runbook for VPN recovery.",
         owner="remote_access_ops",
         team="IT Operations",
-        canonical_path="knowledge/demo/remote-access-vpn-recovery.md",
+        canonical_path="knowledge/runbooks/remote-access-vpn-recovery.md",
         actor=actor,
     )
     create_object_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-identity-service-record",
+        object_id="kb-identity-service-record",
         object_type="service_record",
         title="Identity Service Record",
-        summary="Degraded demo service record for identity workflows.",
+        summary="Service record for identity workflows with open risk.",
         owner="identity_ops",
         team="IT Operations",
-        canonical_path="knowledge/demo/identity-service-record.md",
+        canonical_path="knowledge/services/identity-service-record.md",
         actor=actor,
     )
     create_object_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-identity-fallback-runbook",
+        object_id="kb-identity-fallback-sign-in",
         object_type="runbook",
         title="Identity Fallback Sign-In Runbook",
-        summary="Stale demo runbook for identity fallback access.",
+        summary="Stale runbook for identity fallback access.",
         owner="identity_ops",
         team="IT Operations",
-        canonical_path="knowledge/demo/identity-fallback-sign-in.md",
+        canonical_path="knowledge/runbooks/identity-fallback-sign-in.md",
         actor=actor,
     )
     create_object_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-identity-token-known-error",
+        object_id="kb-identity-token-refresh-failure",
         object_type="known_error",
         title="Identity Token Refresh Failure",
         summary="Change-triggered suspect known error for identity token failures.",
         owner="identity_ops",
         team="IT Operations",
-        canonical_path="knowledge/demo/identity-token-refresh-failure.md",
+        canonical_path="knowledge/known-errors/identity-token-refresh-failure.md",
         actor=actor,
     )
     create_object_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-password-reset-runbook",
+        object_id="kb-password-reset-escalation",
         object_type="runbook",
         title="Password Reset Escalation Runbook",
         summary="In-review runbook waiting for governance approval.",
         owner="identity_ops",
         team="IT Operations",
-        canonical_path="knowledge/demo/password-reset-escalation.md",
+        canonical_path="knowledge/runbooks/password-reset-escalation.md",
         actor=actor,
     )
     create_object_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-evidence-gap-known-error",
+        object_id="kb-legacy-vpn-split-tunnel-failure",
         object_type="known_error",
         title="Legacy VPN Split-Tunnel Failure",
-        summary="Weak-evidence known error preserved for demo tension.",
+        summary="Weak-evidence known error retained for follow-up.",
         owner="remote_access_ops",
         team="IT Operations",
-        canonical_path="knowledge/demo/legacy-vpn-split-tunnel-failure.md",
+        canonical_path="knowledge/known-errors/legacy-vpn-split-tunnel-failure.md",
         actor=actor,
     )
 
     _approve_revision(
         database_path,
-        object_id="kb-demo-remote-access-service-record",
+        object_id="kb-remote-access-service-record",
         payload=_service_record_payload(
-            object_id="kb-demo-remote-access-service-record",
+            object_id="kb-remote-access-service-record",
             title="Remote Access Service Record",
-            canonical_path="knowledge/demo/remote-access-service-record.md",
+            canonical_path="knowledge/services/remote-access-service-record.md",
             owner="remote_access_ops",
             service_name="Remote Access",
-            citations=[_citation(title="Remote Access ownership matrix", ref="docs/reference/system-model.md", note="Demo evidence.", validity_status="verified")],
-            related_runbooks=["kb-demo-vpn-recovery-runbook"],
-            related_known_errors=["kb-troubleshooting-vpn-connectivity", "kb-demo-evidence-gap-known-error"],
+            citations=[_citation(title="Remote Access ownership matrix", ref="docs/reference/system-model.md", note="Seeded evidence.", validity_status="verified")],
+            related_runbooks=["kb-remote-access-vpn-recovery"],
+            related_known_errors=["kb-troubleshooting-vpn-connectivity", "kb-legacy-vpn-split-tunnel-failure"],
         ),
         change_summary="Initial healthy remote-access service record.",
         actor=actor,
@@ -397,15 +397,15 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
     )
     _approve_revision(
         database_path,
-        object_id="kb-demo-vpn-recovery-runbook",
+        object_id="kb-remote-access-vpn-recovery",
         payload=_runbook_payload(
-            object_id="kb-demo-vpn-recovery-runbook",
+            object_id="kb-remote-access-vpn-recovery",
             title="Remote Access VPN Recovery",
-            canonical_path="knowledge/demo/remote-access-vpn-recovery.md",
+            canonical_path="knowledge/runbooks/remote-access-vpn-recovery.md",
             owner="remote_access_ops",
             services=["Remote Access"],
-            citations=[_citation(title="VPN recovery validation", ref="docs/playbooks/read.md", note="Demo verified evidence.", validity_status="verified")],
-            related_object_ids=["kb-demo-remote-access-service-record", "kb-troubleshooting-vpn-connectivity"],
+            citations=[_citation(title="VPN recovery validation", ref="docs/playbooks/read.md", note="Verified seeded evidence.", validity_status="verified")],
+            related_object_ids=["kb-remote-access-service-record", "kb-troubleshooting-vpn-connectivity"],
         ),
         change_summary="Initial approved remote-access recovery runbook.",
         actor=actor,
@@ -414,16 +414,16 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
     )
     _approve_revision(
         database_path,
-        object_id="kb-demo-identity-service-record",
+        object_id="kb-identity-service-record",
         payload=_service_record_payload(
-            object_id="kb-demo-identity-service-record",
+            object_id="kb-identity-service-record",
             title="Identity Service Record",
-            canonical_path="knowledge/demo/identity-service-record.md",
+            canonical_path="knowledge/services/identity-service-record.md",
             owner="identity_ops",
             service_name="Identity",
-            citations=[_citation(title="Identity support model", ref="docs/playbooks/manage.md", note="Demo evidence.", validity_status="verified")],
-            related_runbooks=["kb-demo-identity-fallback-runbook", "kb-demo-password-reset-runbook"],
-            related_known_errors=["kb-demo-identity-token-known-error"],
+            citations=[_citation(title="Identity support model", ref="docs/playbooks/manage.md", note="Seeded evidence.", validity_status="verified")],
+            related_runbooks=["kb-identity-fallback-sign-in", "kb-password-reset-escalation"],
+            related_known_errors=["kb-identity-token-refresh-failure"],
         ),
         change_summary="Initial identity service record.",
         actor=actor,
@@ -432,15 +432,15 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
     )
     _approve_revision(
         database_path,
-        object_id="kb-demo-identity-fallback-runbook",
+        object_id="kb-identity-fallback-sign-in",
         payload=_runbook_payload(
-            object_id="kb-demo-identity-fallback-runbook",
+            object_id="kb-identity-fallback-sign-in",
             title="Identity Fallback Sign-In Runbook",
-            canonical_path="knowledge/demo/identity-fallback-sign-in.md",
+            canonical_path="knowledge/runbooks/identity-fallback-sign-in.md",
             owner="identity_ops",
             services=["Identity"],
-            citations=[_citation(title="Fallback access SOP", ref="docs/playbooks/write.md", note="Demo evidence.", validity_status="verified")],
-            related_object_ids=["kb-demo-identity-service-record", "kb-demo-identity-token-known-error"],
+            citations=[_citation(title="Fallback access SOP", ref="docs/playbooks/write.md", note="Seeded evidence.", validity_status="verified")],
+            related_object_ids=["kb-identity-service-record", "kb-identity-token-refresh-failure"],
             last_reviewed="2024-01-15",
             review_cadence="quarterly",
         ),
@@ -451,15 +451,15 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
     )
     _approve_revision(
         database_path,
-        object_id="kb-demo-identity-token-known-error",
+        object_id="kb-identity-token-refresh-failure",
         payload=_known_error_payload(
-            object_id="kb-demo-identity-token-known-error",
+            object_id="kb-identity-token-refresh-failure",
             title="Identity Token Refresh Failure",
-            canonical_path="knowledge/demo/identity-token-refresh-failure.md",
+            canonical_path="knowledge/known-errors/identity-token-refresh-failure.md",
             owner="identity_ops",
             services=["Identity"],
-            citations=[_citation(title="Identity change record", ref="docs/reference/operator-web-ui.md", note="Demo evidence.", validity_status="verified")],
-            related_object_ids=["kb-demo-identity-service-record", "kb-demo-identity-fallback-runbook"],
+            citations=[_citation(title="Identity change record", ref="docs/reference/operator-web-ui.md", note="Seeded evidence.", validity_status="verified")],
+            related_object_ids=["kb-identity-service-record", "kb-identity-fallback-sign-in"],
         ),
         change_summary="Approved known error before dependency drift.",
         actor=actor,
@@ -468,7 +468,7 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
     )
     mark_object_suspect_due_to_change_command(
         database_path=database_path,
-        object_id="kb-demo-identity-token-known-error",
+        object_id="kb-identity-token-refresh-failure",
         actor=actor,
         reason="Upstream identity policy changed and token behavior must be revalidated.",
         changed_entity_type="service",
@@ -476,17 +476,17 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
     )
     _approve_revision(
         database_path,
-        object_id="kb-demo-evidence-gap-known-error",
+        object_id="kb-legacy-vpn-split-tunnel-failure",
         payload=_known_error_payload(
-            object_id="kb-demo-evidence-gap-known-error",
+            object_id="kb-legacy-vpn-split-tunnel-failure",
             title="Legacy VPN Split-Tunnel Failure",
-            canonical_path="knowledge/demo/legacy-vpn-split-tunnel-failure.md",
+            canonical_path="knowledge/known-errors/legacy-vpn-split-tunnel-failure.md",
             owner="remote_access_ops",
             services=["Remote Access"],
             citations=[_citation(title="Legacy split-tunnel notes", ref="docs/reference/operator-web-ui.md", note="Imported note not yet re-verified.", validity_status="unverified")],
-            related_object_ids=["kb-demo-remote-access-service-record", "kb-demo-vpn-recovery-runbook"],
+            related_object_ids=["kb-remote-access-service-record", "kb-remote-access-vpn-recovery"],
         ),
-        change_summary="Known error preserved with weak evidence for demo.",
+        change_summary="Known error preserved with weak evidence for follow-up.",
         actor=actor,
         reviewer="manager.remote-access",
         source_root=source_root,
@@ -495,17 +495,17 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
     pending_revision = create_revision_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-password-reset-runbook",
+        object_id="kb-password-reset-escalation",
         normalized_payload=_runbook_payload(
-            object_id="kb-demo-password-reset-runbook",
+            object_id="kb-password-reset-escalation",
             title="Password Reset Escalation Runbook",
-            canonical_path="knowledge/demo/password-reset-escalation.md",
+            canonical_path="knowledge/runbooks/password-reset-escalation.md",
             owner="identity_ops",
             services=["Identity"],
             citations=[_citation(title="Password reset checklist", ref="knowledge/access/password-reset-account-lockout.md", note="Ready for review.", validity_status="verified")],
-            related_object_ids=["kb-demo-identity-service-record", "kb-access-password-reset-account-lockout"],
+            related_object_ids=["kb-identity-service-record", "kb-access-password-reset-account-lockout"],
         ),
-        body_markdown="## Demo Narrative\n\nPending review because the escalation threshold changed.",
+        body_markdown="## Revision Narrative\n\nPending review because the escalation threshold changed.",
         actor=actor,
         legacy_metadata={},
         change_summary="Submit password reset escalation changes for review.",
@@ -513,50 +513,50 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
     submit_for_review_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-password-reset-runbook",
+        object_id="kb-password-reset-escalation",
         revision_id=pending_revision.revision_id,
         actor=actor,
-        notes="Queue for manager approval during the demo.",
+        notes="Queue for manager approval in the seeded runtime.",
     )
     assign_reviewer_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-password-reset-runbook",
+        object_id="kb-password-reset-escalation",
         revision_id=pending_revision.revision_id,
         reviewer="manager.identity",
         actor=actor,
-        notes="Review queue scenario for operator demo.",
+        notes="Review queue scenario for the seeded runtime.",
     )
 
     record_validation_run_command(
         database_path=database_path,
-        run_id="demo-operator-check-20260407",
+        run_id="seeded-operator-check-20260407",
         run_type="manual_operator_check",
         status="warning",
         finding_count=3,
         details={
-            "scenario": "operator_ready_demo",
-            "summary": "Demo runtime contains one stale runbook, one weak-evidence known error, and one in-review runbook.",
+            "scenario": "operator_ready_seeded_runtime",
+            "summary": "Seeded runtime contains one stale runbook, one weak-evidence known error, and one in-review runbook.",
         },
         actor=actor,
     )
     attach_evidence_snapshot_command(
         database_path=database_path,
-        citation_id=_citation_id_for_object(database_path, "kb-demo-remote-access-service-record"),
-        snapshot_source_path=source_root / "knowledge" / "demo" / "remote-access-service-record.md",
+        citation_id=_citation_id_for_object(database_path, "kb-remote-access-service-record"),
+        snapshot_source_path=source_root / "knowledge" / "services" / "remote-access-service-record.md",
         actor=actor,
         expires_at="2026-07-01T00:00:00+00:00",
         root_path=source_root,
     )
     stale_evidence = mark_evidence_stale_command(
         database_path=database_path,
-        object_id="kb-demo-evidence-gap-known-error",
+        object_id="kb-legacy-vpn-split-tunnel-failure",
         actor=actor,
         reason="Imported note lacks a current evidence snapshot and needs revalidation.",
     )
     revalidation = request_evidence_revalidation_command(
         database_path=database_path,
-        object_id="kb-demo-identity-fallback-runbook",
+        object_id="kb-identity-fallback-sign-in",
         actor=actor,
         notes="Quarterly review found stale identity fallback guidance.",
     )
@@ -565,10 +565,10 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
         event_type="validation_failure",
         source="local",
         entity_type="knowledge_object",
-        entity_id="kb-demo-evidence-gap-known-error",
+        entity_id="kb-legacy-vpn-split-tunnel-failure",
         payload={
             "summary": "Legacy VPN split-tunnel validation no longer matches the imported note.",
-            "object_ids": ["kb-demo-evidence-gap-known-error"],
+            "object_ids": ["kb-legacy-vpn-split-tunnel-failure"],
         },
         actor=actor,
     )
@@ -578,13 +578,13 @@ def build_operator_demo_runtime(database_path: Path = DB_PATH, *, source_root: P
         "source_root": str(source_root),
         "document_count": result.document_count,
         "demo_objects": [
-            "kb-demo-remote-access-service-record",
-            "kb-demo-vpn-recovery-runbook",
-            "kb-demo-identity-service-record",
-            "kb-demo-identity-fallback-runbook",
-            "kb-demo-identity-token-known-error",
-            "kb-demo-password-reset-runbook",
-            "kb-demo-evidence-gap-known-error",
+            "kb-remote-access-service-record",
+            "kb-remote-access-vpn-recovery",
+            "kb-identity-service-record",
+            "kb-identity-fallback-sign-in",
+            "kb-identity-token-refresh-failure",
+            "kb-password-reset-escalation",
+            "kb-legacy-vpn-split-tunnel-failure",
         ],
         "demo_actions": {
             "stale_citation_ids": stale_evidence.citation_ids,
@@ -599,7 +599,7 @@ def run_operator_scenario(
     scenario: str,
     database_path: Path = DB_PATH,
     source_root: Path = DEMO_SOURCE_ROOT,
-    actor: str = "papyrus-demo",
+    actor: str = "seed.runtime",
 ) -> dict[str, object]:
     normalized = scenario.strip().lower().replace("-", "_")
     if normalized not in OPERATOR_SCENARIOS:
@@ -657,7 +657,7 @@ def run_operator_scenario(
             },
             actor=actor,
         )
-        detail = knowledge_object_detail("kb-demo-remote-access-service-record", database_path=database_path)
+        detail = knowledge_object_detail("kb-remote-access-service-record", database_path=database_path)
         return _scenario_summary(
             scenario=normalized,
             database_path=database_path,
@@ -671,7 +671,7 @@ def run_operator_scenario(
             },
         )
 
-    detail = knowledge_object_detail("kb-demo-vpn-recovery-runbook", database_path=database_path)
+    detail = knowledge_object_detail("kb-remote-access-vpn-recovery", database_path=database_path)
     payload = dict(detail["metadata"])
     payload["updated"] = "2026-04-08"
     payload["last_reviewed"] = "2026-04-08"
@@ -682,9 +682,9 @@ def run_operator_scenario(
     revision = create_revision_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-vpn-recovery-runbook",
+        object_id="kb-remote-access-vpn-recovery",
         normalized_payload=payload,
-        body_markdown="## Demo Narrative\n\nScenario backlog revision waiting for review.",
+        body_markdown="## Revision Narrative\n\nScenario backlog revision waiting for review.",
         actor=actor,
         legacy_metadata=detail["metadata"],
         change_summary="Queue another recovery update for review.",
@@ -692,7 +692,7 @@ def run_operator_scenario(
     submit_for_review_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-vpn-recovery-runbook",
+        object_id="kb-remote-access-vpn-recovery",
         revision_id=revision.revision_id,
         actor=actor,
         notes="Queue another review item to simulate backlog pressure.",
@@ -700,7 +700,7 @@ def run_operator_scenario(
     assign_reviewer_command(
         database_path=database_path,
         source_root=source_root,
-        object_id="kb-demo-vpn-recovery-runbook",
+        object_id="kb-remote-access-vpn-recovery",
         revision_id=revision.revision_id,
         reviewer="manager.remote-access",
         actor=actor,

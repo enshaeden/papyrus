@@ -10,24 +10,23 @@
   <link rel="stylesheet" href="/static/css/pages.css" />
 </head>
 <body>
-  <div class="app-shell">
+  <div class="app-shell {{ shell_variant_class }}">
     {{ topbar_html }}
-    <div class="shell-columns">
-      {{ sidebar_html }}
+    <div class="{{ shell_columns_class }}">
+      {{ sidebar_block_html }}
       <main class="main-column">
-        <header class="page-header">
+        <header class="page-header {{ page_header_class }}">
           <p class="page-kicker">{{ kicker }}</p>
           <h1>{{ headline }}</h1>
           <p class="page-intro">{{ intro }}</p>
+          {{ header_context_html }}
           {{ header_detail_html }}
         </header>
         {{ flash_html }}
         {{ action_bar_html }}
         {{ content_html }}
       </main>
-      <aside class="context-column">
-        {{ aside_html }}
-      </aside>
+      {{ aside_block_html }}
     </div>
   </div>
   <script src="/static/js/filters.js" defer></script>

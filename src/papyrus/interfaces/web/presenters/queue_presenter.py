@@ -5,7 +5,7 @@ from typing import Any
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import primary_surface_href, projection_state, projection_use_guidance
 from papyrus.interfaces.web.rendering import TemplateRenderer
-from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path
+from papyrus.interfaces.web.view_helpers import approval_status, escape, freshness_status, join_html, link, quoted_path, risk_status
 
 
 def _queue_item_href(item: dict[str, Any]) -> str:
@@ -53,8 +53,88 @@ def _status_detail_text(item: dict[str, Any]) -> str:
     )
 
 
-def _projection_state_value(item: dict[str, Any], key: str) -> str:
-    return str(projection_state(item.get("ui_projection")).get(key) or "unknown")
+def _queue_state(item: dict[str, Any]) -> dict[str, str]:
+    state = projection_state(item.get("ui_projection"))
+    return {
+        "trust_state": str(state.get("trust_state") or item.get("trust_state") or "unknown"),
+        "approval_state": str(state.get("approval_state") or item.get("approval_state") or "unknown"),
+    }
+
+
+def _decision_summary_text(item: dict[str, Any]) -> str:
+    use_guidance = projection_use_guidance(item.get("ui_projection"))
+    return str(use_guidance.get("summary") or _use_when_text(item))
+
+
+def _decision_bucket(item: dict[str, Any]) -> str:
+    state = _queue_state(item)
+    use_guidance = projection_use_guidance(item.get("ui_projection"))
+    trust_state = state["trust_state"]
+    approval_state = state["approval_state"]
+    safe_to_use = bool(use_guidance.get("safe_to_use"))
+    if trust_state == "suspect" or approval_state == "rejected":
+        return "attention"
+    if not safe_to_use or approval_state != "approved" or trust_state in {"weak_evidence", "stale"}:
+        return "review"
+    return "safe"
+
+
+def _decision_status_badges_html(components: ComponentPresenter, item: dict[str, Any]) -> str:
+    state = _queue_state(item)
+    use_guidance = projection_use_guidance(item.get("ui_projection"))
+    risk_label, risk_tone = risk_status(
+        trust_state=state["trust_state"],
+        safe_to_use=bool(use_guidance.get("safe_to_use")),
+    )
+    freshness_label, freshness_tone = freshness_status(int(item.get("freshness_rank") or 0))
+    approval_label, approval_tone = approval_status(state["approval_state"])
+    return join_html(
+        [
+            components.badge(label="Risk", value=risk_label, tone=risk_tone),
+            components.badge(label="Freshness", value=freshness_label, tone=freshness_tone),
+            components.badge(label="Approval", value=approval_label, tone=approval_tone),
+        ],
+        " ",
+    )
+
+
+def _decision_action_label(bucket: str) -> str:
+    if bucket == "safe":
+        return "Use guidance"
+    if bucket == "review":
+        return "Review item"
+    return "Resolve issue"
+
+
+def _decision_card_html(components: ComponentPresenter, item: dict[str, Any]) -> str:
+    bucket = _decision_bucket(item)
+    linked_services_html = (
+        ", ".join(
+            link(service["service_name"], f"/services/{quoted_path(service['service_id'])}")
+            for service in item["linked_services"]
+        )
+        if item["linked_services"]
+        else "No linked service context."
+    )
+    return (
+        f'<article class="decision-card decision-card-{escape(bucket)}">'
+        '<div class="decision-card-header">'
+        '<div class="decision-card-heading">'
+        f'<h3>{link(item["title"], _queue_item_href(item))}</h3>'
+        f'<p class="decision-card-summary">{escape(_decision_summary_text(item))}</p>'
+        "</div>"
+        f'<div class="badge-row">{_decision_status_badges_html(components, item)}</div>'
+        "</div>"
+        f'<p class="decision-card-detail">{escape(_status_detail_text(item))}</p>'
+        '<div class="decision-card-meta">'
+        f'<span>{escape(item["object_type"])} · {escape(item["object_id"])}</span>'
+        f'<span>Last reviewed {escape(item.get("last_reviewed") or "unknown")} · cadence {escape(item.get("review_cadence") or "unknown")}</span>'
+        f"<span>Services: {linked_services_html}</span>"
+        "</div>"
+        f'<p class="decision-card-next"><strong>Next:</strong> {escape(_next_action_text(item))}</p>'
+        f'<div class="decision-card-actions">{link(_decision_action_label(bucket), _queue_item_href(item), css_class="button button-primary" if bucket != "safe" else "button button-secondary")}</div>'
+        "</article>"
+    )
 
 
 def present_queue_page(
@@ -72,32 +152,17 @@ def present_queue_page(
         normalized = dict(item)
         normalized.setdefault("linked_services", [])
         normalized_items.append(normalized)
+    grouped_items: dict[str, list[dict[str, Any]]] = {"safe": [], "review": [], "attention": []}
+    for item in normalized_items:
+        grouped_items[_decision_bucket(item)].append(item)
     summary_html = components.trust_summary(
-        title="Read posture",
+        title="Decision view",
         badges=[
-            components.badge(label="Items", value=len(normalized_items), tone="brand"),
-            components.badge(
-                label="Safe to use",
-                value=sum(
-                    1
-                    for item in normalized_items
-                    if bool((item.get("ui_projection") or {}).get("use_guidance", {}).get("safe_to_use"))
-                ),
-                tone="approved",
-            ),
-            components.badge(
-                label="Review before use",
-                value=sum(
-                    1
-                    for item in normalized_items
-                    if not bool((item.get("ui_projection") or {}).get("use_guidance", {}).get("safe_to_use"))
-                ),
-                tone="pending",
-            ),
-            components.badge(label="Weak evidence", value=sum(1 for item in normalized_items if item["citation_health_rank"] > 0), tone="warning"),
-            components.badge(label="Needs freshness check", value=sum(1 for item in normalized_items if item["freshness_rank"] > 0), tone="danger"),
+            components.badge(label="Safe", value=len(grouped_items["safe"]), tone="approved"),
+            components.badge(label="Needs review", value=len(grouped_items["review"]), tone="warning"),
+            components.badge(label="Requires attention", value=len(grouped_items["attention"]), tone="danger"),
         ],
-        summary="Papyrus surfaces the best current answer first, then tells you when to verify, review, or escalate before acting.",
+        summary="Papyrus groups guidance by decision urgency so the next click is driven by risk, freshness, and approval state.",
     )
     filter_controls_html = (
         '<form class="filter-form" method="get" action="/read">'
@@ -124,79 +189,37 @@ def present_queue_page(
         f'<option value="draft"{" selected" if selected_approval == "draft" else ""}>Draft</option>'
         f'<option value="rejected"{" selected" if selected_approval == "rejected" else ""}>Rejected</option>'
         "</select>"
-        '<button class="button button-secondary" type="submit">Apply</button>'
+        '<button class="button button-primary" type="submit">Show best matches</button>'
         "</form>"
     )
-    rows = [
-        [
-            f"{link(item['title'], _queue_item_href(item))}"
-            f'<p class="cell-meta">{escape(item["object_type"])} · {escape(item["object_id"])}</p>'
-            f'<p class="cell-meta">{escape(item["path"])}</p>',
-            f"{escape(_use_when_text(item))}<p class=\"cell-meta\">Last reviewed {escape(item.get('last_reviewed') or 'unknown')} · cadence {escape(item.get('review_cadence') or 'unknown')}</p>",
-            " ".join(
-                [
-                    components.badge(
-                        label="Trust",
-                        value=_projection_state_value(item, "trust_state"),
-                        tone="approved" if _projection_state_value(item, "trust_state") == "trusted" else "warning",
-                    ),
-                    components.badge(
-                        label="Approval",
-                        value=_projection_state_value(item, "approval_state"),
-                        tone="approved" if _projection_state_value(item, "approval_state") == "approved" else "pending",
-                    ),
-                ]
+    group_config = {
+        "safe": ("Safe", "Approved guidance you can use with the current guardrails.", "approved"),
+        "review": ("Needs review", "Guidance that needs verification before you rely on it.", "warning"),
+        "attention": ("Requires attention", "Guidance blocked by higher-risk trust or approval signals.", "danger"),
+    }
+    group_sections = []
+    for group_key in ("attention", "review", "safe"):
+        group_items = grouped_items[group_key]
+        if not group_items:
+            continue
+        title, description, tone = group_config[group_key]
+        group_sections.append(
+            components.section_card(
+                title=title,
+                eyebrow="Read",
+                tone=tone,
+                body_html=f'<p class="decision-group-summary">{escape(description)}</p>' + join_html(
+                    [_decision_card_html(components, item) for item in group_items]
+                ),
             )
-            + f'<p class="cell-meta">{escape(_status_detail_text(item))}</p>',
-            (
-                ", ".join(
-                    link(service["service_name"], f"/services/{quoted_path(service['service_id'])}")
-                    for service in item["linked_services"]
-                )
-                if item["linked_services"]
-                else '<span class="cell-meta">No linked service context.</span>'
-            ),
-            escape(_next_action_text(item))
-            + f'<p class="cell-meta">{escape(projection_use_guidance(item.get("ui_projection")).get("summary") or "Backend guidance unavailable")}</p>',
-        ]
-        for item in normalized_items
-    ]
-    queue_html = (
-        components.section_card(
-            title="Guidance results",
-            eyebrow="Read",
-            body_html=components.queue_table(
-                headers=["Guidance", "When to use it", "Safe now?", "Affects / services", "Next action"],
-                rows=rows,
-                table_id="read-guidance",
-            ),
-            footer_html='<p class="section-footer">Results are ordered to surface the safest current operational answer before weaker, stale, or isolated guidance.</p>',
         )
-        if rows
+    queue_html = (
+        join_html(group_sections)
+        if group_sections
         else components.empty_state(
             title="No matching guidance",
             description="Adjust filters or search terms to widen the read scope.",
         )
-    )
-    secondary_html = components.section_card(
-        title="How to use read results",
-        eyebrow="Read",
-        body_html=(
-            "<p>Read starts with the current operational answer, not the metadata. Governance remains visible as a guardrail so the next click is informed, not blind.</p>"
-        ),
-    )
-    aside_html = join_html(
-        [
-            summary_html,
-            components.validation_summary(
-                title="Read checklist",
-                findings=[
-                    "Start with items that are both approved and trusted.",
-                    "If trust or approval is degraded, follow the next-action cue before using the guidance.",
-                    "Use linked services to stay inside the right operational context.",
-                ],
-            ),
-        ]
     )
     return {
         "page_template": "pages/queue.html",
@@ -205,11 +228,11 @@ def present_queue_page(
         "kicker": "Read",
         "intro": "Find the right operational guidance quickly, understand when to use it, and see what to do next if it is not yet safe to rely on.",
         "active_nav": "read",
-        "aside_html": aside_html,
+        "aside_html": "",
         "page_context": {
             "filter_bar_html": components.filter_bar(title="Read filters", controls_html=filter_controls_html),
             "summary_html": summary_html,
             "queue_html": queue_html,
-            "secondary_html": secondary_html,
+            "secondary_html": "",
         },
     }

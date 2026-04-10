@@ -108,14 +108,14 @@ class OperatorReadinessTests(unittest.TestCase):
                     SELECT details_json
                     FROM audit_events
                     WHERE event_type = 'object_marked_suspect_due_to_change'
-                      AND object_id = 'kb-demo-identity-token-known-error'
+                      AND object_id = 'kb-identity-token-refresh-failure'
                     """
                 ).fetchone()
                 validation_run = connection.execute(
                     """
                     SELECT run_type, status
                     FROM validation_runs
-                    WHERE run_id = 'demo-operator-check-20260407'
+                    WHERE run_id = 'seeded-operator-check-20260407'
                     """
                 ).fetchone()
             finally:
@@ -137,14 +137,14 @@ class OperatorReadinessTests(unittest.TestCase):
             build_operator_demo_runtime(database_path=database_path, source_root=source_root)
 
             results = search_knowledge_objects("identity", limit=200, database_path=database_path)
-            demo_identity_results = [item for item in results if item["object_id"].startswith("kb-demo-identity")]
+            seeded_identity_results = [item for item in results if item["object_id"].startswith("kb-identity")]
 
-            self.assertGreaterEqual(len(demo_identity_results), 3)
-            self.assertEqual(demo_identity_results[0]["object_id"], "kb-demo-identity-service-record")
-            self.assertEqual(demo_identity_results[0]["approval_state"], "approved")
-            self.assertEqual(demo_identity_results[0]["trust_state"], "weak_evidence")
-            self.assertIn("kb-demo-identity-token-known-error", [item["object_id"] for item in demo_identity_results[1:]])
-            self.assertIn("kb-demo-identity-fallback-runbook", [item["object_id"] for item in demo_identity_results[1:]])
+            self.assertGreaterEqual(len(seeded_identity_results), 3)
+            self.assertEqual(seeded_identity_results[0]["object_id"], "kb-identity-service-record")
+            self.assertEqual(seeded_identity_results[0]["approval_state"], "approved")
+            self.assertEqual(seeded_identity_results[0]["trust_state"], "weak_evidence")
+            self.assertIn("kb-identity-token-refresh-failure", [item["object_id"] for item in seeded_identity_results[1:]])
+            self.assertIn("kb-identity-fallback-sign-in", [item["object_id"] for item in seeded_identity_results[1:]])
 
     def test_governance_api_endpoints_require_actor_and_record_outcomes(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -158,7 +158,7 @@ class OperatorReadinessTests(unittest.TestCase):
                 summary="Used to exercise operator governance endpoints.",
                 owner="api_owner",
                 team="IT Operations",
-                canonical_path="knowledge/demo/api-governance-object.md",
+                canonical_path="knowledge/runbooks/api-governance-object.md",
                 actor="tests",
             )
             application = api_app(database_path)
@@ -174,7 +174,7 @@ class OperatorReadinessTests(unittest.TestCase):
                     "summary": "Should fail without an actor.",
                     "owner": "api_owner",
                     "team": "IT Operations",
-                    "canonical_path": "knowledge/demo/api-missing-actor.md",
+                    "canonical_path": "knowledge/runbooks/api-missing-actor.md",
                 },
             )
             self.assertEqual(status, "400 Bad Request")

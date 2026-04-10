@@ -29,6 +29,7 @@ def _area_card(
     href: str,
     action_label: str,
     tone: str = "default",
+    action_variant: str = "secondary",
 ) -> str:
     return components.section_card(
         title=title,
@@ -39,7 +40,7 @@ def _area_card(
             f'<p><strong>{escape(metric_label)}</strong></p>'
             f"<p>{escape(description)}</p>"
         ),
-        footer_html=link(action_label, href, css_class="button button-secondary"),
+        footer_html=link(action_label, href, css_class=f"button button-{action_variant}"),
     )
 
 
@@ -57,21 +58,21 @@ def _next_action_definitions(actor_id: str, *, counts: dict[str, int]) -> list[d
                 "title": "Make review decisions",
                 "detail": "Start with the revisions that already need a reviewer decision and make the next step explicit.",
                 "href": "/review",
-                "label": "Open review work",
+                "label": "Review decisions",
                 "count": shared["review"],
             },
             {
                 "title": "Revalidate weak guidance",
                 "detail": "Clear stale or weak-evidence items before they become invisible operational risk.",
                 "href": "/health",
-                "label": "Open knowledge health",
+                "label": "Resolve risk",
                 "count": shared["revalidate"],
             },
             {
                 "title": "Inspect recent consequences",
                 "detail": "Use the activity history when the reason for a queue item is not obvious from status alone.",
                 "href": "/activity",
-                "label": "Open activity",
+                "label": "See recent changes",
                 "count": shared["activity"],
             },
         ]
@@ -81,21 +82,21 @@ def _next_action_definitions(actor_id: str, *, counts: dict[str, int]) -> list[d
                 "title": "Shepherd knowledge health",
                 "detail": "Review what needs attention across stale guidance, weak evidence, and suspect posture.",
                 "href": "/health",
-                "label": "Open knowledge health",
+                "label": "Resolve risk",
                 "count": shared["health"],
             },
             {
                 "title": "Reduce review pressure",
                 "detail": "Keep review demand moving so drafts and pending decisions do not stall the lifecycle.",
                 "href": "/review",
-                "label": "Open approvals",
+                "label": "Clear review backlog",
                 "count": shared["review"],
             },
             {
                 "title": "Inspect recent activity",
                 "detail": "Use recent events and validation outcomes to understand where the next stewardship action belongs.",
                 "href": "/activity",
-                "label": "Open activity",
+                "label": "See recent changes",
                 "count": shared["activity"],
             },
         ]
@@ -104,21 +105,21 @@ def _next_action_definitions(actor_id: str, *, counts: dict[str, int]) -> list[d
             "title": "Use current guidance",
             "detail": "Start with read surfaces that keep operational guidance, freshness, and service context visible together.",
             "href": "/read",
-            "label": "Open read",
+            "label": "Find guidance",
             "count": counts["read_ready"],
         },
         {
             "title": "Continue authoring",
             "detail": "Move a gap or rejected revision forward instead of leaving it stuck as an unresolved draft.",
             "href": "/write/objects/new",
-            "label": "Open write",
+            "label": "Start draft",
             "count": shared["drafts"],
         },
         {
             "title": "Escalate unsafe guidance",
             "detail": "When the current answer looks stale or weak, hand it into review and health flows instead of guessing.",
             "href": "/health",
-            "label": "Open knowledge health",
+            "label": "Resolve risk",
             "count": shared["revalidate"],
         },
     ]
@@ -163,6 +164,7 @@ def present_home_page(
                 href=str(item["href"]),
                 action_label=str(item["label"]),
                 tone="brand" if index == 0 else "default",
+                action_variant="primary" if index == 0 else "secondary",
             )
             for index, item in enumerate(_next_action_definitions(actor_id, counts=counts))
         ]
@@ -177,7 +179,7 @@ def present_home_page(
                 metric_value=counts["read_ready"],
                 description="Find current guidance, check whether it is safe to use, and move into service context when needed.",
                 href="/read",
-                action_label="Open read",
+                action_label="Find guidance",
                 tone="brand",
             ),
             _area_card(
@@ -188,7 +190,7 @@ def present_home_page(
                 metric_value=counts["drafts"],
                 description="Create a new object shell, revise existing guidance, and move a draft toward submission.",
                 href="/write/objects/new",
-                action_label="Open write",
+                action_label="Start draft",
             ),
             _area_card(
                 components,
@@ -198,7 +200,7 @@ def present_home_page(
                 metric_value=counts["review_required"],
                 description="Assign reviewers, inspect changes, and make approval or rejection decisions with context.",
                 href="/review",
-                action_label="Open review",
+                action_label="Review work",
             ),
             _area_card(
                 components,
@@ -208,7 +210,7 @@ def present_home_page(
                 metric_value=counts["needs_attention"],
                 description="Track stale content, weak evidence, suspect guidance, and review load as stewardship work.",
                 href="/health",
-                action_label="Open knowledge health",
+                action_label="Resolve risk",
                 tone="warning" if counts["needs_attention"] else "approved",
             ),
             _area_card(
@@ -219,7 +221,7 @@ def present_home_page(
                 metric_value=counts["services"],
                 description="Move from a service issue into the linked guidance path instead of browsing unrelated objects.",
                 href="/services",
-                action_label="Open services",
+                action_label="View services",
             ),
             _area_card(
                 components,
@@ -229,7 +231,7 @@ def present_home_page(
                 metric_value=counts["recent_activity"],
                 description="Understand what changed, what it affected, and what should be reviewed or revalidated next.",
                 href="/activity",
-                action_label="Open activity",
+                action_label="See history",
             ),
         ]
     )

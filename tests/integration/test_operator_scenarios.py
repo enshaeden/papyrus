@@ -28,17 +28,17 @@ class OperatorScenarioTests(unittest.TestCase):
     def test_service_degradation_surfaces_impacted_objects(self) -> None:
         result = self._run("service_degradation")
         impacted_object_ids = [item["object_id"] for item in result["impacted_objects"]]
-        self.assertIn("kb-demo-remote-access-service-record", impacted_object_ids)
+        self.assertIn("kb-remote-access-service-record", impacted_object_ids)
         self.assertGreaterEqual(result["queue_counts"]["weak_evidence_items"], 1)
 
     def test_stale_knowledge_scenario_keeps_stale_object_visible(self) -> None:
         result = self._run("stale_knowledge")
         stale_object_ids = [item["object_id"] for item in result["stale_items"]]
-        self.assertIn("kb-demo-identity-fallback-runbook", stale_object_ids)
+        self.assertIn("kb-identity-fallback-sign-in", stale_object_ids)
 
     def test_conflicting_evidence_scenario_degrades_trust(self) -> None:
         result = self._run("conflicting_evidence")
-        self.assertEqual(result["object_id"], "kb-demo-remote-access-service-record")
+        self.assertEqual(result["object_id"], "kb-remote-access-service-record")
         self.assertIn(result["trust_state"], {"weak_evidence", "suspect"})
         self.assertGreaterEqual(result["evidence_status"]["snapshot_count"], 1)
 

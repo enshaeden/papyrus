@@ -51,8 +51,12 @@ class PageRenderer:
         page_context: dict[str, object] | None = None,
         actor_id: str = "",
         current_path: str = "",
+        shell_variant: str = "default",
+        header_mode: str = "default",
+        header_context_html: str = "",
     ) -> str:
         role_config = actor_shell_for_id(actor_id)
+        actor_class = role_config.actor.actor_id.replace(".", "-")
         content_html = self.template_renderer.render(page_template, page_context or {})
         topbar_html = self.template_renderer.render(
             "partials/topbar.html",
@@ -64,39 +68,53 @@ class PageRenderer:
                 ),
             },
         )
-        nav_sections_html = join_html(
+        nav_items = []
+        seen_nav_keys: set[str] = set()
+        for section in role_config.nav_sections:
+            for item in section.items:
+                if item.key in seen_nav_keys:
+                    continue
+                seen_nav_keys.add(item.key)
+                nav_items.append(item)
+        nav_links_html = join_html(
             [
-                (
-                    '<div class="sidebar-block">'
-                    f'<p class="sidebar-label">{escape(section.title)}</p>'
-                    f'<p class="sidebar-copy">{escape(section.description)}</p>'
-                    + join_html(
-                        [
-                            link(
-                                item.label,
-                                item.href,
-                                css_class="sidebar-link is-active" if self._nav_item_is_active(item, active_nav=active_nav, current_path=current_path) else "sidebar-link",
-                            )
-                            for item in section.items
-                        ]
-                    )
-                    + "</div>"
+                link(
+                    item.label,
+                    item.href,
+                    css_class="sidebar-link is-active" if self._nav_item_is_active(item, active_nav=active_nav, current_path=current_path) else "sidebar-link",
                 )
-                for section in role_config.nav_sections
+                for item in nav_items
             ]
         )
-        sidebar_html = self.template_renderer.render(
-            "partials/sidebar.html",
-            {
-                "actor_display_name": escape(role_config.actor.display_name),
-                "actor_role_summary": escape(role_config.summary),
-                "actor_role_hint": escape(role_config.actor.role_hint.replace("_", " ")),
-                "nav_sections_html": nav_sections_html,
-            },
+        sidebar_block_html = ""
+        if shell_variant != "focus":
+            sidebar_block_html = self.template_renderer.render(
+                "partials/sidebar.html",
+                {
+                    "actor_role_summary": escape(role_config.summary),
+                    "nav_links_html": nav_links_html,
+                },
+            )
+        aside_block_html = (
+            f'<aside class="context-column">{aside_html}</aside>'
+            if shell_variant != "focus" and aside_html.strip()
+            else ""
         )
+        shell_columns_classes = ["shell-columns", f"shell-columns-{escape(shell_variant)}"]
+        if sidebar_block_html.strip():
+            shell_columns_classes.append("has-sidebar")
+        if aside_block_html.strip():
+            shell_columns_classes.append("has-aside")
         scripts_html = join_html(
             [f'<script src="{escape(path)}" defer></script>' for path in scripts],
             "\n",
+        )
+        actor_indicator_html = (
+            f'<div class="actor-indicator actor-indicator-{escape(actor_class)}">'
+            '<span class="actor-indicator-label">Actor</span>'
+            f'<strong class="actor-indicator-name">{escape(role_config.actor.display_name)}</strong>'
+            f'<span class="actor-indicator-summary">{escape(role_config.summary)}</span>'
+            "</div>"
         )
         return self.template_renderer.render(
             "base.html",
@@ -106,13 +124,17 @@ class PageRenderer:
                 "kicker": escape(kicker),
                 "intro": escape(intro),
                 "header_detail_html": header_detail_html,
+                "header_context_html": actor_indicator_html + header_context_html,
                 "topbar_html": topbar_html,
-                "sidebar_html": sidebar_html,
+                "sidebar_block_html": sidebar_block_html,
                 "flash_html": flash_html,
                 "action_bar_html": action_bar_html,
                 "content_html": content_html,
-                "aside_html": aside_html,
+                "aside_block_html": aside_block_html,
                 "scripts_html": scripts_html,
+                "shell_variant_class": escape(f"shell-{shell_variant} actor-{actor_class}"),
+                "shell_columns_class": escape(" ".join(shell_columns_classes)),
+                "page_header_class": escape(f"page-header-{header_mode}"),
             },
         )
 
