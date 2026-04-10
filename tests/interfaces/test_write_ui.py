@@ -88,29 +88,13 @@ class WriteUiTests(unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Continue Policy", guided_body)
             self.assertIn("Policy scope", guided_body)
-<<<<<<< Updated upstream
             self.assertIn("Use advanced editor", guided_body)
-=======
-<<<<<<< HEAD
-            self.assertIn("Use advanced editor", guided_body)
-=======
-            self.assertIn("Switch to bulk edit", guided_body)
->>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
->>>>>>> Stashed changes
             self.assertNotIn("Service name", guided_body)
             self.assertNotIn("Service criticality", guided_body)
 
             status, _, fallback_body = call_wsgi(application, fallback_path)
             self.assertEqual(status, "200 OK")
-<<<<<<< Updated upstream
             self.assertIn("Advanced draft editor", fallback_body)
-=======
-<<<<<<< HEAD
-            self.assertIn("Advanced draft editor", fallback_body)
-=======
-            self.assertIn("Bulk Edit", fallback_body)
->>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
->>>>>>> Stashed changes
             self.assertIn("Controls", fallback_body)
             self.assertIn("Exceptions", fallback_body)
             self.assertNotIn("Service name", fallback_body)
@@ -149,29 +133,13 @@ class WriteUiTests(unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Continue System Design", guided_body)
             self.assertIn("Architecture", guided_body)
-<<<<<<< Updated upstream
             self.assertIn("Use advanced editor", guided_body)
-=======
-<<<<<<< HEAD
-            self.assertIn("Use advanced editor", guided_body)
-=======
-            self.assertIn("Switch to bulk edit", guided_body)
->>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
->>>>>>> Stashed changes
             self.assertNotIn("Service name", guided_body)
             self.assertNotIn("Service criticality", guided_body)
 
             status, _, fallback_body = call_wsgi(application, fallback_path)
             self.assertEqual(status, "200 OK")
-<<<<<<< Updated upstream
             self.assertIn("Advanced draft editor", fallback_body)
-=======
-<<<<<<< HEAD
-            self.assertIn("Advanced draft editor", fallback_body)
-=======
-            self.assertIn("Bulk Edit", fallback_body)
->>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
->>>>>>> Stashed changes
             self.assertIn("Interfaces", fallback_body)
             self.assertIn("Common failure modes", fallback_body)
             self.assertIn("Operational notes", fallback_body)
@@ -221,18 +189,8 @@ class WriteUiTests(unittest.TestCase):
 
             status, _, guided_body = call_wsgi(application, guided_path)
             self.assertEqual(status, "200 OK")
-<<<<<<< Updated upstream
             self.assertIn("Save and continue", guided_body)
             self.assertIn("Use advanced editor", guided_body)
-=======
-<<<<<<< HEAD
-            self.assertIn("Save and continue", guided_body)
-            self.assertIn("Use advanced editor", guided_body)
-=======
-            self.assertIn("Save section", guided_body)
-            self.assertIn("Switch to bulk edit", guided_body)
->>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
->>>>>>> Stashed changes
             self.assertIn("/write/objects/kb-ui-guided-route/revisions/fallback?revision_id=", guided_body)
             self.assertIn("shell-columns-focus", guided_body)
             self.assertNotIn("/static/js/citation_picker.js", guided_body)
@@ -241,14 +199,6 @@ class WriteUiTests(unittest.TestCase):
 
             status, _, fallback_body = call_wsgi(application, fallback_path)
             self.assertEqual(status, "200 OK")
-<<<<<<< Updated upstream
             self.assertIn("Advanced draft editor", fallback_body)
-=======
-<<<<<<< HEAD
-            self.assertIn("Advanced draft editor", fallback_body)
-=======
-            self.assertIn("Bulk Edit", fallback_body)
->>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
->>>>>>> Stashed changes
             self.assertIn("/static/js/citation_picker.js", fallback_body)
             self.assertIn("/static/js/multi_value_picker.js", fallback_body)

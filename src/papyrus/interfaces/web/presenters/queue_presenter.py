@@ -5,15 +5,7 @@ from typing import Any
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import primary_surface_href, projection_state, projection_use_guidance
 from papyrus.interfaces.web.rendering import TemplateRenderer
-<<<<<<< Updated upstream
 from papyrus.interfaces.web.view_helpers import approval_status, escape, freshness_status, join_html, link, quoted_path, risk_status
-=======
-<<<<<<< HEAD
-from papyrus.interfaces.web.view_helpers import approval_status, escape, freshness_status, join_html, link, quoted_path, risk_status
-=======
-from papyrus.interfaces.web.view_helpers import escape, link, quoted_path, tone_for_approval, tone_for_health, tone_for_trust
->>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
->>>>>>> Stashed changes
 
 
 def _queue_item_href(item: dict[str, Any]) -> str:
@@ -143,88 +135,6 @@ def _decision_card_html(components: ComponentPresenter, item: dict[str, Any]) ->
         f'<div class="decision-card-actions">{link(_decision_action_label(bucket), _queue_item_href(item), css_class="button button-primary" if bucket != "safe" else "button button-secondary")}</div>'
         "</article>"
     )
-<<<<<<< Updated upstream
-=======
-
-
-def _queue_action_label(item: dict[str, Any]) -> str:
-    if bool((item.get("ui_projection") or {}).get("use_guidance", {}).get("safe_to_use")):
-        return "Use guidance"
-    approval_state = _projection_state_value(item, "approval_state")
-    if approval_state in {"draft", "rejected"}:
-        return "Update draft"
-    if approval_state == "in_review":
-        return "Check review"
-    return "Continue"
-
-
-def _queue_status_cell(components: ComponentPresenter, item: dict[str, Any]) -> str:
-    state = projection_state(item.get("ui_projection"))
-    use_guidance = projection_use_guidance(item.get("ui_projection"))
-    return components.decision_cell(
-        title_html=escape(use_guidance.get("summary") or "Status unavailable"),
-        badges=[
-            components.badge(
-                label="Trust",
-                value=_projection_state_value(item, "trust_state"),
-                tone=tone_for_trust(_projection_state_value(item, "trust_state")),
-            ),
-            components.badge(
-                label="Approval",
-                value=_projection_state_value(item, "approval_state"),
-                tone=tone_for_approval(_projection_state_value(item, "approval_state")),
-            ),
-            components.badge(
-                label="Freshness",
-                value=item.get("freshness_rank", 0),
-                tone=tone_for_health(int(item.get("freshness_rank") or 0)),
-            ),
-            components.badge(
-                label="Evidence",
-                value=item.get("citation_health_rank", 0),
-                tone=tone_for_health(int(item.get("citation_health_rank") or 0)),
-            ),
-        ],
-        supporting_html=escape(_status_detail_text(item)),
-        meta=[
-            escape(f"Revision {state.get('revision_review_state') or 'unknown'}"),
-        ],
-    )
-
-
-def _queue_guidance_cell(components: ComponentPresenter, item: dict[str, Any]) -> str:
-    services_html = (
-        ", ".join(
-            link(service["service_name"], f"/services/{quoted_path(service['service_id'])}")
-            for service in item["linked_services"]
-        )
-        if item["linked_services"]
-        else ""
-    )
-    return components.decision_cell(
-        title_html=link(item["title"], _queue_item_href(item)),
-        meta=[
-            escape(f"{item['object_type']}"),
-            escape(item["object_id"]),
-            services_html,
-        ],
-        extra_html=components.inline_disclosure(
-            label="Source details",
-            body_html=f"<p>{escape(item['path'])}</p>",
-        ),
-    )
-
-
-def _queue_attention_cell(components: ComponentPresenter, item: dict[str, Any]) -> str:
-    return components.decision_cell(
-        title_html=escape(_next_action_text(item)),
-        supporting_html=escape(_use_when_text(item)),
-        meta=[
-            escape(f"Last reviewed {item.get('last_reviewed') or 'unknown'}"),
-            escape(f"Cadence {item.get('review_cadence') or 'unknown'}"),
-        ],
-    )
->>>>>>> Stashed changes
 
 
 def present_queue_page(
@@ -252,15 +162,7 @@ def present_queue_page(
             components.badge(label="Needs review", value=len(grouped_items["review"]), tone="warning"),
             components.badge(label="Requires attention", value=len(grouped_items["attention"]), tone="danger"),
         ],
-<<<<<<< Updated upstream
         summary="Papyrus groups guidance by decision urgency so the next click is driven by risk, freshness, and approval state.",
-=======
-<<<<<<< HEAD
-        summary="Papyrus groups guidance by decision urgency so the next click is driven by risk, freshness, and approval state.",
-=======
-        summary="Best match first, with trust and the next step beside it.",
->>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
->>>>>>> Stashed changes
     )
     filter_controls_html = (
         '<form class="filter-form" method="get" action="/read">'
@@ -287,7 +189,6 @@ def present_queue_page(
         f'<option value="draft"{" selected" if selected_approval == "draft" else ""}>Draft</option>'
         f'<option value="rejected"{" selected" if selected_approval == "rejected" else ""}>Rejected</option>'
         "</select>"
-<<<<<<< Updated upstream
         '<button class="button button-primary" type="submit">Show best matches</button>'
         "</form>"
     )
@@ -311,56 +212,6 @@ def present_queue_page(
                     [_decision_card_html(components, item) for item in group_items]
                 ),
             )
-=======
-<<<<<<< HEAD
-        '<button class="button button-primary" type="submit">Show best matches</button>'
-        "</form>"
-    )
-    group_config = {
-        "safe": ("Safe", "Approved guidance you can use with the current guardrails.", "approved"),
-        "review": ("Needs review", "Guidance that needs verification before you rely on it.", "warning"),
-        "attention": ("Requires attention", "Guidance blocked by higher-risk trust or approval signals.", "danger"),
-    }
-    group_sections = []
-    for group_key in ("attention", "review", "safe"):
-        group_items = grouped_items[group_key]
-        if not group_items:
-            continue
-        title, description, tone = group_config[group_key]
-        group_sections.append(
-            components.section_card(
-                title=title,
-                eyebrow="Read",
-                tone=tone,
-                body_html=f'<p class="decision-group-summary">{escape(description)}</p>' + join_html(
-                    [_decision_card_html(components, item) for item in group_items]
-                ),
-            )
-=======
-        '<button class="button button-primary" type="submit">Show guidance</button>'
-        "</form>"
-    )
-    rows = [
-        [
-            _queue_guidance_cell(components, item),
-            _queue_status_cell(components, item),
-            _queue_attention_cell(components, item),
-            link(_queue_action_label(item), _queue_item_href(item), css_class="button button-primary"),
-        ]
-        for item in normalized_items
-    ]
-    queue_html = (
-        components.section_card(
-            title="Guidance results",
-            eyebrow="Read",
-            body_html=components.queue_table(
-                headers=["Guidance", "Status", "What needs attention", "Do next"],
-                rows=rows,
-                table_id="read-guidance",
-            ),
-            footer_html='<p class="section-footer">Rows are ordered so the safest current answer appears first.</p>',
->>>>>>> fa7e1337802c3001927a331483a6133ab2648dde
->>>>>>> Stashed changes
         )
     queue_html = (
         join_html(group_sections)
@@ -375,7 +226,7 @@ def present_queue_page(
         "page_title": "Read Guidance",
         "headline": "Read Operational Guidance",
         "kicker": "Read",
-        "intro": "Find the right guidance and see the next step immediately.",
+        "intro": "Find the right operational guidance quickly, understand when to use it, and see what to do next if it is not yet safe to rely on.",
         "active_nav": "read",
         "aside_html": "",
         "page_context": {
