@@ -18,6 +18,7 @@ def register(router, runtime) -> None:
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
+                header_mode="compact",
                 **page,
             )
         )
@@ -33,6 +34,7 @@ def register(router, runtime) -> None:
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
+                header_mode="compact",
                 **page,
             )
         )

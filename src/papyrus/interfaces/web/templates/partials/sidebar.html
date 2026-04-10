@@ -1,11 +1,7 @@
 <nav class="sidebar">
-  <div class="sidebar-role-card" aria-label="Current role">
-    <div class="sidebar-role-copy">
-      <span class="sidebar-role-kicker">Current actor</span>
-      <span class="sidebar-role-name">{{ actor_display_name }}</span>
-      <p class="sidebar-role-summary">{{ actor_role_summary }}</p>
-    </div>
-    <span class="sidebar-role-tag">{{ actor_role_hint }}</span>
+  <div class="sidebar-summary" aria-label="Workflow summary">
+    <p class="sidebar-label">Workflow map</p>
+    <p class="sidebar-copy">{{ actor_role_summary }}</p>
   </div>
   {{ nav_sections_html }}
 </nav>

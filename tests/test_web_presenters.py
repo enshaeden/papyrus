@@ -166,8 +166,9 @@ class WebPresenterTests(unittest.TestCase):
         )
         self.assertEqual(page["page_title"], "Read Guidance")
         self.assertEqual(page["aside_html"], "")
-        self.assertIn("Read posture", page["page_context"]["summary_html"])
         self.assertIn("Read filters", page["page_context"]["filter_bar_html"])
+        self.assertIn("Decision view", page["page_context"]["summary_html"])
+        self.assertIn("Requires attention", page["page_context"]["queue_html"])
         self.assertIn(
             "Backend contract says this guidance is still in review.",
             page["page_context"]["queue_html"],
@@ -261,10 +262,14 @@ class WebPresenterTests(unittest.TestCase):
         self.assertIn("Supporting evidence", page["page_context"]["related_sections_html"])
         self.assertIn("Recent audit trail", page["page_context"]["related_sections_html"])
         self.assertIn("Linked service context", page["page_context"]["content_sections_html"])
-        self.assertIn("Safety status", page["aside_html"])
+        self.assertIn("Current status", page["aside_html"])
         self.assertIn("Governed actions", page["page_context"]["content_sections_html"])
         self.assertIn("The runtime contract marks this object safe for use.", page["page_context"]["content_sections_html"])
         self.assertEqual(page["page_context"]["content_sections_html"].count("Governed actions"), 1)
+        self.assertIn("Risk", page["page_context"]["header_html"])
+        self.assertIn("Freshness", page["page_context"]["header_html"])
+        self.assertIn("Approval", page["page_context"]["header_html"])
+        self.assertNotIn("Evidence", page["page_context"]["header_html"])
 
     def test_object_presenter_prefers_projection_truth_over_raw_state_fallbacks(self) -> None:
         page = present_object_detail(

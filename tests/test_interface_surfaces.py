@@ -174,7 +174,7 @@ class InterfaceSurfaceTests(unittest.TestCase):
         status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
         self.assertIn("VPN Troubleshooting", body)
-        self.assertIn("Compare revisions", body)
+        self.assertIn("See history", body)
         self.assertIn("Supporting evidence", body)
         self.assertIn('<aside class="context-column">', body)
 

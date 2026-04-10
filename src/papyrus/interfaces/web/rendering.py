@@ -51,16 +51,15 @@ class PageRenderer:
         page_context: dict[str, object] | None = None,
         actor_id: str = "",
         current_path: str = "",
+        shell_variant: str = "default",
+        header_mode: str = "default",
+        header_context_html: str = "",
     ) -> str:
         role_config = actor_shell_for_id(actor_id)
+        actor_class = role_config.actor.actor_id.replace(".", "-")
         content_html = self.template_renderer.render(page_template, page_context or {})
-        has_aside = bool(str(aside_html).strip())
+        has_aside = bool(str(aside_html).strip()) and shell_variant != "focus"
         active_item = self._active_nav_item(role_config.nav_sections, active_nav=active_nav, current_path=current_path)
-        aside_column_html = (
-            f'<aside class="context-column">{aside_html}</aside>'
-            if has_aside
-            else ""
-        )
         topbar_html = self.template_renderer.render(
             "partials/topbar.html",
             {
@@ -88,17 +87,6 @@ class PageRenderer:
                 for item in role_config.quick_links
             ]
         )
-        actor_banner_html = self.template_renderer.render(
-            "partials/actor_banner.html",
-            {
-                "actor_display_name": escape(role_config.actor.display_name),
-                "actor_role_summary": escape(role_config.summary),
-                "actor_role_label": escape(actor_role_label),
-                "actor_role_class": escape(actor_role_class),
-                "current_view_label": escape(current_view_label),
-                "quick_links_html": quick_links_html,
-            },
-        )
         nav_sections_html = join_html(
             [
                 (
@@ -124,15 +112,38 @@ class PageRenderer:
                 for section in role_config.nav_sections
             ]
         )
-        sidebar_html = self.template_renderer.render(
-            "partials/sidebar.html",
-            {
-                "actor_display_name": escape(role_config.actor.display_name),
-                "actor_role_summary": escape(role_config.summary),
-                "actor_role_hint": escape(role_config.actor.role_hint.replace("_", " ")),
-                "nav_sections_html": nav_sections_html,
-            },
+        actor_banner_html = ""
+        if shell_variant != "focus":
+            actor_banner_html = self.template_renderer.render(
+                "partials/actor_banner.html",
+                {
+                    "actor_display_name": escape(role_config.actor.display_name),
+                    "actor_role_summary": escape(role_config.summary),
+                    "actor_role_label": escape(actor_role_label),
+                    "actor_role_class": escape(actor_role_class),
+                    "current_view_label": escape(current_view_label),
+                    "quick_links_html": quick_links_html,
+                },
+            )
+        sidebar_html = ""
+        if shell_variant != "focus":
+            sidebar_html = self.template_renderer.render(
+                "partials/sidebar.html",
+                {
+                    "actor_role_summary": escape(role_config.summary),
+                    "nav_sections_html": nav_sections_html,
+                },
+            )
+        aside_column_html = (
+            f'<aside class="context-column">{aside_html}</aside>'
+            if has_aside
+            else ""
         )
+        shell_columns_classes = ["shell-columns", f"shell-columns-{escape(shell_variant)}"]
+        if sidebar_html.strip():
+            shell_columns_classes.append("has-sidebar")
+        if aside_column_html.strip():
+            shell_columns_classes.append("has-aside")
         scripts_html = join_html(
             [f'<script src="{escape(path)}" defer></script>' for path in scripts],
             "\n",
@@ -146,14 +157,17 @@ class PageRenderer:
                 "intro": escape(intro),
                 "actor_banner_html": actor_banner_html,
                 "header_detail_html": header_detail_html,
+                "header_context_html": header_context_html,
                 "topbar_html": topbar_html,
                 "sidebar_html": sidebar_html,
                 "flash_html": flash_html,
                 "action_bar_html": action_bar_html,
                 "content_html": content_html,
                 "aside_column_html": aside_column_html,
-                "shell_columns_class": "has-aside" if has_aside else "no-aside",
                 "scripts_html": scripts_html,
+                "shell_variant_class": escape(f"shell-{shell_variant} actor-{actor_class}"),
+                "shell_columns_class": escape(" ".join(shell_columns_classes)),
+                "page_header_class": escape(f"page-header-{header_mode}"),
             },
         )
 

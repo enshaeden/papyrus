@@ -12,15 +12,15 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
 )
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import (
+    approval_status,
     escape,
+    freshness_status,
     format_timestamp,
     join_html,
     link,
     quoted_path,
+    risk_status,
     render_list,
-    tone_for_approval,
-    tone_for_health,
-    tone_for_trust,
 )
 
 
@@ -188,6 +188,27 @@ def _guidance_cards(
     return []
 
 
+def _object_status_badges_html(
+    components: ComponentPresenter,
+    *,
+    item: dict[str, Any],
+    ui_projection: dict[str, Any],
+) -> list[str]:
+    state = projection_state(ui_projection)
+    use_guidance = ui_projection.get("use_guidance") or {}
+    risk_label, risk_tone = risk_status(
+        trust_state=str(state.get("trust_state") or "unknown"),
+        safe_to_use=bool(use_guidance.get("safe_to_use")),
+    )
+    freshness_label, freshness_tone = freshness_status(int(item.get("freshness_rank") or 0))
+    approval_label, approval_tone = approval_status(str(state.get("approval_state") or "unknown"))
+    return [
+        components.badge(label="Risk", value=risk_label, tone=risk_tone),
+        components.badge(label="Freshness", value=freshness_label, tone=freshness_tone),
+        components.badge(label="Approval", value=approval_label, tone=approval_tone),
+    ]
+
+
 def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     item = detail["object"]
@@ -210,25 +231,12 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         object_id=item["object_id"],
         title=item["title"],
         summary=item["summary"],
-        badges=[
-            components.badge(
-                label="Trust",
-                value=projection_state_values.get("trust_state") or "unknown",
-                tone=tone_for_trust(str(projection_state_values.get("trust_state") or "unknown")),
-            ),
-            components.badge(
-                label="Approval",
-                value=projection_state_values.get("approval_state") or "unknown",
-                tone=tone_for_approval(str(projection_state_values.get("approval_state") or "unknown")),
-            ),
-            components.badge(label="Freshness", value=item["freshness_rank"], tone=tone_for_health(item["freshness_rank"])),
-            components.badge(label="Evidence", value=item["citation_health_rank"], tone=tone_for_health(item["citation_health_rank"])),
-        ],
+        badges=_object_status_badges_html(components, item=item, ui_projection=ui_projection),
         actions_html=join_html(
             [
-                link("Compare revisions", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
-                link("Update guidance", f"/write/objects/{quoted_path(item['object_id'])}/revisions/new", css_class="button button-primary"),
-                link("Review impact", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
+                link("See history", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
+                link("Revise guidance", f"/write/objects/{quoted_path(item['object_id'])}/revisions/new", css_class="button button-primary"),
+                link("See consequences", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
             ],
             " ",
         ),
@@ -358,24 +366,8 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
     aside_html = join_html(
         [
             components.trust_summary(
-                title="Safety status",
-                badges=[
-                    components.badge(
-                        label="Trust",
-                        value=projection_state_values.get("trust_state") or "unknown",
-                        tone=tone_for_trust(str(projection_state_values.get("trust_state") or "unknown")),
-                    ),
-                    components.badge(
-                        label="Approval",
-                        value=projection_state_values.get("approval_state") or "unknown",
-                        tone=tone_for_approval(str(projection_state_values.get("approval_state") or "unknown")),
-                    ),
-                    components.badge(
-                        label="Status",
-                        value=projection_state_values.get("object_lifecycle_state") or "unknown",
-                        tone="context",
-                    ),
-                ],
+                title="Current status",
+                badges=_object_status_badges_html(components, item=item, ui_projection=ui_projection),
                 summary=str(
                     (ui_projection.get("use_guidance") or {}).get("detail")
                     or "Papyrus did not return governed detail for this object."
@@ -400,6 +392,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                 rows=[
                     ("Owner", escape(item["owner"])),
                     ("Team", escape(item["team"])),
+                    ("Lifecycle", escape(projection_state_values.get("object_lifecycle_state") or item.get("object_lifecycle_state") or "unknown")),
                     ("Canonical path", escape(item["canonical_path"])),
                     ("Systems", escape(", ".join(item["systems"]))),
                     ("Tags", escape(", ".join(item["tags"]))),

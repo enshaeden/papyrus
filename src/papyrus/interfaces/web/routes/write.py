@@ -21,10 +21,19 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
     projection_use_guidance,
     render_action_contract_panel,
     render_projection_status_panel,
-    render_workflow_projection_panel,
 )
 from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
-from papyrus.interfaces.web.view_helpers import escape, join_html, link, parse_multiline, quoted_path
+from papyrus.interfaces.web.view_helpers import escape, join_html, link, parse_multiline, quoted_path, render_list
+
+
+def _support_details_html(*, title: str, summary: str, body_html: str, open_by_default: bool = False) -> str:
+    return (
+        f'<details class="support-disclosure"{" open" if open_by_default else ""}>'
+        f'<summary><span class="support-disclosure-title">{escape(title)}</span>'
+        f'<span class="support-disclosure-summary">{escape(summary)}</span></summary>'
+        f'<div class="support-disclosure-body">{body_html}</div>'
+        "</details>"
+    )
 
 
 def _render_object_form(runtime, values: dict[str, str], errors: dict[str, list[str]], *, form_action: str) -> dict[str, str]:
@@ -216,24 +225,10 @@ def _common_revision_aside(runtime, detail) -> str:
             ),
         ]
     )
-
-
 def _completion_ratio(values: dict[str, str], fields: list[str]) -> tuple[int, int]:
     total = len(fields)
     completed = sum(1 for field in fields if values.get(field, "").strip())
     return completed, total
-
-
-def _progress_card(components, *, title: str, completed: int, total: int, detail: str, tone: str = "default") -> str:
-    return components.section_card(
-        title=title,
-        eyebrow="Progress",
-        tone=tone,
-        body_html=(
-            f'<p class="metric-value">{escape(f"{completed}/{total}")}</p>'
-            f"<p>{escape(detail)}</p>"
-        ),
-    )
 
 
 def _object_progress_html(components, *, values: dict[str, str], errors: dict[str, list[str]]) -> str:
@@ -241,21 +236,23 @@ def _object_progress_html(components, *, values: dict[str, str], errors: dict[st
     stewardship_completed, stewardship_total = _completion_ratio(values, ["owner", "team", "review_cadence", "status"])
     source_completed, source_total = _completion_ratio(values, ["object_id", "canonical_path"])
     blockers = sum(len(messages) for messages in errors.values())
-    return join_html(
-        [
-            _progress_card(components, title="Define the draft", completed=purpose_completed, total=purpose_total, detail="Choose the content type, title, and summary readers will see first.", tone="brand"),
-            _progress_card(components, title="Set ownership", completed=stewardship_completed, total=stewardship_total, detail="Owner, team, cadence, and status keep the guidance accountable."),
-            _progress_card(components, title="Set publishing details", completed=source_completed, total=source_total, detail="Reference code and publishing location keep the draft traceable."),
-            components.section_card(
-                title="Readiness",
-                eyebrow="Progress",
-                tone="warning" if blockers else "approved",
-                body_html=(
-                    f"<p><strong>Blocking fields:</strong> {escape(blockers)}</p>"
-                    "<p>Start drafting once the required setup, ownership, and publishing details are complete.</p>"
-                ),
-            ),
-        ]
+    return components.section_card(
+        title="Step 1 of 3",
+        eyebrow="Progress",
+        tone="warning" if blockers else "brand",
+        body_html=(
+            "<p><strong>Current task:</strong> define the shell that future revisions will inherit.</p>"
+            + render_list(
+                [
+                    escape(f"Purpose and type: {purpose_completed}/{purpose_total} complete"),
+                    escape(f"Ownership and cadence: {stewardship_completed}/{stewardship_total} complete"),
+                    escape(f"Durable ID and path: {source_completed}/{source_total} complete"),
+                ],
+                css_class="stack-list",
+            )
+            + f"<p><strong>Blocking fields:</strong> {escape(blockers)}</p>"
+        ),
+        footer_html='<p class="section-footer">Next: Papyrus opens the first required section for guided drafting.</p>',
     )
 
 
@@ -276,72 +273,26 @@ def _revision_progress_html(components, *, object_type: str, values: dict[str, s
     content_completed, content_total = _completion_ratio(values, type_specific_fields)
     blockers = sum(len(messages) for messages in errors.values())
     warnings = len(findings or [])
-    return join_html(
-        [
-            _progress_card(components, title="Purpose and scope", completed=purpose_completed, total=purpose_total, detail="Make the reader-facing purpose explicit before filling in deeper structure.", tone="brand"),
-            _progress_card(components, title="Core structured content", completed=content_completed, total=content_total, detail="Capture the steps, checks, or service structure that will become the live guidance."),
-            _progress_card(
-                components,
-                title="Links and evidence posture",
-                completed=linkage_completed + evidence_completed,
-                total=linkage_total + evidence_total,
-                detail=_revision_evidence_progress_detail(evidence_posture),
-            ),
-            components.section_card(
-                title="Submission readiness",
-                eyebrow="Progress",
-                tone="warning" if blockers else "approved",
-                body_html=(
-                    f"<p><strong>Validation blockers:</strong> {escape(blockers)}</p>"
-                    f"<p><strong>Warnings to review:</strong> {escape(warnings)}</p>"
-                    "<p>Save the draft once blockers are clear. Submit it when the warnings are understood and acceptable to reviewers.</p>"
-                ),
-            ),
-        ]
+    return components.section_card(
+        title="Advanced editor status",
+        eyebrow="Progress",
+        tone="warning" if blockers or warnings else "approved",
+        body_html=(
+            "<p><strong>Current task:</strong> keep the full draft coherent before handoff.</p>"
+            + render_list(
+                [
+                    escape(f"Purpose and stewardship: {purpose_completed}/{purpose_total} complete"),
+                    escape(f"Core structured content: {content_completed}/{content_total} complete"),
+                    escape(f"Links and evidence: {linkage_completed + evidence_completed}/{linkage_total + evidence_total} complete"),
+                ],
+                css_class="stack-list",
+            )
+            + f"<p><strong>Validation blockers:</strong> {escape(blockers)}</p>"
+            + f"<p><strong>Warnings to review:</strong> {escape(warnings)}</p>"
+            + f"<p>{escape(_revision_evidence_progress_detail(evidence_posture))}</p>"
+        ),
+        footer_html='<p class="section-footer">Use the guided editor for routine section work and keep this editor for cross-section changes.</p>',
     )
-
-
-def _write_timeline_html(*, stage: str, is_first_revision: bool = False) -> str:
-    step_two_label = "Draft first revision" if is_first_revision else "Draft revision"
-    steps = [
-        {
-            "index": "1",
-            "title": "Set up draft",
-            "detail": "Name the guidance, set ownership, and confirm publishing details.",
-            "state": "current" if stage == "object" else "complete",
-        },
-        {
-            "index": "2",
-            "title": step_two_label,
-            "detail": "Fill in the guided sections and supporting evidence.",
-            "state": "current" if stage == "revision" else "complete" if stage == "submit" else "upcoming",
-        },
-        {
-            "index": "3",
-            "title": "Submit for review",
-            "detail": "Send the draft to review with the right context.",
-            "state": "current" if stage == "submit" else "upcoming",
-        },
-    ]
-
-    parts: list[str] = ['<div class="workflow-top" aria-label="Write workflow">']
-    for position, step in enumerate(steps):
-        parts.append(
-            f'<section class="workflow-top-step is-{escape(step["state"])}">'
-            f'<span class="workflow-top-index">{escape(step["index"])}</span>'
-            '<div class="workflow-top-copy">'
-            f'<p class="workflow-top-label">{escape(step["title"])}</p>'
-            f'<p class="workflow-top-detail">{escape(step["detail"])}</p>'
-            f'<p class="workflow-top-state">{escape("Current step" if step["state"] == "current" else "Complete" if step["state"] == "complete" else "Next")}</p>'
-            "</div>"
-            "</section>"
-        )
-        if position < len(steps) - 1:
-            parts.append('<span class="workflow-top-arrow" aria-hidden="true">→</span>')
-    parts.append("</div>")
-    return "".join(parts)
-
-
 def _citation_search_status(title: str, reference: str) -> str:
     if title and reference:
         return f"Selected source: {title} -> {reference}"
@@ -641,13 +592,24 @@ def _next_action_panel_html(components, *, detail, blueprint, completion: dict[s
             submit_action=submit_action,
         )
     )
-    return render_workflow_projection_panel(
-        components,
-        title="Draft readiness contract",
-        projection=draft_projection,
-        footer_html=(
-            f'<p class="section-footer">Continue guided authoring until this contract shows the revision is ready for review.</p>'
+    progress_rows = [
+        f"{row['label']}: {row['value']}"
+        for row in draft_projection.get("rows", [])
+        if row.get("label") and row.get("value")
+    ]
+    reasons = [str(reason) for reason in draft_projection.get("reasons", [])]
+    warnings = [str(warning) for warning in draft_projection.get("warnings", [])]
+    return components.section_card(
+        title="Ready for handoff?",
+        eyebrow="Progress",
+        tone=str(draft_projection.get("tone") or "default"),
+        body_html=(
+            f"<p>{escape(draft_projection.get('summary') or 'Draft status available.')}</p>"
+            + (render_list([escape(item) for item in progress_rows], css_class="stack-list") if progress_rows else "")
+            + (components.validation_findings(title="Still blocking", items=[escape(item) for item in reasons], tone="warning") if reasons else "")
+            + (components.validation_findings(title="Review before handoff", items=[escape(item) for item in warnings], tone="warning") if warnings else "")
         ),
+        footer_html='<p class="section-footer">Keep saving the active section until the draft is ready for reviewer handoff.</p>',
     )
 
 
@@ -656,13 +618,12 @@ def _fallback_revision_href(*, object_id: str, revision_id: str) -> str:
 
 
 def _guided_fallback_html(components, *, object_id: str, revision_id: str) -> str:
-    return components.section_card(
-        title="Operator fallback",
-        eyebrow="Fallback",
-        tone="context",
+    return _support_details_html(
+        title="Need the advanced editor?",
+        summary="Use it only for cross-section edits, citation lookup, or searchable pickers.",
         body_html=(
-            "<p>Guided editing is the primary path. Use bulk edit only when you need a wider form, source lookup, or multi-select helpers.</p>"
-            f'<p>{link("Switch to bulk edit", _fallback_revision_href(object_id=object_id, revision_id=revision_id), css_class="button button-secondary")}</p>'
+            "<p>Guided section editing stays the default path. Move to the advanced editor only when you need to change multiple sections in one pass or use the search-assisted reference tools.</p>"
+            f'<p>{link("Use advanced editor", _fallback_revision_href(object_id=object_id, revision_id=revision_id), css_class="button button-secondary")}</p>'
         ),
     )
 
@@ -748,7 +709,6 @@ def _section_fields_html(runtime, *, blueprint, section, values: dict[str, str],
         label = str(field["label"])
         kind = str(field.get("kind") or "text")
         hint = str(field.get("hint") or "")
-        placeholder = str(field.get("placeholder") or "")
         if kind == "select":
             control = forms.select(
                 field_id=name,
@@ -757,11 +717,11 @@ def _section_fields_html(runtime, *, blueprint, section, values: dict[str, str],
                 options=list(runtime.taxonomies[str(field.get("taxonomy"))]["allowed_values"]),
             )
         elif kind == "list":
-            control = forms.textarea(field_id=name, name=name, value=values.get(name, ""), rows=5, placeholder=placeholder)
+            control = forms.textarea(field_id=name, name=name, value=values.get(name, ""), rows=5)
         elif kind == "long_text":
-            control = forms.textarea(field_id=name, name=name, value=values.get(name, ""), rows=6, placeholder=placeholder)
+            control = forms.textarea(field_id=name, name=name, value=values.get(name, ""), rows=6)
         else:
-            control = forms.input(field_id=name, name=name, value=values.get(name, ""), placeholder=placeholder)
+            control = forms.input(field_id=name, name=name, value=values.get(name, ""))
         blocks.append(forms.field(field_id=name, label=label, control_html=control, hint=hint, errors=errors.get(name)))
     return "".join(blocks)
 
@@ -807,10 +767,10 @@ def _render_guided_revision_page(
         f'<input type="hidden" name="section_id" value="{escape(section_id)}" />'
         + _section_fields_html(runtime, blueprint=blueprint, section=section, values=values, errors=errors)
         + '<div class="section-editor-actions">'
-        + forms.button(label="Save section")
+        + forms.button(label="Save and continue")
         + (
             forms.link_button(
-                label="Review readiness",
+                label="Check review handoff",
                 href=f"/write/objects/{quoted_path(object_detail['object']['object_id'])}/submit?revision_id={quoted_path(revision_id)}",
                 variant="secondary",
             )
@@ -821,9 +781,9 @@ def _render_guided_revision_page(
     )
     return {
         "stage_label_html": (
-            '<p class="page-kicker">Step 2: Draft First Revision</p>'
+            '<p class="write-stage-label">Step 2 of 3 · Draft the first revision</p>'
             if is_first_revision
-            else '<p class="page-kicker">Draft Revision</p>'
+            else '<p class="write-stage-label">Step 2 of 3 · Continue the revision</p>'
         ),
         "progress_html": progress_html,
         "validation_html": validation_html,
@@ -842,7 +802,7 @@ def _render_guided_revision_page(
             blueprint=blueprint,
             completion=completion,
         ),
-        "fallback_html": _guided_fallback_html(
+        "guidance_html": _guided_fallback_html(
             components,
             object_id=str(object_detail["object"]["object_id"]),
             revision_id=revision_id,
@@ -1047,29 +1007,28 @@ def _render_fallback_revision_form(
         + '<section class="form-section"><h3>Evidence</h3>'
         + "".join(citation_fields)
         + "</section>"
-        + forms.button(label="Save first draft revision" if is_first_revision else "Save draft revision")
+        + forms.button(label="Save draft")
         + "</form>"
     )
     current_revision = detail.get("current_revision") or {}
     guided_return_href = (
         f"/write/objects/{quoted_path(object_info['object_id'])}/revisions/new?revision_id={quoted_path(str(current_revision.get('revision_id') or ''))}#revision-form"
     )
-    guidance_html = components.section_card(
-        title="Bulk edit",
-        eyebrow="Fallback",
-        tone="context",
+    guidance_html = _support_details_html(
+        title="Return to guided drafting",
+        summary="Use the guided flow when you only need one active section at a time.",
         body_html=(
-            "<p>Use this wider editor only when guided drafting is not enough for the change you need to make.</p>"
+            "<p>This editor keeps the full draft in one place. Switch back to guided drafting when you want the next required section surfaced automatically.</p>"
             if is_first_revision
-            else "<p>This editor updates the same draft, but guided section editing remains the primary route for day-to-day work.</p>"
+            else "<p>This editor still writes the same draft, but guided section editing remains the primary route for day-to-day authoring.</p>"
         )
-        + f'<p>{link("Return to guided editing", guided_return_href, css_class="button button-secondary")}</p>'
-        + "<p>Linked guidance helps with traceability. External or manual sources still need evidence follow-up before they count as strong support.</p>",
+        + f'<p>{link("Return to guided flow", guided_return_href, css_class="button button-secondary")}</p>'
+        + "<p>Evidence note: governed Papyrus citations are lightweight internal references. External or manual evidence stays weak until later follow-up records capture time, integrity metadata, and any needed snapshot.</p>",
     )
     return {
         "validation_html": validation_html,
         "progress_html": _revision_progress_html(components, object_type=object_type, values=values, errors=errors, findings=findings),
-        "form_html": components.section_card(title="Bulk edit", eyebrow="Fallback", body_html=body_html, tone="context"),
+        "form_html": components.section_card(title="Advanced draft editor", eyebrow="Write", body_html=body_html),
         "guidance_html": guidance_html + _evidence_guidance_section(components, title="How evidence gets strengthened"),
     }
 
@@ -1096,7 +1055,7 @@ def _render_submit_page(
         )
     )
     form_html = components.section_card(
-        title="Submit for review",
+        title="Send to review",
         eyebrow="Write",
         body_html=(
             '<form class="governed-form" method="post">'
@@ -1107,7 +1066,7 @@ def _render_submit_page(
                 hint="Optional notes for reviewers and assignment triage.",
                 errors=form_errors.get("notes"),
             )
-            + forms.button(label="Send for review")
+            + forms.button(label="Send to review")
             + "</form>"
         ),
     )
@@ -1138,21 +1097,33 @@ def _render_submit_page(
         ]
     )
     findings_html = components.validation_findings(title="Pre-submit validation", items=[escape(item) for item in findings] or ["No blocking findings detected."], tone="warning" if findings else "approved")
-    progress_html = render_workflow_projection_panel(
-        components,
-        title="Submission readiness",
-        projection=draft_projection,
-        footer_html=(
-            f'<p class="section-footer">Warnings to review before submission: {escape(len(findings))}</p>'
+    progress_rows = [
+        f"{row['label']}: {row['value']}"
+        for row in draft_projection.get("rows", [])
+        if row.get("label") and row.get("value")
+    ]
+    progress_html = components.section_card(
+        title="Step 3 of 3",
+        eyebrow="Progress",
+        tone=str(draft_projection.get("tone") or "default"),
+        body_html=(
+            f"<p>{escape(draft_projection.get('summary') or 'Submission status available.')}</p>"
+            + (render_list([escape(item) for item in progress_rows], css_class="stack-list") if progress_rows else "")
+            + f"<p><strong>Warnings to review:</strong> {escape(len(findings))}</p>"
         ),
+        footer_html='<p class="section-footer">Send the revision only after the remaining warnings are understood.</p>',
     )
     guidance_html = ""
     if any("Evidence posture:" in item for item in findings):
-        guidance_html = _evidence_guidance_section(
-            components,
-            title="Strengthen evidence before approval",
-            include_action=True,
-            object_id=str(detail["object"]["object_id"]),
+        guidance_html = _support_details_html(
+            title="How to strengthen weak evidence",
+            summary="Use the manage flow when reviewer confidence depends on stronger capture metadata.",
+            body_html=_evidence_guidance_section(
+                components,
+                title="How evidence gets strengthened",
+                include_action=True,
+                object_id=str(detail["object"]["object_id"]),
+            ),
         )
     return {
         "summary_html": summary_html,
@@ -1193,16 +1164,17 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/write_object_new.html",
                 page_title="Choose blueprint",
-                headline="Start A Guided Draft",
+                headline="Start a guided draft",
                 kicker="Write",
-                intro="Choose the content type, name the guidance, and confirm who owns it.",
+                intro="Define the shell once, then move into guided section-by-section drafting.",
                 active_nav="write",
                 flash_html=page_flash_html,
                 actor_id=actor_for_request(request),
                 current_path=request.path,
-                header_detail_html=_write_timeline_html(stage="object", is_first_revision=True),
                 action_bar_html="",
                 aside_html="",
+                shell_variant="focus",
+                header_mode="compact",
                 page_context=page_context,
             )
         )
@@ -1256,15 +1228,16 @@ def register(router, runtime) -> None:
                     runtime.page_renderer.render_page(
                         page_template="pages/write_revision_edit.html",
                         page_title=f"Draft {section.display_name}",
-                        headline=f"Draft {blueprint.display_name}",
+                        headline=f"Continue {blueprint.display_name}",
                         kicker="Write",
-                        intro="Complete this draft one section at a time.",
+                        intro="Finish the active section, save it, and move to the next required gap.",
                         active_nav="write",
                         flash_html=page_flash_html,
                         actor_id=actor_id,
                         current_path=request.path,
-                        header_detail_html=_write_timeline_html(stage="revision", is_first_revision=initial_detail["current_revision"] is None),
-                        aside_html=_common_revision_aside(runtime, detail),
+                        aside_html="",
+                        shell_variant="focus",
+                        header_mode="compact",
                         page_context=page_context,
                     )
                 )
@@ -1288,7 +1261,7 @@ def register(router, runtime) -> None:
 
         if request.method == "POST":
             return redirect_response(
-                f"{_fallback_revision_href(object_id=object_id, revision_id=revision_id)}&notice={quote_plus('Bulk edit is on its own page. Continue there if you need the wider editor.')}"
+                f"{_fallback_revision_href(object_id=object_id, revision_id=revision_id)}&notice={quote_plus('Advanced draft editing moved to its own route. Continue there if the guided step is not enough.')}"
             )
 
         page_context = _render_guided_revision_page(
@@ -1304,15 +1277,16 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/write_revision_edit.html",
                 page_title=f"Draft {blueprint.display_name}",
-                headline=f"Draft {blueprint.display_name}",
+                headline=f"Continue {blueprint.display_name}",
                 kicker="Write",
-                intro="Complete this draft one section at a time.",
+                intro="Finish the active section, save it, and move to the next required gap.",
                 active_nav="write",
                 flash_html=page_flash_html,
                 actor_id=actor_id,
                 current_path=request.path,
-                header_detail_html=_write_timeline_html(stage="revision", is_first_revision=initial_detail["current_revision"] is None),
-                aside_html=_common_revision_aside(runtime, detail),
+                aside_html="",
+                shell_variant="focus",
+                header_mode="compact",
                 page_context=page_context,
             )
         )
@@ -1354,7 +1328,7 @@ def register(router, runtime) -> None:
                     change_summary=result.cleaned_data["change_summary"],
                 )
                 return redirect_response(
-                    f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision.revision_id)}&notice={quote_plus('Bulk edit saved')}"
+                    f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision.revision_id)}&notice={quote_plus('Advanced draft saved')}"
                 )
             page_flash_html = FormPresenter(runtime.template_renderer).flash(
                 title="Attention",
@@ -1373,17 +1347,18 @@ def register(router, runtime) -> None:
             return html_response(
                 runtime.page_renderer.render_page(
                     page_template="pages/write_revision_new.html",
-                    page_title="Bulk edit",
-                    headline="Bulk Edit",
+                    page_title="Advanced draft editor",
+                    headline="Advanced draft editor",
                     kicker="Write",
-                    intro="Use bulk edit only when guided drafting is not enough.",
+                    intro="Use this editor only when the guided step is not enough for the change you need to make.",
                     active_nav="write",
                     flash_html=page_flash_html,
                     actor_id=actor_id,
                     current_path=request.path,
-                    header_detail_html=_write_timeline_html(stage="revision", is_first_revision=is_first_revision),
-                    aside_html=_common_revision_aside(runtime, detail),
+                    aside_html="",
                     scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
+                    shell_variant="focus",
+                    header_mode="compact",
                     page_context=page_context,
                 )
             )
@@ -1405,17 +1380,18 @@ def register(router, runtime) -> None:
         return html_response(
             runtime.page_renderer.render_page(
                 page_template="pages/write_revision_new.html",
-                page_title="Bulk edit",
-                headline="Bulk Edit",
+                page_title="Advanced draft editor",
+                headline="Advanced draft editor",
                 kicker="Write",
-                intro="Use bulk edit only when guided drafting is not enough.",
+                intro="Use this editor only when the guided step is not enough for the change you need to make.",
                 active_nav="write",
                 flash_html=page_flash_html,
                 actor_id=actor_id,
                 current_path=request.path,
-                header_detail_html=_write_timeline_html(stage="revision", is_first_revision=is_first_revision),
-                aside_html=_common_revision_aside(runtime, detail),
+                aside_html="",
                 scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
+                shell_variant="focus",
+                header_mode="compact",
                 page_context=page_context,
             )
         )
@@ -1531,15 +1507,16 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 page_template="pages/review_submit.html",
                 page_title="Submit for review",
-                headline="Submit For Review",
+                headline="Send to review",
                 kicker="Write",
-                intro="Check readiness, then send the draft for review.",
+                intro="Review the blockers, confirm the evidence posture, and hand the revision to a reviewer.",
                 active_nav="write",
                 flash_html=flash_html_for_request(runtime, request),
                 actor_id=actor_for_request(request),
                 current_path=request.path,
-                header_detail_html=_write_timeline_html(stage="submit", is_first_revision=detail["revision"]["revision_number"] == 1),
-                aside_html=_common_revision_aside(runtime, object_detail),
+                aside_html="",
+                shell_variant="focus",
+                header_mode="compact",
                 page_context=page_context,
             )
         )
