@@ -3,8 +3,8 @@ body {
   margin: 0;
   color: var(--color-text-primary);
   background:
-    radial-gradient(circle at top left, var(--color-brand-context-overlay), transparent 28rem),
-    linear-gradient(180deg, var(--color-surface-panel) 0%, var(--color-surface-app) 100%);
+    radial-gradient(circle at top left, var(--color-brand-context-overlay), transparent 24rem),
+    var(--color-surface-app);
   font-family: var(--font-sans);
 }
 a { color: var(--color-accent-primary); text-decoration: none; }
@@ -23,9 +23,8 @@ a:hover {
   align-items: center;
   gap: 1rem;
   padding: 0.35rem var(--space-4);
-  border-bottom: 1px solid var(--color-border-default);
-  background: var(--color-surface-overlay);
-  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-topbar-border);
+  background: var(--color-topbar-bg);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -35,10 +34,11 @@ a:hover {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--color-object-identity);
+  color: var(--color-topbar-text);
 }
 .identity-mark:hover {
-  color: var(--color-brand-depth);
+  color: var(--color-topbar-text);
+  opacity: 0.9;
   text-decoration: none;
 }
 .identity-block {
@@ -62,6 +62,9 @@ a:hover {
 .field-hint,
 .empty-state-copy {
   color: var(--color-text-muted);
+}
+.topbar .identity-copy {
+  color: var(--color-topbar-muted);
 }
 .topbar-utility {
   flex: 1 1 34rem;
@@ -96,7 +99,7 @@ a:hover {
   display: none;
 }
 .topbar-menu-label {
-  color: var(--color-text-muted);
+  color: var(--color-topbar-muted);
   font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -109,30 +112,35 @@ a:hover {
   align-items: center;
   min-height: 1.72rem;
   padding: 0.02rem 0.58rem;
-  border: 1px solid var(--color-border-default);
+  border: 1px solid var(--color-topbar-chip-border);
   border-radius: 999px;
-  background: var(--color-surface-raised);
-  color: var(--color-text-primary);
+  background: var(--color-topbar-chip-bg);
+  color: var(--color-topbar-chip-text);
   font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
   flex: 0 0 auto;
 }
 .topbar-menu-chip:hover {
-  background: var(--color-nav-hover-bg);
-  border-color: var(--color-nav-hover-border);
-  color: var(--color-text-primary);
+  background: var(--color-topbar-chip-hover-bg);
+  border-color: var(--color-topbar-chip-hover-border);
+  color: var(--color-topbar-chip-text);
   text-decoration: none;
 }
+.topbar-menu-form:hover,
+.topbar-menu-form:focus-within {
+  background: var(--color-topbar-chip-hover-bg);
+  border-color: var(--color-topbar-chip-hover-border);
+}
 .topbar-menu-chip.is-active {
-  background: var(--color-nav-active);
-  border-color: var(--color-nav-active);
-  color: var(--color-nav-active-text);
+  background: var(--color-topbar-chip-active-bg);
+  border-color: var(--color-topbar-chip-active-border);
+  color: var(--color-topbar-chip-active-text);
 }
 .topbar-menu-chip.is-active:hover {
-  background: var(--color-nav-active-hover);
-  border-color: var(--color-nav-active-hover);
-  color: var(--color-nav-active-text);
+  background: var(--color-topbar-chip-active-hover-bg);
+  border-color: var(--color-topbar-chip-active-hover-border);
+  color: var(--color-topbar-chip-active-text);
 }
 .topbar-search input {
   flex: 1 1 auto;
@@ -140,6 +148,28 @@ a:hover {
   min-width: 0;
   margin: 0;
   padding: 0.48rem 0.75rem;
+  border-color: var(--color-topbar-field-border);
+  background: var(--color-topbar-field-bg);
+  color: var(--color-topbar-field-text);
+}
+.topbar-search input::placeholder {
+  color: var(--color-topbar-field-placeholder);
+}
+.topbar-search input:hover {
+  border-color: var(--color-topbar-chip-hover-border);
+}
+.topbar-search input:focus-visible {
+  border-color: var(--color-topbar-field-bg);
+}
+.topbar-search .button {
+  background: var(--color-topbar-chip-bg);
+  border-color: var(--color-topbar-chip-border);
+  color: var(--color-topbar-chip-text);
+}
+.topbar-search .button:hover {
+  background: var(--color-topbar-chip-hover-bg);
+  border-color: var(--color-topbar-chip-hover-border);
+  color: var(--color-topbar-chip-text);
 }
 .topbar-search .button {
   flex: 0 0 auto;
@@ -161,6 +191,7 @@ a:hover {
   max-width: 12rem;
   border: 0;
   background: transparent;
+  color: var(--color-topbar-chip-text);
   padding: 0.24rem 1.25rem 0.24rem 0.08rem;
   font-size: 0.9rem;
 }
@@ -227,7 +258,7 @@ a:hover {
 .sidebar-link:hover {
   background: var(--color-nav-hover-bg);
   border-color: var(--color-nav-hover-border);
-  color: var(--color-text-primary);
+  color: var(--color-nav-hover-text);
   text-decoration: none;
 }
 .sidebar-link.is-active {
@@ -273,28 +304,20 @@ a:hover {
   display: grid;
   gap: 0.55rem;
   padding: 0.7rem 0.85rem;
-  border: 1px solid var(--color-border-default);
-  border-left: 0.3rem solid var(--color-brand-hero);
+  border: 1px solid var(--color-actor-banner-border);
+  border-left: 0.3rem solid var(--color-actor-banner-accent);
   border-radius: var(--radius-md);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(245, 244, 246, 0.92)),
-    var(--color-surface-raised);
+  background: var(--color-actor-banner-bg);
   box-shadow: var(--shadow);
 }
 .actor-banner--reader-writer {
-  border-left-color: var(--color-brand-hero);
+  --color-actor-banner-accent: var(--color-brand-hero);
 }
 .actor-banner--reviewer {
-  border-left-color: var(--color-status-info);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(220, 232, 239, 0.88)),
-    var(--color-surface-raised);
+  --color-actor-banner-accent: var(--color-brand-depth);
 }
 .actor-banner--manager {
-  border-left-color: var(--color-status-warning);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(243, 225, 209, 0.88)),
-    var(--color-surface-raised);
+  --color-actor-banner-accent: var(--color-brand-depth);
 }
 .actor-banner-primary,
 .actor-banner-links {
@@ -316,8 +339,8 @@ a:hover {
   min-height: 2rem;
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
-  border: 1px solid var(--color-border-default);
-  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid var(--color-panel-governance-border);
+  background: var(--color-surface-raised);
   color: var(--color-text-primary);
   font-weight: 600;
 }
@@ -334,8 +357,8 @@ a:hover {
   min-height: 2rem;
   padding: 0.3rem 0.75rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid var(--color-border-default);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-panel-governance-border);
   color: var(--color-text-primary);
   font-size: 0.78rem;
   font-weight: 700;
@@ -353,9 +376,9 @@ a:hover {
   justify-content: center;
   min-height: 2.1rem;
   padding: 0.45rem 0.8rem;
-  border: 1px solid var(--color-border-default);
+  border: 1px solid var(--color-panel-governance-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.76);
+  background: var(--color-surface-raised);
   color: var(--color-text-primary);
   font-size: 0.92rem;
   font-weight: 600;
@@ -364,7 +387,7 @@ a:hover {
 .actor-banner-link:hover {
   background: var(--color-nav-hover-bg);
   border-color: var(--color-nav-hover-border);
-  color: var(--color-text-primary);
+  color: var(--color-nav-hover-text);
   text-decoration: none;
   transform: translateY(-1px);
 }
@@ -413,7 +436,7 @@ a:hover {
 .quick-link:hover {
   background: var(--color-nav-hover-bg);
   border-color: var(--color-nav-hover-border);
-  color: var(--color-accent-primary);
+  color: var(--color-nav-hover-text);
   text-decoration: none;
 }
 @media (max-width: 1100px) {

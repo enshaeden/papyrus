@@ -248,7 +248,7 @@
 
 .multi-value-chip-copy {
   font-weight: 700;
-  color: var(--color-brand-depth);
+  color: var(--color-accent-muted-text);
 }
 
 .multi-value-chip-meta {
@@ -259,10 +259,15 @@
 .multi-value-chip-remove {
   border: 0;
   background: transparent;
-  color: var(--color-accent-primary);
+  color: var(--color-accent-muted-text);
   cursor: pointer;
   font: inherit;
   padding: 0;
+}
+
+.multi-value-chip-remove:hover,
+.multi-value-chip-remove:focus-visible {
+  color: var(--color-accent-primary);
 }
 
 .multi-value-picker-results[hidden] {

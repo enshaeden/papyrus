@@ -29,7 +29,7 @@
 .trust-strip .panel-kicker,
 .filter-bar .panel-kicker,
 .panel-governance .meta-row dt {
-  color: var(--color-brand-depth);
+  color: var(--color-panel-governance-label);
 }
 
 .panel.tone-approved,
@@ -122,7 +122,7 @@
 .status-badge.tone-context {
   background: var(--color-accent-muted-bg);
   border-color: var(--color-accent-muted-border);
-  color: var(--color-text-primary);
+  color: var(--color-accent-muted-text);
 }
 
 .status-badge.tone-approved {
@@ -411,6 +411,12 @@
   background: var(--color-accent-secondary-bg);
 }
 
+.button-secondary:is(.is-selected, [aria-pressed="true"]) {
+  background: var(--color-accent-secondary-selected-bg);
+  border-color: var(--color-accent-secondary-selected-border);
+  color: var(--color-accent-secondary-text);
+}
+
 .button-danger {
   background: var(--color-status-error);
   color: var(--color-status-error-text);
@@ -562,7 +568,7 @@ textarea { resize: vertical; }
 .progress-shell-fill {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-primary-hover));
+  background: var(--color-progress-fill);
 }
 
 .progress-shell-steps {

@@ -158,6 +158,7 @@ Current web authoring boundary:
 - external, migration, or other manual evidence entered through the write form remains weak until follow-up records when the evidence was captured, stores an integrity hash, and attaches any required snapshot
 - the web write form can record source title, source reference, source type, and note only
 - the web write form does not currently record `captured_at`, `integrity_hash`, expiry metadata, or evidence snapshots directly; use the manage-side evidence follow-up path after the revision exists
+- retained technical debt: evidence capture metadata still requires the manage-side follow-up path rather than the primary write form
 
 Failure signals:
 

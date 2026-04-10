@@ -215,6 +215,9 @@ class InterfaceSurfaceTests(unittest.TestCase):
         self.assertIn("--color-brand-depth: #6A3460;", body)
         self.assertIn("--color-brand-context: #9991A4;", body)
         self.assertIn("--color-accent-primary: var(--color-brand-hero);", body)
+        self.assertIn("--color-topbar-bg: var(--color-brand-hero);", body)
+        self.assertIn("--color-accent-secondary-selected-bg: var(--color-brand-context-soft);", body)
+        self.assertIn("--color-panel-governance-label: var(--color-brand-depth);", body)
         self.assertIn("--color-panel-governance-bg: var(--color-brand-context-panel);", body)
 
     def test_web_errors_and_method_guards_render_explicit_pages(self) -> None:

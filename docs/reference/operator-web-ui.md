@@ -59,14 +59,20 @@ This change does not rework repository schemas, canonical source layout, or the 
   - page templates
 - CSS is split into tokens, layout, components, and page-level rules under `src/papyrus/interfaces/web/static/css/`.
 - The operator UI color system is governed through semantic tokens rather than component-level hex values:
-  - `7659 C` (`--color-brand-hero`) carries identity and intent. It drives primary actions, active navigation, object identity, focus rings, and command-highlight tokens.
+  - `7659 C` (`--color-brand-hero`) carries identity and intent. It drives the top bar, primary actions, active navigation, object identity, focus rings, command highlights, and key count chips.
   - `7658 C` (`--color-brand-depth`) is reserved for authority and depth. It is used for stronger hover and pressed states, denser emphasis surfaces, and stronger labels inside governance-heavy panels.
-  - `7660 C` (`--color-brand-context`) carries context and grouping. It is used through contextual tint tokens for selected fills, secondary hover states, governance panel backgrounds, filter chips, and timeline rails.
+  - `7660 C` (`--color-brand-context`) carries context and grouping. It is used through contextual tint tokens for selected fills, grouped secondary controls, governance and citation panels, filter chips, and timeline rails.
   - Status colors remain separate from the brand family so success, warning, error, and informational states do not read as product-brand signals.
+  - Typical screen balance should remain mostly neutral:
+    - `80-88%` neutral surfaces
+    - `8-14%` contextual tinting
+    - `3-7%` hero usage
+    - `1-3%` depth usage
 - Component mapping follows the semantic layer:
-  - primary buttons, active navigation, object identity strips, and key count chips use hero tokens
-  - hero hover and pressed states use depth tokens
-  - secondary buttons, selected rows, metadata and citation panels, and grouped picker states use contextual tokens while keeping most surfaces neutral
+  - the top bar, primary buttons, active sidebar navigation, object identity strips, revision and review actions, and key count chips use hero tokens
+  - hero hover and pressed states, dense admin headers, and governance-heavy labels use depth tokens
+  - secondary buttons, selected rows, filter pills, metadata and citation panels, grouped picker states, and timeline rails use contextual tokens while keeping most surfaces neutral
+  - secondary and grouped controls should not promote contextual tones into CTA treatment
 - Minimal progressive enhancement lives in `src/papyrus/interfaces/web/static/js/` for search filtering, disclosure hooks, and path/id suggestions in forms.
 
 ## Shell Rules

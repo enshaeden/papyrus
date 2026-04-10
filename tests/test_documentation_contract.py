@@ -69,3 +69,9 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("retained technical debt", write_playbook)
         self.assertIn("stale journals and stale locks", getting_started)
         self.assertIn("remaining technical debt", operator_readiness)
+
+    def test_operator_ui_docs_record_governed_tonal_language(self) -> None:
+        operator_web_ui = (ROOT / "docs" / "reference" / "operator-web-ui.md").read_text(encoding="utf-8").lower()
+        self.assertIn("identity and intent", operator_web_ui)
+        self.assertIn("authority and depth", operator_web_ui)
+        self.assertIn("context and grouping", operator_web_ui)
