@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
-from papyrus.interfaces.web.presenters.governed_presenter import primary_surface_href, projection_use_guidance
+from papyrus.interfaces.web.presenters.governed_presenter import primary_surface_href, projection_state, projection_use_guidance
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path
 
@@ -40,8 +40,21 @@ def _next_action_text(item: dict[str, Any]) -> str:
     return str(
         use_guidance.get("next_action")
         or use_guidance.get("detail")
-        or "Inspect the governed detail before acting."
+        or "Papyrus did not return a next action for this result."
     )
+
+
+def _status_detail_text(item: dict[str, Any]) -> str:
+    use_guidance = projection_use_guidance(item.get("ui_projection"))
+    return str(
+        use_guidance.get("detail")
+        or use_guidance.get("summary")
+        or "Papyrus did not return governed detail for this result."
+    )
+
+
+def _projection_state_value(item: dict[str, Any], key: str) -> str:
+    return str(projection_state(item.get("ui_projection")).get(key) or "unknown")
 
 
 def present_queue_page(
@@ -57,7 +70,6 @@ def present_queue_page(
     normalized_items = []
     for item in items:
         normalized = dict(item)
-        normalized.setdefault("posture", {"trust_summary": ", ".join(item.get("reasons", [])) or str(item.get("trust_state") or "")})
         normalized.setdefault("linked_services", [])
         normalized_items.append(normalized)
     summary_html = components.trust_summary(
@@ -123,11 +135,19 @@ def present_queue_page(
             f"{escape(_use_when_text(item))}<p class=\"cell-meta\">Last reviewed {escape(item.get('last_reviewed') or 'unknown')} · cadence {escape(item.get('review_cadence') or 'unknown')}</p>",
             " ".join(
                 [
-                    components.badge(label="Trust", value=item["trust_state"], tone="approved" if item["trust_state"] == "trusted" else "warning"),
-                    components.badge(label="Approval", value=item["approval_state"], tone="approved" if item["approval_state"] == "approved" else "pending"),
+                    components.badge(
+                        label="Trust",
+                        value=_projection_state_value(item, "trust_state"),
+                        tone="approved" if _projection_state_value(item, "trust_state") == "trusted" else "warning",
+                    ),
+                    components.badge(
+                        label="Approval",
+                        value=_projection_state_value(item, "approval_state"),
+                        tone="approved" if _projection_state_value(item, "approval_state") == "approved" else "pending",
+                    ),
                 ]
             )
-            + f'<p class="cell-meta">{escape(item["posture"]["trust_summary"])}</p>',
+            + f'<p class="cell-meta">{escape(_status_detail_text(item))}</p>',
             (
                 ", ".join(
                     link(service["service_name"], f"/services/{quoted_path(service['service_id'])}")
@@ -137,7 +157,7 @@ def present_queue_page(
                 else '<span class="cell-meta">No linked service context.</span>'
             ),
             escape(_next_action_text(item))
-            + f'<p class="cell-meta">{escape(projection_use_guidance(item.get("ui_projection")).get("summary") or "No governed summary returned.")}</p>',
+            + f'<p class="cell-meta">{escape(projection_use_guidance(item.get("ui_projection")).get("summary") or "Backend guidance unavailable")}</p>',
         ]
         for item in normalized_items
     ]

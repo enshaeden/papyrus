@@ -193,6 +193,7 @@ class WebOperatorUiTests(unittest.TestCase):
             revision_id = urllib.parse.parse_qs(submit_path.split("?", 1)[1])["revision_id"][0]
             status, _, submit_body = call_wsgi(application, submit_path)
             self.assertEqual(status, "200 OK")
+            self.assertIn("Submission readiness", submit_body)
             self.assertIn("Pre-submit validation", submit_body)
             self.assertIn("external/manual citation(s) remain weak", submit_body)
             self.assertIn("write form only records title, reference, and note", submit_body)
@@ -746,6 +747,78 @@ class WebOperatorUiTests(unittest.TestCase):
             self.assertIn("canonical path will move to archive", body)
             self.assertIn('name="acknowledgements"', body)
 
+    def test_object_and_review_pages_render_single_shared_governed_panels(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root = Path(temp_dir) / "repo"
+            workflow = GovernanceWorkflow(database_path, source_root=source_root)
+            created = workflow.create_object(
+                object_id="kb-single-governed-panels",
+                object_type="runbook",
+                title="Single Governed Panels",
+                summary="Ensure shared governed panels do not duplicate.",
+                owner="workflow_owner",
+                team="IT Operations",
+                canonical_path="knowledge/runbooks/single-governed-panels.md",
+                actor="tests",
+            )
+            initial_revision = workflow.create_revision(
+                object_id=created.object_id,
+                normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+                body_markdown="## Use When\n\nSeed approved revision for panel counting.\n",
+                actor="tests",
+                change_summary="Seed approved revision.",
+            )
+            workflow.submit_for_review(object_id=created.object_id, revision_id=initial_revision.revision_id, actor="tests")
+            workflow.assign_reviewer(
+                object_id=created.object_id,
+                revision_id=initial_revision.revision_id,
+                reviewer="reviewer_a",
+                actor="tests",
+            )
+            workflow.approve_revision(
+                object_id=created.object_id,
+                revision_id=initial_revision.revision_id,
+                reviewer="reviewer_a",
+                actor="local.reviewer",
+                notes="Approve seed revision.",
+            )
+
+            revision = workflow.create_revision(
+                object_id=created.object_id,
+                normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+                body_markdown="## Use When\n\nPanel counting review revision.\n",
+                actor="tests",
+                change_summary="Review revision for panel counting.",
+            )
+            workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.assign_reviewer(
+                object_id=created.object_id,
+                revision_id=revision.revision_id,
+                reviewer="reviewer_b",
+                actor="tests",
+            )
+
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+            )
+
+            status, _, object_body = call_wsgi(application, f"/objects/{created.object_id}")
+            self.assertEqual(status, "200 OK")
+            self.assertEqual(object_body.count("Governed actions"), 1)
+
+            status, _, history_body = call_wsgi(application, f"/objects/{created.object_id}/revisions")
+            self.assertEqual(status, "200 OK")
+            self.assertEqual(history_body.count("Current governed actions"), 1)
+
+            status, _, review_body = call_wsgi(application, f"/manage/reviews/{created.object_id}/{revision.revision_id}")
+            self.assertEqual(status, "200 OK")
+            self.assertEqual(review_body.count("Governed actions"), 1)
+            self.assertEqual(review_body.count("Writeback contract"), 1)
+            self.assertEqual(review_body.count("Writeback acknowledgement requirements"), 1)
+
     def test_role_selection_redirects_to_role_home_and_scopes_shell_navigation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
@@ -1053,10 +1126,11 @@ class WebOperatorUiTests(unittest.TestCase):
                 )
                 self.assertEqual(status, "200 OK")
                 items = json.loads(payload)["items"]
-                self.assertTrue(
-                    any(item["object_id"] == "kb-operator-ui-citation-search" for item in items),
-                    msg=f"expected citation search result for query {query!r}",
-                )
+                matching = [item for item in items if item["object_id"] == "kb-operator-ui-citation-search"]
+                self.assertTrue(matching, msg=f"expected citation search result for query {query!r}")
+                self.assertIn("Current revision can be referenced", matching[0]["summary"])
+                self.assertIn("approval", matching[0]["detail"])
+                self.assertIn("trust", matching[0]["detail"])
 
     def test_revision_multiselect_fields_render_search_controls_and_object_lookup(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

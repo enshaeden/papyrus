@@ -150,18 +150,24 @@ class IngestionUiTests(unittest.TestCase):
             status, _, body = call_wsgi(application, detail_path)
             self.assertEqual(status, "200 OK")
             self.assertIn("upload, parse, and classify", body)
+            self.assertIn("Import workflow contract", body)
+            self.assertIn("Import workflow actions", body)
             self.assertIn("Mapping has not been generated yet.", body)
             self.assertIn("Generate mapping review", body)
             self.assertIn("Upload", body)
             self.assertIn("Classify", body)
-            self.assertNotIn("Convert to draft", body)
+            self.assertIn("Convert to draft", body)
+            self.assertNotIn("#convert-to-draft-form", body)
 
             review_path = detail_path.split("?", 1)[0].rstrip("/") + "/review"
             status, _, review_body = call_wsgi(application, review_path)
             self.assertEqual(status, "200 OK")
+            self.assertIn("Import workflow contract", review_body)
+            self.assertIn("Import workflow actions", review_body)
             self.assertIn("Mapping review", review_body)
             self.assertIn("Missing required sections", review_body)
             self.assertIn("Convert to draft", review_body)
+            self.assertNotIn("<h2>Next action</h2>", review_body)
 
     def test_ingestion_entry_shows_inline_error_when_no_source_is_provided(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -252,6 +258,7 @@ class IngestionUiTests(unittest.TestCase):
 
             status, _, body = call_wsgi(application, review_path)
             self.assertEqual(status, "200 OK")
+            self.assertIn("Import workflow contract", body)
             self.assertIn("Mapping conflicts", body)
             self.assertIn("Source fragment", body)
             self.assertIn("blocked_duplicate_source_reuse", body)

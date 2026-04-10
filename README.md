@@ -45,11 +45,17 @@ Primary authoring rules:
 - no generic rich-text editor as the main authoring surface
 - no direct freeform document blob storage for drafts
 - guided section editing is the primary web authoring path
-- the bulk draft fallback is a separate operator route for cross-section editing, citation lookup, and searchable multi-select helpers
+- the bulk draft fallback remains a transitional operator route only because the guided path does not yet own searchable citation and multi-select controls; do not add new lifecycle or policy meaning there
 - authored and imported drafts both converge on the same structured revision model
 - imports stay in reviewable ingestion jobs until a human converts them into a draft
 - browser upload is the normal web ingest path; browser-submitted local file paths stay disabled unless a local operator explicitly enables them
 - PDF import is limited to text-based PDFs; scanned or image-only PDFs require external OCR or preprocessing and will surface degraded extraction warnings
+
+Contract-driven surface boundary:
+
+- `papyrus.application.ui_projection`, workflow projections, and action descriptors define governed status, safe-to-use guidance, action availability, operator messaging, and acknowledgement requirements.
+- CLI, API, and web render those contracts. They may format the output differently, but they must not derive governed meaning from raw database state or template-local policy rules.
+- If a surface needs truth that is not present in the current contract, extend the backend contract or projection first. Do not add page-local lifecycle, acknowledgement, or policy logic as a workaround.
 
 For terminal-first operator checks:
 
@@ -96,7 +102,8 @@ Guardrail:
 - The same source-root policy now runs inside `papyrus.interfaces.web.app(...)`, `papyrus.interfaces.api.app(...)`, and the operator CLI. Test or demo embeddings must opt in explicitly with `allow_noncanonical_source_root=True`.
 - Browser-submitted local path ingest is off by default. Enable it only on a trusted local operator web surface with `--allow-web-ingest-local-paths`.
 - When local-path ingest is enabled, Papyrus still restricts reads to allowlisted roots from `schemas/repository_policy.yml`. The default read roots are `build/local-ingest/` and `migration/`.
-- Source sync is journaled under `build/mutations/`. Preview and apply report the proposed `source_sync_state`, required acknowledgements, and any assumptions invalidated by the mutation. If live canonical Markdown drifted, Papyrus marks the object `conflicted` instead of silently overwriting it.
+- Source sync is journaled under `build/mutations/`. Operator startup and governed mutation entry points run pending mutation recovery before continuing. Recovery reclaims stale journals and stale locks when it can do so safely, and fails closed with an explicit operator-facing reason when it cannot.
+- Preview, apply, restore, and archive report the proposed or recorded `source_sync_state`, transition payload, required acknowledgements, and any assumptions invalidated by the mutation. If live canonical Markdown drifted, Papyrus marks the object `conflicted` instead of silently overwriting it.
 
 ## Operator Docs
 

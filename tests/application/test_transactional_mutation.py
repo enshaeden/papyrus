@@ -215,6 +215,23 @@ class TransactionalMutationTests(unittest.TestCase):
             self.assertEqual(recovered, [])
             self.assertFalse(lock_path.exists())
 
+    def test_recovery_fails_loudly_when_journal_is_corrupt(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_root = Path(temp_dir) / "repo"
+            authority = PolicyAuthority.from_repository_policy()
+            journal_dir = authority.mutation_root(source_root=source_root) / "mutation-corrupt"
+            journal_dir.mkdir(parents=True, exist_ok=True)
+            (journal_dir / "journal.json").write_text("{ not valid json", encoding="utf-8")
+
+            summary = TransactionalMutation.recover_pending_mutation_state(
+                source_root=source_root,
+                authority=authority,
+            )
+            self.assertEqual(len(summary.failures), 1)
+            self.assertEqual(summary.failures[0].mutation_id, "mutation-corrupt")
+            with self.assertRaisesRegex(MutationRecoveryError, "journal .* is unreadable"):
+                summary.raise_for_failures()
+
     def test_object_lock_rejects_concurrent_mutations(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             source_root = Path(temp_dir) / "repo"

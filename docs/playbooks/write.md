@@ -20,7 +20,7 @@ Current primary authoring rules:
 - Blueprints define required sections, ordering, validation, evidence expectations, and lifecycle defaults.
 - The visible next action should always be the next required section or the submit step.
 - Guided section editing is the primary web authoring path.
-- The separate bulk draft fallback route exists only for cross-section editing, citation lookup, and searchable multi-select helpers that do not belong in the primary guided route.
+- The separate bulk draft fallback route remains only because searchable citation and multi-select controls have not yet moved into shared guided components. Do not add new lifecycle, acknowledgement, or policy meaning there.
 
 Current first-class blueprints:
 
@@ -152,7 +152,8 @@ For each material claim:
 Current web authoring boundary:
 
 - guided section editing at `/write/objects/{object_id}/revisions/new` is the primary web path
-- the bulk draft fallback at `/write/objects/{object_id}/revisions/fallback` is an explicit operator fallback, not a second equal authoring model
+- the bulk draft fallback at `/write/objects/{object_id}/revisions/fallback` is retained technical debt, not a second equal authoring model
+- write and submit screens render backend workflow projections, action descriptors, operator messages, and acknowledgement requirements instead of deriving review or publication meaning in the route
 - citations that point to existing governed local Papyrus content are lightweight internal references for traceability and review context
 - external, migration, or other manual evidence entered through the write form remains weak until follow-up records when the evidence was captured, stores an integrity hash, and attaches any required snapshot
 - the web write form can record source title, source reference, source type, and note only
@@ -241,4 +242,5 @@ python3 scripts/source_sync.py restore-last --object <object_id>
 
 - `preview` shows the changed fields, changed sections, and whether the canonical source has drifted unexpectedly.
 - `preview` also reports the proposed `source_sync_state`, required acknowledgements, and which prior assumptions stop being safe after apply.
+- startup and governed writeback entry points run pending mutation recovery before preview, apply, or restore proceed
 - `restore-last` restores the most recent backed-up canonical state, records the recovery in the audit trail, and leaves the object in explicit `restored` source-sync state.

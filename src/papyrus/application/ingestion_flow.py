@@ -10,6 +10,7 @@ from typing import Any
 
 from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.blueprint_registry import get_blueprint, list_blueprints
+from papyrus.application.ui_projection import build_ingestion_projection, workflow_projection_payload
 from papyrus.domain.ingestion import IngestionStatus, has_mapping_result, truthful_ingestion_status
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.serializer import json_dump
@@ -480,7 +481,7 @@ def ingestion_detail(*, ingestion_id: str, database_path: Path = DB_PATH) -> dic
             }
             for artifact in list_ingestion_artifacts(connection, ingestion_id)
         ]
-        return {
+        detail = {
             "ingestion_id": str(row["ingestion_id"]),
             "filename": str(row["filename"]),
             "source_path": str(row["source_path"]),
@@ -498,6 +499,10 @@ def ingestion_detail(*, ingestion_id: str, database_path: Path = DB_PATH) -> dic
             "updated_at": str(row["updated_at"]),
             "artifacts": artifacts,
         }
+        detail["workflow_projection"] = workflow_projection_payload(
+            build_ingestion_projection(detail=detail)
+        )
+        return detail
     finally:
         connection.close()
 
@@ -505,7 +510,7 @@ def ingestion_detail(*, ingestion_id: str, database_path: Path = DB_PATH) -> dic
 def list_ingestions(*, database_path: Path = DB_PATH) -> list[dict[str, Any]]:
     connection = _connection(Path(database_path))
     try:
-        return [
+        items = [
             {
                 "ingestion_id": str(row["ingestion_id"]),
                 "filename": str(row["filename"]),
@@ -517,6 +522,11 @@ def list_ingestions(*, database_path: Path = DB_PATH) -> list[dict[str, Any]]:
             }
             for row in list_ingestion_jobs(connection)
         ]
+        for item in items:
+            item["workflow_projection"] = workflow_projection_payload(
+                build_ingestion_projection(detail=item)
+            )
+        return items
     finally:
         connection.close()
 

@@ -98,6 +98,50 @@ class PolicyAuthorityTests(unittest.TestCase):
         self.assertEqual(illegal.transition.semantics, TransitionSemantics.ILLEGAL)
         self.assertIn("illegal object_lifecycle_state transition", illegal.operator_message)
 
+    def test_source_sync_policy_decisions_expose_acknowledgement_and_restore_contracts(self) -> None:
+        apply_decision = self.authority.evaluate_source_sync_transition(
+            SourceSyncState.PENDING.value,
+            SourceSyncState.APPLIED.value,
+        )
+        self.assertTrue(apply_decision.allowed)
+        self.assertEqual(apply_decision.transition.semantics, TransitionSemantics.ALLOWED)
+        self.assertEqual(
+            apply_decision.required_acknowledgements,
+            ("canonical_source_will_change",),
+        )
+        self.assertEqual(apply_decision.source_of_truth, "canonical_markdown")
+        self.assertIn("Canonical Markdown will win after this action", apply_decision.operator_message)
+
+        restore_decision = self.authority.evaluate_source_sync_transition(
+            SourceSyncState.APPLIED.value,
+            SourceSyncState.RESTORED.value,
+        )
+        self.assertTrue(restore_decision.allowed)
+        self.assertEqual(
+            restore_decision.required_acknowledgements,
+            ("restore_can_remove_current_canonical_text",),
+        )
+        self.assertIn(
+            "Canonical Markdown will win after this action",
+            restore_decision.operator_message,
+        )
+
+        no_op = self.authority.evaluate_source_sync_transition(
+            SourceSyncState.RESTORED.value,
+            SourceSyncState.RESTORED.value,
+        )
+        self.assertTrue(no_op.allowed)
+        self.assertEqual(no_op.transition.semantics, TransitionSemantics.NO_OP)
+        self.assertIn("action is a no-op", no_op.operator_message)
+
+        illegal = self.authority.evaluate_source_sync_transition(
+            SourceSyncState.CONFLICTED.value,
+            SourceSyncState.RESTORED.value,
+        )
+        self.assertFalse(illegal.allowed)
+        self.assertEqual(illegal.transition.semantics, TransitionSemantics.ILLEGAL)
+        self.assertIn("illegal source_sync_state transition", illegal.operator_message)
+
     def test_local_ingest_policy_rejects_root_escape_and_symlink_escape(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             source_root = Path(temp_dir) / "repo"

@@ -18,10 +18,23 @@ sys.path.insert(0, str(ROOT / "src"))
 from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.application.policy_authority import PolicyAuthority
+from papyrus.application.commands import archive_object_command
 from papyrus.interfaces.api import app as api_app
 from papyrus.interfaces.cli import operator_main
 from papyrus.interfaces.web import app as web_app
 from papyrus.infrastructure.transactional_mutation import TransactionalMutation
+from papyrus.application.writeback_flow import restore_last_writeback
+
+
+def humanize_token(token: str) -> str:
+    return token.replace("_", " ").strip()
+
+
+def action_by_id(actions: list[dict[str, object]], action_id: str) -> dict[str, object]:
+    for action in actions:
+        if str(action.get("action_id") or "") == action_id:
+            return action
+    raise AssertionError(f"action not found: {action_id}")
 
 
 def call_wsgi(
@@ -289,6 +302,197 @@ class SurfaceConformanceTests(unittest.TestCase):
         self.assertEqual(exit_code, 0, msg=stderr.getvalue())
         return stdout.getvalue().strip()
 
+    def _run_cli_json(self, argv: list[str]) -> dict[str, object]:
+        return json.loads(self._run_cli(argv))
+
+    def _seed_approved_object(
+        self,
+        temp_dir: str,
+        *,
+        object_id: str,
+        title: str,
+        canonical_path: str,
+    ) -> tuple[Path, Path, str, str]:
+        database_path = Path(temp_dir) / "runtime.db"
+        source_root = Path(temp_dir) / "repo"
+        workflow = GovernanceWorkflow(database_path, source_root=source_root)
+        created = workflow.create_object(
+            object_id=object_id,
+            object_type="runbook",
+            title=title,
+            summary=f"{title} cross-surface state coverage.",
+            owner="workflow_owner",
+            team="IT Operations",
+            canonical_path=canonical_path,
+            actor="surface.setup",
+        )
+        revision = workflow.create_revision(
+            object_id=created.object_id,
+            normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+            body_markdown=f"## Use When\n\nExercise {title.lower()} state rendering across surfaces.\n",
+            actor="surface.author",
+            change_summary=f"{title} seed revision.",
+        )
+        workflow.submit_for_review(
+            object_id=created.object_id,
+            revision_id=revision.revision_id,
+            actor="surface.submit",
+        )
+        workflow.assign_reviewer(
+            object_id=created.object_id,
+            revision_id=revision.revision_id,
+            reviewer="reviewer_state",
+            actor="surface.assign",
+        )
+        workflow.approve_revision(
+            object_id=created.object_id,
+            revision_id=revision.revision_id,
+            reviewer="reviewer_state",
+            actor="local.reviewer",
+            notes=f"Approve {title.lower()} seed revision.",
+        )
+        return database_path, source_root, created.object_id, revision.revision_id
+
+    def _seed_writeback_preview_candidate(
+        self,
+        temp_dir: str,
+        *,
+        conflict: bool,
+    ) -> tuple[Path, Path, str, str]:
+        database_path, source_root, object_id, _ = self._seed_approved_object(
+            temp_dir,
+            object_id="kb-surface-preview",
+            title="Surface Preview",
+            canonical_path="knowledge/runbooks/surface-preview.md",
+        )
+        workflow = GovernanceWorkflow(database_path, source_root=source_root)
+        updated_payload = runbook_payload(
+            object_id,
+            "knowledge/runbooks/surface-preview.md",
+            "Surface Preview",
+        )
+        updated_payload["summary"] = "Surface preview conflict coverage."
+        revision = workflow.create_revision(
+            object_id=object_id,
+            normalized_payload=updated_payload,
+            body_markdown="## Use When\n\nExercise conflicting writeback preview rendering.\n",
+            actor="surface.author",
+            change_summary="Surface preview revision.",
+        )
+        workflow.submit_for_review(
+            object_id=object_id,
+            revision_id=revision.revision_id,
+            actor="surface.submit",
+        )
+        workflow.assign_reviewer(
+            object_id=object_id,
+            revision_id=revision.revision_id,
+            reviewer="reviewer_preview",
+            actor="surface.assign",
+        )
+        if conflict:
+            target_path = source_root / "knowledge" / "runbooks" / "surface-preview.md"
+            target_path.write_text("manual conflict\n", encoding="utf-8")
+        return database_path, source_root, object_id, revision.revision_id
+
+    def _seed_restored_object(self, temp_dir: str) -> tuple[Path, Path, str]:
+        database_path, source_root, object_id, _ = self._seed_approved_object(
+            temp_dir,
+            object_id="kb-surface-restored",
+            title="Surface Restored",
+            canonical_path="knowledge/runbooks/surface-restored.md",
+        )
+        workflow = GovernanceWorkflow(database_path, source_root=source_root)
+        second_payload = runbook_payload(
+            object_id,
+            "knowledge/runbooks/surface-restored.md",
+            "Surface Restored",
+        )
+        second_payload["summary"] = "Surface restored coverage."
+        second_revision = workflow.create_revision(
+            object_id=object_id,
+            normalized_payload=second_payload,
+            body_markdown="## Use When\n\nExercise restored state rendering.\n",
+            actor="surface.author",
+            change_summary="Surface restored revision.",
+        )
+        workflow.submit_for_review(
+            object_id=object_id,
+            revision_id=second_revision.revision_id,
+            actor="surface.submit",
+        )
+        workflow.assign_reviewer(
+            object_id=object_id,
+            revision_id=second_revision.revision_id,
+            reviewer="reviewer_state",
+            actor="surface.assign",
+        )
+        workflow.approve_revision(
+            object_id=object_id,
+            revision_id=second_revision.revision_id,
+            reviewer="reviewer_state",
+            actor="local.reviewer",
+            notes="Approve restored state revision.",
+        )
+        restore_last_writeback(
+            database_path=database_path,
+            object_id=object_id,
+            actor="local.manager",
+            root_path=source_root,
+            acknowledgements=["restore_can_remove_current_canonical_text"],
+        )
+        return database_path, source_root, object_id
+
+    def _seed_archived_object(self, temp_dir: str) -> tuple[Path, Path, str]:
+        database_path, source_root, object_id = self._seed_archivable_candidate(temp_dir)
+        archive_object_command(
+            database_path=database_path,
+            source_root=source_root,
+            object_id=object_id,
+            actor="surface.archive",
+            retirement_reason="Archive surface rendering conformance test.",
+            acknowledgements=["canonical_path_will_move_to_archive"],
+        )
+        return database_path, source_root, object_id
+
+    def _cli_common(self, *, database_path: Path, source_root: Path) -> list[str]:
+        return [
+            "--db",
+            str(database_path),
+            "--source-root",
+            str(source_root),
+            "--allow-noncanonical-source-root",
+            "--format",
+            "json",
+        ]
+
+    def _fetch_object_surfaces(
+        self,
+        *,
+        database_path: Path,
+        source_root: Path,
+        object_id: str,
+    ) -> tuple[dict[str, object], dict[str, object], str]:
+        cli_payload = self._run_cli_json(
+            [
+                "papyrus-operator",
+                "object",
+                *self._cli_common(database_path=database_path, source_root=source_root),
+                object_id,
+            ]
+        )
+        status, _, api_body = call_wsgi(
+            api_app(database_path, source_root, allow_noncanonical_source_root=True),
+            f"/objects/{object_id}",
+        )
+        self.assertEqual(status, "200 OK")
+        status, _, web_body = call_wsgi(
+            web_app(database_path, source_root, allow_noncanonical_source_root=True),
+            f"/objects/{object_id}",
+        )
+        self.assertEqual(status, "200 OK")
+        return cli_payload, json.loads(api_body), web_body
+
     def _exercise_cli(self) -> dict[str, object]:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path, source_root, object_id, revision_id = self._seed_candidate(temp_dir, submitted=True)
@@ -531,7 +735,8 @@ class SurfaceConformanceTests(unittest.TestCase):
 
     def test_archive_matrix_matches_expected_truth_across_cli_api_and_web(self) -> None:
         expected_path = "archive/knowledge/runbooks/archive-conformance.md"
-        for result in (self._exercise_cli_archive(), self._exercise_api_archive(), self._exercise_web_archive()):
+        results = [self._exercise_cli_archive(), self._exercise_api_archive(), self._exercise_web_archive()]
+        for result in results:
             self.assertEqual(result["canonical_path"], expected_path)
             self.assertEqual(result["object_lifecycle_state"], "archived")
             self.assertEqual(result["source_sync_state"], "applied")
@@ -550,6 +755,20 @@ class SurfaceConformanceTests(unittest.TestCase):
             )
             self.assertEqual(result["latest_event_details"]["transition"]["to_state"], "archived")
             self.assertIn("policy_decision", result["latest_event_details"])
+            self.assertIn("operator_message", result["latest_event_details"])
+        self.assertEqual(
+            {
+                json.dumps(result["latest_event_details"]["transition"], sort_keys=True)
+                for result in results
+            },
+            {
+                json.dumps(results[0]["latest_event_details"]["transition"], sort_keys=True)
+            },
+        )
+        self.assertEqual(
+            {str(result["latest_event_details"]["operator_message"]) for result in results},
+            {str(results[0]["latest_event_details"]["operator_message"])},
+        )
 
     def test_startup_recovery_runs_before_cli_api_and_web_surface_access(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -578,3 +797,162 @@ class SurfaceConformanceTests(unittest.TestCase):
             database_path, source_root, target_path = self._seed_pending_mutation(temp_dir)
             web_app(database_path, source_root, allow_noncanonical_source_root=True)
             self.assertEqual(target_path.read_text(encoding="utf-8"), "before\n")
+
+    def test_object_action_contracts_match_across_cli_api_and_web(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path, source_root, object_id, revision_id = self._seed_candidate(temp_dir, submitted=True)
+            workflow = GovernanceWorkflow(database_path, source_root=source_root)
+            workflow.assign_reviewer(
+                object_id=object_id,
+                revision_id=revision_id,
+                reviewer="reviewer_surface",
+                actor="surface.assign",
+            )
+            cli_payload, api_payload, web_body = self._fetch_object_surfaces(
+                database_path=database_path,
+                source_root=source_root,
+                object_id=object_id,
+            )
+            self.assertEqual(cli_payload["ui_projection"], api_payload["ui_projection"])
+            for action in cli_payload["ui_projection"]["actions"]:
+                self.assertIn(str(action["label"]), web_body)
+                required_acknowledgements = (
+                    (action.get("policy") or {}).get("required_acknowledgements") or []
+                )
+                for token in required_acknowledgements:
+                    self.assertIn(humanize_token(str(token)), web_body)
+            self.assertIn(cli_payload["ui_projection"]["use_guidance"]["summary"], web_body)
+            self.assertIn(cli_payload["ui_projection"]["use_guidance"]["detail"], web_body)
+            self.assertEqual(web_body.count("Governed actions"), 1)
+
+    def test_archive_contract_and_acknowledgement_copy_match_across_cli_api_and_web(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path, source_root, object_id = self._seed_archivable_candidate(temp_dir)
+            cli_payload, api_payload, _ = self._fetch_object_surfaces(
+                database_path=database_path,
+                source_root=source_root,
+                object_id=object_id,
+            )
+            cli_archive_action = action_by_id(cli_payload["ui_projection"]["actions"], "archive_object")
+            api_archive_action = action_by_id(api_payload["ui_projection"]["actions"], "archive_object")
+            self.assertEqual(cli_archive_action, api_archive_action)
+
+            status, _, web_body = call_wsgi(
+                web_app(database_path, source_root, allow_noncanonical_source_root=True),
+                f"/manage/objects/{object_id}/archive",
+            )
+            self.assertEqual(status, "200 OK")
+            self.assertIn(str(cli_archive_action["summary"]), web_body)
+            self.assertIn(str(cli_archive_action["detail"]), web_body)
+            for token in (cli_archive_action.get("policy") or {}).get("required_acknowledgements") or []:
+                self.assertIn(humanize_token(str(token)), web_body)
+            self.assertEqual(web_body.count('name="acknowledgements"'), 1)
+
+    def test_writeback_preview_conflict_contract_matches_across_cli_api_and_web(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path, source_root, object_id, revision_id = self._seed_writeback_preview_candidate(
+                temp_dir,
+                conflict=True,
+            )
+            cli_preview = self._run_cli_json(
+                [
+                    "papyrus-operator",
+                    "preview-source-sync",
+                    *self._cli_common(database_path=database_path, source_root=source_root),
+                    "--object",
+                    object_id,
+                    "--revision",
+                    revision_id,
+                ]
+            )
+            status, _, api_body = call_wsgi(
+                api_app(database_path, source_root, allow_noncanonical_source_root=True),
+                f"/objects/{object_id}/source-sync/preview",
+                method="POST",
+                json_payload={"revision_id": revision_id},
+            )
+            self.assertEqual(status, "200 OK")
+            api_preview = json.loads(api_body)
+            self.assertEqual(cli_preview, api_preview)
+            self.assertTrue(cli_preview["conflict_detected"])
+            self.assertEqual(cli_preview["transition"]["to_state"], "conflicted")
+
+            status, _, web_body = call_wsgi(
+                web_app(database_path, source_root, allow_noncanonical_source_root=True),
+                f"/manage/reviews/{object_id}/{revision_id}",
+            )
+            self.assertEqual(status, "200 OK")
+            self.assertIn(cli_preview["operator_message"], web_body)
+            for token in cli_preview["required_acknowledgements"]:
+                self.assertIn(humanize_token(str(token)), web_body)
+            self.assertEqual(web_body.count("Writeback contract"), 1)
+            self.assertEqual(web_body.count("Writeback acknowledgement requirements"), 1)
+            self.assertNotIn("ready to become canonical guidance", web_body)
+
+    def test_conflicted_and_restored_object_projection_matches_across_cli_api_and_web(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path, source_root, object_id, _ = self._seed_approved_object(
+                temp_dir,
+                object_id="kb-surface-conflicted",
+                title="Surface Conflicted",
+                canonical_path="knowledge/runbooks/surface-conflicted.md",
+            )
+            connection = sqlite3.connect(database_path)
+            try:
+                connection.execute(
+                    "UPDATE knowledge_objects SET source_sync_state = 'conflicted' WHERE object_id = ?",
+                    (object_id,),
+                )
+                connection.commit()
+            finally:
+                connection.close()
+            cli_payload, api_payload, web_body = self._fetch_object_surfaces(
+                database_path=database_path,
+                source_root=source_root,
+                object_id=object_id,
+            )
+            self.assertEqual(
+                cli_payload["ui_projection"]["use_guidance"],
+                api_payload["ui_projection"]["use_guidance"],
+            )
+            self.assertEqual(
+                cli_payload["ui_projection"]["use_guidance"]["code"],
+                "source_sync_conflicted",
+            )
+            self.assertIn(cli_payload["ui_projection"]["use_guidance"]["summary"], web_body)
+            self.assertIn(cli_payload["ui_projection"]["use_guidance"]["detail"], web_body)
+            self.assertNotIn("Safe to use now", web_body)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path, source_root, object_id = self._seed_restored_object(temp_dir)
+            cli_payload, api_payload, web_body = self._fetch_object_surfaces(
+                database_path=database_path,
+                source_root=source_root,
+                object_id=object_id,
+            )
+            self.assertEqual(
+                cli_payload["ui_projection"]["use_guidance"],
+                api_payload["ui_projection"]["use_guidance"],
+            )
+            self.assertEqual(
+                cli_payload["ui_projection"]["use_guidance"]["code"],
+                "source_sync_restored",
+            )
+            self.assertIn(cli_payload["ui_projection"]["use_guidance"]["summary"], web_body)
+            self.assertIn(cli_payload["ui_projection"]["use_guidance"]["detail"], web_body)
+
+    def test_archived_object_projection_matches_across_cli_api_and_web(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path, source_root, object_id = self._seed_archived_object(temp_dir)
+            cli_payload, api_payload, web_body = self._fetch_object_surfaces(
+                database_path=database_path,
+                source_root=source_root,
+                object_id=object_id,
+            )
+            self.assertEqual(cli_payload["ui_projection"]["state"], api_payload["ui_projection"]["state"])
+            self.assertEqual(
+                cli_payload["ui_projection"]["state"]["object_lifecycle_state"],
+                "archived",
+            )
+            self.assertIn("Lifecycle", web_body)
+            self.assertIn("archived", web_body)

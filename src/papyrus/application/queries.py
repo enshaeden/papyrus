@@ -17,9 +17,11 @@ from papyrus.application.impact_flow import (
 from papyrus.application.posture import build_posture_summary
 from papyrus.application.runtime_projection import RuntimeStateSnapshot
 from papyrus.application.ui_projection import (
+    build_reference_candidate_projection,
     build_object_actions,
     build_review_actions,
     build_ui_projection,
+    reference_candidate_payload,
     ui_projection_payload,
 )
 from papyrus.application.validation_flow import orphaned_files
@@ -1027,6 +1029,20 @@ def knowledge_object_detail(
             "unresolved_relationships": unresolved_relationships,
             "audit_events": audit_events,
             "ui_projection": ui_projection,
+            "reference_projection": reference_candidate_payload(
+                build_reference_candidate_projection(
+                    current_revision=(
+                        {
+                            "revision_id": str(current_revision["revision_id"]),
+                            "revision_review_state": _revision_review_value(current_revision),
+                            "body_markdown": str(current_revision["body_markdown"]),
+                        }
+                        if current_revision is not None
+                        else None
+                    ),
+                    citations=citations,
+                )
+            ),
         }
     finally:
         connection.close()

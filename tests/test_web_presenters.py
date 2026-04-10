@@ -10,9 +10,14 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.interfaces.web.presenters.dashboard_presenter import present_trust_dashboard
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
-from papyrus.interfaces.web.presenters.governed_presenter import render_acknowledgement_panel, render_action_contract_panel
+from papyrus.interfaces.web.presenters.governed_presenter import (
+    render_acknowledgement_panel,
+    render_action_contract_panel,
+    render_workflow_projection_panel,
+)
 from papyrus.interfaces.web.presenters.object_presenter import present_object_detail
 from papyrus.interfaces.web.presenters.queue_presenter import present_queue_page
+from papyrus.interfaces.web.presenters.revision_presenter import present_revision_history
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.rendering import TemplateRenderer
 
@@ -55,6 +60,29 @@ class WebPresenterTests(unittest.TestCase):
         self.assertIn("Papyrus will move the canonical file under archive/knowledge", action_html)
         self.assertIn("Review the archive acknowledgement before continuing.", acknowledgement_html)
         self.assertIn("canonical path will move to archive", acknowledgement_html)
+
+    def test_workflow_projection_panel_renders_rows_warnings_and_operator_message(self) -> None:
+        components = ComponentPresenter(TEMPLATE_RENDERER)
+        html = render_workflow_projection_panel(
+            components,
+            title="Draft readiness contract",
+            projection={
+                "summary": "Draft has blocking gaps",
+                "detail": "Required sections are still incomplete.",
+                "operator_message": "Continue guided authoring before routing this revision into review.",
+                "tone": "warning",
+                "rows": [
+                    {"label": "Draft progress", "value": "blocked"},
+                    {"label": "Next section", "value": "Procedure"},
+                ],
+                "warnings": ["References: 1 external/manual citation remains weak."],
+                "reasons": ["Verification: This field is required."],
+            },
+        )
+        self.assertIn("Draft readiness contract", html)
+        self.assertIn("Continue guided authoring before routing this revision into review.", html)
+        self.assertIn("References: 1 external/manual citation remains weak.", html)
+        self.assertIn("Verification: This field is required.", html)
 
     def test_dashboard_presenter_uses_governed_projection_for_queue_actions(self) -> None:
         page = present_trust_dashboard(
@@ -138,7 +166,10 @@ class WebPresenterTests(unittest.TestCase):
         self.assertEqual(page["page_title"], "Read Guidance")
         self.assertIn("Read posture", page["aside_html"])
         self.assertIn("Read filters", page["page_context"]["filter_bar_html"])
-        self.assertIn("approval:in_review", page["page_context"]["queue_html"])
+        self.assertIn(
+            "Backend contract says this guidance is still in review.",
+            page["page_context"]["queue_html"],
+        )
 
     def test_object_presenter_surfaces_citations_relationships_and_audit(self) -> None:
         page = present_object_detail(
@@ -232,6 +263,184 @@ class WebPresenterTests(unittest.TestCase):
         self.assertIn("Governed actions", page["page_context"]["content_sections_html"])
         self.assertIn("The runtime contract marks this object safe for use.", page["page_context"]["content_sections_html"])
         self.assertEqual(page["page_context"]["content_sections_html"].count("Governed actions"), 1)
+
+    def test_object_presenter_prefers_projection_truth_over_raw_state_fallbacks(self) -> None:
+        page = present_object_detail(
+            TEMPLATE_RENDERER,
+            detail={
+                "object": {
+                    "object_id": "kb-projection-wins",
+                    "object_type": "runbook",
+                    "title": "Projection Wins",
+                    "summary": "Projection-backed truth should win.",
+                    "object_lifecycle_state": "active",
+                    "owner": "tester",
+                    "team": "IT Operations",
+                    "canonical_path": "knowledge/runbooks/projection-wins.md",
+                    "source_type": "native",
+                    "source_system": "repository",
+                    "source_title": "Projection Wins",
+                    "created_date": "2026-04-09",
+                    "updated_date": "2026-04-09",
+                    "last_reviewed": "2026-04-09",
+                    "review_cadence": "quarterly",
+                    "trust_state": "trusted",
+                    "approval_state": "approved",
+                    "freshness_rank": 0,
+                    "citation_health_rank": 0,
+                    "ownership_rank": 0,
+                    "tags": [],
+                    "systems": [],
+                    "path": "knowledge/runbooks/projection-wins.md",
+                },
+                "posture": {
+                    "trust_summary": "Raw posture fallback should not render.",
+                    "trust_detail": "Raw posture detail should not render.",
+                },
+                "ui_projection": {
+                    "state": {
+                        "object_lifecycle_state": "active",
+                        "revision_review_state": "approved",
+                        "draft_progress_state": "ready_for_review",
+                        "source_sync_state": "conflicted",
+                        "trust_state": "trusted",
+                        "approval_state": "approved",
+                    },
+                    "use_guidance": {
+                        "summary": "Projection says stop and inspect",
+                        "detail": "Projection-backed detail should appear instead of any raw-state fallback.",
+                        "next_action": "Review the projection-backed warning.",
+                        "safe_to_use": False,
+                    },
+                    "reasons": ["source_sync:conflicted"],
+                    "actions": [],
+                },
+                "current_revision": {
+                    "revision_id": "kb-projection-wins-rev-1",
+                    "revision_number": 1,
+                    "revision_review_state": "approved",
+                    "imported_at": "2026-04-09T00:00:00+00:00",
+                    "change_summary": "Projection sentinel coverage.",
+                    "body_markdown": "## Use When\n\nUse the projection sentinel.\n",
+                },
+                "metadata": {
+                    "prerequisites": [],
+                    "steps": [],
+                    "verification": [],
+                    "rollback": [],
+                },
+                "citations": [],
+                "related_services": [],
+                "outbound_relationships": [],
+                "inbound_relationships": [],
+                "audit_events": [],
+            },
+        )
+        self.assertIn("Projection says stop and inspect", page["page_context"]["content_sections_html"])
+        self.assertIn(
+            "Projection-backed detail should appear instead of any raw-state fallback.",
+            page["page_context"]["content_sections_html"],
+        )
+        self.assertNotIn("Raw posture fallback should not render.", page["page_context"]["content_sections_html"])
+        self.assertNotIn("Safe to use now", page["page_context"]["content_sections_html"])
+
+    def test_queue_presenter_prefers_projection_guidance_over_raw_status_copy(self) -> None:
+        page = present_queue_page(
+            TEMPLATE_RENDERER,
+            items=[
+                {
+                    "object_id": "kb-queue-projection",
+                    "title": "Queue Projection",
+                    "object_type": "runbook",
+                    "trust_state": "trusted",
+                    "approval_state": "approved",
+                    "reasons": ["approval:approved"],
+                    "owner": "tester",
+                    "path": "knowledge/runbooks/queue-projection.md",
+                    "citation_health_rank": 0,
+                    "freshness_rank": 0,
+                    "posture": {"trust_summary": "Raw queue fallback should not render."},
+                    "ui_projection": {
+                        "use_guidance": {
+                            "summary": "Projection summary wins",
+                            "detail": "Projection detail wins",
+                            "next_action": "Follow the projection-backed next step.",
+                            "safe_to_use": False,
+                        }
+                    },
+                }
+            ],
+            query="projection",
+            selected_type="runbook",
+            selected_trust="all",
+            selected_approval="all",
+        )
+        queue_html = page["page_context"]["queue_html"]
+        self.assertIn("Projection summary wins", queue_html)
+        self.assertIn("Follow the projection-backed next step.", queue_html)
+        self.assertNotIn("Raw queue fallback should not render.", queue_html)
+        self.assertNotIn("Safe to use now", queue_html)
+
+    def test_revision_history_renders_single_current_governed_actions_panel(self) -> None:
+        page = present_revision_history(
+            TEMPLATE_RENDERER,
+            history={
+                "object": {
+                    "object_id": "kb-history",
+                    "title": "Revision History",
+                    "canonical_path": "knowledge/runbooks/history.md",
+                },
+                "revisions": [
+                    {
+                        "revision_number": 1,
+                        "revision_review_state": "approved",
+                        "change_summary": "Initial",
+                        "citations": {"verified": 1},
+                        "review_assignments": [{"reviewer": "reviewer_a", "state": "approved"}],
+                        "imported_at": "2026-04-09T00:00:00+00:00",
+                        "is_current": True,
+                    }
+                ],
+                "audit_events": [
+                    {
+                        "occurred_at": "2026-04-09T00:00:00+00:00",
+                        "event_type": "revision_approved",
+                        "actor": "reviewer_a",
+                    }
+                ],
+            },
+            detail={
+                "ui_projection": {
+                    "state": {
+                        "object_lifecycle_state": "active",
+                        "revision_review_state": "approved",
+                        "draft_progress_state": "ready_for_review",
+                        "source_sync_state": "applied",
+                        "trust_state": "trusted",
+                        "approval_state": "approved",
+                    },
+                    "use_guidance": {
+                        "summary": "Safe to use now",
+                        "detail": "Current revision is approved and trusted.",
+                        "next_action": "Use the current guidance.",
+                        "safe_to_use": True,
+                    },
+                    "actions": [
+                        {
+                            "action_id": "mark_suspect",
+                            "label": "Mark suspect",
+                            "availability": "allowed",
+                            "summary": "Mark suspect",
+                            "detail": "Escalate suspect posture when needed.",
+                            "policy": None,
+                        }
+                    ],
+                },
+                "current_revision": {"revision_id": "kb-history-rev-1"},
+            },
+        )
+        self.assertEqual(page["aside_html"].count("Current governed actions"), 1)
+        self.assertIn("Mark suspect", page["aside_html"])
 
 
 if __name__ == "__main__":

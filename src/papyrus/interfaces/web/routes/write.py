@@ -7,6 +7,7 @@ from papyrus.application.authoring_flow import compute_completion_state, create_
 from papyrus.application.blueprint_registry import get_blueprint, list_blueprints
 from papyrus.application.commands import create_object_command, create_revision_command, submit_for_review_command
 from papyrus.application.queries import knowledge_object_detail, review_detail, search_knowledge_objects
+from papyrus.application.ui_projection import build_draft_readiness_projection, workflow_projection_payload
 from papyrus.domain.evidence import summarize_evidence_posture
 from papyrus.interfaces.web.forms.object_forms import default_object_values, validate_object_form
 from papyrus.interfaces.web.forms.revision_forms import build_revision_defaults, build_submission_findings, validate_revision_form
@@ -16,10 +17,11 @@ from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import (
     action_descriptor,
+    projection_state,
     projection_use_guidance,
     render_action_contract_panel,
-    render_contract_status_panel,
     render_projection_status_panel,
+    render_workflow_projection_panel,
 )
 from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
 from papyrus.interfaces.web.view_helpers import escape, join_html, link, parse_multiline, quoted_path
@@ -585,30 +587,20 @@ def _progress_bar_html(runtime, *, blueprint, completion: dict[str, object], cur
 
 
 def _next_action_panel_html(components, *, detail, blueprint, completion: dict[str, object]) -> str:
-    next_section_id = str(completion.get("next_section_id") or "")
-    next_label = blueprint.section(next_section_id).display_name if next_section_id else "Review readiness"
-    tone = "warning" if completion["draft_progress_state"] != "ready_for_review" else "approved"
-    evidence_posture = completion.get("evidence_posture") or {}
     submit_action = action_descriptor(detail.get("ui_projection"), "submit_for_review")
-    use_guidance = projection_use_guidance(detail.get("ui_projection"))
-    return render_contract_status_panel(
+    draft_projection = workflow_projection_payload(
+        build_draft_readiness_projection(
+            blueprint=blueprint,
+            completion=completion,
+            submit_action=submit_action,
+        )
+    )
+    return render_workflow_projection_panel(
         components,
         title="Draft readiness contract",
-        summary=str(use_guidance.get("summary") or "Draft guidance in progress"),
-        operator_message=str(
-            (submit_action or {}).get("detail")
-            or use_guidance.get("detail")
-            or "Continue the guided draft until the revision is ready for review."
-        ),
-        source_of_truth=str(((submit_action or {}).get("policy") or {}).get("source_of_truth") or "repository_policy"),
-        transition=dict(((submit_action or {}).get("policy") or {}).get("transition") or {}),
-        required_acknowledgements=[
-            str(item)
-            for item in (((submit_action or {}).get("policy") or {}).get("required_acknowledgements") or [])
-        ],
-        tone=tone,
+        projection=draft_projection,
         footer_html=(
-            f'<p class="section-footer">Current draft state {escape(completion["draft_progress_state"])} · continue with {escape(next_label)} · evidence posture {escape(evidence_posture.get("summary") or "No evidence references recorded yet.")}</p>'
+            f'<p class="section-footer">Continue guided authoring until this contract shows the revision is ready for review.</p>'
         ),
     )
 
@@ -1050,6 +1042,13 @@ def _render_submit_page(
     revision = detail["revision"]
     evidence_posture = completion.get("evidence_posture") or summarize_evidence_posture(detail.get("citations", []))
     submit_action = action_descriptor(object_detail.get("ui_projection"), "submit_for_review")
+    draft_projection = workflow_projection_payload(
+        build_draft_readiness_projection(
+            blueprint=get_blueprint(str(revision["blueprint_id"] or detail["object"]["object_type"])),
+            completion=completion,
+            submit_action=submit_action,
+        )
+    )
     form_html = components.section_card(
         title="Submit for review",
         eyebrow="Write",
@@ -1093,13 +1092,12 @@ def _render_submit_page(
         ]
     )
     findings_html = components.validation_findings(title="Pre-submit validation", items=[escape(item) for item in findings] or ["No blocking findings detected."], tone="warning" if findings else "approved")
-    progress_html = components.section_card(
+    progress_html = render_workflow_projection_panel(
+        components,
         title="Submission readiness",
-        eyebrow="Progress",
-        tone="warning" if findings else "approved",
-        body_html=(
-            f"<p><strong>Warnings to review:</strong> {escape(len(findings))}</p>"
-            "<p>Submit once the warnings are understood and the reviewer can make a clear decision from the linked references, any evidence caveats, and the change summary.</p>"
+        projection=draft_projection,
+        footer_html=(
+            f'<p class="section-footer">Warnings to review before submission: {escape(len(findings))}</p>'
         ),
     )
     guidance_html = ""
@@ -1389,21 +1387,23 @@ def register(router, runtime) -> None:
             if candidate.get("current_revision_id") is None:
                 continue
             detail = knowledge_object_detail(str(candidate["object_id"]), database_path=runtime.database_path)
-            current_revision = detail.get("current_revision") or {}
-            if (
-                str(candidate.get("approval_state") or "") == "draft"
-                and not str(current_revision.get("body_markdown") or "").strip()
-                and not detail.get("citations")
-            ):
+            reference_projection = detail.get("reference_projection") or {}
+            if not bool(reference_projection.get("eligible")):
                 continue
+            state = projection_state(candidate.get("ui_projection"))
+            use_guidance = projection_use_guidance(candidate.get("ui_projection"))
             items.append(
                 {
                     "object_id": str(candidate["object_id"]),
                     "title": str(candidate["title"]),
                     "path": str(candidate["path"]),
                     "object_type": str(candidate["object_type"]),
-                    "approval_state": str(candidate["approval_state"]),
-                    "trust_state": str(candidate["trust_state"]),
+                    "summary": str(reference_projection.get("summary") or use_guidance.get("summary") or ""),
+                    "detail": (
+                        f"{state.get('approval_state') or candidate.get('approval_state') or 'unknown'} approval | "
+                        f"{state.get('trust_state') or candidate.get('trust_state') or 'unknown'} trust | "
+                        f"{reference_projection.get('detail') or use_guidance.get('detail') or 'Reference candidate available.'}"
+                    ),
                 }
             )
         return json_response({"items": items})
@@ -1418,13 +1418,17 @@ def register(router, runtime) -> None:
         for candidate in candidates:
             if exclude_object_id and str(candidate["object_id"]) == exclude_object_id:
                 continue
+            state = projection_state(candidate.get("ui_projection"))
+            use_guidance = projection_use_guidance(candidate.get("ui_projection"))
             items.append(
                 {
                     "value": str(candidate["object_id"]),
                     "label": str(candidate["title"]),
                     "detail": (
                         f"{candidate['object_id']} | {candidate['path']} | "
-                        f"{candidate['approval_state']} approval | {candidate['trust_state']} trust"
+                        f"{use_guidance.get('summary') or 'Backend guidance unavailable'} | "
+                        f"{state.get('approval_state') or 'unknown'} approval | "
+                        f"{state.get('trust_state') or 'unknown'} trust"
                     ),
                 }
             )
@@ -1432,8 +1436,8 @@ def register(router, runtime) -> None:
 
     def submit_revision_page(request: Request):
         object_id = request.route_value("object_id")
-        revision_id = request.query_value("revision_id") or str(knowledge_object_detail(object_id, database_path=runtime.database_path)["current_revision"]["revision_id"])
         object_detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        revision_id = request.query_value("revision_id") or str((object_detail["current_revision"] or {})["revision_id"])
         detail = review_detail(object_id, revision_id, database_path=runtime.database_path)
         values = {"notes": request.form_value("notes")}
         form_errors: dict[str, list[str]] = {}

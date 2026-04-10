@@ -20,6 +20,34 @@ ACTION_AVAILABILITY_LABELS = {
 }
 
 
+def workflow_rows(projection: dict[str, Any] | None) -> list[dict[str, str]]:
+    rows = (projection or {}).get("rows", [])
+    return [
+        {
+            "label": str(row.get("label") or "").strip(),
+            "value": str(row.get("value") or "").strip(),
+        }
+        for row in rows
+        if isinstance(row, dict) and str(row.get("label") or "").strip()
+    ]
+
+
+def workflow_warnings(projection: dict[str, Any] | None) -> list[str]:
+    return [str(item) for item in (projection or {}).get("warnings", []) if str(item).strip()]
+
+
+def workflow_reasons(projection: dict[str, Any] | None) -> list[str]:
+    return [str(item) for item in (projection or {}).get("reasons", []) if str(item).strip()]
+
+
+def workflow_actions(projection: dict[str, Any] | None) -> list[dict[str, Any]]:
+    return [
+        dict(action)
+        for action in (projection or {}).get("actions", [])
+        if isinstance(action, dict)
+    ]
+
+
 def projection_state(ui_projection: dict[str, Any] | None) -> dict[str, Any]:
     return dict((ui_projection or {}).get("state") or {})
 
@@ -181,6 +209,55 @@ def _humanize_token(token: str) -> str:
     return token.replace("_", " ").strip()
 
 
+def render_workflow_projection_panel(
+    components: ComponentPresenter,
+    *,
+    title: str,
+    projection: dict[str, Any] | None,
+    footer_html: str = "",
+) -> str:
+    data = dict(projection or {})
+    rows = workflow_rows(data)
+    warnings = workflow_warnings(data)
+    reasons = workflow_reasons(data)
+    detail = str(data.get("detail") or "Papyrus did not return a workflow detail for this screen.")
+    operator_message = str(data.get("operator_message") or detail)
+    body_parts = [
+        f'<p class="governed-summary"><strong>{escape(data.get("summary") or "Backend workflow guidance unavailable")}</strong></p>',
+        f"<p>{escape(detail)}</p>",
+    ]
+    if operator_message != detail:
+        body_parts.append(f"<p>{escape(operator_message)}</p>")
+    if rows:
+        body_parts.append(
+            render_definition_rows(
+                [(row["label"], escape(row["value"] or "unknown")) for row in rows]
+            )
+        )
+    if warnings:
+        body_parts.append(
+            '<div class="governed-reasons">'
+            '<p class="governed-list-label">Warnings</p>'
+            + render_list([escape(item) for item in warnings], css_class="validation-findings")
+            + "</div>"
+        )
+    if reasons:
+        body_parts.append(
+            '<div class="governed-reasons">'
+            '<p class="governed-list-label">Why Papyrus says this now</p>'
+            + render_list([escape(item) for item in reasons], css_class="panel-list")
+            + "</div>"
+        )
+    return components.governed_status_panel(
+        title=title,
+        eyebrow="Workflow",
+        summary=str(data.get("summary") or "Backend workflow guidance unavailable"),
+        body_html=join_html(body_parts),
+        tone=str(data.get("tone") or "context"),
+        footer_html=footer_html,
+    )
+
+
 def render_projection_status_panel(
     components: ComponentPresenter,
     *,
@@ -197,7 +274,7 @@ def render_projection_status_panel(
             f'<p>{escape(use_guidance.get("detail") or "Papyrus did not return a governed use-guidance detail for this view.")}</p>',
             render_definition_rows(
                 [
-                    ("Next action", escape(use_guidance.get("next_action") or "Inspect the governed detail before acting.")),
+                    ("Next action", escape(use_guidance.get("next_action") or "Papyrus did not return a next action for this view.")),
                     ("Lifecycle", escape(state.get("object_lifecycle_state") or "unknown")),
                     ("Revision", escape(state.get("revision_review_state") or "unknown")),
                     ("Draft progress", escape(state.get("draft_progress_state") or "unknown")),
@@ -309,28 +386,23 @@ def render_action_contract_panel(
     )
 
 
-def render_governed_action_panel(
+def render_action_descriptor_panel(
     components: ComponentPresenter,
     *,
     title: str,
-    ui_projection: dict[str, Any] | None,
-    object_id: str,
-    revision_id: str | None,
+    actions: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+    href_resolver=None,
     show_ctas: bool = True,
 ) -> str:
     items_html = []
-    for action in projection_actions(ui_projection):
+    for action in actions:
         availability = str(action.get("availability") or "illegal")
         tone = ACTION_AVAILABILITY_TONES.get(availability, "warning")
         policy = dict(action.get("policy") or {})
         required_acknowledgements = [
             str(item) for item in policy.get("required_acknowledgements", [])
         ]
-        href = action_href(
-            action_id=str(action.get("action_id") or ""),
-            object_id=object_id,
-            revision_id=revision_id,
-        )
+        href = href_resolver(action) if href_resolver is not None else None
         cta_html = ""
         if show_ctas and availability == "allowed" and href is not None:
             cta_html = link(
@@ -372,8 +444,30 @@ def render_governed_action_panel(
     return components.governed_action_panel(
         title=title,
         eyebrow="Actions",
-        body_html=join_html(items_html) or '<p class="empty-state-copy">No governed actions were returned for this screen.</p>',
+        body_html=join_html(items_html) or '<p class="empty-state-copy">No actions were returned for this screen.</p>',
         tone="context",
+    )
+
+
+def render_governed_action_panel(
+    components: ComponentPresenter,
+    *,
+    title: str,
+    ui_projection: dict[str, Any] | None,
+    object_id: str,
+    revision_id: str | None,
+    show_ctas: bool = True,
+) -> str:
+    return render_action_descriptor_panel(
+        components,
+        title=title,
+        actions=projection_actions(ui_projection),
+        href_resolver=lambda action: action_href(
+            action_id=str(action.get("action_id") or ""),
+            object_id=object_id,
+            revision_id=revision_id,
+        ),
+        show_ctas=show_ctas,
     )
 
 

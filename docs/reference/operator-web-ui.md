@@ -21,6 +21,12 @@ This change does not rework repository schemas, canonical source layout, or the 
   - call application queries or commands
   - pass structured results into presenters
   - render server-side HTML
+- Governed meaning is carried through backend contracts:
+  - `ui_projection` for object and revision posture
+  - workflow projections for draft and ingest readiness
+  - action descriptors for governed actions
+  - acknowledgement and operator-message payloads for governed mutations
+- Templates and routes should not derive governed action availability or acknowledgement rules from raw state fields.
 - The shared shell renderer now consumes actor-scoped role configuration for:
   - role landing route
   - sidebar sections
@@ -47,7 +53,7 @@ This change does not rework repository schemas, canonical source layout, or the 
 - No new third-party Python dependencies were introduced.
 - The refactor continues to use the existing standard-library WSGI stack and repository taxonomies.
 - The JSON API was extended to expose thin write/manage endpoints aligned to existing application commands.
-- Queue, dashboard, object detail, and review detail now share explicit posture summaries so approval and trust do not blur together.
+- Queue, dashboard, object detail, and review detail now share backend projection-backed posture summaries so approval and trust do not blur together.
 
 ## Tradeoffs And Known Limitations
 
@@ -55,7 +61,7 @@ This change does not rework repository schemas, canonical source layout, or the 
 - Revision history is comparison-friendly, but it does not yet implement a true side-by-side diff view.
 - The interface is still intended for local or otherwise trusted operator environments; it does not introduce an authentication or CSRF layer.
 - Form structure is typed and guided. Guided section editing is the primary revision path.
-- The separate bulk draft fallback route carries the search-backed citation picker and searchable multi-select helpers when an operator intentionally needs the older cross-section editor.
+- The separate bulk draft fallback route is retained technical debt because it still carries the search-backed citation picker and searchable multi-select helpers that have not yet moved into shared guided components.
 - Weak-evidence warnings on write and submit screens now distinguish between governed local Papyrus references and external/manual evidence, and point operators to the manage-side evidence follow-up flow when capture metadata is still required.
 
 ## Operational Notes
@@ -71,7 +77,7 @@ This change does not rework repository schemas, canonical source layout, or the 
   - Local Manager: trust dashboard, review oversight, audit, and validation
 - Read surfaces preserve queue, object detail, revision history, service detail, dashboard, and impact coverage while improving trust visibility.
 - Shell-only objects created through the write flow remain discoverable in `/queue` before their first revision exists. Queue hits for those shells route back into `/write/objects/{object_id}/revisions/new#revision-form`, and write screens now render a top-of-page step timeline so the current workflow stage is visible during object creation, revision drafting, and review submission.
-- The guided revision route remains the primary write path. `/write/objects/{object_id}/revisions/fallback` is an explicit operator fallback for cross-section editing, citation lookup, and searchable multi-select controls.
+- The guided revision route remains the primary write path. `/write/objects/{object_id}/revisions/fallback` is a retained transitional route for citation lookup and searchable multi-select controls, not a second place to define lifecycle or acknowledgement meaning.
 - Invalid object-shell creation attempts now render a warning flash and blocking validation summary at the top of the page so missing or malformed required fields are visible without hunting through the full form.
 - Invalid revision saves now post back to the clean revision URL instead of preserving the original shell-created success notice, and the page renders a top-of-form blocking validation summary so operators can see why the draft was not saved.
 - Write and manage flows now use redirect-after-post patterns so operator actions are explicit and inspectable.

@@ -34,11 +34,12 @@ What to expect:
 - `/` is the lifecycle-guided home page.
 - The home page shows likely next actions, work-area counts, recent activity, and the lifecycle model.
 - Navigation is organized as `Read`, `Write`, `Import`, `Review / Approvals`, `Knowledge Health`, `Services`, and `Activity / History`.
-- `/write` starts blueprint-driven guided section authoring. The separate bulk draft fallback route is available only when you need cross-section editing, citation lookup, or searchable multi-select helpers.
+- `/write` starts blueprint-driven guided section authoring. The separate bulk draft fallback route is retained only because searchable citation and multi-select controls have not yet moved into the shared guided surface.
 - `/ingest` starts the upload, parse, classify, map, review, and convert flow for external files.
 - Browser upload is the normal web ingest path. Browser-submitted local file paths are disabled unless you explicitly enable `--allow-web-ingest-local-paths` on the local operator web surface.
 - Markdown and DOCX parse locally. PDF import is limited to text-based PDFs and may surface degraded extraction warnings.
 - Import review shows parser warnings, extraction quality, mapping gaps, low-confidence matches, unmapped content, and mapping conflicts before conversion.
+- Read, write, review, and manage screens consume backend projection and action contracts. If a screen needs governed truth that is missing, extend the backend contract layer rather than adding route-local lifecycle or acknowledgement logic.
 
 For terminal-first work:
 
@@ -82,6 +83,7 @@ python3 scripts/serve_api.py --db build/knowledge.db --source-root .
 Guardrail:
 - `python3 scripts/run.py --operator` only permits the canonical repository source root for governed writeback and draft validation. Use `--demo` for sandboxed writable source roots.
 - `python3 scripts/serve_web.py`, `python3 scripts/serve_api.py`, and `python3 scripts/operator_view.py` also reject non-canonical source roots unless you pass `--allow-noncanonical-source-root`.
+- Startup and governed mutation entry points run pending mutation recovery before they proceed. Papyrus rolls back or reclaims stale journals and stale locks when safe, and blocks the operation with an explicit error when recovery cannot prove a safe result.
 - Browser-submitted local path ingestion is off by default. Enable it only on a trusted local operator web surface with `python3 scripts/run.py --operator --allow-web-ingest-local-paths` or `python3 scripts/serve_web.py --allow-web-ingest-local-paths`.
 - When web local-path ingest is enabled, Papyrus reads an absolute path from the machine running Papyrus, not from the browser device.
 - Local-path ingest is still confined to allowlisted read roots from `schemas/repository_policy.yml`. The default read roots are `build/local-ingest/` and `migration/`.
@@ -102,5 +104,6 @@ Guardrail:
 - Generated ingestion artifacts in `build/ingestions/` are reviewable runtime state, not source of truth.
 - Demo source created under `build/demo-source/` is disposable local state, not canonical repository content.
 - Approved revisions can become canonical Markdown through a governed source-sync mutation. Papyrus records a mutation journal under `build/mutations/`, persists explicit `source_sync_state`, and rejects root escapes or symlink traversal for governed source paths.
+- Governed mutation contracts carry operator messages, transition payloads, and required acknowledgements. CLI, API, and web should display those contracts instead of restating the rules locally.
 - Papyrus constructs drafts from blueprints and converts imported files into the same draft model after review.
 - Source sync is inspectable: use review pages or `scripts/source_sync.py preview` before approval or explicit source sync, and use `scripts/source_sync.py restore-last` when you need to recover the previous canonical state. If live source drift is detected, Papyrus reports a conflict instead of claiming the sync is safe.

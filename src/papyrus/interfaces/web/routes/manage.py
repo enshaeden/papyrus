@@ -101,19 +101,18 @@ def _governed_context_html(
     return join_html(panels)
 
 
-def _manage_table(components, title: str, items: list[dict[str, object]], *, show_actions: bool = False) -> str:
-    del show_actions
+def _manage_table(components, title: str, items: list[dict[str, object]]) -> str:
     rows = []
     for item in items:
         use_guidance = projection_use_guidance(item.get("ui_projection"))
         state = projection_state(item.get("ui_projection"))
-        reasons = projection_reasons(item.get("ui_projection")) or [str(reason) for reason in item.get("reasons", [])]
+        reasons = projection_reasons(item.get("ui_projection"))
         rows.append(
             [
                 link(str(item["title"]), _manage_item_detail_href(item)),
-                f'{escape(state.get("revision_review_state") or item["revision_review_state"])}<p class="cell-meta">{escape(item.get("change_summary") or item.get("summary") or "No recent summary recorded.")}</p>',
-                f'{escape(use_guidance.get("summary") or "No governed summary returned.")}<p class="cell-meta">{escape(use_guidance.get("detail") or item["posture"]["trust_summary"])}</p>',
-                escape(", ".join(reasons) or "No explicit reasons returned."),
+                f'{escape(state.get("revision_review_state") or "unknown")}<p class="cell-meta">{escape(item.get("change_summary") or item.get("summary") or "No recent summary recorded.")}</p>',
+                f'{escape(use_guidance.get("summary") or "Backend guidance unavailable")}<p class="cell-meta">{escape(use_guidance.get("detail") or "Papyrus did not return governed detail for this queue item.")}</p>',
+                escape(", ".join(reasons) or "Papyrus did not attach explicit reasons to this queue item."),
                 escape(item["owner"]),
                 _manage_item_actions(components, item),
             ]
@@ -145,8 +144,8 @@ def register(router, runtime) -> None:
         )
         tables_html = join_html(
             [
-                _manage_table(components, "Ready for review", queue["ready_for_review"], show_actions=True),
-                _manage_table(components, "Needs decision", queue["needs_decision"], show_actions=True),
+                _manage_table(components, "Ready for review", queue["ready_for_review"]),
+                _manage_table(components, "Needs decision", queue["needs_decision"]),
                 _manage_table(components, "Needs revalidation", queue["needs_revalidation"]),
                 _manage_table(components, "Drafts and rework", queue["draft_items"]),
                 _manage_table(components, "Recently changed", queue["recently_changed"][:10]),

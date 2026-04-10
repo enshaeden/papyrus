@@ -200,29 +200,24 @@ def _parse_field_assignments(assignments: list[str]) -> dict[str, object]:
     return values
 
 
-def _safe_to_use_text(*, approval_state: str | None, trust_state: str | None) -> str:
-    approval = str(approval_state or "").strip()
-    trust = str(trust_state or "").strip()
-    if approval == "approved" and trust == "trusted":
-        return "safe to use now"
-    if approval in {"draft", "rejected"}:
-        return "complete or revise before use"
-    if approval == "in_review":
-        return "review decision pending before use"
-    if trust == "weak_evidence":
-        return "verify evidence before use"
-    if trust == "stale":
-        return "revalidate freshness before use"
-    if trust == "suspect":
-        return "do not rely on this until reviewed"
-    return "inspect the lifecycle posture before use"
-
-
-def _projection_use_text(projection: dict[str, object] | None, *, approval_state: str | None, trust_state: str | None) -> str:
+def _projection_use_guidance(projection: dict[str, object] | None) -> dict[str, object]:
     use_guidance = (projection or {}).get("use_guidance") if isinstance(projection, dict) else None
-    if isinstance(use_guidance, dict) and use_guidance.get("summary"):
-        return str(use_guidance["summary"])
-    return _safe_to_use_text(approval_state=approval_state, trust_state=trust_state)
+    if isinstance(use_guidance, dict):
+        return dict(use_guidance)
+    return {}
+
+
+def _projection_summary(projection: dict[str, object] | None) -> str:
+    return str(_projection_use_guidance(projection).get("summary") or "Backend guidance unavailable")
+
+
+def _projection_detail(projection: dict[str, object] | None) -> str:
+    return str(_projection_use_guidance(projection).get("detail") or "Papyrus did not return governed detail for this view.")
+
+
+def _projection_next_action(projection: dict[str, object] | None) -> str:
+    use_guidance = _projection_use_guidance(projection)
+    return str(use_guidance.get("next_action") or use_guidance.get("detail") or "Backend guidance unavailable")
 
 
 def _line_block(*lines: str) -> list[str]:
@@ -405,9 +400,9 @@ def operator_main() -> int:
             lines.extend(
                 _line_block(
                     f"{item['object_id']} | {item['title']}",
-                    f"  use_now={_projection_use_text(item.get('ui_projection'), approval_state=item.get('approval_state'), trust_state=item.get('trust_state'))}",
+                    f"  use_now={_projection_summary(item.get('ui_projection'))}",
                     f"  trust={item['trust_state']} | approval={item['approval_state']} | services={linked_services}",
-                    f"  next={(item.get('ui_projection') or {}).get('use_guidance', {}).get('next_action') or item['posture']['trust_summary']}",
+                    f"  next={_projection_next_action(item.get('ui_projection'))}",
                 )
             )
         return _emit_payload(lines, output_format="text")
@@ -737,7 +732,7 @@ def operator_main() -> int:
             "validation=" + payload["validation_posture"]["summary"],
         ]
         lines.extend(
-            f"needs_attention | {item['object_id']} | trust={item['trust_state']} | approval={item['approval_state']} | next={item['posture']['trust_summary']}"
+            f"needs_attention | {item['object_id']} | trust={item['trust_state']} | approval={item['approval_state']} | next={_projection_next_action(item.get('ui_projection'))}"
             for item in payload["queue"][: args.limit]
         )
         return _emit_payload(lines, output_format="text")
@@ -751,11 +746,11 @@ def operator_main() -> int:
         latest_event = audit_events[0] if audit_events else None
         lines = [
             f"{payload['object']['object_id']} | {payload['object']['title']}",
-            f"use_now={_projection_use_text(payload.get('ui_projection'), approval_state=payload['object']['approval_state'], trust_state=payload['object']['trust_state'])}",
+            f"use_now={_projection_summary(payload.get('ui_projection'))}",
             f"trust={payload['object']['trust_state']} | approval={payload['object']['approval_state']} | owner={payload['object']['owner']}",
             f"last_reviewed={payload['object'].get('last_reviewed') or 'unknown'} | cadence={payload['object'].get('review_cadence') or 'unknown'}",
-            "guidance=" + str((payload.get("ui_projection") or {}).get("use_guidance", {}).get("summary") or payload["posture"]["trust_summary"]),
-            "detail=" + str((payload.get("ui_projection") or {}).get("use_guidance", {}).get("detail") or payload["posture"]["trust_detail"]),
+            "guidance=" + _projection_summary(payload.get("ui_projection")),
+            "detail=" + _projection_detail(payload.get("ui_projection")),
         ]
         if current_revision:
             lines.append(
@@ -831,7 +826,7 @@ def operator_main() -> int:
             f"stale={len(payload['stale_items'])}",
         ]
         lines.extend(
-            f"decision | {item['object_id']} | revision={item['revision_id']} | next={(item.get('ui_projection') or {}).get('use_guidance', {}).get('next_action') or item['posture']['trust_summary']}"
+            f"decision | {item['object_id']} | revision={item['revision_id']} | next={_projection_next_action(item.get('ui_projection'))}"
             for item in payload["review_required"][:10]
         )
         return _emit_payload(lines, output_format="text")

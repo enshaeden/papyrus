@@ -47,6 +47,7 @@ This document records the v1.5 lifecycle-guided pass. Papyrus remains a governed
 - Reframed event and impact history around operational consequences instead of raw payload inspection.
 - Expanded local actor handling with registry-backed display names, role hints, default actor selection, explicit actor propagation, and self-approval prevention.
 - Aligned CLI language with the lifecycle-guided model so queue, health, review, object detail, activity, and validation output describe next actions instead of only raw state.
+- Moved governed status, actions, acknowledgements, and operator messages onto shared backend contracts so CLI, API, and web render the same meaning instead of keeping separate local rules.
 
 ## Product Decisions
 
@@ -85,6 +86,10 @@ python3 scripts/source_sync.py restore-last --object <object_id>
 python3 scripts/operator_view.py activity --db build/knowledge.db
 ```
 
+- Startup and governed mutation entry points run pending mutation recovery before they proceed.
+- Recovery reclaims stale journals and stale locks only when the current record can be resolved safely.
+- If recovery cannot prove a safe result, Papyrus fails closed and surfaces the blocking reason instead of continuing with silent drift.
+
 ## Current Boundary
 
 In scope after this pass:
@@ -112,7 +117,13 @@ Still deferred after this pass:
 - Source of truth remains canonical Markdown under `knowledge/` and `archive/knowledge/`.
 - Derived output remains non-authoritative.
 - Governed mutation policy now terminates in `papyrus.domain.lifecycle`, `papyrus.application.policy_authority`, and `papyrus.infrastructure.transactional_mutation`. CLI, API, and web actions call those flows instead of each surface owning path or lifecycle checks.
+- The backend/UI cut line is now explicit: backend contracts define governed meaning, and surfaces render `ui_projection`, workflow projection, action descriptor, and acknowledgement payloads without recreating the policy.
 - Some read surfaces still expose compatibility aliases such as `status` and `approval_state` alongside the explicit lifecycle fields. Those aliases are not the authoritative mutation contract.
+
+## Remaining Technical Debt
+
+- The bulk draft fallback route is still present because searchable citation and multi-select controls have not yet been moved into the shared guided authoring surface.
+- That route should not gain new lifecycle, acknowledgement, or policy logic while the controls remain there.
 
 ## Rollback Reference
 

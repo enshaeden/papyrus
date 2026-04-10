@@ -29,13 +29,13 @@ def _dashboard_safe_now_html(components: ComponentPresenter, item: dict[str, Any
             ),
             components.badge(
                 label="Approval",
-                value=str(state.get("approval_state") or item.get("approval_state") or "unknown"),
-                tone="approved" if str(state.get("approval_state") or item.get("approval_state") or "") == "approved" else "pending",
+                value=str(state.get("approval_state") or "unknown"),
+                tone="approved" if str(state.get("approval_state") or "") == "approved" else "pending",
             ),
             components.badge(
                 label="Trust",
-                value=str(state.get("trust_state") or item.get("trust_state") or "unknown"),
-                tone="approved" if str(state.get("trust_state") or item.get("trust_state") or "") == "trusted" else "warning",
+                value=str(state.get("trust_state") or "unknown"),
+                tone="approved" if str(state.get("trust_state") or "") == "trusted" else "warning",
             ),
         ],
         " ",
@@ -47,8 +47,7 @@ def _dashboard_why_now(item: dict[str, Any]) -> str:
     return str(
         use_guidance.get("summary")
         or use_guidance.get("detail")
-        or item.get("posture", {}).get("trust_summary")
-        or "Inspect the governed detail before acting."
+        or "Papyrus did not return governed summary for this queue item."
     )
 
 
@@ -57,7 +56,7 @@ def _dashboard_next_action(item: dict[str, Any]) -> str:
     return str(
         use_guidance.get("next_action")
         or use_guidance.get("detail")
-        or "Inspect the governed detail before acting."
+        or "Papyrus did not return a next action for this queue item."
     )
 
 

@@ -4,7 +4,7 @@ Use this page when you need the minimum shared model behind Papyrus. Each rule i
 
 ## Operating Boundary
 
-Papyrus has one authoritative policy layer for governed mutations, rebuildable derived state, and two governed construction flows:
+Papyrus keeps governed mutation meaning in shared backend contracts, rebuildable derived state, and two governed construction flows:
 
 - Canonical source: Markdown knowledge under `knowledge/` and `archive/knowledge/`
 - Runtime derived state: rebuildable relational state and local workbench artifacts under `build/` used for validation, search, reporting, revision history, trust, governance views, ingestion review, and demo seeding
@@ -45,6 +45,12 @@ If these layers disagree, canonical source wins and the runtime or export must b
 
 Papyrus still projects compatibility aliases such as `status`, `revision_state`, `draft_state`, and `approval_state` in some read surfaces. Those aliases are presentation and query compatibility fields, not the authoritative policy contract.
 
+## Backend/UI Cut Line
+
+- Backend contracts define governed meaning. `papyrus.domain.lifecycle`, `papyrus.application.policy_authority`, `papyrus.application.ui_projection`, workflow projections, and action descriptors decide lifecycle semantics, safe-to-use guidance, operator messages, and acknowledgement requirements.
+- CLI, API, and web render those contracts. They may choose different presentation formats, but they should not compute governed action availability, acknowledgement rules, or lifecycle meaning from raw database state.
+- If a surface needs governed truth that is missing, add it to the backend contract or projection layer first.
+
 ## Commands That Exercise The Model
 
 ```bash
@@ -69,7 +75,8 @@ python3 scripts/operator_view.py events --db build/knowledge.db --format json
 - Start new authoring from a blueprint, not from a blank editor.
 - Route external documents through the import workbench before they become drafts.
 - In web mode, browser upload is the normal import path; browser-submitted local file reads require explicit local-operator opt-in, an absolute host path, and an allowlisted local read root.
-- Use guided section editing as the primary web authoring path. The bulk draft fallback is an explicit operator fallback, not a co-equal drafting model.
+- Use guided section editing as the primary web authoring path. The bulk draft fallback remains retained technical debt because searchable citation and multi-select controls have not yet moved into shared guided components.
+- Do not reintroduce route-local policy checks, template-local acknowledgement rules, or page-local governed action availability logic.
 - Treat `build/ingestions/` and any demo source created under `build/` as disposable runtime artifacts, not repository source.
 - Use governed source sync rather than manual file sync when an approved runtime revision becomes canonical.
 - Prefer one canonical procedure plus linked site deltas over copy-based regional variants.

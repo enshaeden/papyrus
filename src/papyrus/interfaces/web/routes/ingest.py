@@ -10,6 +10,7 @@ from papyrus.domain.ingestion import IngestionStatus, has_mapping_result
 from papyrus.interfaces.web.http import Request, html_response, redirect_response
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
+from papyrus.interfaces.web.presenters.governed_presenter import render_action_descriptor_panel, render_workflow_projection_panel, workflow_actions
 from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
 from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path, render_list, slugify
 
@@ -67,6 +68,21 @@ def _stage_progress_html(runtime, *, detail: dict[str, object]) -> str:
             "items_json": escape(json.dumps(items, ensure_ascii=True)),
         },
     )
+
+
+def _ingestion_action_href(*, detail: dict[str, object], action: dict[str, object]) -> str | None:
+    ingestion_id = quoted_path(str(detail["ingestion_id"]))
+    action_id = str(action.get("action_id") or "")
+    if action_id == "review_ingestion_mapping":
+        return f"/ingest/{ingestion_id}/review"
+    if action_id == "convert_ingestion_to_draft":
+        return f"/ingest/{ingestion_id}/review#convert-to-draft-form"
+    if action_id == "open_converted_draft" and detail.get("converted_object_id") and detail.get("converted_revision_id"):
+        return (
+            f"/write/objects/{quoted_path(str(detail['converted_object_id']))}/revisions/new"
+            f"?revision_id={quoted_path(str(detail['converted_revision_id']))}"
+        )
+    return None
 
 
 def _parser_assessment_card(components, *, detail: dict[str, object]) -> str:
@@ -326,27 +342,6 @@ def _ingest_list_page(runtime, *, request: Request, errors: list[str] | None = N
 
 def _ingestion_detail_page(runtime, *, request: Request, detail: dict[str, object]) -> str:
     components = ComponentPresenter(runtime.template_renderer)
-    mapping = detail.get("mapping_result") or {}
-    mapping_generated = has_mapping_result(mapping)
-    mapping_summary = components.section_card(
-        title="Mapping status",
-        eyebrow="Import",
-        body_html=(
-            (
-                f"<p><strong>Suggested blueprint:</strong> {escape(detail.get('blueprint_id') or detail['classification']['blueprint_id'])}</p>"
-                f"<p><strong>Low-confidence mappings:</strong> {escape(len(mapping.get('low_confidence', [])))}</p>"
-                f"<p><strong>Missing required sections:</strong> {escape(len(mapping.get('missing_sections', [])))}</p>"
-                f"<p><strong>Mapping conflicts:</strong> {escape(len(mapping.get('conflicts', [])))}</p>"
-            )
-            if mapping_generated
-            else (
-                f"<p><strong>Suggested blueprint:</strong> {escape(detail.get('blueprint_id') or detail['classification']['blueprint_id'])}</p>"
-                "<p><strong>Mapping result:</strong> Not generated yet.</p>"
-                "<p>Open the review screen to generate the first mapping result and inspect gaps before conversion.</p>"
-            )
-        )
-        + f'<p>{link("Review mapping" if mapping_generated else "Generate mapping review", f"/ingest/{quoted_path(detail["ingestion_id"])}/review", css_class="button button-primary")}</p>',
-    )
     normalized = detail["normalized_content"]
     content_html = components.section_card(
         title="Parsed content",
@@ -369,7 +364,22 @@ def _ingestion_detail_page(runtime, *, request: Request, detail: dict[str, objec
         flash_html=flash_html_for_request(runtime, request),
         actor_id=actor_for_request(request),
         current_path=request.path,
-        aside_html=join_html([mapping_summary, _parser_assessment_card(components, detail=detail)]),
+        aside_html=join_html(
+            [
+                render_workflow_projection_panel(
+                    components,
+                    title="Import workflow contract",
+                    projection=detail.get("workflow_projection"),
+                ),
+                render_action_descriptor_panel(
+                    components,
+                    title="Import workflow actions",
+                    actions=workflow_actions(detail.get("workflow_projection")),
+                    href_resolver=lambda action: _ingestion_action_href(detail=detail, action=action),
+                ),
+                _parser_assessment_card(components, detail=detail),
+            ]
+        ),
         page_context={
             "progress_html": _stage_progress_html(runtime, detail=detail),
             "stage_html": _stage_summary_html(components, detail=detail),
@@ -409,7 +419,7 @@ def _mapping_review_page(runtime, *, request: Request, detail: dict[str, object]
         eyebrow="Import",
         body_html=(
             error_html
-            + '<form class="governed-form" method="post">'
+            + '<form id="convert-to-draft-form" class="governed-form" method="post">'
             + forms.field(
                 field_id="object_id",
                 label="Object ID",
@@ -494,15 +504,16 @@ def _mapping_review_page(runtime, *, request: Request, detail: dict[str, object]
         current_path=request.path,
         aside_html=join_html(
             [
-                components.section_card(
-                    title="Next action",
-                    eyebrow="Guidance",
-                    body_html=(
-                        f"<p><strong>Missing required sections:</strong> {escape(len(mapping.get('missing_sections', [])))}</p>"
-                        f"<p><strong>Low-confidence matches:</strong> {escape(len(mapping.get('low_confidence', [])))}</p>"
-                        f"<p><strong>Mapping conflicts:</strong> {escape(len(mapping.get('conflicts', [])))}</p>"
-                        "<p>Review the gaps first. Convert only when the mapping is good enough to continue as a structured draft.</p>"
-                    ),
+                render_workflow_projection_panel(
+                    components,
+                    title="Import workflow contract",
+                    projection=detail.get("workflow_projection"),
+                ),
+                render_action_descriptor_panel(
+                    components,
+                    title="Import workflow actions",
+                    actions=workflow_actions(detail.get("workflow_projection")),
+                    href_resolver=lambda action: _ingestion_action_href(detail=detail, action=action),
                 ),
                 _parser_assessment_card(components, detail=detail),
             ]
@@ -568,6 +579,8 @@ def register(router, runtime) -> None:
             blueprint_id=detail.get("blueprint_id") or detail["classification"]["blueprint_id"],
             database_path=runtime.database_path,
         )
+        if existing_mapping is None:
+            detail = ingestion_detail(ingestion_id=ingestion_id, database_path=runtime.database_path)
         errors: list[str] = []
         if request.method == "POST":
             required_fields = ["object_id", "title", "canonical_path", "owner", "team", "review_cadence", "status", "audience"]

@@ -67,6 +67,8 @@ Current repository boundary:
 
 - the repository exposes governed operator actions through shared application flows backed by the lifecycle state machines, policy authority, and transactional mutation journal
 - reviewer assignment, approval, rejection, supersession, suspect marking, and validation-run recording all leave audit evidence
+- CLI, API, and web render backend action descriptors, acknowledgement contracts, operator messages, and `ui_projection` guidance; they should not restate lifecycle or policy meaning locally
+- if a manage screen needs governed truth that is missing, extend the backend contract or projection layer instead of adding route-local policy logic
 
 ## Inspect Activity, Audit, And Revision History
 
@@ -130,6 +132,13 @@ python3 scripts/source_sync.py restore-last --object <object_id>
 ```
 
 Use these commands when source sync needs explicit inspection or rollback. Preview reports the proposed `source_sync_state`, required acknowledgements, and conflict posture before apply. Do not recover by manually editing generated output.
+
+## Recovery And Acknowledgement Rules
+
+- operator startup and governed mutation entry points run pending mutation recovery before they proceed
+- Papyrus reclaims or rolls back stale journals and stale locks when it can do so safely
+- if recovery cannot prove a safe result, Papyrus stops the operation and surfaces the blocking reason instead of ignoring the journal or lock
+- archive, writeback, and restore acknowledgements come from backend contracts; operators should only confirm what the current contract requires
 
 ## Use Papyrus As A Stewardship Surface
 

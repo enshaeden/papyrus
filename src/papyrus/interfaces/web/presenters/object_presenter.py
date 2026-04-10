@@ -193,7 +193,6 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
     item = detail["object"]
     revision = detail["current_revision"]
     metadata = detail.get("metadata") or {}
-    posture = detail.get("posture") or {}
     ui_projection = detail.get("ui_projection") or {}
     projection_state_values = projection_state(ui_projection)
     evidence_status = detail.get("evidence_status") or {}
@@ -214,13 +213,13 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         badges=[
             components.badge(
                 label="Trust",
-                value=projection_state_values.get("trust_state") or item["trust_state"],
-                tone=tone_for_trust(str(projection_state_values.get("trust_state") or item["trust_state"])),
+                value=projection_state_values.get("trust_state") or "unknown",
+                tone=tone_for_trust(str(projection_state_values.get("trust_state") or "unknown")),
             ),
             components.badge(
                 label="Approval",
-                value=projection_state_values.get("approval_state") or item["approval_state"] or "unknown",
-                tone=tone_for_approval(str(projection_state_values.get("approval_state") or item["approval_state"])),
+                value=projection_state_values.get("approval_state") or "unknown",
+                tone=tone_for_approval(str(projection_state_values.get("approval_state") or "unknown")),
             ),
             components.badge(label="Freshness", value=item["freshness_rank"], tone=tone_for_health(item["freshness_rank"])),
             components.badge(label="Evidence", value=item["citation_health_rank"], tone=tone_for_health(item["citation_health_rank"])),
@@ -363,24 +362,23 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                 badges=[
                     components.badge(
                         label="Trust",
-                        value=projection_state_values.get("trust_state") or item["trust_state"],
-                        tone=tone_for_trust(str(projection_state_values.get("trust_state") or item["trust_state"])),
+                        value=projection_state_values.get("trust_state") or "unknown",
+                        tone=tone_for_trust(str(projection_state_values.get("trust_state") or "unknown")),
                     ),
                     components.badge(
                         label="Approval",
-                        value=projection_state_values.get("approval_state") or item["approval_state"] or "unknown",
-                        tone=tone_for_approval(str(projection_state_values.get("approval_state") or item["approval_state"])),
+                        value=projection_state_values.get("approval_state") or "unknown",
+                        tone=tone_for_approval(str(projection_state_values.get("approval_state") or "unknown")),
                     ),
                     components.badge(
                         label="Status",
-                        value=projection_state_values.get("object_lifecycle_state") or item["object_lifecycle_state"],
+                        value=projection_state_values.get("object_lifecycle_state") or "unknown",
                         tone="context",
                     ),
                 ],
                 summary=str(
                     (ui_projection.get("use_guidance") or {}).get("detail")
-                    or posture.get("trust_detail")
-                    or "Inspect trust, approval, and lifecycle cues before relying on the guidance."
+                    or "Papyrus did not return governed detail for this object."
                 ),
             ),
             components.section_card(

@@ -14,6 +14,7 @@ from papyrus.application.ingestion_flow import (
     mark_ingestion_converted,
     update_ingestion_mapping,
 )
+from papyrus.application.mapping_flow import map_to_blueprint
 
 
 def governed_ingest_path(temp_dir: str, filename: str) -> tuple[Path, Path]:
@@ -45,6 +46,39 @@ class IngestionFlowTests(unittest.TestCase):
             stage_progress = next(artifact["content"] for artifact in detail["artifacts"] if artifact["artifact_type"] == "stage_progress")
             self.assertEqual(stage_progress["completed_stages"], ["upload", "parse", "classify"])
             self.assertEqual(stage_progress["current_stage"], "map")
+
+    def test_ingestion_detail_exposes_workflow_projection_and_actions(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root, source_path = governed_ingest_path(temp_dir, "sample.md")
+            source_path.write_text(
+                "# VPN Recovery\n\n## Steps\n\n- Validate connectivity\n- Reconnect client\n\n## Verification\n\n- Confirm tunnel\n",
+                encoding="utf-8",
+            )
+
+            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
+            detail = ingestion_detail(ingestion_id=result["ingestion_id"], database_path=database_path)
+            classified_actions = {
+                action["action_id"]: action
+                for action in detail["workflow_projection"]["actions"]
+            }
+            self.assertEqual(detail["workflow_projection"]["summary"], "Generate mapping review")
+            self.assertEqual(classified_actions["review_ingestion_mapping"]["availability"], "allowed")
+            self.assertEqual(classified_actions["convert_ingestion_to_draft"]["availability"], "illegal")
+
+            map_to_blueprint(
+                ingestion_id=result["ingestion_id"],
+                blueprint_id="runbook",
+                database_path=database_path,
+            )
+            mapped = ingestion_detail(ingestion_id=result["ingestion_id"], database_path=database_path)
+            mapped_actions = {
+                action["action_id"]: action
+                for action in mapped["workflow_projection"]["actions"]
+            }
+            self.assertEqual(mapped["workflow_projection"]["rows"][0]["value"], "mapped")
+            self.assertEqual(mapped_actions["review_ingestion_mapping"]["availability"], "allowed")
+            self.assertEqual(mapped_actions["convert_ingestion_to_draft"]["availability"], "allowed")
 
     def test_mapping_transition_requires_real_mapping_result(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

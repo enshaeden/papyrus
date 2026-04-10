@@ -67,7 +67,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const meta = document.createElement("span");
         meta.className = "citation-picker-result-meta";
-        meta.textContent = `${item.object_id} | ${item.path} | ${item.approval_state} approval | ${item.trust_state} trust`;
+        meta.textContent =
+          String(item.detail || "").trim() ||
+          `${item.object_id} | ${item.path}`;
 
         button.append(title, meta);
         fragment.append(button);
