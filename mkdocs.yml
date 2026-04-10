@@ -24,7 +24,7 @@ nav:
       - By System: knowledge/by-system.md
       - By Tag: knowledge/by-tag.md
       - By Team: knowledge/by-team.md
-      - By Status: knowledge/by-status.md
+      - By Lifecycle: knowledge/by-lifecycle.md
       - Archive: archive/index.md
   - Operator Docs:
       - Overview: system-design-docs/index.md

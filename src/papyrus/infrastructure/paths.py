@@ -35,7 +35,7 @@ GENERATED_SITE_INDEX_PATHS = (
     "knowledge/by-system.md",
     "knowledge/by-tag.md",
     "knowledge/by-team.md",
-    "knowledge/by-status.md",
+    "knowledge/by-lifecycle.md",
     "archive/index.md",
 )
 GENERATED_SITE_ASSET_PATHS = (

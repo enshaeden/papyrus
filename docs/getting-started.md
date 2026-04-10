@@ -112,6 +112,9 @@ Guardrail:
 
 Keep this list aligned with the current top-level `scripts/` directory. If a new top-level script is added, update this inventory in the same change.
 
+Guardrail:
+- Top-level Python scripts are stable operator entrypoints. Keep durable implementation in `src/papyrus/interfaces/` or `src/papyrus/jobs/` rather than growing new business logic directly under `scripts/`.
+
 | Category | Scripts | Notes |
 | --- | --- | --- |
 | Bootstrap and build | `_bootstrap.py`, `bootstrap.sh`, `build.sh`, `build_index.py`, `build_site_docs.py`, `build_static_export.sh`, `validate.py` | Local environment setup, validation, runtime rebuild, and static/export build entrypoints. |

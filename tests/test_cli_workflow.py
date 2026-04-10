@@ -77,6 +77,8 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertNotIn('href="knowledge/index.md"', generated_home_text)
         self.assertIn("Papyrus Docs", generated_docs_index.read_text(encoding="utf-8"))
         self.assertIn("Knowledge Explorer", generated_explorer_text)
+        self.assertIn('"object_lifecycle_state"', generated_explorer_text)
+        self.assertNotIn('"status":', generated_explorer_text)
         site_paths = re.findall(r'"site_path": "([^"]+)"', generated_explorer_text)
         self.assertTrue(site_paths)
         self.assertTrue(all(not path.endswith(".md") for path in site_paths))

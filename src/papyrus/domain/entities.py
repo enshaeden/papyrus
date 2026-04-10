@@ -23,7 +23,7 @@ class KnowledgeDocument:
 
     @property
     def object_type(self) -> str:
-        value = self.metadata.get("knowledge_object_type") or self.metadata.get("type")
+        value = self.metadata.get("knowledge_object_type")
         return str(value or "")
 
 

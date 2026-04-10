@@ -7,6 +7,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = ROOT / "scripts"
 INVENTORY_DOC = ROOT / "docs" / "getting-started.md"
+WRAPPER_IMPORTS = {
+    "build_site_docs.py": "from papyrus.jobs.site_docs_build import main",
+    "demo_runtime.py": "from papyrus.jobs.demo_runtime_build import main",
+    "ingest_event.py": "from papyrus.interfaces.ingest_event_cli import main",
+    "new_article.py": "from papyrus.interfaces.new_article_cli import main",
+    "run.py": "from papyrus.interfaces.local_runtime_cli import main",
+    "source_sync.py": "from papyrus.interfaces.source_sync_cli import main",
+    "validate_migration.py": "from papyrus.jobs.migration_validation import main",
+}
 
 
 class ScriptInventoryTests(unittest.TestCase):
@@ -20,3 +29,9 @@ class ScriptInventoryTests(unittest.TestCase):
         self.assertTrue(script_names, msg="expected at least one top-level script")
         for script_name in script_names:
             self.assertIn(f"`{script_name}`", inventory_text, msg=f"{script_name} is missing from docs/getting-started.md")
+
+    def test_curated_entrypoints_remain_wrappers(self) -> None:
+        for script_name, expected_import in WRAPPER_IMPORTS.items():
+            script_text = (SCRIPTS_DIR / script_name).read_text(encoding="utf-8")
+            self.assertIn(expected_import, script_text, msg=f"{script_name} should delegate to a packaged module")
+            self.assertIn("ensure_src_path()", script_text, msg=f"{script_name} should bootstrap src/ before import")

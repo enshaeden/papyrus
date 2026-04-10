@@ -32,14 +32,14 @@
     return options.join("");
   }
 
-  function articleMatches(article, state, defaultStatuses) {
+  function articleMatches(article, state, defaultObjectLifecycleStates) {
     if (state.query) {
       var haystack = [
         article.title,
         article.summary,
         article.path,
         article.type,
-        article.status,
+        article.object_lifecycle_state,
         article.owner,
         article.team,
         article.audience,
@@ -72,11 +72,14 @@
         return false;
       }
     }
-    if (state.status) {
-      if (article.status !== state.status) {
+    if (state.object_lifecycle_state) {
+      if (article.object_lifecycle_state !== state.object_lifecycle_state) {
         return false;
       }
-    } else if (defaultStatuses.length && defaultStatuses.indexOf(article.status) === -1) {
+    } else if (
+      defaultObjectLifecycleStates.length &&
+      defaultObjectLifecycleStates.indexOf(article.object_lifecycle_state) === -1
+    ) {
       return false;
     }
 
@@ -116,7 +119,7 @@
   function renderCard(article) {
     var chips = [
       article.type,
-      article.status,
+      article.object_lifecycle_state,
       article.audience,
       article.team,
     ]
@@ -161,7 +164,7 @@
       service: params.get("service") || "",
       system: params.get("system") || "",
       tag: params.get("tag") || "",
-      status: params.get("status") || "",
+      object_lifecycle_state: params.get("object_lifecycle_state") || "",
       team: params.get("team") || "",
       owner: params.get("owner") || "",
     };
@@ -186,13 +189,15 @@
         '<label><span>Service</span><select data-field="service">' + buildOptions(taxonomies.service, state.service, true) + "</select></label>" +
         '<label><span>System</span><select data-field="system">' + buildOptions(taxonomies.system, state.system, true) + "</select></label>" +
         '<label><span>Tag</span><select data-field="tag">' + buildOptions(taxonomies.tag, state.tag, true) + "</select></label>" +
-        '<label><span>Status</span><select data-field="status">' + buildOptions(taxonomies.status, state.status, false) + "</select></label>" +
+        '<label><span>Lifecycle</span><select data-field="object_lifecycle_state">' +
+        buildOptions(taxonomies.object_lifecycle_state, state.object_lifecycle_state, false) +
+        "</select></label>" +
         '<label><span>Team</span><select data-field="team">' + buildOptions(taxonomies.team, state.team, false) + "</select></label>" +
         '<label><span>Owner</span><select data-field="owner">' + buildOptions(taxonomies.owner, state.owner, true) + "</select></label>" +
         '<button type="button" id="kb-clear-filters">Clear Filters</button>';
 
       var filtered = data.filter(function (article) {
-        return articleMatches(article, state, taxonomies.default_statuses || []);
+        return articleMatches(article, state, taxonomies.default_object_lifecycle_states || []);
       });
 
       summary.textContent =
@@ -200,7 +205,9 @@
         filtered.length +
         " knowledge object(s) out of " +
         data.length +
-        (state.status ? "" : " across default current statuses: " + (taxonomies.default_statuses || []).join(", "));
+        (state.object_lifecycle_state
+          ? ""
+          : " across default current lifecycle states: " + (taxonomies.default_object_lifecycle_states || []).join(", "));
 
       resultsNode.innerHTML = filtered.length
         ? filtered.map(renderCard).join("")

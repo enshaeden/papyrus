@@ -36,15 +36,25 @@ class ComponentPresenter:
         eyebrow: str = "",
         footer_html: str = "",
         tone: str = "default",
+        summary: str = "",
+        css_class: str = "",
+        body_class: str = "section-card-body",
     ) -> str:
         return self.renderer.render(
             "partials/section_card.html",
             {
                 "title": escape(title),
                 "eyebrow": escape(eyebrow),
+                "summary_html": (
+                    f'<p class="governed-panel-summary">{escape(summary)}</p>'
+                    if str(summary).strip()
+                    else ""
+                ),
                 "body_html": body_html,
+                "body_class": escape(body_class),
                 "footer_html": footer_html,
                 "tone": escape(tone),
+                "css_class": escape(css_class),
             },
         )
 
@@ -69,12 +79,11 @@ class ComponentPresenter:
         )
 
     def metadata_list(self, *, title: str, rows: list[tuple[str, str]]) -> str:
-        return self.renderer.render(
-            "partials/metadata_list.html",
-            {
-                "title": escape(title),
-                "rows_html": render_definition_rows(rows),
-            },
+        return self.section_card(
+            title=title,
+            eyebrow="Metadata",
+            body_html=render_definition_rows(rows),
+            tone="context",
         )
 
     def citations_panel(self, *, title: str, items: list[str], empty_label: str) -> str:
@@ -158,12 +167,11 @@ class ComponentPresenter:
 
     def validation_summary(self, *, title: str, findings: list[str], empty_label: str = "No validation findings.") -> str:
         body_html = render_list(findings, css_class="validation-findings") or f'<p class="empty-state-copy">{escape(empty_label)}</p>'
-        return self.renderer.render(
-            "partials/validation_summary.html",
-            {
-                "title": escape(title),
-                "items_html": body_html,
-            },
+        return self.section_card(
+            title=title,
+            eyebrow="Validation",
+            body_html=body_html,
+            tone="context",
         )
 
     def object_header(
@@ -214,16 +222,14 @@ class ComponentPresenter:
         footer_html: str = "",
         tone: str = "context",
     ) -> str:
-        return self.renderer.render(
-            "partials/governed_status_panel.html",
-            {
-                "title": escape(title),
-                "summary": escape(summary),
-                "body_html": body_html,
-                "eyebrow": escape(eyebrow),
-                "footer_html": footer_html,
-                "tone": escape(tone),
-            },
+        return self.section_card(
+            title=title,
+            summary=summary,
+            body_html=body_html,
+            eyebrow=eyebrow,
+            footer_html=footer_html,
+            tone=tone,
+            css_class="governed-status-panel",
         )
 
     def governed_action_panel(
@@ -235,15 +241,14 @@ class ComponentPresenter:
         footer_html: str = "",
         tone: str = "context",
     ) -> str:
-        return self.renderer.render(
-            "partials/governed_action_panel.html",
-            {
-                "title": escape(title),
-                "body_html": body_html,
-                "eyebrow": escape(eyebrow),
-                "footer_html": footer_html,
-                "tone": escape(tone),
-            },
+        return self.section_card(
+            title=title,
+            body_html=body_html,
+            eyebrow=eyebrow,
+            footer_html=footer_html,
+            tone=tone,
+            css_class="governed-action-panel",
+            body_class="section-card-body governed-action-list",
         )
 
     def governed_acknowledgement_panel(
@@ -256,16 +261,14 @@ class ComponentPresenter:
         footer_html: str = "",
         tone: str = "warning",
     ) -> str:
-        return self.renderer.render(
-            "partials/governed_acknowledgement_panel.html",
-            {
-                "title": escape(title),
-                "summary": escape(summary),
-                "body_html": body_html,
-                "eyebrow": escape(eyebrow),
-                "footer_html": footer_html,
-                "tone": escape(tone),
-            },
+        return self.section_card(
+            title=title,
+            summary=summary,
+            body_html=body_html,
+            eyebrow=eyebrow,
+            footer_html=footer_html,
+            tone=tone,
+            css_class="governed-acknowledgement-panel",
         )
 
     def filter_bar(self, *, title: str, controls_html: str) -> str:
@@ -278,11 +281,9 @@ class ComponentPresenter:
         )
 
     def validation_findings(self, *, title: str, items: list[str], tone: str = "warning") -> str:
-        return self.renderer.render(
-            "partials/validation_findings_list.html",
-            {
-                "title": escape(title),
-                "tone": escape(tone),
-                "items_html": render_list(items, css_class="validation-findings") or "",
-            },
+        return self.section_card(
+            title=title,
+            eyebrow="Review Readiness",
+            body_html=render_list(items, css_class="validation-findings") or "",
+            tone=tone,
         )

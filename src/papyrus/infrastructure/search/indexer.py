@@ -10,7 +10,7 @@ from papyrus.infrastructure.paths import GENERATED_SITE_DOCS_DIR, KNOWLEDGE_DIR,
 
 def summarize_for_search(document: KnowledgeDocument) -> str:
     metadata = document.metadata
-    object_type = metadata.get("knowledge_object_type") or metadata.get("type") or ""
+    object_type = metadata.get("knowledge_object_type") or ""
     related_services = metadata.get("related_services") or metadata.get("services") or []
     values: list[str] = [
         metadata.get("title", ""),
