@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlencode
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import primary_surface_href, projection_state, projection_use_guidance
@@ -140,6 +141,137 @@ def _decision_card_html(components: ComponentPresenter, item: dict[str, Any]) ->
     )
 
 
+def _selection_href(
+    *,
+    query: str,
+    selected_type: str,
+    selected_trust: str,
+    selected_review_state: str,
+    object_id: str,
+    revision_id: str = "",
+) -> str:
+    params = {
+        "query": query,
+        "object_type": selected_type,
+        "trust": selected_trust,
+        "review_state": selected_review_state,
+        "selected_object_id": object_id,
+    }
+    if revision_id:
+        params["selected_revision_id"] = revision_id
+    return "/read?" + urlencode({key: value for key, value in params.items() if value})
+
+
+def _selected_queue_item(
+    items: list[dict[str, Any]],
+    *,
+    selected_object_id: str,
+    selected_revision_id: str,
+) -> dict[str, Any] | None:
+    if not items:
+        return None
+    for item in items:
+        object_id = str(item.get("object_id") or "")
+        revision_id = str(item.get("revision_id") or item.get("current_revision_id") or "")
+        if object_id == selected_object_id and (not selected_revision_id or revision_id == selected_revision_id):
+            return item
+    return items[0]
+
+
+def _dense_queue_table_html(
+    components: ComponentPresenter,
+    *,
+    items: list[dict[str, Any]],
+    query: str,
+    selected_type: str,
+    selected_trust: str,
+    selected_review_state: str,
+    selected_item: dict[str, Any] | None,
+) -> str:
+    rows: list[list[str]] = []
+    row_attrs: list[dict[str, object]] = []
+    for item in items:
+        object_id = str(item["object_id"])
+        revision_id = str(item.get("revision_id") or item.get("current_revision_id") or "")
+        selection_href = _selection_href(
+            query=query,
+            selected_type=selected_type,
+            selected_trust=selected_trust,
+            selected_review_state=selected_review_state,
+            object_id=object_id,
+            revision_id=revision_id,
+        )
+        is_selected = (
+            selected_item is not None
+            and str(selected_item.get("object_id") or "") == object_id
+            and str(selected_item.get("revision_id") or selected_item.get("current_revision_id") or "") == revision_id
+        )
+        rows.append(
+            [
+                components.decision_cell(
+                    title_html=link(str(item["title"]), selection_href, css_class="selected-row-link"),
+                    supporting_html=escape(_decision_summary_text(item)),
+                    meta=[escape(f'{item["object_type"]} · {item["object_id"]}')],
+                ),
+                components.decision_cell(
+                    title_html=escape(_status_detail_text(item)),
+                    badges=[_decision_status_badges_html(components, item)],
+                ),
+                components.decision_cell(
+                    title_html=escape(_next_action_text(item)),
+                    supporting_html=escape(f'Owner: {item.get("owner") or "Unowned"}'),
+                ),
+                link(
+                    "Open",
+                    _queue_item_href(item),
+                    css_class="button button-secondary",
+                    attrs={"data-component": "action-link", "data-action-id": "open-primary-surface"},
+                ),
+            ]
+        )
+        row_attrs.append({"aria-selected": "true", "class": "is-selected"} if is_selected else {})
+    return components.queue_table(
+        headers=["Guidance", "Status", "Next action", "Open"],
+        rows=rows,
+        row_attrs=row_attrs,
+        table_id="read-queue-results",
+        surface="read-queue",
+        variant="dense-table",
+    )
+
+
+def _queue_context_panel(components: ComponentPresenter, item: dict[str, Any]) -> str:
+    linked_services_html = (
+        ", ".join(
+            link(service["service_name"], f"/services/{quoted_path(service['service_id'])}")
+            for service in item["linked_services"]
+        )
+    ) if item["linked_services"] else "No linked service context."
+    return components.context_panel(
+        title=str(item["title"]),
+        eyebrow="Selected item",
+        body_html=join_html(
+            [
+                f"<p><strong>{escape(_decision_summary_text(item))}</strong></p>",
+                f"<p>{escape(_status_detail_text(item))}</p>",
+                f"<p><strong>Next action:</strong> {escape(_next_action_text(item))}</p>",
+                f"<p><strong>Owner:</strong> {escape(item.get('owner') or 'Unowned')}</p>",
+                f"<p><strong>Path:</strong> {escape(item.get('path') or 'No canonical path recorded.')}</p>",
+                f"<p><strong>Services:</strong> {linked_services_html}</p>",
+                f'<div class="badge-row">{_decision_status_badges_html(components, item)}</div>',
+            ]
+        ),
+        footer_html=link(
+            "Open guidance",
+            _queue_item_href(item),
+            css_class="button button-secondary",
+            attrs={"data-component": "action-link", "data-action-id": "open-primary-surface"},
+        ),
+        variant="selected-item",
+        surface="read-queue",
+    )
+
+
 def present_queue_page(
     renderer: TemplateRenderer,
     *,
@@ -148,6 +280,9 @@ def present_queue_page(
     selected_type: str,
     selected_trust: str,
     selected_review_state: str,
+    actor_id: str = "",
+    selected_object_id: str = "",
+    selected_revision_id: str = "",
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     normalized_items = []
@@ -197,37 +332,61 @@ def present_queue_page(
         '<button class="button button-primary" type="submit">Show best matches</button>'
         "</form>"
     )
-    group_config = {
-        "safe": ("Safe", "Approved guidance you can use with the current guardrails.", "approved"),
-        "review": ("Needs review", "Guidance that needs verification before you rely on it.", "warning"),
-        "attention": ("Requires attention", "Guidance blocked by higher-risk trust or approval signals.", "danger"),
-    }
-    group_sections = []
-    for group_key in ("attention", "review", "safe"):
-        group_items = grouped_items[group_key]
-        if not group_items:
-            continue
-        title, description, tone = group_config[group_key]
-        group_sections.append(
-            components.surface_panel(
-                title=title,
-                eyebrow="Read",
-                tone=tone,
-                body_html=f'<p class="decision-group-summary">{escape(description)}</p>' + join_html(
-                    [_decision_card_html(components, item) for item in group_items]
-                ),
-                variant=group_key,
-                surface="read-queue",
+    dense_mode = actor_id in {"local.reviewer", "local.manager"}
+    selected_item = _selected_queue_item(
+        normalized_items,
+        selected_object_id=selected_object_id,
+        selected_revision_id=selected_revision_id,
+    )
+    if dense_mode:
+        queue_html = (
+            _dense_queue_table_html(
+                components,
+                items=normalized_items,
+                query=query,
+                selected_type=selected_type,
+                selected_trust=selected_trust,
+                selected_review_state=selected_review_state,
+                selected_item=selected_item,
+            )
+            if normalized_items
+            else components.empty_state(
+                title="No matching guidance",
+                description="Adjust filters or search terms to widen the read scope.",
             )
         )
-    queue_html = (
-        join_html(group_sections)
-        if group_sections
-        else components.empty_state(
-            title="No matching guidance",
-            description="Adjust filters or search terms to widen the read scope.",
+    else:
+        group_config = {
+            "safe": ("Safe", "Approved guidance you can use with the current guardrails.", "approved"),
+            "review": ("Needs review", "Guidance that needs verification before you rely on it.", "warning"),
+            "attention": ("Requires attention", "Guidance blocked by higher-risk trust or approval signals.", "danger"),
+        }
+        group_sections = []
+        for group_key in ("attention", "review", "safe"):
+            group_items = grouped_items[group_key]
+            if not group_items:
+                continue
+            title, description, tone = group_config[group_key]
+            group_sections.append(
+                components.content_section(
+                    title=title,
+                    eyebrow="Read",
+                    body_html=f'<p class="decision-group-summary">{escape(description)}</p>' + join_html(
+                        [_decision_card_html(components, item) for item in group_items]
+                    ),
+                    variant=group_key,
+                    surface="read-queue",
+                    tone=tone,
+                )
+            )
+        queue_html = (
+            join_html(group_sections)
+            if group_sections
+            else components.empty_state(
+                title="No matching guidance",
+                description="Adjust filters or search terms to widen the read scope.",
+            )
         )
-    )
     return {
         "page_template": "pages/queue.html",
         "page_title": "Read Guidance",
@@ -236,7 +395,7 @@ def present_queue_page(
             "show_actor_links": True,
         },
         "active_nav": "read",
-        "aside_html": "",
+        "aside_html": _queue_context_panel(components, selected_item) if dense_mode and selected_item is not None else "",
         "page_context": {
             "filter_bar_html": components.filter_bar(title="Read filters", controls_html=filter_controls_html, surface="read-queue"),
             "summary_html": summary_html,

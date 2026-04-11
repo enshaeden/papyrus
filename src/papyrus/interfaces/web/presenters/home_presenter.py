@@ -7,32 +7,6 @@ from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link
 
 
-def _area_card(
-    components: ComponentPresenter,
-    *,
-    eyebrow: str,
-    title: str,
-    metric_label: str,
-    metric_value: object,
-    description: str,
-    href: str,
-    action_label: str,
-    tone: str = "default",
-    action_variant: str = "secondary",
-) -> str:
-    return components.section_card(
-        title=title,
-        eyebrow=eyebrow,
-        tone=tone,
-        body_html=(
-            f'<p class="metric-value">{escape(metric_value)}</p>'
-            f'<p><strong>{escape(metric_label)}</strong></p>'
-            f"<p>{escape(description)}</p>"
-        ),
-        footer_html=link(action_label, href, css_class=f"button button-{escape(action_variant)}"),
-    )
-
-
 def _activity_rows(events: list[dict[str, Any]]) -> list[list[str]]:
     rows: list[list[str]] = []
     for event in events:
@@ -52,6 +26,44 @@ def _activity_rows(events: list[dict[str, Any]]) -> list[list[str]]:
     return rows
 
 
+def _next_action_rows(items: list[dict[str, str | int]]) -> str:
+    return join_html(
+        [
+            (
+                f'<article class="next-action-row{" is-primary" if index == 0 else ""}">'
+                f'<p class="next-action-count">{escape(item["count"])}</p>'
+                '<div class="next-action-copy">'
+                f'<p class="next-action-title">{escape(item["title"])}</p>'
+                f'<p class="next-action-detail">{escape(item["detail"])}</p>'
+                "</div>"
+                f'{link(str(item["label"]), str(item["href"]), css_class="button button-primary" if index == 0 else "button button-secondary")}'
+                "</article>"
+            )
+            for index, item in enumerate(items)
+        ]
+    )
+
+
+def _work_area_rows(items: list[dict[str, str | int]]) -> str:
+    return join_html(
+        [
+            (
+                '<article class="work-area-row">'
+                '<div class="work-area-copy">'
+                f'<p class="work-area-title">{escape(item["title"])}</p>'
+                f'<p class="work-area-detail">{escape(item["description"])}</p>'
+                "</div>"
+                '<div class="work-area-meta">'
+                f'<p class="work-area-metric">{escape(item["metric_value"])}</p>'
+                f'<p class="work-area-label">{escape(item["metric_label"])}</p>'
+                f'{link(str(item["action_label"]), str(item["href"]), css_class="work-area-link")}'
+                "</div></article>"
+            )
+            for item in items
+        ]
+    )
+
+
 def present_home_page(
     renderer: TemplateRenderer,
     *,
@@ -62,39 +74,6 @@ def present_home_page(
     summary_variant: str,
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
-    next_actions_html = join_html(
-        [
-            _area_card(
-                components,
-                eyebrow="Next",
-                title=str(item["title"]),
-                metric_label="Outstanding work",
-                metric_value=item["count"],
-                description=str(item["detail"]),
-                href=str(item["href"]),
-                action_label=str(item["label"]),
-                tone="brand" if index == 0 else "default",
-                action_variant="primary" if index == 0 else "secondary",
-            )
-            for index, item in enumerate(next_actions)
-        ]
-    )
-    work_areas_html = join_html(
-        [
-            _area_card(
-                components,
-                eyebrow="Route",
-                title=str(item["title"]),
-                metric_label=str(item["metric_label"]),
-                metric_value=item["metric_value"],
-                description=str(item["description"]),
-                href=str(item["href"]),
-                action_label=str(item["action_label"]),
-                tone=str(item["tone"]),
-            )
-            for item in work_areas
-        ]
-    )
     summary_html = components.trust_summary(
         title="Current pressure",
         badges=(
@@ -118,7 +97,21 @@ def present_home_page(
         ),
         summary="Use the top row to choose the next governed action.",
     )
-    activity_html = components.section_card(
+    next_actions_html = components.content_section(
+        title="Next actions",
+        eyebrow="Next",
+        body_html=_next_action_rows(next_actions),
+        variant="next-actions",
+        surface="home",
+    )
+    work_areas_html = components.content_section(
+        title="Work areas",
+        eyebrow="Route",
+        body_html=_work_area_rows(work_areas),
+        variant="work-areas",
+        surface="home",
+    )
+    activity_html = components.content_section(
         title="Recent activity",
         eyebrow="Activity",
         body_html=(

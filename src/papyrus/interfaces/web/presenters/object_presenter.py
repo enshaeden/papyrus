@@ -226,29 +226,22 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         )
     latest_audit = detail["audit_events"][0] if detail["audit_events"] else None
 
-    header_html = components.object_header(
-        object_type=item["object_type"],
-        object_id=item["object_id"],
-        title=item["title"],
-        summary=item["summary"],
-        badges=_object_status_badges_html(components, item=item, ui_projection=ui_projection),
-        actions_html=join_html(
-            [
-                link("See history", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
-                authoring_entry_html(
-                    object_id=str(item["object_id"]),
-                    ui_projection=ui_projection,
-                    current_revision_id=str(item.get("current_revision_id") or "") or None,
-                    label_override="Revise guidance",
-                    allow_start_when_not_in_draft_state=True,
-                ) or "",
-                link("See consequences", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
-            ],
-            " ",
-        ),
+    actions_html = join_html(
+        [
+            link("See history", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
+            authoring_entry_html(
+                object_id=str(item["object_id"]),
+                ui_projection=ui_projection,
+                current_revision_id=str(item.get("current_revision_id") or "") or None,
+                label_override="Revise guidance",
+                allow_start_when_not_in_draft_state=True,
+            ) or "",
+            link("See consequences", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
+        ],
+        " ",
     )
 
-    top_cards = [
+    context_sections = [
         render_projection_overview_panel(
             components,
             title="How to use this now",
@@ -260,7 +253,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                 f'<p class="section-footer">Last reviewed {escape(item["last_reviewed"])} · cadence {escape(item["review_cadence"])}</p>'
             ),
         ),
-        components.surface_panel(
+        components.context_panel(
             title="Linked service context",
             eyebrow="Use",
             body_html=(
@@ -277,11 +270,11 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
             variant="linked-services",
             surface="object-detail",
         ),
-        components.surface_panel(
+        components.context_panel(
             title="What changed recently",
             eyebrow="Change",
             body_html=(
-                f"<p>{escape(revision['change_summary'] or 'No revision change summary recorded.')}</p>"
+                f"<p>{escape(revision['change_summary'] if revision is not None else 'No revision change summary recorded.')}</p>"
                 + (
                     f"<p><strong>Latest audit:</strong> {escape(latest_audit['event_type'])} at {escape(format_timestamp(latest_audit['occurred_at']))} by {escape(latest_audit['actor'])}</p>"
                     if latest_audit
@@ -294,7 +287,21 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
     ]
 
     guidance_html = join_html(
-        top_cards
+        [
+            components.content_section(
+                title="Current guidance",
+                eyebrow="Use",
+                body_html=join_html(
+                    [
+                        f'<p class="governed-summary"><strong>{escape((ui_projection.get("use_guidance") or {}).get("summary") or "Backend guidance unavailable")}</strong></p>',
+                        f'<p>{escape((ui_projection.get("use_guidance") or {}).get("detail") or "Papyrus did not return governed guidance for this object.")}</p>',
+                        f'<p><strong>Next action:</strong> {escape((ui_projection.get("use_guidance") or {}).get("next_action") or "Review the current guidance posture.")}</p>',
+                    ]
+                ),
+                variant="current-guidance",
+                surface="object-detail",
+            )
+        ]
         + _guidance_cards(
             components,
             item=item,
@@ -302,9 +309,9 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
             sections=body_sections,
         )
         + [
-            components.surface_panel(
+            components.content_section(
                 title="Core steps and recovery",
-                eyebrow="Guidance",
+                eyebrow="Procedure",
                 body_html=join_html(
                     [
                         f"<h3>Steps</h3>{render_list([escape(step) for step in metadata.get('steps', [])], css_class='panel-list') or '<p class=\"empty-state-copy\">No steps recorded.</p>'}",
@@ -314,7 +321,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                 variant="steps-and-recovery",
                 surface="object-detail",
             ),
-            components.surface_panel(
+            components.content_section(
                 title="Revision narrative",
                 eyebrow="Change",
                 body_html=(
@@ -333,9 +340,10 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         ]
     )
 
-    related_sections_html = join_html(
-        [
-            components.surface_panel(
+    aside_html = join_html(
+        context_sections
+        + [
+            components.context_panel(
                 title="Supporting evidence",
                 eyebrow="Evidence",
                 body_html=components.list_body(
@@ -353,7 +361,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                 variant="evidence",
                 surface="object-detail",
             ),
-            components.surface_panel(
+            components.context_panel(
                 title="Related knowledge",
                 eyebrow="Relationships",
                 body_html=components.list_body(
@@ -366,7 +374,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                 variant="relationships",
                 surface="object-detail",
             ),
-            components.surface_panel(
+            components.context_panel(
                 title="Recent audit trail",
                 eyebrow="Audit",
                 body_html=components.list_body(
@@ -387,12 +395,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
                 variant="audit",
                 surface="object-detail",
             ),
-        ]
-    )
-
-    aside_html = join_html(
-        [
-            components.surface_panel(
+            components.context_panel(
                 title="Evidence follow-up",
                 eyebrow="Evidence",
                 body_html=(
@@ -428,14 +431,15 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         "page_title": item["title"],
         "page_header": {
             "headline": item["title"],
+            "kicker": f'{item["object_type"].replace("_", " ")} · Reference {item["object_id"]}',
+            "intro": item["summary"],
+            "actions_html": actions_html,
             "show_actor_links": True,
         },
         "active_nav": "read",
         "aside_html": aside_html,
         "page_context": {
-            "header_html": header_html,
             "content_sections_html": guidance_html,
-            "related_sections_html": related_sections_html,
         },
         "page_surface": "object-detail",
     }

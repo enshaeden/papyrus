@@ -74,24 +74,27 @@ class PageRenderer:
         nav_sections_html = join_html(
             [
                 (
-                    '<div class="sidebar-block">'
+                    '<section class="sidebar-group">'
                     f'<p class="sidebar-label">{escape(section.title)}</p>'
                     + (
                         f'<p class="sidebar-copy">{escape(section.description)}</p>'
                         if section.description
                         else ""
                     )
+                    + '<ul class="sidebar-nav">'
                     + join_html(
                         [
-                            link(
+                            "<li class=\"sidebar-item\">"
+                            + link(
                                 item.label,
                                 item.href,
                                 css_class="sidebar-link is-active" if self._nav_item_is_active(item, active_nav=active_nav, current_path=current_path) else "sidebar-link",
                             )
+                            + "</li>"
                             for item in section.items
                         ]
                     )
-                    + "</div>"
+                    + "</ul></section>"
                 )
                 for section in role_config.nav_sections
             ]

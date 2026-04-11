@@ -13,6 +13,24 @@ def _data_token(value: object, *, fallback: str = "default") -> str:
     return normalized or fallback
 
 
+_CONTEXT_PANEL_TOKENS = (
+    "metadata",
+    "governance",
+    "filter",
+    "progress",
+    "support",
+    "validation",
+    "context",
+    "evidence",
+    "audit",
+    "relationship",
+    "cleanup",
+    "contract",
+    "posture",
+    "status",
+)
+
+
 @dataclass
 class ComponentPresenter:
     renderer: TemplateRenderer
@@ -39,6 +57,7 @@ class ComponentPresenter:
         body_class: str = "section-card-body",
         variant: str = "",
         surface: str = "",
+        panel_role: str = "content-section",
     ) -> str:
         normalized_variant = _data_token(variant or tone)
         normalized_surface = _data_token(surface or eyebrow or title)
@@ -59,11 +78,26 @@ class ComponentPresenter:
                 "css_class": escape(css_class),
                 "component_variant": escape(normalized_variant),
                 "component_surface": escape(normalized_surface),
+                "panel_role": escape(panel_role),
             },
         )
 
+    def content_section(self, **kwargs) -> str:
+        return self.surface_panel(panel_role="content-section", **kwargs)
+
+    def context_panel(self, **kwargs) -> str:
+        return self.surface_panel(panel_role="context-panel", **kwargs)
+
     def section_card(self, **kwargs) -> str:
-        return self.surface_panel(**kwargs)
+        tone = str(kwargs.get("tone") or "default").strip().lower()
+        variant = str(kwargs.get("variant") or "")
+        surface = str(kwargs.get("surface") or "")
+        body_class = str(kwargs.get("body_class") or "")
+        css_class = str(kwargs.get("css_class") or "")
+        combined = " ".join((variant, surface, body_class, css_class)).lower()
+        if tone != "default" or any(token in combined for token in _CONTEXT_PANEL_TOKENS):
+            return self.context_panel(**kwargs)
+        return self.content_section(**kwargs)
 
     def badge(self, *, label: str, value: object, tone: str) -> str:
         return self.renderer.render(
@@ -105,7 +139,7 @@ class ComponentPresenter:
         rows: list[tuple[str, str]],
         surface: str = "metadata",
     ) -> str:
-        return self.surface_panel(
+        return self.context_panel(
             title=title,
             eyebrow="Metadata",
             body_html=render_definition_rows(rows),
@@ -119,6 +153,7 @@ class ComponentPresenter:
         *,
         headers: list[str],
         rows: list[list[str]],
+        row_attrs: list[dict[str, object] | None] | None = None,
         table_id: str,
         surface: str = "table",
         variant: str = "default",
@@ -126,7 +161,7 @@ class ComponentPresenter:
         return self.renderer.render(
             "partials/queue_table.html",
             {
-                "table_html": render_table(headers, rows, table_id=table_id),
+                "table_html": render_table(headers, rows, table_id=table_id, row_attrs=row_attrs),
                 "component_surface": escape(_data_token(surface)),
                 "component_variant": escape(_data_token(variant)),
             },

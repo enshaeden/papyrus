@@ -27,10 +27,13 @@ def _apply_filters(
 
 def register(router, runtime) -> None:
     def queue_page(request: Request):
+        actor_id = actor_for_request(request)
         query = request.query_value("query").strip()
         selected_type = request.query_value("object_type").strip()
         selected_trust = request.query_value("trust").strip()
         selected_review_state = request.query_value("review_state").strip()
+        selected_object_id = request.query_value("selected_object_id").strip()
+        selected_revision_id = request.query_value("selected_revision_id").strip()
         limit = int(request.query_value("limit", "100"))
         items = (
             search_knowledge_objects(query, limit=limit, database_path=runtime.database_path)
@@ -50,12 +53,15 @@ def register(router, runtime) -> None:
             selected_type=selected_type,
             selected_trust=selected_trust,
             selected_review_state=selected_review_state,
+            actor_id=actor_id,
+            selected_object_id=selected_object_id,
+            selected_revision_id=selected_revision_id,
         )
         return html_response(
             runtime.page_renderer.render_page(
                 search_value=query,
                 flash_html=flash_html_for_request(runtime, request),
-                actor_id=actor_for_request(request),
+                actor_id=actor_id,
                 current_path=request.path,
                 **page,
             )

@@ -34,7 +34,7 @@ def render_object_progress_html(components: ComponentPresenter, *, values: dict[
     )
     source_completed, source_total = completion_ratio(values, ["object_id", "canonical_path"])
     blockers = sum(len(messages) for messages in errors.values())
-    return components.surface_panel(
+    return components.context_panel(
         title="Step 1 of 3",
         eyebrow="Progress",
         tone="warning" if blockers else "brand",
@@ -105,7 +105,7 @@ def render_next_action_panel_html(components: ComponentPresenter, *, detail, blu
     warning_panels = []
     if reasons:
         warning_panels.append(
-            components.surface_panel(
+            components.context_panel(
                 title="Still blocking",
                 eyebrow="Review readiness",
                 body_html=components.list_body(
@@ -120,7 +120,7 @@ def render_next_action_panel_html(components: ComponentPresenter, *, detail, blu
         )
     if warnings:
         warning_panels.append(
-            components.surface_panel(
+            components.context_panel(
                 title="Review before handoff",
                 eyebrow="Review readiness",
                 body_html=components.list_body(
@@ -133,7 +133,7 @@ def render_next_action_panel_html(components: ComponentPresenter, *, detail, blu
                 surface="write-revision",
             )
         )
-    return components.surface_panel(
+    return components.context_panel(
         title="Ready for handoff?",
         eyebrow="Progress",
         tone=str(draft_projection.get("tone") or "default"),

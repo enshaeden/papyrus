@@ -157,7 +157,7 @@ def present_object_setup_page(runtime, values: dict[str, str], errors: dict[str,
     return {
         "validation_html": validation_html,
         "progress_html": render_object_progress_html(components, values=values, errors=errors),
-        "form_html": components.section_card(title="Set up the draft", eyebrow="Write", body_html=body_html),
+        "form_html": components.content_section(title="Set up the draft", eyebrow="Write", body_html=body_html),
         "guidance_html": support_details_html(
             title="What happens next",
             summary="Papyrus opens the first required section after setup.",
@@ -214,11 +214,7 @@ def present_guided_revision_page(
             body_html=evidence_guidance_body_html(),
         )
     return {
-        "stage_label_html": (
-            '<p class="write-stage-label">Step 2 of 3 · Draft the first revision</p>'
-            if is_first_revision
-            else '<p class="write-stage-label">Step 2 of 3 · Continue the revision</p>'
-        ),
+        "stage_label_html": "",
         "progress_html": render_progress_bar_html(runtime, blueprint=blueprint, completion=completion, current_section_id=section_id),
         "validation_html": validation_html,
         "section_editor_html": runtime.template_renderer.render(
@@ -263,7 +259,7 @@ def present_submit_page(
             submit_action=submit_action,
         )
     )
-    form_html = components.surface_panel(
+    form_html = components.content_section(
         title="Send to review",
         eyebrow="Write",
         body_html=(
@@ -281,7 +277,7 @@ def present_submit_page(
         variant="submit-form",
         surface="write-submit",
     )
-    summary_html = components.surface_panel(
+    summary_html = components.content_section(
         title="Submission summary",
         eyebrow="Write",
         body_html=(
@@ -295,7 +291,7 @@ def present_submit_page(
         variant="submission-summary",
         surface="write-submit",
     )
-    findings_html = components.surface_panel(
+    findings_html = components.context_panel(
         title="Pre-submit validation",
         eyebrow="Validation",
         body_html=components.list_body(
@@ -312,7 +308,7 @@ def present_submit_page(
         for row in draft_projection.get("rows", [])
         if row.get("label") and row.get("value")
     ]
-    progress_html = components.surface_panel(
+    progress_html = components.context_panel(
         title="Step 3 of 3",
         eyebrow="Progress",
         tone=str(draft_projection.get("tone") or "default"),

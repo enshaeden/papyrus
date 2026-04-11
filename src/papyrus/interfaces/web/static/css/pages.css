@@ -5,6 +5,10 @@
   color: var(--color-accent-primary);
 }
 
+.content-section .metric-value {
+  font-size: 2.1rem;
+}
+
 .section-card-body h3 {
   margin-bottom: var(--space-2);
   font-size: 1rem;
@@ -12,6 +16,14 @@
 
 .section-card-body > *:first-child { margin-top: 0; }
 .section-card-body > *:last-child { margin-bottom: 0; }
+
+.content-section .section-card-body {
+  gap: var(--space-2);
+}
+
+.context-panel .section-card-body {
+  gap: var(--space-2);
+}
 
 .cell-meta,
 .section-footer {
@@ -28,20 +40,84 @@
 
 .empty-state {
   text-align: center;
-  padding: var(--space-6);
+  padding: var(--space-5);
+}
+
+.next-action-row,
+.work-area-row {
+  display: grid;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.next-action-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: var(--space-2) 0;
+}
+
+.next-action-row + .next-action-row,
+.work-area-row + .work-area-row {
+  border-top: 1px solid var(--color-border-default);
+}
+
+.next-action-row.is-primary {
+  padding-top: 0;
+}
+
+.next-action-count,
+.work-area-metric {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.8rem;
+  color: var(--color-accent-primary);
+}
+
+.next-action-copy,
+.work-area-copy,
+.work-area-meta {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.next-action-title,
+.work-area-title,
+.work-area-label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.next-action-detail,
+.work-area-detail {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.work-area-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: var(--space-2) 0;
+}
+
+.work-area-meta {
+  justify-items: end;
+  text-align: right;
+}
+
+.work-area-link {
+  color: var(--color-accent-primary);
+  font-weight: 600;
 }
 
 .write-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 20rem;
-  gap: var(--space-4);
+  gap: var(--space-3);
   align-items: start;
 }
 
 .write-main,
 .write-sidebar {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .write-stage-label {
@@ -79,7 +155,6 @@
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);
   background: var(--color-surface-elevated);
-  box-shadow: var(--shadow);
   flex: 1 1 16rem;
 }
 
@@ -351,6 +426,16 @@
 }
 
 @media (max-width: 960px) {
+  .next-action-row,
+  .work-area-row {
+    grid-template-columns: 1fr;
+  }
+
+  .work-area-meta {
+    justify-items: start;
+    text-align: left;
+  }
+
   .write-workspace {
     grid-template-columns: 1fr;
   }

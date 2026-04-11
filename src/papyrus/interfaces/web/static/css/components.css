@@ -1,21 +1,57 @@
 .panel,
-.section-card,
 .object-header,
 .filter-bar,
 .flash,
 .empty-state {
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-md);
 }
 
 .panel,
-.section-card,
 .filter-bar,
 .flash,
 .empty-state {
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-3) var(--space-4);
+}
+
+.section-card {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.section-card header {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.section-card h2,
+.section-card p {
+  margin: 0;
+}
+
+.section-card-body {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.section-card.content-section {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.section-card.content-section + .section-card.content-section {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-default);
+}
+
+.section-card.context-panel {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-panel);
 }
 
 .panel-governance,
@@ -33,41 +69,41 @@
 }
 
 .panel.tone-approved,
-.section-card.tone-approved {
+.section-card.context-panel.tone-approved {
   background: var(--color-status-success-bg);
   border-color: var(--color-status-success);
 }
 
 .panel.tone-warning,
-.section-card.tone-warning {
+.section-card.context-panel.tone-warning {
   background: var(--color-status-warning-bg);
   border-color: var(--color-status-warning);
 }
 
 .panel.tone-danger,
-.section-card.tone-danger {
+.section-card.context-panel.tone-danger {
   background: var(--color-status-error-bg);
   border-color: var(--color-status-error);
 }
 
 .panel.tone-context,
-.section-card.tone-context {
+.section-card.context-panel.tone-context {
   background: var(--color-panel-governance-bg);
   border-color: var(--color-panel-governance-border);
 }
 
 .panel.tone-brand,
-.section-card.tone-brand {
+.section-card.context-panel.tone-brand {
   background: var(--color-panel-governance-bg);
   border-color: var(--color-selected-border);
 }
 
 .object-header {
-  padding: var(--space-5);
+  padding: var(--space-4);
   display: grid;
   grid-template-columns: minmax(0, 1fr) 20rem;
   gap: var(--space-4);
-  box-shadow: inset 0.35rem 0 0 var(--color-object-identity), var(--shadow);
+  box-shadow: inset 0.35rem 0 0 var(--color-object-identity);
 }
 
 .object-meta {
@@ -105,7 +141,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  padding: 0.4rem 0.7rem;
   border-radius: 999px;
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-raised);
@@ -163,7 +199,7 @@
 
 .data-table th,
 .data-table td {
-  padding: var(--space-3);
+  padding: 0.7rem 0.75rem;
   border-bottom: 1px solid var(--color-border-default);
   text-align: left;
   vertical-align: top;
@@ -172,7 +208,7 @@
 
 .data-table th {
   color: var(--color-text-muted);
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -193,6 +229,11 @@
 
 .table-shell {
   overflow-x: auto;
+}
+
+.table-shell[data-variant="dense-table"] .data-table th,
+.table-shell[data-variant="dense-table"] .data-table td {
+  padding: 0.55rem 0.65rem;
 }
 
 .decision-cell {
@@ -439,7 +480,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .filter-title,
@@ -458,8 +499,17 @@
   flex-wrap: wrap;
 }
 
+.trust-strip {
+  padding: var(--space-3) var(--space-4);
+}
+
 .filter-controls { flex: 1; }
 .form-field { display: grid; gap: var(--space-2); margin-bottom: var(--space-4); }
+
+.selected-row-link {
+  font-weight: 700;
+  text-decoration-thickness: 0.08em;
+}
 
 input,
 select,
@@ -496,9 +546,8 @@ textarea { resize: vertical; }
 
 .support-disclosure {
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--color-surface-panel);
-  box-shadow: var(--shadow);
 }
 
 .support-disclosure summary {
@@ -506,7 +555,7 @@ textarea { resize: vertical; }
   justify-content: space-between;
   gap: var(--space-3);
   align-items: center;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   cursor: pointer;
   list-style: none;
 }
@@ -526,22 +575,21 @@ textarea { resize: vertical; }
 }
 
 .support-disclosure-body {
-  padding: 0 var(--space-4) var(--space-4);
+  padding: 0 var(--space-3) var(--space-3);
   border-top: 1px solid var(--color-border-default);
 }
 
 .support-disclosure-body > *:first-child {
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
 }
 
 .progress-shell {
   display: grid;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
+  gap: var(--space-2);
+  padding: var(--space-3);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--color-surface-panel);
-  box-shadow: var(--shadow);
 }
 
 .progress-shell-summary {
@@ -553,13 +601,13 @@ textarea { resize: vertical; }
 
 .progress-shell-percent {
   margin: 0;
-  font-size: 1.8rem;
+  font-size: 1.45rem;
   font-weight: 700;
 }
 
 .progress-shell-track {
   width: 100%;
-  height: 0.7rem;
+  height: 0.5rem;
   border-radius: 999px;
   background: var(--color-surface-panel-strong);
   overflow: hidden;
@@ -574,11 +622,11 @@ textarea { resize: vertical; }
 .progress-shell-steps {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .progress-step {
-  padding: var(--space-3);
+  padding: var(--space-2);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-raised);
@@ -605,15 +653,18 @@ textarea { resize: vertical; }
 }
 
 .section-editor {
-  padding: var(--space-5);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-panel);
-  box-shadow: var(--shadow);
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .section-editor-header {
-  margin-bottom: var(--space-4);
+  margin-bottom: 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-default);
 }
 
 .section-editor-header h2,
@@ -628,7 +679,7 @@ textarea { resize: vertical; }
 }
 
 .validation-inline {
-  padding: var(--space-4);
+  padding: var(--space-3);
   border: 1px solid var(--color-status-warning);
   border-radius: var(--radius-md);
   background: var(--color-status-warning-bg);
@@ -658,7 +709,7 @@ textarea { resize: vertical; }
 .decision-card {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-4);
+  padding: var(--space-3);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);
   background: var(--color-surface-raised);

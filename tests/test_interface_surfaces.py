@@ -161,6 +161,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("<title>Home | Papyrus</title>", body)
         self.assert_primary_surface(body, "home")
         self.assertNotIn('<aside class="context-column">', body)
+        self.assertNotIn('class="dual-grid"', body)
 
         status, _, body = call_wsgi(application, "/queue")
         self.assertEqual(status, "200 OK")
@@ -173,6 +174,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("VPN Troubleshooting", body)
         self.assert_page_contract(body, primary_surface="object-detail", components=("surface-panel",))
         self.assertIn('<aside class="context-column">', body)
+        self.assert_not_component(body, "object-header")
 
         status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity/revisions")
         self.assertEqual(status, "200 OK")

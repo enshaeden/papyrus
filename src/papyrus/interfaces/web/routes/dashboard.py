@@ -9,7 +9,12 @@ from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for
 def register(router, runtime) -> None:
     def trust_dashboard_page(request: Request):
         dashboard = trust_dashboard(database_path=runtime.database_path)
-        page = present_trust_dashboard(runtime.template_renderer, dashboard=dashboard)
+        page = present_trust_dashboard(
+            runtime.template_renderer,
+            dashboard=dashboard,
+            selected_object_id=request.query_value("selected_object_id").strip(),
+            selected_revision_id=request.query_value("selected_revision_id").strip(),
+        )
         return html_response(
             runtime.page_renderer.render_page(
                 search_value=request.query_value("query"),

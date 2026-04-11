@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlencode
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
@@ -24,6 +25,7 @@ from papyrus.interfaces.web.view_helpers import (
     join_html,
     link,
     quoted_path,
+    render_definition_rows,
     render_list,
     tone_for_review_state,
     tone_for_trust,
@@ -133,16 +135,31 @@ def _manage_table(
     *,
     title: str,
     items: list[dict[str, object]],
+    selected_object_id: str,
+    selected_revision_id: str,
 ) -> str:
     rows = []
+    row_attrs: list[dict[str, object]] = []
     for item in items:
         use_guidance = projection_use_guidance(item.get("ui_projection"))
         state = projection_state(item.get("ui_projection"))
         reasons = projection_reasons(item.get("ui_projection"))
+        object_id = str(item.get("object_id") or "")
+        revision_id = str(item.get("revision_id") or item.get("current_revision_id") or "")
+        selection_href = "/review?" + urlencode(
+            {
+                key: value
+                for key, value in {
+                    "selected_object_id": object_id,
+                    "selected_revision_id": revision_id,
+                }.items()
+                if value
+            }
+        )
         rows.append(
             [
                 components.decision_cell(
-                    title_html=link(str(item["title"]), _manage_item_detail_href(item)),
+                    title_html=link(str(item["title"]), selection_href, css_class="selected-row-link"),
                     supporting_html=escape(item.get("change_summary") or item.get("summary") or "No recent summary recorded."),
                     meta=[escape(str(item.get("object_id") or ""))],
                 ),
@@ -179,18 +196,80 @@ def _manage_table(
                 _manage_item_actions(components, item),
             ]
         )
-    return components.section_card(
+        row_attrs.append(
+            {"aria-selected": "true", "class": "is-selected"}
+            if object_id == selected_object_id and (not selected_revision_id or revision_id == selected_revision_id)
+            else {}
+        )
+    return components.context_panel(
         title=title,
         eyebrow="Stewardship",
         body_html=(
             components.queue_table(
                 headers=["Guidance", "Status", "Attention", "Steward", "Next action"],
                 rows=rows,
+                row_attrs=row_attrs,
                 table_id=title.lower().replace(" ", "-"),
+                variant="dense-table",
             )
             if rows
             else '<p class="empty-state-copy">No items in this queue.</p>'
         ),
+    )
+
+
+def _selected_manage_item(queue: dict[str, Any], *, selected_object_id: str, selected_revision_id: str) -> dict[str, object] | None:
+    ordered_groups = (
+        queue["ready_for_review"],
+        queue["needs_decision"],
+        queue["needs_revalidation"],
+        queue["draft_items"],
+        queue["recently_changed"][:10],
+        queue["superseded_items"],
+    )
+    all_items = [item for group in ordered_groups for item in group]
+    if not all_items:
+        return None
+    for item in all_items:
+        object_id = str(item.get("object_id") or "")
+        revision_id = str(item.get("revision_id") or item.get("current_revision_id") or "")
+        if object_id == selected_object_id and (not selected_revision_id or revision_id == selected_revision_id):
+            return item
+    return all_items[0]
+
+
+def _manage_context_panel(components: ComponentPresenter, item: dict[str, object]) -> str:
+    state = projection_state(item.get("ui_projection"))
+    use_guidance = projection_use_guidance(item.get("ui_projection"))
+    reasons = projection_reasons(item.get("ui_projection"))
+    return components.context_panel(
+        title=str(item["title"]),
+        eyebrow="Selected item",
+        body_html=join_html(
+            [
+                f"<p><strong>{escape(use_guidance.get('summary') or 'Governed guidance unavailable')}</strong></p>",
+                f"<p>{escape(use_guidance.get('detail') or 'Papyrus did not return governed detail for this queue item.')}</p>",
+                render_list([escape(reason) for reason in reasons], css_class="panel-list")
+                or '<p class="empty-state-copy">No explicit reasons were attached to this queue item.</p>',
+                render_definition_rows(
+                    [
+                        ("Next action", escape(use_guidance.get("next_action") or "Review this item")),
+                        ("Trust", escape(state.get("trust_state") or "unknown")),
+                        ("Review", escape(state.get("revision_review_state") or "unknown")),
+                        ("Owner", escape(str(item.get("owner") or "Unowned"))),
+                    ]
+                ),
+            ]
+        ),
+        footer_html=join_html(
+            [
+                link("Open guidance", _manage_item_detail_href(item), css_class="button button-secondary"),
+                _manage_item_actions(components, item),
+            ],
+            " ",
+        ),
+        variant="selected-item",
+        surface="review-queue",
     )
 
 
@@ -233,6 +312,8 @@ def present_manage_queue_page(
     renderer: TemplateRenderer,
     *,
     queue: dict[str, Any],
+    selected_object_id: str = "",
+    selected_revision_id: str = "",
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     overview_html = components.summary_strip(
@@ -248,7 +329,7 @@ def present_manage_queue_page(
         variant="overview",
     )
     cleanup_counts = queue.get("cleanup_counts") or {}
-    cleanup_html = components.surface_panel(
+    cleanup_html = components.context_panel(
         title="Cleanup priorities",
         eyebrow="Cleanup",
         summary="Prioritize operational usefulness gaps before adding more governance ceremony.",
@@ -266,14 +347,21 @@ def present_manage_queue_page(
         variant="cleanup-priorities",
         surface="review-queue",
     )
+    selected_item = _selected_manage_item(
+        queue,
+        selected_object_id=selected_object_id,
+        selected_revision_id=selected_revision_id,
+    )
+    active_object_id = str((selected_item or {}).get("object_id") or "")
+    active_revision_id = str((selected_item or {}).get("revision_id") or (selected_item or {}).get("current_revision_id") or "")
     tables_html = join_html(
         [cleanup_html,
-            _manage_table(components, title="Ready for review", items=queue["ready_for_review"]),
-            _manage_table(components, title="Needs decision", items=queue["needs_decision"]),
-            _manage_table(components, title="Needs revalidation", items=queue["needs_revalidation"]),
-            _manage_table(components, title="Drafts and rework", items=queue["draft_items"]),
-            _manage_table(components, title="Recently changed", items=queue["recently_changed"][:10]),
-            _manage_table(components, title="Superseded or deprecated guidance", items=queue["superseded_items"]),
+            _manage_table(components, title="Ready for review", items=queue["ready_for_review"], selected_object_id=active_object_id, selected_revision_id=active_revision_id),
+            _manage_table(components, title="Needs decision", items=queue["needs_decision"], selected_object_id=active_object_id, selected_revision_id=active_revision_id),
+            _manage_table(components, title="Needs revalidation", items=queue["needs_revalidation"], selected_object_id=active_object_id, selected_revision_id=active_revision_id),
+            _manage_table(components, title="Drafts and rework", items=queue["draft_items"], selected_object_id=active_object_id, selected_revision_id=active_revision_id),
+            _manage_table(components, title="Recently changed", items=queue["recently_changed"][:10], selected_object_id=active_object_id, selected_revision_id=active_revision_id),
+            _manage_table(components, title="Superseded or deprecated guidance", items=queue["superseded_items"], selected_object_id=active_object_id, selected_revision_id=active_revision_id),
         ]
     )
     return _page_definition(
@@ -282,6 +370,7 @@ def present_manage_queue_page(
         headline="Review queue",
         active_nav="review",
         show_actor_links=True,
+        aside_html=_manage_context_panel(components, selected_item) if selected_item is not None else "",
         page_context={"overview_html": overview_html, "tables_html": tables_html},
     )
 

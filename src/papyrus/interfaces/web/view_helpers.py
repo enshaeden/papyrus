@@ -129,14 +129,23 @@ def render_list(items: list[str], *, css_class: str = "stack-list") -> str:
     return f'<ul class="{escape(css_class)}">' + "".join(f"<li>{item}</li>" for item in items) + "</ul>"
 
 
-def render_table(headers: list[str], rows: list[list[str]], *, table_id: str = "", css_class: str = "data-table") -> str:
+def render_table(
+    headers: list[str],
+    rows: list[list[str]],
+    *,
+    table_id: str = "",
+    css_class: str = "data-table",
+    row_attrs: list[dict[str, object] | None] | None = None,
+) -> str:
     if not rows:
         return ""
     id_attr = f' id="{escape(table_id)}"' if table_id else ""
     header_html = "".join(f"<th>{escape(header)}</th>" for header in headers)
     row_html = "".join(
-        "<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>"
-        for row in rows
+        f"<tr{_html_attrs((row_attrs or [None] * len(rows))[index])}>"
+        + "".join(f"<td>{cell}</td>" for cell in row)
+        + "</tr>"
+        for index, row in enumerate(rows)
     )
     return (
         f'<table{id_attr} class="{escape(css_class)}"><thead><tr>{header_html}</tr></thead>'

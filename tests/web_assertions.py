@@ -13,6 +13,9 @@ class SemanticHookAssertions:
     def assert_component(self, html: str, component: str) -> None:
         self.assertIn(self._hook_fragment("data-component", component), html)
 
+    def assert_not_component(self, html: str, component: str) -> None:
+        self.assertNotIn(self._hook_fragment("data-component", component), html)
+
     def assert_action_id(self, html: str, action_id: str) -> None:
         self.assertIn(self._hook_fragment("data-action-id", action_id), html)
 

@@ -10,7 +10,12 @@ def register(router, runtime) -> None:
     def object_impact_page(request: Request):
         object_id = request.route_value("object_id")
         impact = impact_view_for_object(object_id, database_path=runtime.database_path)
-        page = present_object_impact(runtime.template_renderer, impact=impact)
+        page = present_object_impact(
+            runtime.template_renderer,
+            impact=impact,
+            selected_object_id=request.query_value("selected_object_id").strip(),
+            selected_revision_id=request.query_value("selected_revision_id").strip(),
+        )
         return html_response(
             runtime.page_renderer.render_page(
                 search_value=request.query_value("query"),
@@ -24,7 +29,12 @@ def register(router, runtime) -> None:
     def service_impact_page(request: Request):
         service_id = request.route_value("service_id")
         impact = impact_view_for_service(service_id, database_path=runtime.database_path)
-        page = present_service_impact(runtime.template_renderer, impact=impact)
+        page = present_service_impact(
+            runtime.template_renderer,
+            impact=impact,
+            selected_object_id=request.query_value("selected_object_id").strip(),
+            selected_revision_id=request.query_value("selected_revision_id").strip(),
+        )
         return html_response(
             runtime.page_renderer.render_page(
                 search_value=request.query_value("query"),

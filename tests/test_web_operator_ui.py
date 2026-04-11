@@ -888,7 +888,8 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn('class="topbar-menu-chip" href="/write/objects/new">Write</a>', operator_body)
             self.assertIn('class="topbar-menu-chip" href="/services">Services</a>', operator_body)
             self.assertIn("Navigation", operator_body)
-            self.assertEqual(operator_body.count('class="sidebar-block"'), 1)
+            self.assertEqual(operator_body.count('class="sidebar-group"'), 1)
+            self.assertNotIn('class="sidebar-block"', operator_body)
             self.assertNotIn("Start Here", operator_body)
             self.assertNotIn('<aside class="context-column">', operator_body)
             self.assertIn('href="/write/objects/new"', operator_body)
@@ -905,6 +906,8 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("Activity / History", reviewer_body)
             self.assertIn('href="/review"', reviewer_body)
             self.assertIn('href="/activity"', reviewer_body)
+            self.assertIn('<aside class="context-column">', reviewer_body)
+            self.assert_component(reviewer_body, "table")
             self.assertNotIn("Start Here", reviewer_body)
             self.assertNotIn('class="actor-banner', reviewer_body)
 
@@ -968,7 +971,6 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn('class="write-workspace"', body)
             self.assertIn("Draft Runbook", body)
-            self.assertIn("Step 2 of 3", body)
             self.assertIn("Save and continue", body)
             self.assertIn("Check review handoff", body)
             self.assertIn('id="revision-form"', body)
@@ -977,6 +979,8 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn('class="sidebar"', body)
             self.assertIn('class="topbar-menu"', body)
             self.assertIn('class="topbar-menu-chip is-active" href="/write/objects/new">Write</a>', body)
+            self.assert_component(body, "progress-strip")
+            self.assertNotIn('class="write-stage-label"', body)
             self.assertNotIn("shell-columns-focus", body)
             self.assertIn("/static/js/citation_picker.js", body)
             self.assertIn("/static/js/multi_value_picker.js", body)
@@ -1027,6 +1031,8 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("Manage Queue Shell", body)
             self.assertIn("Continue draft", body)
             self.assertIn("/write/objects/kb-operator-ui-manage-shell/revisions/new?revision_id=", body)
+            self.assertIn('<aside class="context-column">', body)
+            self.assertIn('aria-selected="true"', body)
 
             complete_guided_runbook_revision(
                 application,
@@ -1043,6 +1049,15 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("Submit for review", body)
             self.assertIn("/write/objects/kb-operator-ui-manage-shell/revisions/new?revision_id=", body)
             self.assertIn("/write/objects/kb-operator-ui-manage-shell/submit?revision_id=", body)
+            self.assertIn('selected_object_id=kb-operator-ui-manage-shell', body)
+
+            status, _, selected_body = call_wsgi(
+                application,
+                "/manage/queue?selected_object_id=kb-operator-ui-manage-shell",
+            )
+            self.assertEqual(status, "200 OK")
+            self.assertIn('aria-selected="true"', selected_body)
+            self.assertIn("Selected item", selected_body)
 
     def test_guided_revision_get_with_revision_id_does_not_create_new_draft(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

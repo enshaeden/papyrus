@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.interfaces.web.presenters.dashboard_presenter import present_trust_dashboard
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
+from papyrus.interfaces.web.presenters.home_presenter import present_home_page
 from papyrus.interfaces.web.presenters.governed_presenter import (
     render_acknowledgement_panel,
     render_action_contract_panel,
@@ -27,6 +28,27 @@ TEMPLATE_RENDERER = TemplateRenderer(ROOT / "src" / "papyrus" / "interfaces" / "
 
 
 class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
+    def test_component_presenter_splits_flat_content_and_bordered_context(self) -> None:
+        components = ComponentPresenter(TEMPLATE_RENDERER)
+
+        content_html = components.content_section(
+            title="Primary content",
+            eyebrow="Read",
+            body_html="<p>Flat reading section.</p>",
+            surface="test-surface",
+        )
+        context_html = components.context_panel(
+            title="Context",
+            eyebrow="Metadata",
+            body_html="<p>Bordered support panel.</p>",
+            surface="test-surface",
+        )
+
+        self.assertIn('class="section-card content-section', content_html)
+        self.assertIn('class="section-card context-panel', context_html)
+        self.assert_component(content_html, "surface-panel")
+        self.assert_component(context_html, "surface-panel")
+
     def test_governed_panels_render_operator_message_and_acknowledgements(self) -> None:
         components = ComponentPresenter(TEMPLATE_RENDERER)
         forms = FormPresenter(TEMPLATE_RENDERER)
@@ -134,10 +156,10 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
             },
         )
         self.assertIn("/manage/reviews/kb-review/kb-review-r1", page["page_context"]["primary_html"])
-        self.assert_component(page["page_context"]["primary_html"], "decision-card")
+        self.assert_component(page["page_context"]["primary_html"], "table")
         self.assert_action_id(page["page_context"]["primary_html"], "open-primary-surface")
         self.assertIn("Review the decision.", page["page_context"]["primary_html"])
-        self.assertIn("Review decision pending", page["page_context"]["primary_html"])
+        self.assertIn("Review decision pending", page["aside_html"])
 
     def test_queue_presenter_keeps_trust_and_filters_visible(self) -> None:
         page = present_queue_page(
@@ -264,18 +286,14 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
                 "audit_events": [{"event_type": "revision_approved", "actor": "reviewer", "occurred_at": "2026-04-07T01:00:00+00:00", "details": {}}],
             },
         )
-        self.assertIn("Supporting evidence", page["page_context"]["related_sections_html"])
-        self.assertIn("Recent audit trail", page["page_context"]["related_sections_html"])
-        self.assertIn("Linked service context", page["page_context"]["content_sections_html"])
+        self.assertIn("Supporting evidence", page["aside_html"])
+        self.assertIn("Recent audit trail", page["aside_html"])
+        self.assertIn("Linked service context", page["aside_html"])
         self.assertNotIn("Current status", page["aside_html"])
-        self.assert_component(page["page_context"]["header_html"], "object-header")
         self.assert_component(page["page_context"]["content_sections_html"], "surface-panel")
-        self.assert_action_id(page["page_context"]["content_sections_html"], "mark_suspect")
+        self.assert_action_id(page["aside_html"], "mark_suspect")
         self.assertIn("The runtime contract marks this object safe for use.", page["page_context"]["content_sections_html"])
-        self.assertIn("Risk", page["page_context"]["header_html"])
-        self.assertIn("Freshness", page["page_context"]["header_html"])
-        self.assertIn("Review", page["page_context"]["header_html"])
-        self.assertNotIn("Evidence", page["page_context"]["header_html"])
+        self.assert_not_component(page["page_context"]["content_sections_html"], "object-header")
 
     def test_object_presenter_prefers_projection_truth_over_raw_state_fallbacks(self) -> None:
         page = present_object_detail(
@@ -393,6 +411,35 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component(queue_html, "decision-card")
         self.assertNotIn("Raw queue fallback should not render.", queue_html)
         self.assertNotIn("Safe to use now", queue_html)
+
+    def test_home_presenter_uses_flat_sections_instead_of_grid_cards(self) -> None:
+        page = present_home_page(
+            TEMPLATE_RENDERER,
+            counts={
+                "read_ready": 4,
+                "drafts": 1,
+                "review_required": 2,
+                "needs_revalidation": 1,
+                "needs_attention": 2,
+                "services": 3,
+                "recent_activity": 2,
+            },
+            next_actions=[
+                {"title": "Use current guidance", "detail": "Read the best answer first.", "href": "/read", "label": "Read guidance", "count": 4},
+                {"title": "Continue authoring", "detail": "Finish a draft.", "href": "/write/objects/new", "label": "Start a draft", "count": 1},
+            ],
+            work_areas=[
+                {"title": "Read", "metric_label": "Guidance items", "metric_value": 4, "description": "Find the current answer fast.", "href": "/read", "action_label": "Read guidance", "tone": "brand"},
+                {"title": "Write", "metric_label": "Drafts", "metric_value": 1, "description": "Create a draft.", "href": "/write/objects/new", "action_label": "Start a draft", "tone": "default"},
+            ],
+            events=[],
+            summary_variant="local.operator",
+        )
+
+        self.assertIn("next-action-row", page["page_context"]["next_actions_html"])
+        self.assertIn("work-area-row", page["page_context"]["work_areas_html"])
+        self.assertNotIn("dual-grid", page["page_context"]["next_actions_html"])
+        self.assertIn('class="section-card content-section', page["page_context"]["next_actions_html"])
 
     def test_revision_history_renders_single_current_governed_actions_panel(self) -> None:
         page = present_revision_history(

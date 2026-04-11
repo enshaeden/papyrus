@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlencode
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import primary_surface_href, projection_state, projection_use_guidance
@@ -101,6 +102,104 @@ def _dashboard_decision_card_html(components: ComponentPresenter, item: dict[str
     )
 
 
+def _dashboard_selection_href(object_id: str, revision_id: str = "") -> str:
+    return "/health?" + urlencode(
+        {
+            key: value
+            for key, value in {
+                "selected_object_id": object_id,
+                "selected_revision_id": revision_id,
+            }.items()
+            if value
+        }
+    )
+
+
+def _selected_dashboard_item(
+    items: list[dict[str, Any]],
+    *,
+    selected_object_id: str,
+    selected_revision_id: str,
+) -> dict[str, Any] | None:
+    if not items:
+        return None
+    for item in items:
+        object_id = str(item.get("object_id") or "")
+        revision_id = str(item.get("revision_id") or item.get("current_revision_id") or "")
+        if object_id == selected_object_id and (not selected_revision_id or revision_id == selected_revision_id):
+            return item
+    return items[0]
+
+
+def _dashboard_table_html(
+    components: ComponentPresenter,
+    *,
+    items: list[dict[str, Any]],
+    selected_item: dict[str, Any] | None,
+) -> str:
+    rows: list[list[str]] = []
+    row_attrs: list[dict[str, object]] = []
+    for item in items:
+        object_id = str(item["object_id"])
+        revision_id = str(item.get("revision_id") or item.get("current_revision_id") or "")
+        is_selected = (
+            selected_item is not None
+            and str(selected_item.get("object_id") or "") == object_id
+            and str(selected_item.get("revision_id") or selected_item.get("current_revision_id") or "") == revision_id
+        )
+        rows.append(
+            [
+                components.decision_cell(
+                    title_html=link(str(item["title"]), _dashboard_selection_href(object_id, revision_id), css_class="selected-row-link"),
+                    supporting_html=escape(_dashboard_why_now(item)),
+                    meta=[escape(object_id)],
+                ),
+                components.decision_cell(
+                    title_html=escape(_dashboard_next_action(item)),
+                    badges=[_dashboard_status_badges_html(components, item)],
+                ),
+                components.decision_cell(title_html=escape(_dashboard_bucket(item).title())),
+                link(
+                    "Open",
+                    _dashboard_item_href(item),
+                    css_class="button button-secondary",
+                    attrs={"data-component": "action-link", "data-action-id": "open-primary-surface"},
+                ),
+            ]
+        )
+        row_attrs.append({"aria-selected": "true", "class": "is-selected"} if is_selected else {})
+    return components.queue_table(
+        headers=["Guidance", "Next action", "Risk bucket", "Open"],
+        rows=rows,
+        row_attrs=row_attrs,
+        table_id="knowledge-health-queue",
+        surface="knowledge-health",
+        variant="dense-table",
+    )
+
+
+def _dashboard_context_panel(components: ComponentPresenter, item: dict[str, Any]) -> str:
+    return components.context_panel(
+        title=str(item["title"]),
+        eyebrow="Selected item",
+        body_html=join_html(
+            [
+                f"<p><strong>{escape(_dashboard_why_now(item))}</strong></p>",
+                f"<p>{escape(_dashboard_next_action(item))}</p>",
+                f'<div class="badge-row">{_dashboard_status_badges_html(components, item)}</div>',
+            ]
+        ),
+        footer_html=link(
+            "Open guidance",
+            _dashboard_item_href(item),
+            css_class="button button-secondary",
+            attrs={"data-component": "action-link", "data-action-id": "open-primary-surface"},
+        ),
+        variant="selected-item",
+        surface="knowledge-health",
+    )
+
+
 def _validation_run_bucket(status: str) -> str:
     normalized = str(status or "").lower()
     if normalized == "passed":
@@ -108,109 +207,75 @@ def _validation_run_bucket(status: str) -> str:
     if normalized in {"warning", "degraded"}:
         return "review"
     return "attention"
-def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, Any]) -> dict[str, Any]:
+
+
+def present_trust_dashboard(
+    renderer: TemplateRenderer,
+    *,
+    dashboard: dict[str, Any],
+    selected_object_id: str = "",
+    selected_revision_id: str = "",
+) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
-    summary_cards_html = join_html(
-        [
-            components.surface_panel(
-                title="Knowledge in scope",
-                eyebrow="Health",
-                body_html=f"<p class=\"metric-value\">{escape(dashboard['object_count'])}</p><p>Operational knowledge objects currently in the runtime.</p>",
-                footer_html=link("Find guidance", "/read", css_class="button button-secondary"),
-                variant="knowledge-in-scope",
-                surface="knowledge-health",
-            ),
-            components.surface_panel(
-                title="Review pressure",
-                eyebrow="Health",
-                body_html=f"<p class=\"metric-value\">{escape(dashboard['review_counts'].get('in_review', 0))}</p><p>Revisions currently waiting on a review decision.</p>",
-                footer_html=link("Review decisions", "/review", css_class="button button-primary"),
-                tone="warning" if dashboard["review_counts"].get("in_review", 0) else "approved",
-                variant="review-pressure",
-                surface="knowledge-health",
-            ),
-            components.surface_panel(
-                title="Needs revalidation",
-                eyebrow="Health",
-                body_html=f"<p class=\"metric-value\">{escape(dashboard['trust_counts'].get('stale', 0) + dashboard['trust_counts'].get('weak_evidence', 0) + dashboard['trust_counts'].get('suspect', 0))}</p><p>Guidance that needs evidence, freshness, or trust follow-up.</p>",
-                footer_html=link("Resolve risk", "/health", css_class="button button-secondary"),
-                tone="warning" if (dashboard["trust_counts"].get("stale", 0) + dashboard["trust_counts"].get("weak_evidence", 0) + dashboard["trust_counts"].get("suspect", 0)) else "approved",
-                variant="needs-revalidation",
-                surface="knowledge-health",
-            ),
-            components.surface_panel(
-                title="Evidence posture",
-                eyebrow="Health",
-                body_html="<p>" + escape(", ".join(f"{key}={value}" for key, value in sorted(dashboard["evidence_counts"].items()))) + "</p>",
-                footer_html=link("See history", "/activity", css_class="button button-secondary"),
-                variant="evidence-posture",
-                surface="knowledge-health",
-            ),
-        ]
+    selected_item = _selected_dashboard_item(
+        dashboard["queue"],
+        selected_object_id=selected_object_id,
+        selected_revision_id=selected_revision_id,
     )
-    grouped_items: dict[str, list[dict[str, Any]]] = {"safe": [], "review": [], "attention": []}
-    for item in dashboard["queue"]:
-        grouped_items[_dashboard_bucket(item)].append(item)
-    group_config = {
-        "attention": ("Requires attention", "Resolve the highest-risk items first.", "danger"),
-        "review": ("Needs review", "Check these items before relying on them.", "warning"),
-        "safe": ("Safe", "These items are the strongest current answers.", "approved"),
-    }
-    grouped_sections = []
-    for group_key in ("attention", "review", "safe"):
-        group_items = grouped_items[group_key]
-        if not group_items:
-            continue
-        title, description, tone = group_config[group_key]
-        grouped_sections.append(
-            components.surface_panel(
-                title=title,
-                eyebrow="Health",
-                tone=tone,
-                body_html=f'<p class="decision-group-summary">{escape(description)}</p>' + join_html(
-                    [_dashboard_decision_card_html(components, item) for item in group_items]
-                ),
-                variant=group_key,
-                surface="knowledge-health",
-            )
-        )
-    cleanup_counts = dashboard.get("cleanup_counts") or {}
-    primary_html = components.surface_panel(
-        title="Needs attention",
-        eyebrow="Health",
-        body_html=join_html(grouped_sections),
-        variant="triage",
+    summary_cards_html = components.summary_strip(
+        title="Knowledge pressure",
+        badges=[
+            components.badge(label="In scope", value=dashboard["object_count"], tone="brand"),
+            components.badge(label="Review pressure", value=dashboard["review_counts"].get("in_review", 0), tone="pending"),
+            components.badge(
+                label="Needs revalidation",
+                value=dashboard["trust_counts"].get("stale", 0) + dashboard["trust_counts"].get("weak_evidence", 0) + dashboard["trust_counts"].get("suspect", 0),
+                tone="warning",
+            ),
+            components.badge(label="Evidence counts", value=len(dashboard["evidence_counts"]), tone="context"),
+        ],
+        summary="Use the selected row to inspect the next highest-value governance action.",
         surface="knowledge-health",
+        variant="overview",
     )
-    validation_runs_html = join_html(
-        [
-            components.decision_card(
-                title_html=escape(run["run_type"]),
-                summary=f"Completed {format_timestamp(run['completed_at'])}",
-                meta=[
-                    escape(f"Status {run['status']}"),
-                    escape(f"Findings recorded: {run['finding_count']}"),
-                ],
-                next_action="Inspect the recorded run if it affects approval or revalidation work.",
-                tone=_validation_run_bucket(run["status"]),
-                surface="knowledge-health",
-            )
-            for run in dashboard["validation_runs"]
-        ]
+    primary_html = (
+        _dashboard_table_html(components, items=dashboard["queue"], selected_item=selected_item)
+        if dashboard["queue"]
+        else components.empty_state(
+            title="No governance items",
+            description="The health queue is currently empty.",
+        )
     )
-    secondary_html = join_html(
+    cleanup_counts = dashboard.get("cleanup_counts") or {}
+    aside_html = join_html(
         [
-            components.surface_panel(
+            _dashboard_context_panel(components, selected_item) if selected_item is not None else "",
+            components.context_panel(
                 title="Recent validation runs",
                 eyebrow="Activity",
                 body_html=(
-                    f'<p class="decision-group-summary">{escape(dashboard["validation_posture"]["summary"])}: {escape(dashboard["validation_posture"]["detail"])}</p>'
-                    + validation_runs_html
+                    f'<p>{escape(dashboard["validation_posture"]["summary"])}: {escape(dashboard["validation_posture"]["detail"])}</p>'
+                    + join_html(
+                        [
+                            components.decision_card(
+                                title_html=escape(run["run_type"]),
+                                summary=f"Completed {format_timestamp(run['completed_at'])}",
+                                meta=[
+                                    escape(f"Status {run['status']}"),
+                                    escape(f"Findings recorded: {run['finding_count']}"),
+                                ],
+                                next_action="Inspect the recorded run if it affects approval or revalidation work.",
+                                tone=_validation_run_bucket(run["status"]),
+                                surface="knowledge-health",
+                            )
+                            for run in dashboard["validation_runs"]
+                        ]
+                    )
                 ),
                 variant="validation-runs",
                 surface="knowledge-health",
             ),
-            components.surface_panel(
+            components.context_panel(
                 title="Operational usefulness cleanup",
                 eyebrow="Cleanup",
                 body_html=render_definition_rows(
@@ -237,11 +302,10 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
             "show_actor_links": True,
         },
         "active_nav": "health",
-        "aside_html": "",
+        "aside_html": aside_html,
         "page_context": {
             "summary_cards_html": summary_cards_html,
             "primary_html": primary_html,
-            "secondary_html": secondary_html,
         },
         "page_surface": "knowledge-health",
     }

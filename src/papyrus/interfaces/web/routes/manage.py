@@ -64,7 +64,12 @@ def _render_page(runtime, request: Request, *, page: dict[str, object], flash_ht
 def register(router, runtime) -> None:
     def manage_queue_page(request: Request):
         queue = manage_queue(database_path=runtime.database_path)
-        page = present_manage_queue_page(runtime.template_renderer, queue=queue)
+        page = present_manage_queue_page(
+            runtime.template_renderer,
+            queue=queue,
+            selected_object_id=request.query_value("selected_object_id").strip(),
+            selected_revision_id=request.query_value("selected_revision_id").strip(),
+        )
         return _render_page(runtime, request, page=page)
 
     def object_supersede_page(request: Request):

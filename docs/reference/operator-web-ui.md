@@ -12,7 +12,9 @@ This reference records the stable server-rendered UI contract for Papyrus. It is
 ## Shared UI Contract
 
 - The shared component canon is:
-  - one generic surface panel with variants
+  - one shared surface partial with two roles:
+    - flat `content-section` for primary reading and composition
+    - bordered `context-panel` for metadata, governance, filters, progress, and support
   - one summary strip
   - badges
   - decision cells and decision cards
@@ -22,7 +24,8 @@ This reference records the stable server-rendered UI contract for Papyrus. It is
   - empty states
   - metadata lists
   - form field controls
-- Governed, status, audit, citation, relationship, and validation surfaces are variants of the shared panel rather than separate semantic primitives.
+- Primary content should read as flat sections separated by spacing and dividers rather than stacked cards.
+- Governed, status, audit, citation, relationship, validation, and support surfaces remain panelized only when they provide contextual or operational support.
 - Projection-backed posture remains the source of UI meaning:
   - `ui_projection.state`
   - `ui_projection.use_guidance`
@@ -49,9 +52,15 @@ Tests should assert those hooks plus structured contract payload behavior instea
   - `minimal` for one-step decisions and system pages
 - Guided drafting uses the `normal` shell. Sidebar navigation and topbar actor controls remain visible while the operator works through guided sections.
 - The right rail is optional and should render only when the page has actionable contextual support.
+- The sidebar is a flat grouped list, not a stack of card containers.
 - The left rail and topbar actor controls come from actor shell configuration, not page-local duplication.
 - Actor identity renders through the topbar control on normal-shell pages. There is no separate page-header actor banner contract.
 - Page headers are opt-in and should include only the elements the presenter asks for.
+- Density scales by role:
+  - end-user surfaces stay lowest density
+  - operator surfaces stay medium density
+  - reviewer and manager governance surfaces use denser tables and selected-item context rails
+- Reviewer and manager governance screens should prefer table-first layouts with deterministic URL-driven selection state in the right rail.
 
 ## Web Authoring Route Contract
 
