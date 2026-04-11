@@ -45,6 +45,8 @@ Primary authoring rules:
 - no generic rich-text editor as the main authoring surface
 - no direct freeform document blob storage for drafts
 - guided section editing is the primary web authoring path
+- guided drafting stays on the shared `normal` shell rather than a separate focus shell
+- guided draft creation is explicit in the web surface: object setup eagerly creates the first draft, and later draft entrypoints use the governed start action instead of GET-side effects
 - the bulk draft fallback remains a transitional operator route only because the guided path does not yet own searchable citation and multi-select controls; do not add new lifecycle or policy meaning there
 - authored and imported drafts both converge on the same structured revision model
 - imports stay in reviewable ingestion jobs until a human converts them into a draft
@@ -56,6 +58,7 @@ Contract-driven surface boundary:
 - `papyrus.application.ui_projection`, workflow projections, and action descriptors define governed status, safe-to-use guidance, action availability, operator messaging, and acknowledgement requirements.
 - CLI, API, and web render those contracts. They may format the output differently, but they must not derive governed meaning from raw database state or template-local policy rules.
 - If a surface needs truth that is not present in the current contract, extend the backend contract or projection first. Do not add page-local lifecycle, acknowledgement, or policy logic as a workaround.
+- Guided authoring GET routes are load-only. Web draft creation or reuse must flow through application-owned helpers and explicit start actions, not route-local guesses.
 
 For terminal-first operator checks:
 

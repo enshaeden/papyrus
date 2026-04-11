@@ -234,7 +234,6 @@ def present_trust_dashboard(renderer: TemplateRenderer, *, dashboard: dict[str, 
         "page_title": "Knowledge Health",
         "page_header": {
             "headline": "Knowledge health",
-            "show_actor_banner": True,
             "show_actor_links": True,
         },
         "active_nav": "health",

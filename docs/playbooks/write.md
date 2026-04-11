@@ -151,7 +151,8 @@ For each material claim:
 
 Current web authoring boundary:
 
-- guided section editing at `/write/objects/{object_id}/revisions/new` is the primary web path
+- guided section editing at `/write/objects/{object_id}/revisions/new?revision_id=...` is the primary web path after a draft already exists
+- web draft creation or reuse starts through object setup or the explicit `POST /write/objects/{object_id}/revisions/start` action; the guided GET route itself is load-only
 - the guided path owns citation lookup and searchable multi-select controls
 - write and submit screens render backend workflow projections, action descriptors, operator messages, and acknowledgement requirements instead of deriving review or publication meaning in the route
 - citations that point to existing governed local Papyrus content are lightweight internal references for traceability and review context

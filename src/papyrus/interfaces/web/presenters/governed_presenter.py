@@ -4,7 +4,7 @@ from typing import Any
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
-from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path, render_definition_rows, render_list
+from papyrus.interfaces.web.view_helpers import button_form, escape, join_html, link, quoted_path, render_definition_rows, render_list
 
 
 ACTION_AVAILABILITY_TONES = {
@@ -95,9 +95,54 @@ def authoring_entry_href(
     ui_projection: dict[str, Any] | None,
     current_revision_id: str | None,
 ) -> str | None:
+    state = projection_state(ui_projection)
+    revision_state = str(state.get("revision_review_state") or "").strip()
+    if revision_state not in {"draft", "rejected"} or not str(current_revision_id or "").strip():
+        return None
+    return f"/write/objects/{quoted_path(object_id)}/revisions/new?revision_id={quoted_path(str(current_revision_id))}#revision-form"
+
+
+def authoring_entry_start_action(
+    *,
+    object_id: str,
+    ui_projection: dict[str, Any] | None,
+    current_revision_id: str | None,
+) -> str | None:
+    if str(current_revision_id or "").strip():
+        return None
     if authoring_entry_label(ui_projection=ui_projection, current_revision_id=current_revision_id) is None:
         return None
-    return f"/write/objects/{quoted_path(object_id)}/revisions/new#revision-form"
+    return f"/write/objects/{quoted_path(object_id)}/revisions/start"
+
+
+def authoring_entry_html(
+    *,
+    object_id: str,
+    ui_projection: dict[str, Any] | None,
+    current_revision_id: str | None,
+    label_override: str | None = None,
+    allow_start_when_not_in_draft_state: bool = False,
+) -> str | None:
+    state = projection_state(ui_projection)
+    revision_state = str(state.get("revision_review_state") or "").strip()
+    if str(current_revision_id or "").strip() and revision_state in {"draft", "rejected"}:
+        return link(
+            label_override or "Continue draft",
+            f"/write/objects/{quoted_path(object_id)}/revisions/new?revision_id={quoted_path(str(current_revision_id))}#revision-form",
+            css_class="button button-primary",
+            attrs={
+                "data-component": "action-link",
+                "data-action-id": "authoring_entry",
+            },
+        )
+    if not str(current_revision_id or "").strip() or allow_start_when_not_in_draft_state:
+        return button_form(
+            action=f"/write/objects/{quoted_path(object_id)}/revisions/start",
+            label=label_override or authoring_entry_label(ui_projection=ui_projection, current_revision_id=current_revision_id) or "Start draft",
+            css_class="button button-primary",
+            button_attrs={"data-action-id": "authoring_entry"},
+        )
+    return None
 
 
 def action_href(
@@ -159,27 +204,13 @@ def compact_action_menu_html(
     current_revision_id: str | None,
 ) -> str:
     links: list[str] = []
-    authoring_label = authoring_entry_label(
-        ui_projection=ui_projection,
-        current_revision_id=current_revision_id,
-    )
-    authoring_href = authoring_entry_href(
+    authoring_action_html = authoring_entry_html(
         object_id=object_id,
         ui_projection=ui_projection,
         current_revision_id=current_revision_id,
     )
-    if authoring_label and authoring_href:
-        links.append(
-            link(
-                authoring_label,
-                authoring_href,
-                css_class="button button-primary",
-                attrs={
-                    "data-component": "action-link",
-                    "data-action-id": "authoring_entry",
-                },
-            )
-        )
+    if authoring_action_html:
+        links.append(authoring_action_html)
 
     for action in projection_actions(ui_projection):
         action_id = str(action.get("action_id") or "")

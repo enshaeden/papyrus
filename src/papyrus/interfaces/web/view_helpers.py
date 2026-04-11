@@ -87,6 +87,38 @@ def link(label: str, href: str, *, css_class: str = "", attrs: dict[str, object]
     return f'<a{_html_attrs(rendered_attrs)}>{escape(label)}</a>'
 
 
+def button_form(
+    *,
+    action: str,
+    label: str,
+    css_class: str = "",
+    form_class: str = "inline-action-form",
+    hidden_inputs: dict[str, str] | None = None,
+    form_attrs: dict[str, object] | None = None,
+    button_attrs: dict[str, object] | None = None,
+) -> str:
+    rendered_form_attrs = dict(form_attrs or {})
+    rendered_form_attrs["action"] = action
+    rendered_form_attrs["method"] = "post"
+    if form_class:
+        rendered_form_attrs["class"] = form_class
+    rendered_button_attrs = dict(button_attrs or {})
+    rendered_button_attrs["type"] = "submit"
+    rendered_button_attrs["data-component"] = rendered_button_attrs.get("data-component", "button")
+    if css_class:
+        rendered_button_attrs["class"] = css_class
+    inputs_html = "".join(
+        f'<input type="hidden" name="{escape(name)}" value="{escape(value)}" />'
+        for name, value in (hidden_inputs or {}).items()
+    )
+    return (
+        f'<form{_html_attrs(rendered_form_attrs)}>'
+        f"{inputs_html}"
+        f'<button{_html_attrs(rendered_button_attrs)}>{escape(label)}</button>'
+        "</form>"
+    )
+
+
 def join_html(items: Iterable[str], separator: str = "") -> str:
     return separator.join(item for item in items if item)
 

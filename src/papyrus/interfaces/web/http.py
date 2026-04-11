@@ -56,6 +56,18 @@ class Request:
     def uploaded_file(self, name: str) -> UploadedFile | None:
         return self.files.get(name)
 
+    def with_route_params(self, route_params: dict[str, str]) -> "Request":
+        return Request(
+            method=self.method,
+            path=self.path,
+            query=self.query,
+            form=self.form,
+            json_body=self.json_body,
+            route_params=dict(route_params),
+            cookies=self.cookies,
+            files=self.files,
+        )
+
 
 @dataclass(frozen=True)
 class Response:

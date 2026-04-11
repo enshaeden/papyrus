@@ -6,6 +6,7 @@ from typing import Any
 from papyrus.application.authoring_flow import derive_section_content
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import (
+    authoring_entry_html,
     projection_state,
     render_projection_overview_panel,
 )
@@ -234,7 +235,13 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         actions_html=join_html(
             [
                 link("See history", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-secondary"),
-                link("Revise guidance", f"/write/objects/{quoted_path(item['object_id'])}/revisions/new", css_class="button button-primary"),
+                authoring_entry_html(
+                    object_id=str(item["object_id"]),
+                    ui_projection=ui_projection,
+                    current_revision_id=str(item.get("current_revision_id") or "") or None,
+                    label_override="Revise guidance",
+                    allow_start_when_not_in_draft_state=True,
+                ) or "",
                 link("See consequences", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-secondary"),
             ],
             " ",
@@ -421,7 +428,6 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any])
         "page_title": item["title"],
         "page_header": {
             "headline": item["title"],
-            "show_actor_banner": True,
             "show_actor_links": True,
         },
         "active_nav": "read",

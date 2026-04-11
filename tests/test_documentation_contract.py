@@ -17,6 +17,10 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("data-component", operator_web_ui)
         self.assertIn("data-action-id", operator_web_ui)
         self.assertIn("shared component canon", operator_web_ui)
+        self.assertIn("guided drafting uses the `normal` shell", operator_web_ui)
+        self.assertIn("400 bad request", operator_web_ui)
+        self.assertIn("post /write/objects/{object_id}/revisions/start", operator_web_ui)
+        self.assertIn("there is no separate page-header actor banner contract", operator_web_ui)
 
     def test_operator_readiness_records_recovery_and_cleanup_boundary(self) -> None:
         operator_readiness = (ROOT / "docs" / "reference" / "operator-readiness.md").read_text(encoding="utf-8").lower()

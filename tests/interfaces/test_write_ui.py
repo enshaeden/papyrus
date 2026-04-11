@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import sqlite3
 import tempfile
 import urllib.parse
 import unittest
@@ -11,7 +12,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.application.sync_flow import build_search_projection
+from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.interfaces.web import app as web_app
+from tests.web_assertions import SemanticHookAssertions
 
 
 def call_wsgi(application, path: str, *, method: str = "GET", form: dict[str, object] | None = None) -> tuple[str, dict[str, str], str]:
@@ -50,7 +53,16 @@ def request_path_without_fragment(path: str) -> str:
     return path.split("#", 1)[0]
 
 
-class WriteUiTests(unittest.TestCase):
+def read_count(database_path: Path, query: str, parameters: tuple = ()) -> int:
+    connection = sqlite3.connect(database_path)
+    try:
+        row = connection.execute(query, parameters).fetchone()
+        return int(row[0] if row is not None else 0)
+    finally:
+        connection.close()
+
+
+class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
     def test_write_entry_page_keeps_shared_shell_navigation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
@@ -59,6 +71,7 @@ class WriteUiTests(unittest.TestCase):
 
             status, _, body = call_wsgi(application, "/write/objects/new")
             self.assertEqual(status, "200 OK")
+            self.assert_primary_surface(body, "write")
             self.assertIn("Start draft", body)
             self.assertIn('class="sidebar"', body)
             self.assertIn('class="topbar-menu"', body)
@@ -91,9 +104,11 @@ class WriteUiTests(unittest.TestCase):
             self.assertEqual(status, "303 See Other")
 
             guided_path = request_path_without_fragment(headers["Location"])
+            self.assertIn("revision_id=", guided_path)
 
             status, _, guided_body = call_wsgi(application, guided_path)
             self.assertEqual(status, "200 OK")
+            self.assert_primary_surface(guided_body, "write")
             self.assertIn("Draft Policy", guided_body)
             self.assertIn("Policy scope", guided_body)
             self.assertNotIn("Service name", guided_body)
@@ -104,6 +119,7 @@ class WriteUiTests(unittest.TestCase):
 
             status, _, removed_body = call_wsgi(application, guided_path.replace("/revisions/new", "/revisions/fallback", 1))
             self.assertEqual(status, "404 Not Found")
+            self.assert_primary_surface(removed_body, "system-error")
             self.assertIn("Not found", removed_body)
 
     def test_system_design_revision_page_shows_guided_system_design_fields(self) -> None:
@@ -133,9 +149,11 @@ class WriteUiTests(unittest.TestCase):
             self.assertEqual(status, "303 See Other")
 
             guided_path = request_path_without_fragment(headers["Location"])
+            self.assertIn("revision_id=", guided_path)
 
             status, _, guided_body = call_wsgi(application, guided_path)
             self.assertEqual(status, "200 OK")
+            self.assert_primary_surface(guided_body, "write")
             self.assertIn("Draft System Design", guided_body)
             self.assertIn("Architecture", guided_body)
             self.assertNotIn("Service name", guided_body)
@@ -183,9 +201,11 @@ class WriteUiTests(unittest.TestCase):
             self.assertEqual(status, "303 See Other")
 
             guided_path = request_path_without_fragment(headers["Location"])
+            self.assertIn("revision_id=", guided_path)
 
             status, _, guided_body = call_wsgi(application, guided_path)
             self.assertEqual(status, "200 OK")
+            self.assert_primary_surface(guided_body, "write")
             self.assertIn("Save and continue", guided_body)
             self.assertIn('class="sidebar"', guided_body)
             self.assertIn('class="topbar-menu"', guided_body)
@@ -207,3 +227,81 @@ class WriteUiTests(unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("data-citation-picker", evidence_body)
             self.assertIn('data-search-url="/write/citations/search"', evidence_body)
+
+    def test_guided_revision_get_reload_is_side_effect_free(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/write/objects/new",
+                method="POST",
+                form={
+                    "object_id": "kb-ui-get-reload",
+                    "object_type": "runbook",
+                    "title": "Guided Reload",
+                    "summary": "Guided reload should not mutate state.",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "canonical_path": "knowledge/runbooks/guided-reload.md",
+                    "review_cadence": "quarterly",
+                    "object_lifecycle_state": "draft",
+                    "systems": "Remote Access Gateway",
+                    "tags": "vpn",
+                },
+            )
+            self.assertEqual(status, "303 See Other")
+            guided_path = request_path_without_fragment(headers["Location"])
+            revision_count_before = read_count(
+                database_path,
+                "SELECT COUNT(*) FROM knowledge_revisions WHERE object_id = ?",
+                ("kb-ui-get-reload",),
+            )
+            audit_count_before = read_count(
+                database_path,
+                "SELECT COUNT(*) FROM audit_events WHERE object_id = ? AND event_type = 'revision_created'",
+                ("kb-ui-get-reload",),
+            )
+
+            first_status, _, _ = call_wsgi(application, guided_path)
+            second_status, _, _ = call_wsgi(application, guided_path)
+
+            self.assertEqual(first_status, "200 OK")
+            self.assertEqual(second_status, "200 OK")
+            self.assertEqual(
+                read_count(database_path, "SELECT COUNT(*) FROM knowledge_revisions WHERE object_id = ?", ("kb-ui-get-reload",)),
+                revision_count_before,
+            )
+            self.assertEqual(
+                read_count(
+                    database_path,
+                    "SELECT COUNT(*) FROM audit_events WHERE object_id = ? AND event_type = 'revision_created'",
+                    ("kb-ui-get-reload",),
+                ),
+                audit_count_before,
+            )
+
+    def test_guided_revision_get_without_existing_draft_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root = Path(temp_dir) / "repo"
+            workflow = GovernanceWorkflow(database_path, source_root=source_root)
+            workflow.create_object(
+                object_id="kb-ui-empty-shell",
+                object_type="runbook",
+                title="Empty Shell",
+                summary="Shell object without a draft.",
+                owner="workflow_owner",
+                team="IT Operations",
+                canonical_path="knowledge/runbooks/empty-shell.md",
+                actor="tests",
+            )
+            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+
+            status, _, body = call_wsgi(application, "/write/objects/kb-ui-empty-shell/revisions/new")
+
+            self.assertEqual(status, "400 Bad Request")
+            self.assert_primary_surface(body, "system-error")
+            self.assertIn("Start a draft before loading this page", body)

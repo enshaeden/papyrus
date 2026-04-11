@@ -717,6 +717,69 @@ def create_draft_from_blueprint(
     source_root: Path = ROOT,
     authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
+    return ensure_draft_revision(
+        object_id=object_id,
+        blueprint_id=blueprint_id,
+        actor=actor,
+        database_path=database_path,
+        source_root=source_root,
+        authority=authority,
+    )
+
+
+def _draft_result_from_row(
+    *,
+    revision_row: sqlite3.Row,
+    blueprint: Blueprint,
+    taxonomies: dict[str, dict[str, Any]],
+    authority: PolicyAuthority,
+) -> dict[str, Any]:
+    section_content = json.loads(str(revision_row["section_content_json"] or "{}"))
+    return {
+        "revision_id": str(revision_row["revision_id"]),
+        "revision_number": int(revision_row["revision_number"]),
+        "blueprint": blueprint,
+        "section_content": section_content,
+        "completion": compute_completion_state(
+            blueprint=blueprint,
+            section_content=section_content,
+            taxonomies=taxonomies,
+            authority=authority,
+        ),
+        "is_first_revision": int(revision_row["revision_number"]) == 1,
+    }
+
+
+def _compatible_current_draft_revision(
+    connection: sqlite3.Connection,
+    *,
+    object_row: sqlite3.Row,
+    blueprint: Blueprint,
+) -> sqlite3.Row | None:
+    current_revision_id = str(object_row["current_revision_id"] or "").strip()
+    if not current_revision_id:
+        return None
+    current_revision_row = get_knowledge_revision(connection, current_revision_id)
+    if current_revision_row is None:
+        return None
+    revision_review_state = str(current_revision_row["revision_review_state"] or "").strip()
+    revision_blueprint_id = str(current_revision_row["blueprint_id"] or blueprint.blueprint_id)
+    if revision_blueprint_id != blueprint.blueprint_id:
+        return None
+    if revision_review_state not in {RevisionReviewStatus.DRAFT.value, RevisionReviewStatus.REJECTED.value}:
+        return None
+    return current_revision_row
+
+
+def ensure_draft_revision(
+    *,
+    object_id: str,
+    blueprint_id: str,
+    actor: str,
+    database_path: Path = DB_PATH,
+    source_root: Path = ROOT,
+    authority: PolicyAuthority | None = None,
+) -> dict[str, Any]:
     current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
     blueprint = get_blueprint(blueprint_id)
@@ -728,26 +791,18 @@ def create_draft_from_blueprint(
         object_row = get_knowledge_object(connection, object_id)
         if object_row is None:
             raise ValueError(f"knowledge object not found: {object_id}")
-        current_revision_row = None
-        if object_row["current_revision_id"]:
-            current_revision_row = get_knowledge_revision(connection, str(object_row["current_revision_id"]))
-            if (
-                current_revision_row is not None
-                and str(current_revision_row["revision_review_state"]) == RevisionReviewStatus.DRAFT.value
-                and str(current_revision_row["blueprint_id"] or blueprint.blueprint_id) == blueprint.blueprint_id
-            ):
-                return {
-                    "revision_id": str(current_revision_row["revision_id"]),
-                    "revision_number": int(current_revision_row["revision_number"]),
-                    "blueprint": blueprint,
-                    "section_content": json.loads(str(current_revision_row["section_content_json"] or "{}")),
-                    "completion": compute_completion_state(
-                        blueprint=blueprint,
-                        section_content=json.loads(str(current_revision_row["section_content_json"] or "{}")),
-                        taxonomies=taxonomies,
-                        authority=current_authority,
-                    ),
-                }
+        current_revision_row = _compatible_current_draft_revision(
+            connection,
+            object_row=object_row,
+            blueprint=blueprint,
+        )
+        if current_revision_row is not None:
+            return _draft_result_from_row(
+                revision_row=current_revision_row,
+                blueprint=blueprint,
+                taxonomies=taxonomies,
+                authority=current_authority,
+            )
 
         latest_revision = latest_revision_for_object(connection, object_id)
         section_content = _build_initial_section_content(
@@ -821,10 +876,72 @@ def create_draft_from_blueprint(
             "blueprint": blueprint,
             "section_content": section_content,
             "completion": artifacts.completion,
+            "is_first_revision": revision_number == 1,
         }
     except Exception:
         connection.rollback()
         raise
+    finally:
+        connection.close()
+
+
+def load_draft_context(
+    *,
+    object_id: str,
+    revision_id: str | None = None,
+    database_path: Path = DB_PATH,
+    source_root: Path = ROOT,
+    authority: PolicyAuthority | None = None,
+) -> dict[str, Any]:
+    current_authority = _policy_authority(authority)
+    connection = _connection(Path(database_path))
+    try:
+        object_row = get_knowledge_object(connection, object_id)
+        if object_row is None:
+            raise ValueError(f"knowledge object not found: {object_id}")
+        blueprint = get_blueprint(str(object_row["object_type"]))
+        revision_row: sqlite3.Row | None
+        if revision_id is None:
+            revision_row = _compatible_current_draft_revision(
+                connection,
+                object_row=object_row,
+                blueprint=blueprint,
+            )
+            if revision_row is None:
+                raise ValueError("Guided drafting needs an existing draft revision. Start a draft before loading this page.")
+        else:
+            revision_row = get_knowledge_revision(connection, revision_id)
+            if revision_row is None or str(revision_row["object_id"]) != object_id:
+                raise ValueError(f"revision not found for {object_id}: {revision_id}")
+            revision_blueprint_id = str(revision_row["blueprint_id"] or blueprint.blueprint_id)
+            if revision_blueprint_id != blueprint.blueprint_id:
+                raise ValueError(f"revision {revision_id} does not match blueprint {blueprint.blueprint_id}")
+            revision_review_state = str(revision_row["revision_review_state"] or "").strip()
+            if revision_review_state not in {RevisionReviewStatus.DRAFT.value, RevisionReviewStatus.REJECTED.value}:
+                raise ValueError(
+                    f"guided drafting can only load draft or rejected revisions; revision {revision_id} is {revision_review_state or 'unknown'}"
+                )
+
+        section_content = _build_initial_section_content(
+            blueprint=blueprint,
+            object_row=object_row,
+            revision_row=revision_row,
+        )
+        runtime = RevisionRuntimeServices(source_root=Path(source_root))
+        completion = compute_completion_state(
+            blueprint=blueprint,
+            section_content=section_content,
+            taxonomies=runtime.taxonomies(),
+            authority=current_authority,
+        )
+        return {
+            "revision_id": str(revision_row["revision_id"]),
+            "revision_number": int(revision_row["revision_number"]),
+            "blueprint": blueprint,
+            "section_content": section_content,
+            "completion": completion,
+            "is_first_revision": int(revision_row["revision_number"]) == 1,
+        }
     finally:
         connection.close()
 

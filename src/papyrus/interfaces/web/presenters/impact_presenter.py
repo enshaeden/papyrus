@@ -110,7 +110,6 @@ def present_object_impact(renderer: TemplateRenderer, *, impact: dict[str, Any])
         "page_title": f"Impact {entity['title']}",
         "page_header": {
             "headline": f"Change consequences: {entity['title']}",
-            "show_actor_banner": True,
             "show_actor_links": True,
         },
         "active_nav": "health",
@@ -183,7 +182,6 @@ def present_service_impact(renderer: TemplateRenderer, *, impact: dict[str, Any]
         "page_title": f"Impact {entity['service_name']}",
         "page_header": {
             "headline": f"Change consequences: {entity['service_name']}",
-            "show_actor_banner": True,
             "show_actor_links": True,
         },
         "active_nav": "health",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from urllib.parse import quote_plus
 
+from papyrus.application.authoring_flow import ensure_draft_revision
 from papyrus.application.commands import create_object_command
 from papyrus.interfaces.web.forms.object_forms import default_object_values, validate_object_form
 from papyrus.interfaces.web.http import Request, html_response, redirect_response
@@ -20,14 +21,27 @@ def register(router, runtime) -> None:
             values = {key: request.form_value(key) for key in values}
             result = validate_object_form(values, taxonomies=runtime.taxonomies)
             if result.is_valid:
+                actor_id = actor_for_request(request)
                 created = create_object_command(
                     database_path=runtime.database_path,
                     source_root=runtime.source_root,
-                    actor=actor_for_request(request),
+                    actor=actor_id,
                     **result.cleaned_data,
                 )
+                draft = ensure_draft_revision(
+                    object_id=created.object_id,
+                    blueprint_id=str(result.cleaned_data["object_type"]),
+                    actor=actor_id,
+                    database_path=runtime.database_path,
+                    source_root=runtime.source_root,
+                )
                 return redirect_response(
-                    f"/write/objects/{quoted_path(created.object_id)}/revisions/new?notice={quote_plus('Draft setup saved. Continue the guided revision below.')}#revision-form"
+                    (
+                        f"/write/objects/{quoted_path(created.object_id)}/revisions/new"
+                        f"?revision_id={quoted_path(str(draft['revision_id']))}"
+                        f"&notice={quote_plus('Draft setup saved. Continue the guided revision below.')}"
+                        "#revision-form"
+                    )
                 )
             errors = result.errors
             if errors:
@@ -43,7 +57,6 @@ def register(router, runtime) -> None:
                 page_title="Start draft",
                 page_header={
                     "headline": "Start draft",
-                    "show_actor_banner": True,
                     "show_actor_links": True,
                 },
                 active_nav="write",

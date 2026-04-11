@@ -39,7 +39,6 @@ def _page_definition(
     page_context: dict[str, Any],
     aside_html: str = "",
     shell_variant: str | None = None,
-    show_actor_banner: bool = False,
     show_actor_links: bool = False,
     actions_html: str = "",
 ) -> dict[str, Any]:
@@ -48,7 +47,6 @@ def _page_definition(
         "page_title": page_title,
         "page_header": {
             "headline": headline,
-            "show_actor_banner": show_actor_banner,
             "show_actor_links": show_actor_links,
         },
         "active_nav": active_nav,
@@ -283,7 +281,6 @@ def present_manage_queue_page(
         page_title="Review / Approvals",
         headline="Review queue",
         active_nav="review",
-        show_actor_banner=True,
         show_actor_links=True,
         page_context={"overview_html": overview_html, "tables_html": tables_html},
     )
@@ -762,7 +759,6 @@ def present_audit_page(
         page_title="Activity / History",
         headline="Activity",
         active_nav="activity",
-        show_actor_banner=True,
         show_actor_links=True,
         page_context={
             "summary_html": summary_html,
@@ -808,7 +804,6 @@ def present_validation_runs_page(
         page_title="Validation runs",
         headline="Validation runs",
         active_nav="activity",
-        show_actor_banner=True,
         show_actor_links=True,
         actions_html=add_run_html,
         page_context={"validation_table_html": validation_table_html},

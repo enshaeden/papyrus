@@ -170,7 +170,6 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
         "page_title": service["service_name"],
         "page_header": {
             "headline": service["service_name"],
-            "show_actor_banner": True,
             "show_actor_links": True,
         },
         "active_nav": "services",
@@ -250,7 +249,6 @@ def present_service_catalog(renderer: TemplateRenderer, *, services: list[dict[s
         "page_title": "Services",
         "page_header": {
             "headline": "Services",
-            "show_actor_banner": True,
             "show_actor_links": True,
         },
         "active_nav": "services",

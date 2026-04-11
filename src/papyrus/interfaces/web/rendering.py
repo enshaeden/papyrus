@@ -203,10 +203,7 @@ class PageRenderer:
         context_html = str(page_header.get("context_html") or "").strip()
         detail_html = str(page_header.get("detail_html") or "").strip()
         actions_html = str(page_header.get("actions_html") or "").strip()
-        actor_banner_html = ""
-
         fragments = [
-            actor_banner_html,
             f'<p class="page-kicker">{escape(kicker)}</p>' if kicker else "",
             f"<h1>{escape(headline)}</h1>" if headline else "",
             f'<p class="page-intro">{escape(intro)}</p>' if intro else "",
@@ -218,8 +215,6 @@ class PageRenderer:
         if not header_body:
             return ""
         header_classes = ["page-header", f"page-header-{escape(shell_variant)}"]
-        if actor_banner_html:
-            header_classes.append("has-actor-banner")
         if intro:
             header_classes.append("has-intro")
         if actions_html:
@@ -237,7 +232,7 @@ class PageRenderer:
         shell_variant: str,
         page_header: dict[str, object],
     ) -> str:
-        if shell_variant != "normal" or not bool(page_header.get("show_actor_banner")):
+        if shell_variant != "normal":
             return ""
 
         actor_options_html = "\n".join(

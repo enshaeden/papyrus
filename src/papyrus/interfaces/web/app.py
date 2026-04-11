@@ -27,6 +27,12 @@ class Route:
     handler: Callable[[Request], object]
 
 
+@dataclass(frozen=True)
+class RouteMatch:
+    route: Route
+    request: Request
+
+
 class Router:
     def __init__(self):
         self._routes: list[Route] = []
@@ -34,15 +40,15 @@ class Router:
     def add(self, methods: list[str], pattern: str, handler: Callable[[Request], object]) -> None:
         self._routes.append(Route(tuple(methods), pattern, handler))
 
-    def match(self, request: Request) -> Route | None:
+    def match(self, request: Request) -> RouteMatch | None:
         for route in self._routes:
             params = match_pattern(route.pattern, request.path)
             if params is None:
                 continue
-            object.__setattr__(request, "route_params", params)
+            routed_request = request.with_route_params(params)
             if request.method not in route.methods:
-                return Route(("__method_not_allowed__",), route.pattern, route.handler)
-            return route
+                return RouteMatch(Route(("__method_not_allowed__",), route.pattern, route.handler), routed_request)
+            return RouteMatch(route, routed_request)
         return None
 
 
@@ -135,18 +141,20 @@ def app(
                     ).as_wsgi(start_response)
                 return static_response(asset[0], asset[1]).as_wsgi(start_response)
 
-            route = router.match(request)
-            if route is None:
+            matched_route = router.match(request)
+            if matched_route is None:
                 return html_response(
                     _error_page(runtime, title="Not found", detail=f"No route for {request.path}", status="404", action="Check the Papyrus route and try again.", active_nav="manage"),
                     status="404 Not Found",
                 ).as_wsgi(start_response)
+            route = matched_route.route
+            routed_request = matched_route.request
             if route.methods == ("__method_not_allowed__",):
                 return html_response(
                     _error_page(runtime, title="Method not allowed", detail="Use the supported GET or POST workflow for this route.", status="405", action="Retry with the documented method for this screen.", active_nav="manage"),
                     status="405 Method Not Allowed",
                 ).as_wsgi(start_response)
-            response = route.handler(request)
+            response = route.handler(routed_request)
             return response.as_wsgi(start_response)
         except RuntimeUnavailableError as exc:
             return html_response(

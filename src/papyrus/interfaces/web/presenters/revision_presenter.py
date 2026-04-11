@@ -122,7 +122,6 @@ def present_revision_history(
         "page_title": f"{object_info['title']} revision history",
         "page_header": {
             "headline": "Revision history",
-            "show_actor_banner": True,
             "show_actor_links": True,
         },
         "active_nav": "read",

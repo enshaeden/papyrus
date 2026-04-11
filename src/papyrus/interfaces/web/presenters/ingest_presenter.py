@@ -392,7 +392,6 @@ def present_ingest_list_page(
         "page_title": "Import workbench",
         "page_header": {
             "headline": "Import workbench",
-            "show_actor_banner": True,
             "show_actor_links": True,
         },
         "active_nav": "import",
@@ -439,7 +438,6 @@ def present_ingestion_detail_page(renderer: TemplateRenderer, *, detail: dict[st
         "page_title": f"Ingestion {detail['filename']}",
         "page_header": {
             "headline": detail["filename"],
-            "show_actor_banner": True,
             "show_actor_links": True,
         },
         "active_nav": "import",
@@ -608,7 +606,6 @@ def present_mapping_review_page(
         "page_title": f"Review mapping for {detail['filename']}",
         "page_header": {
             "headline": f"Review mapping for {detail['filename']}",
-            "show_actor_banner": True,
             "show_actor_links": True,
         },
         "active_nav": "import",

@@ -33,179 +33,6 @@ def _area_card(
     )
 
 
-def _next_action_definitions(actor_id: str, *, counts: dict[str, int]) -> list[dict[str, str | int]]:
-    shared = {
-        "review": counts["review_required"],
-        "revalidate": counts["needs_revalidation"],
-        "activity": counts["recent_activity"],
-        "drafts": counts["drafts"],
-        "health": counts["needs_attention"],
-    }
-    if actor_id == "local.reviewer":
-        return [
-            {
-                "title": "Make review decisions",
-                "detail": "Work the revisions waiting on a decision.",
-                "href": "/review",
-                "label": "Review queued changes",
-                "count": shared["review"],
-            },
-            {
-                "title": "Revalidate weak guidance",
-                "detail": "Clear stale or weak-evidence items.",
-                "href": "/health",
-                "label": "Review risky guidance",
-                "count": shared["revalidate"],
-            },
-            {
-                "title": "Inspect recent consequences",
-                "detail": "Trace recent changes when the next step is unclear.",
-                "href": "/activity",
-                "label": "Inspect activity",
-                "count": shared["activity"],
-            },
-        ]
-    if actor_id == "local.manager":
-        return [
-            {
-                "title": "Shepherd knowledge health",
-                "detail": "Focus on the guidance that needs attention first.",
-                "href": "/health",
-                "label": "Review risky guidance",
-                "count": shared["health"],
-            },
-            {
-                "title": "Reduce review pressure",
-                "detail": "Keep pending decisions from stalling.",
-                "href": "/review",
-                "label": "Review queued changes",
-                "count": shared["review"],
-            },
-            {
-                "title": "Inspect recent activity",
-                "detail": "Use recent events to decide where to step in next.",
-                "href": "/activity",
-                "label": "Inspect activity",
-                "count": shared["activity"],
-            },
-        ]
-    return [
-        {
-            "title": "Use current guidance",
-            "detail": "Start from the best current answer.",
-            "href": "/read",
-            "label": "Read guidance",
-            "count": counts["read_ready"],
-        },
-        {
-            "title": "Continue authoring",
-            "detail": "Finish a draft or move a gap forward.",
-            "href": "/write/objects/new",
-            "label": "Start a draft",
-            "count": shared["drafts"],
-        },
-        {
-            "title": "Escalate unsafe guidance",
-            "detail": "Hand off stale or weak guidance instead of guessing.",
-            "href": "/health",
-            "label": "Review risky guidance",
-            "count": shared["revalidate"],
-        },
-    ]
-
-
-def _area_definitions(actor_id: str, *, counts: dict[str, int]) -> list[dict[str, str | int]]:
-    if actor_id == "local.reviewer":
-        return [
-            {
-                "title": "Review / Approvals",
-                "metric_label": "Queued decisions",
-                "metric_value": counts["review_required"],
-                "description": "Move the review queue first.",
-                "href": "/review",
-                "action_label": "Review queue",
-                "tone": "brand",
-            },
-            {
-                "title": "Knowledge Health",
-                "metric_label": "Needs follow-up",
-                "metric_value": counts["needs_attention"],
-                "description": "Check weak, stale, or suspect guidance.",
-                "href": "/health",
-                "action_label": "Review risky guidance",
-                "tone": "warning" if counts["needs_attention"] else "approved",
-            },
-            {
-                "title": "Activity / History",
-                "metric_label": "Recent events",
-                "metric_value": counts["recent_activity"],
-                "description": "Inspect recent consequences when a queue item is unclear.",
-                "href": "/activity",
-                "action_label": "Inspect activity",
-                "tone": "default",
-            },
-        ]
-    if actor_id == "local.manager":
-        return [
-            {
-                "title": "Knowledge Health",
-                "metric_label": "Needs follow-up",
-                "metric_value": counts["needs_attention"],
-                "description": "Triage the highest-risk guidance first.",
-                "href": "/health",
-                "action_label": "Review risky guidance",
-                "tone": "brand" if counts["needs_attention"] else "approved",
-            },
-            {
-                "title": "Review / Approvals",
-                "metric_label": "Queued decisions",
-                "metric_value": counts["review_required"],
-                "description": "Reduce review pressure before it stalls changes.",
-                "href": "/review",
-                "action_label": "Review queue",
-                "tone": "warning" if counts["review_required"] else "default",
-            },
-            {
-                "title": "Services",
-                "metric_label": "Services in scope",
-                "metric_value": counts["services"],
-                "description": "Start from service impact when intervention is unclear.",
-                "href": "/services",
-                "action_label": "Browse services",
-                "tone": "default",
-            },
-        ]
-    return [
-        {
-            "title": "Read",
-            "metric_label": "Guidance items",
-            "metric_value": counts["read_ready"],
-            "description": "Find the current answer fast.",
-            "href": "/read",
-            "action_label": "Read guidance",
-            "tone": "brand",
-        },
-        {
-            "title": "Write",
-            "metric_label": "Drafts or rework items",
-            "metric_value": counts["drafts"],
-            "description": "Create a draft or finish one in progress.",
-            "href": "/write/objects/new",
-            "action_label": "Start a draft",
-            "tone": "default",
-        },
-        {
-            "title": "Services",
-            "metric_label": "Services in scope",
-            "metric_value": counts["services"],
-            "description": "Start from the affected service when you need context first.",
-            "href": "/services",
-            "action_label": "Browse services",
-            "tone": "default",
-        },
-    ]
-
-
 def _activity_rows(events: list[dict[str, Any]]) -> list[list[str]]:
     rows: list[list[str]] = []
     for event in events:
@@ -228,9 +55,11 @@ def _activity_rows(events: list[dict[str, Any]]) -> list[list[str]]:
 def present_home_page(
     renderer: TemplateRenderer,
     *,
-    actor_id: str,
     counts: dict[str, int],
+    next_actions: list[dict[str, str | int]],
+    work_areas: list[dict[str, str | int]],
     events: list[dict[str, Any]],
+    summary_variant: str,
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     next_actions_html = join_html(
@@ -247,7 +76,7 @@ def present_home_page(
                 tone="brand" if index == 0 else "default",
                 action_variant="primary" if index == 0 else "secondary",
             )
-            for index, item in enumerate(_next_action_definitions(actor_id, counts=counts))
+            for index, item in enumerate(next_actions)
         ]
     )
     work_areas_html = join_html(
@@ -263,7 +92,7 @@ def present_home_page(
                 action_label=str(item["action_label"]),
                 tone=str(item["tone"]),
             )
-            for item in _area_definitions(actor_id, counts=counts)
+            for item in work_areas
         ]
     )
     summary_html = components.trust_summary(
@@ -274,13 +103,13 @@ def present_home_page(
                 components.badge(label="Needs revalidation", value=counts["needs_revalidation"], tone="warning"),
                 components.badge(label="Activity", value=counts["recent_activity"], tone="brand"),
             ]
-            if actor_id == "local.reviewer"
+            if summary_variant == "local.reviewer"
             else [
                 components.badge(label="Needs attention", value=counts["needs_attention"], tone="warning"),
                 components.badge(label="Review needed", value=counts["review_required"], tone="pending"),
                 components.badge(label="Services", value=counts["services"], tone="brand"),
             ]
-            if actor_id == "local.manager"
+            if summary_variant == "local.manager"
             else [
                 components.badge(label="Read ready", value=counts["read_ready"], tone="approved"),
                 components.badge(label="Drafts", value=counts["drafts"], tone="pending"),
@@ -308,7 +137,6 @@ def present_home_page(
         "page_surface": "home",
         "page_header": {
             "headline": "Home",
-            "show_actor_banner": True,
             "show_actor_links": True,
         },
         "active_nav": "",

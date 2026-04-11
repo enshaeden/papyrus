@@ -26,6 +26,7 @@ This reference records the current operator-ready boundary for Papyrus and the r
   - action descriptors
   - acknowledgement payloads
 - The web, CLI, and API should render those contracts without reintroducing route-local policy checks.
+- Guided web authoring must keep GET requests side-effect free. Starting or reusing a draft is an explicit governed action, not a page-load side effect.
 - Presenter and template changes must preserve structured posture meaning even when page layout or copy changes.
 
 ## Operational Usefulness Signals

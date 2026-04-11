@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from urllib.parse import quote_plus
 
-from papyrus.application.authoring_flow import compute_completion_state, create_draft_from_blueprint, update_section, validate_draft_progress
+from papyrus.application.authoring_flow import compute_completion_state, ensure_draft_revision, load_draft_context, update_section
 from papyrus.application.queries import knowledge_object_detail
 from papyrus.interfaces.web.http import Request, html_response, redirect_response
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
@@ -104,47 +104,37 @@ def _section_errors(
         errors["_section"] = messages
     return errors
 
-
-def _load_draft_context(runtime, *, object_id: str, actor_id: str, requested_revision_id: str | None) -> dict[str, object]:
-    initial_detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
-    draft = create_draft_from_blueprint(
-        object_id=object_id,
-        blueprint_id=initial_detail["object"]["object_type"],
-        actor=actor_id,
-        database_path=runtime.database_path,
-        source_root=runtime.source_root,
-    )
-    revision_id = requested_revision_id or str(draft["revision_id"])
-    draft_status = validate_draft_progress(
-        object_id=object_id,
-        revision_id=revision_id,
-        database_path=runtime.database_path,
-        source_root=runtime.source_root,
-    )
-    detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
-    return {
-        "initial_detail": initial_detail,
-        "detail": detail,
-        "draft_status": draft_status,
-        "revision_id": revision_id,
-        "is_first_revision": initial_detail["current_revision"] is None,
-    }
-
-
 def register(router, runtime) -> None:
+    def start_revision(request: Request):
+        object_id = request.route_value("object_id")
+        detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        draft = ensure_draft_revision(
+            object_id=object_id,
+            blueprint_id=str(detail["object"]["object_type"]),
+            actor=actor_for_request(request),
+            database_path=runtime.database_path,
+            source_root=runtime.source_root,
+        )
+        return redirect_response(
+            (
+                f"/write/objects/{quoted_path(object_id)}/revisions/new"
+                f"?revision_id={quoted_path(str(draft['revision_id']))}"
+                f"&notice={quote_plus('Draft ready. Continue guided authoring below.')}"
+                "#revision-form"
+            )
+        )
+
     def create_revision_page(request: Request):
         object_id = request.route_value("object_id")
         actor_id = actor_for_request(request)
-        draft_context = _load_draft_context(
-            runtime,
+        draft_status = load_draft_context(
             object_id=object_id,
-            actor_id=actor_id,
-            requested_revision_id=request.query_value("revision_id") or None,
+            revision_id=request.query_value("revision_id") or None,
+            database_path=runtime.database_path,
+            source_root=runtime.source_root,
         )
-        initial_detail = draft_context["initial_detail"]
-        detail = draft_context["detail"]
-        draft_status = draft_context["draft_status"]
-        revision_id = str(draft_context["revision_id"])
+        detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        revision_id = str(draft_status["revision_id"])
         section_id = request.query_value("section") or str(draft_status["completion"]["next_section_id"])
         blueprint = draft_status["blueprint"]
         page_flash_html = flash_html_for_request(runtime, request) if request.method != "POST" else ""
@@ -172,7 +162,7 @@ def register(router, runtime) -> None:
                     draft_status=draft_status,
                     revision_id=revision_id,
                     section_id=section_id,
-                    is_first_revision=initial_detail["current_revision"] is None,
+                    is_first_revision=bool(draft_status["is_first_revision"]),
                     form_values=_section_form_values(section, candidate_values),
                     form_errors=form_errors,
                 )
@@ -182,7 +172,6 @@ def register(router, runtime) -> None:
                         page_title=f"Draft {section.display_name}",
                         page_header={
                             "headline": f"Draft {blueprint.display_name}",
-                            "show_actor_banner": True,
                             "show_actor_links": True,
                         },
                         active_nav="write",
@@ -219,7 +208,7 @@ def register(router, runtime) -> None:
             draft_status=draft_status,
             revision_id=revision_id,
             section_id=section_id,
-            is_first_revision=initial_detail["current_revision"] is None,
+            is_first_revision=bool(draft_status["is_first_revision"]),
             form_values=_section_form_values(blueprint.section(section_id), draft_status["section_content"].get(section_id, {})),
             form_errors={},
         )
@@ -229,7 +218,6 @@ def register(router, runtime) -> None:
                 page_title=f"Draft {blueprint.display_name}",
                 page_header={
                     "headline": f"Draft {blueprint.display_name}",
-                    "show_actor_banner": True,
                     "show_actor_links": True,
                 },
                 active_nav="write",
@@ -243,4 +231,5 @@ def register(router, runtime) -> None:
             )
         )
 
+    router.add(["POST"], "/write/objects/{object_id}/revisions/start", start_revision)
     router.add(["GET", "POST"], "/write/objects/{object_id}/revisions/new", create_revision_page)

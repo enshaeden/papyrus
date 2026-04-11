@@ -233,7 +233,6 @@ def present_queue_page(
         "page_title": "Read Guidance",
         "page_header": {
             "headline": "Read guidance",
-            "show_actor_banner": True,
             "show_actor_links": True,
         },
         "active_nav": "read",

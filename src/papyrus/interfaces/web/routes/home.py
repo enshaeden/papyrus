@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from papyrus.application.queries import event_history, knowledge_queue, manage_queue, service_catalog
+from papyrus.application.queries import home_dashboard
 from papyrus.interfaces.web.http import Request, html_response
-from papyrus.interfaces.web.presenters.governed_presenter import projection_use_guidance
 from papyrus.interfaces.web.presenters.home_presenter import present_home_page
 from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
 
@@ -10,29 +9,14 @@ from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for
 def register(router, runtime) -> None:
     def home_page(request: Request):
         actor_id = actor_for_request(request)
-        read_queue = knowledge_queue(limit=12, database_path=runtime.database_path)
-        manage = manage_queue(database_path=runtime.database_path)
-        services = service_catalog(database_path=runtime.database_path)
-        events = event_history(limit=8, database_path=runtime.database_path)
+        dashboard = home_dashboard(actor_id=actor_id, database_path=runtime.database_path)
         page = present_home_page(
             runtime.template_renderer,
-            actor_id=actor_id,
-            counts={
-                "read_ready": sum(
-                    1
-                    for item in read_queue
-                    if bool(projection_use_guidance(item.get("ui_projection")).get("safe_to_use"))
-                ),
-                "drafts": len(manage["draft_items"]),
-                "review_required": len(manage["review_required"]),
-                "needs_revalidation": len(manage["needs_revalidation"]),
-                "needs_attention": len(manage["needs_attention"]),
-                "weak_evidence": len(manage["weak_evidence_items"]),
-                "stale": len(manage["stale_items"]),
-                "services": len(services),
-                "recent_activity": len(events),
-            },
-            events=events,
+            counts=dashboard["counts"],
+            next_actions=dashboard["next_actions"],
+            work_areas=dashboard["work_areas"],
+            events=dashboard["events"],
+            summary_variant=str(dashboard["summary_variant"]),
         )
         return html_response(
             runtime.page_renderer.render_page(

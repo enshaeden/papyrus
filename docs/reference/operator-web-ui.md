@@ -45,11 +45,23 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 - Shell variants are explicit:
   - `normal` for navigation and browsing surfaces
-  - `focus` for active drafting
+  - `focus` for intentionally reduced-navigation work, not guided drafting
   - `minimal` for one-step decisions and system pages
+- Guided drafting uses the `normal` shell. Sidebar navigation and topbar actor controls remain visible while the operator works through guided sections.
 - The right rail is optional and should render only when the page has actionable contextual support.
 - The left rail and topbar actor controls come from actor shell configuration, not page-local duplication.
+- Actor identity renders through the topbar control on normal-shell pages. There is no separate page-header actor banner contract.
 - Page headers are opt-in and should include only the elements the presenter asks for.
+
+## Web Authoring Route Contract
+
+- `POST /write/objects/{object_id}/revisions/start` is the explicit guided authoring start route. It may reuse a compatible draft or create a new one through application-owned policy.
+- `GET /write/objects/{object_id}/revisions/new` is load-only:
+  - with `revision_id`, it loads that revision context only
+  - without `revision_id`, it may load only an existing compatible draft
+  - if no compatible draft exists, it returns `400 Bad Request` with an operator-facing reason and does not redirect implicitly
+- `/write/objects/new` creates the object shell and eagerly starts the first draft before redirecting to the guided page with a concrete `revision_id`.
+- Presenters should link to an existing guided revision only when they already have a concrete `revision_id`. When a draft may need to be created or reused, presenters should use the explicit POST start route instead of GET-side effects.
 
 ## Current Boundaries
 

@@ -74,6 +74,11 @@ def read_row(database_path: Path, query: str, parameters: tuple = ()) -> sqlite3
         connection.close()
 
 
+def read_count(database_path: Path, query: str, parameters: tuple = ()) -> int:
+    row = read_row(database_path, query, parameters)
+    return int(row[0] if row is not None else 0)
+
+
 PRIMARY_SYSTEM = "Remote Access Gateway"
 PRIMARY_CITATION_TITLE = "Remote access gateway import record"
 PRIMARY_CITATION_REF = "records/remote-access-gateway-import-record.md"
@@ -953,9 +958,10 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             revision_form_path = headers["Location"]
             self.assertTrue(
                 revision_form_path.startswith(
-                    "/write/objects/kb-operator-ui-shell-search/revisions/new?notice=Draft+setup+saved."
+                    "/write/objects/kb-operator-ui-shell-search/revisions/new?revision_id="
                 )
             )
+            self.assertIn("&notice=Draft+setup+saved.", revision_form_path)
             self.assertTrue(revision_form_path.endswith("#revision-form"))
 
             status, _, body = call_wsgi(application, request_path_without_fragment(revision_form_path))
@@ -983,7 +989,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             )
             self.assertEqual(status, "200 OK")
             self.assertIn("kb-operator-ui-shell-search", body)
-            self.assertIn("/write/objects/kb-operator-ui-shell-search/revisions/new#revision-form", body)
+            self.assertIn("/objects/kb-operator-ui-shell-search", body)
 
     def test_manage_queue_exposes_next_governance_actions_for_shells_and_drafts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1019,8 +1025,8 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             status, _, body = call_wsgi(application, "/manage/queue")
             self.assertEqual(status, "200 OK")
             self.assertIn("Manage Queue Shell", body)
-            self.assertIn("/write/objects/kb-operator-ui-manage-shell/revisions/new#revision-form", body)
-            self.assertIn("Draft first revision", body)
+            self.assertIn("Continue draft", body)
+            self.assertIn("/write/objects/kb-operator-ui-manage-shell/revisions/new?revision_id=", body)
 
             complete_guided_runbook_revision(
                 application,
@@ -1035,8 +1041,71 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             status, _, body = call_wsgi(application, "/manage/queue")
             self.assertEqual(status, "200 OK")
             self.assertIn("Submit for review", body)
-            self.assertIn("/write/objects/kb-operator-ui-manage-shell/revisions/new#revision-form", body)
+            self.assertIn("/write/objects/kb-operator-ui-manage-shell/revisions/new?revision_id=", body)
             self.assertIn("/write/objects/kb-operator-ui-manage-shell/submit?revision_id=", body)
+
+    def test_guided_revision_get_with_revision_id_does_not_create_new_draft(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+            )
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/write/objects/new",
+                method="POST",
+                form={
+                    "object_id": "kb-operator-ui-existing-revision",
+                    "object_type": "runbook",
+                    "title": "Existing Revision",
+                    "summary": "Existing revision loads should not create a new draft.",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "canonical_path": "knowledge/runbooks/existing-revision.md",
+                    "review_cadence": "quarterly",
+                    "object_lifecycle_state": "draft",
+                    "systems": PRIMARY_SYSTEM,
+                    "tags": "vpn",
+                },
+            )
+            self.assertEqual(status, "303 See Other")
+            revision_form_path = request_path_without_fragment(headers["Location"])
+            revision_count_before = read_count(
+                database_path,
+                "SELECT COUNT(*) FROM knowledge_revisions WHERE object_id = ?",
+                ("kb-operator-ui-existing-revision",),
+            )
+            audit_count_before = read_count(
+                database_path,
+                "SELECT COUNT(*) FROM audit_events WHERE object_id = ? AND event_type = 'revision_created'",
+                ("kb-operator-ui-existing-revision",),
+            )
+
+            first_status, _, _ = call_wsgi(application, revision_form_path)
+            second_status, _, _ = call_wsgi(application, revision_form_path)
+
+            self.assertEqual(first_status, "200 OK")
+            self.assertEqual(second_status, "200 OK")
+            self.assertEqual(
+                read_count(
+                    database_path,
+                    "SELECT COUNT(*) FROM knowledge_revisions WHERE object_id = ?",
+                    ("kb-operator-ui-existing-revision",),
+                ),
+                revision_count_before,
+            )
+            self.assertEqual(
+                read_count(
+                    database_path,
+                    "SELECT COUNT(*) FROM audit_events WHERE object_id = ? AND event_type = 'revision_created'",
+                    ("kb-operator-ui-existing-revision",),
+                ),
+                audit_count_before,
+            )
 
     def test_revision_citation_search_exposes_article_lookup_and_finds_existing_objects(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
