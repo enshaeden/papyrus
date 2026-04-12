@@ -61,6 +61,14 @@ a:hover {
 .empty-state-copy {
   color: var(--color-text-muted);
 }
+.page-kicker,
+.panel-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .topbar .identity-copy {
   color: var(--color-topbar-muted);
 }
@@ -161,7 +169,8 @@ a:hover {
 }
 .topbar-search .button {
   background: var(--color-topbar-chip-bg);
-  border-color: var(--color-topbar-chip-border);
+  border: 1px solid var(--color-topbar-chip-border);
+  border-radius: 999px;
   color: var(--color-topbar-chip-text);
 }
 .topbar-search .button:hover {
@@ -280,12 +289,15 @@ a:hover {
 }
 .page-header {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.5rem;
+  padding-bottom: var(--space-2);
 }
 .page-header h1 {
   margin: 0;
-  font-size: clamp(1.55rem, 2.4vw, 2.35rem);
+  font-size: clamp(2.05rem, 3.2vw, 3.15rem);
   font-family: var(--font-serif);
+  line-height: 1.03;
+  letter-spacing: -0.01em;
 }
 .page-header-focus,
 .page-header-minimal {
@@ -301,16 +313,17 @@ a:hover {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
+  padding-top: 0.25rem;
 }
 .actor-banner {
   display: grid;
-  gap: 0.55rem;
-  padding: 0.7rem 0.85rem;
-  border: 1px solid var(--color-actor-banner-border);
-  border-left: 0.3rem solid var(--color-actor-banner-accent);
-  border-radius: var(--radius-md);
-  background: var(--color-actor-banner-bg);
-  box-shadow: var(--shadow);
+  gap: 0.45rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--color-border-default);
+  border-left: 2px solid var(--color-actor-banner-accent);
+  border-radius: 0;
+  background: var(--color-surface-panel);
+  box-shadow: none;
 }
 .actor-banner--reader-writer {
   --color-actor-banner-accent: var(--color-brand-hero);
@@ -338,11 +351,11 @@ a:hover {
 .actor-banner-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 2rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: 999px;
-  border: 1px solid var(--color-panel-governance-border);
-  background: var(--color-surface-raised);
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--color-text-primary);
   font-weight: 600;
 }
@@ -356,11 +369,11 @@ a:hover {
 .actor-banner-role {
   display: inline-flex;
   align-items: center;
-  min-height: 2rem;
-  padding: 0.3rem 0.75rem;
-  border-radius: 999px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-panel-governance-border);
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--color-text-primary);
   font-size: 0.78rem;
   font-weight: 700;
@@ -369,39 +382,37 @@ a:hover {
   margin: 0;
   max-width: 52rem;
   color: var(--color-text-muted);
-  font-size: 0.92rem;
-  line-height: 1.4;
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 .actor-banner-link {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-height: 2.1rem;
-  padding: 0.45rem 0.8rem;
-  border: 1px solid var(--color-panel-governance-border);
-  border-radius: 999px;
-  background: var(--color-surface-raised);
+  justify-content: flex-start;
+  min-height: auto;
+  padding: 0.08rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--color-text-primary);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 600;
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+  transition: color 140ms ease, box-shadow 140ms ease;
 }
 .actor-banner-link:hover {
-  background: var(--color-nav-hover-bg);
-  border-color: var(--color-nav-hover-border);
   color: var(--color-nav-hover-text);
   text-decoration: none;
-  transform: translateY(-1px);
+  box-shadow: inset 0 -1px 0 var(--color-nav-hover-border);
 }
 .actor-banner-link.is-active {
-  background: var(--color-nav-active);
-  border-color: var(--color-nav-active);
-  color: var(--color-nav-active-text);
+  background: transparent;
+  color: var(--color-text-primary);
+  box-shadow: inset 0 -2px 0 var(--color-nav-active);
 }
 .actor-banner-link.is-active:hover {
-  background: var(--color-nav-active-hover);
-  border-color: var(--color-nav-active-hover);
-  color: var(--color-nav-active-text);
+  background: transparent;
+  color: var(--color-text-primary);
+  box-shadow: inset 0 -2px 0 var(--color-nav-active-hover);
 }
 .page-header p { margin: 0; }
 .page-stack,

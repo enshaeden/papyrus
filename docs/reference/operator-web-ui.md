@@ -14,7 +14,7 @@ This reference records the stable server-rendered UI contract for Papyrus. It is
 - The shared component canon is:
   - one shared surface partial with two roles:
     - flat `content-section` for primary reading and composition
-    - bordered `context-panel` for metadata, governance, filters, progress, and support
+    - bordered `context-panel` for right-rail metadata and operational context only
   - one summary strip
   - badges
   - decision cells and decision cards
@@ -24,8 +24,9 @@ This reference records the stable server-rendered UI contract for Papyrus. It is
   - empty states
   - metadata lists
   - form field controls
-- Primary content should read as flat sections separated by spacing and dividers rather than stacked cards.
-- Governed, status, audit, citation, relationship, validation, and support surfaces remain panelized only when they provide contextual or operational support.
+- Primary content should read through text, spacing, and dividers rather than stacked cards or softened panels.
+- Non-critical surfaces should not carry visible containment. Backgrounds, borders, and radius are reserved for right-rail context panels, selected table rows, and explicit warning or error states.
+- Governed, status, audit, citation, relationship, validation, and support surfaces should be flattened unless they are serving one of those explicitly contained roles.
 - Projection-backed posture remains the source of UI meaning:
   - `ui_projection.state`
   - `ui_projection.use_guidance`
@@ -56,6 +57,7 @@ Tests should assert those hooks plus structured contract payload behavior instea
 - The left rail and topbar actor controls come from actor shell configuration, not page-local duplication.
 - Actor identity renders through the topbar control on normal-shell pages. There is no separate page-header actor banner contract.
 - Page headers are opt-in and should include only the elements the presenter asks for.
+- Page-local actor, status, and action affordances should not render as chips, pills, or soft cards; they should read as text with restrained accent cues.
 - Density scales by role:
   - end-user surfaces stay lowest density
   - operator surfaces stay medium density

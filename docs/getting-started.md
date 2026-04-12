@@ -36,7 +36,7 @@ What to expect:
 - Navigation is organized as `Read`, `Write`, `Import`, `Review / Approvals`, `Knowledge Health`, `Services`, and `Activity / History`.
 - `/write` starts blueprint-driven guided section authoring with citation lookup and searchable multi-select controls in the same flow.
 - Guided drafting stays on the shared `normal` shell, so sidebar navigation and topbar actor controls remain visible while you author.
-- Primary reading and composition surfaces stay flat, while metadata, filters, governance, and progress stay in bordered context panels.
+- Primary reading and composition surfaces stay flat and document-like, while visible containment is reserved for right-rail context, selected table rows, and explicit warning or error states.
 - Guided draft creation is explicit: object setup creates the first draft before redirecting, and later entrypoints use a governed start action rather than relying on GET requests to create state.
 - `/ingest` starts the upload, parse, classify, map, review, and convert flow for external files.
 - Browser upload is the normal web ingest path. Browser-submitted local file paths are disabled unless you explicitly enable `--allow-web-ingest-local-paths` on the local operator web surface.
