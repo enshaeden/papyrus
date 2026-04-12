@@ -206,9 +206,9 @@ Minimum completion bar:
 At the end of each task, report in this order:
 
 1. summary of what changed
-4. validation, lint, typecheck, test, and build results
-6. documentation updated
-7. unresolved risks, follow-up work, or intentional deferrals
+2. validation, lint, typecheck, test, and build results
+3. documentation updated
+4. unresolved risks, follow-up work, or intentional deferrals
 
 Do not state or imply success without this evidence.
 
