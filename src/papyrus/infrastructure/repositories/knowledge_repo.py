@@ -74,7 +74,13 @@ def collect_source_paths(policy: dict[str, Any] | None = None) -> list[Path]:
     paths: list[Path] = []
     for root in knowledge_source_roots(policy):
         if root.exists():
-            paths.extend(sorted(path for path in root.rglob("*.md") if path.is_file()))
+            paths.extend(
+                sorted(
+                    path
+                    for path in root.rglob("*.md")
+                    if path.is_file() and path.name != "AGENTS.md"
+                )
+            )
     return sorted(paths)
 
 

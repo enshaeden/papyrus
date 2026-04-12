@@ -89,46 +89,16 @@ When changing product behaviour:
 - prefer explicit structure over hidden inference
 - prefer durable system rules over page-local hacks
 
-## UX and Interface Rules
+## Product Experience Principle
 
-Papyrus must feel like a knowledge system, not a generic dashboard and not a generic text editor.
+Papyrus must present itself as a knowledge system, not a generic dashboard or generic text editor.
+Interface-specific execution rules belong in subtree `AGENTS.md` files for the relevant application surfaces.
 
-When working on web, app, or CLI surfaces:
+## Canonical Content Governance
 
-- prioritise information hierarchy over decorative density
-- remove duplicated navigation, duplicated controls, and repeated status blocks at the source component level
-- avoid static placeholder content in production-facing views unless clearly marked as fixture or demo state
-- make context changes materially affect what the user sees, not merely reshuffle navigation chrome
-- reading surfaces must read like content, not governance metadata dumps
-- operator views may expose more metadata and structure than reader views, but must still remain legible
-- preserve and extend the existing design system and colour tokens unless the task explicitly authorises a visual redesign
-- fix shared layout primitives and shared components before patching page-level symptoms
-- prefer sequential, self-explanatory flows with early error messaging and visible progress states for import, authoring, validation, and publishing flows
-
-Do not claim a UX fix if the UI still compiles but preserves the same hierarchy failure, duplication, stale content, or unreadable reading mode.
-
-## Content Model Rules
-
-Every knowledge item must declare the required fields defined by schema.
-At minimum, each canonical knowledge item must include:
-
-- `id`
-- `title`
-- `owner`
-- `object_lifecycle_state`
-- `created`
-- `updated`
-- `last_reviewed`
-- `review_cadence`
-- `canonical_path`
-- `source_type`
-
-Additional requirements:
-
-- deprecated or archived content must include replacement or retirement rationale according to lifecycle policy
-- lifecycle state must follow `draft -> active -> deprecated -> archived`
-- changes to schema or taxonomy files require rationale recorded in `decisions/`
-- do not invent undocumented fields in source content without updating the governing schema and rationale
+Canonical knowledge content must comply with the governing schemas, taxonomies, templates, and lifecycle policy.
+Detailed knowledge-object and metadata rules are defined in `knowledge/AGENTS.md`.
+Changes to schemas or taxonomies require rationale recorded in `decisions/`.
 
 ## Ingestion and Transformation Rules
 
