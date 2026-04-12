@@ -172,7 +172,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
         self.assertIn("VPN Troubleshooting", body)
-        self.assert_page_contract(body, primary_surface="object-detail", components=("surface-panel",))
+        self.assert_page_contract(body, primary_surface="object-detail", components=("article-hero", "article-section"))
         self.assertNotIn('<aside class="context-column">', body)
         self.assert_not_component(body, "object-header")
 
@@ -205,7 +205,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
 
         status, _, body = call_wsgi(application, "/impact/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
-        self.assert_page_contract(body, primary_surface="impact-object", components=("surface-panel",))
+        self.assert_page_contract(body, primary_surface="impact-object", components=("impact-summary", "impact-trace"))
 
     def test_static_theme_assets_expose_governed_brand_tokens(self) -> None:
         application = web_app(self.database_path)

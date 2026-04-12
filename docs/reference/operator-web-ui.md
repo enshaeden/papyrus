@@ -64,6 +64,302 @@ Tests should assert those hooks plus structured contract payload behavior instea
   - reviewer and manager governance surfaces use denser tables and selected-item context rails
 - Reviewer and manager governance screens should prefer table-first layouts with deterministic URL-driven selection state in the right rail.
 
+## Surface Ownership Map
+
+### Home
+
+- `Home Hero`
+  - `data-component`: `home-hero`
+  - owner file: `src/papyrus/interfaces/web/presenters/home_hero_presenter.py`
+  - upstream data source: `papyrus.application.read_models.home_dashboard`
+  - CSS location: `src/papyrus/interfaces/web/static/css/home.css`
+  - test location: `tests/test_web_home_hero_presenter.py`
+- `Home Launch Block`
+  - `data-component`: `home-launch-block`
+  - owner file: `src/papyrus/interfaces/web/presenters/home_launch_block_presenter.py`
+  - upstream data source: `papyrus.application.read_models.home_dashboard`
+  - CSS location: `src/papyrus/interfaces/web/static/css/home.css`
+  - test location: `tests/test_web_home_launch_block_presenter.py`
+- `Home Activity Block`
+  - `data-component`: `home-activity-block`
+  - owner file: `src/papyrus/interfaces/web/presenters/home_activity_block_presenter.py`
+  - upstream data source: `papyrus.application.read_models.home_dashboard`
+  - CSS location: `src/papyrus/interfaces/web/static/css/home.css`
+  - test location: `tests/test_web_home_activity_block_presenter.py`
+
+### Read
+
+- `Read Queue Hero`
+  - `data-component`: `read-queue-hero`
+  - owner file: `src/papyrus/interfaces/web/presenters/read_queue_hero_presenter.py`
+  - upstream data source: `/queue` route payload and actor page behavior
+  - CSS location: `src/papyrus/interfaces/web/static/css/read.css`
+  - test location: `tests/test_web_read_queue_presenters.py`
+- `Read Filter Bar`
+  - `data-component`: `read-filter-bar`
+  - owner file: `src/papyrus/interfaces/web/presenters/read_filter_bar_presenter.py`
+  - upstream data source: `/queue` route query/filter state
+  - CSS location: `src/papyrus/interfaces/web/static/css/read.css`
+  - test location: `tests/test_web_read_queue_presenters.py`
+- `Read Result Card` and `Read Results Table`
+  - `data-component`: `read-result-card`, `read-results-table`
+  - owner file: `src/papyrus/interfaces/web/presenters/read_results_presenter.py`
+  - upstream data source: queue items plus `ui_projection.use_guidance`
+  - CSS location: `src/papyrus/interfaces/web/static/css/read.css`
+  - test location: `tests/test_web_read_queue_presenters.py`
+- `Read Selected Context`
+  - `data-component`: `read-selected-context`
+  - owner file: `src/papyrus/interfaces/web/presenters/read_selected_context_presenter.py`
+  - upstream data source: selected queue item
+  - CSS location: `src/papyrus/interfaces/web/static/css/read.css`
+  - test location: `tests/test_web_read_queue_presenters.py`
+
+### Object Detail
+
+- `Article Hero`
+  - `data-component`: `article-hero`
+  - owner file: `src/papyrus/interfaces/web/presenters/article_hero_presenter.py`
+  - upstream data source: `papyrus.application.read_models.article_projection`
+  - CSS location: `src/papyrus/interfaces/web/static/css/article.css`
+  - test location: `tests/test_web_object_detail_presenters.py`
+- `Article Section`
+  - `data-component`: `article-section`
+  - owner file: `src/papyrus/interfaces/web/presenters/article_section_presenter.py`
+  - upstream data source: `papyrus.application.read_models.article_projection`
+  - CSS location: `src/papyrus/interfaces/web/static/css/article.css`
+  - test location: `tests/test_web_object_detail_presenters.py`
+- `Article Context Panel`
+  - `data-component`: `article-context-panel`
+  - owner file: `src/papyrus/interfaces/web/presenters/article_context_panel_presenter.py`
+  - upstream data source: `papyrus.application.read_models.article_projection`
+  - CSS location: `src/papyrus/interfaces/web/static/css/article.css`
+  - test location: `tests/test_web_object_detail_presenters.py`
+
+### Services
+
+- `Service Map`
+  - `data-component`: `service-map`
+  - owner file: `src/papyrus/interfaces/web/presenters/service_map_presenter.py`
+  - upstream data source: `/services` route payload
+  - CSS location: `src/papyrus/interfaces/web/static/css/services.css`
+  - test location: `tests/test_web_service_presenters.py`
+- `Service Map Card`
+  - `data-component`: `service-map-card`
+  - owner file: `src/papyrus/interfaces/web/presenters/service_map_presenter.py`
+  - upstream data source: service catalog rows
+  - CSS location: `src/papyrus/interfaces/web/static/css/services.css`
+  - test location: `tests/test_web_service_presenters.py`
+- `Service Detail Hero`
+  - `data-component`: `service-detail-hero`
+  - owner file: `src/papyrus/interfaces/web/presenters/service_detail_hero_presenter.py`
+  - upstream data source: service detail payload
+  - CSS location: `src/papyrus/interfaces/web/static/css/services.css`
+  - test location: `tests/test_web_service_presenters.py`
+- `Service Pressure`
+  - `data-component`: `service-pressure`
+  - owner file: `src/papyrus/interfaces/web/presenters/service_pressure_presenter.py`
+  - upstream data source: service posture summary
+  - CSS location: `src/papyrus/interfaces/web/static/css/services.css`
+  - test location: `tests/test_web_service_presenters.py`
+- `Service Path`
+  - `data-component`: `service-path`, `service-path-item`
+  - owner file: `src/papyrus/interfaces/web/presenters/service_path_presenter.py`
+  - upstream data source: linked service objects
+  - CSS location: `src/papyrus/interfaces/web/static/css/services.css`
+  - test location: `tests/test_web_service_presenters.py`
+
+### Knowledge Health
+
+- `Health Board`
+  - `data-component`: `health-board`
+  - owner file: `src/papyrus/interfaces/web/presenters/health_board_presenter.py`
+  - upstream data source: trust dashboard queue payload
+  - CSS location: `src/papyrus/interfaces/web/static/css/health.css`
+  - test location: `tests/test_web_health_presenters.py`
+- `Health Cleanup Board`
+  - `data-component`: `health-cleanup-board`
+  - owner file: `src/papyrus/interfaces/web/presenters/health_cleanup_board_presenter.py`
+  - upstream data source: trust dashboard cleanup counts
+  - CSS location: `src/papyrus/interfaces/web/static/css/health.css`
+  - test location: `tests/test_web_health_presenters.py`
+- `Health Validation Board`
+  - `data-component`: `health-validation-board`
+  - owner file: `src/papyrus/interfaces/web/presenters/health_validation_board_presenter.py`
+  - upstream data source: trust dashboard validation posture
+  - CSS location: `src/papyrus/interfaces/web/static/css/health.css`
+  - test location: `tests/test_web_health_presenters.py`
+
+### Review
+
+- `Review Hero`
+  - `data-component`: `review-hero`
+  - owner file: `src/papyrus/interfaces/web/presenters/review_hero_presenter.py`
+  - upstream data source: review queue group counts
+  - CSS location: `src/papyrus/interfaces/web/static/css/review.css`
+  - test location: `tests/test_web_review_presenters.py`
+- `Review Cleanup Strip`
+  - `data-component`: `review-cleanup-strip`
+  - owner file: `src/papyrus/interfaces/web/presenters/review_cleanup_strip_presenter.py`
+  - upstream data source: review queue cleanup counts
+  - CSS location: `src/papyrus/interfaces/web/static/css/review.css`
+  - test location: `tests/test_web_review_presenters.py`
+- `Review Lane`
+  - `data-component`: `review-lane`
+  - owner file: `src/papyrus/interfaces/web/presenters/review_lane_presenter.py`
+  - upstream data source: review queue lane items plus governed actions
+  - CSS location: `src/papyrus/interfaces/web/static/css/review.css`
+  - test location: `tests/test_web_review_presenters.py`
+
+### Activity
+
+- `Activity Hero`
+  - `data-component`: `activity-hero`
+  - owner file: `src/papyrus/interfaces/web/presenters/activity_hero_presenter.py`
+  - upstream data source: structured activity events
+  - CSS location: `src/papyrus/interfaces/web/static/css/activity.css`
+  - test location: `tests/test_web_activity_presenters.py`
+- `Activity Filter Bar`
+  - `data-component`: `activity-filter-bar`
+  - owner file: `src/papyrus/interfaces/web/presenters/activity_filter_bar_presenter.py`
+  - upstream data source: `/manage/audit` filter state
+  - CSS location: `src/papyrus/interfaces/web/static/css/activity.css`
+  - test location: `tests/test_web_activity_presenters.py`
+- `Activity Event`
+  - `data-component`: `activity-event`
+  - owner file: `src/papyrus/interfaces/web/presenters/activity_event_list_presenter.py`
+  - upstream data source: structured activity events
+  - CSS location: `src/papyrus/interfaces/web/static/css/activity.css`
+  - test location: `tests/test_web_activity_presenters.py`
+- `Activity Audit Log`
+  - `data-component`: `activity-audit-log`
+  - owner file: `src/papyrus/interfaces/web/presenters/activity_audit_log_presenter.py`
+  - upstream data source: raw audit events
+  - CSS location: `src/papyrus/interfaces/web/static/css/activity.css`
+  - test location: `tests/test_web_activity_presenters.py`
+- `Activity Validation Log`
+  - `data-component`: `activity-validation-log`
+  - owner file: `src/papyrus/interfaces/web/presenters/activity_validation_log_presenter.py`
+  - upstream data source: validation run summaries
+  - CSS location: `src/papyrus/interfaces/web/static/css/activity.css`
+  - test location: `tests/test_web_activity_presenters.py`
+
+### Revision History
+
+- `Revision History Table`
+  - `data-component`: `revision-history-table`
+  - owner file: `src/papyrus/interfaces/web/presenters/revision_history_table_presenter.py`
+  - upstream data source: object revision history payload
+  - CSS location: `src/papyrus/interfaces/web/static/css/revision.css`
+  - test location: `tests/test_web_revision_presenters.py`
+- `Revision Audit Sequence`
+  - `data-component`: `revision-audit-sequence`
+  - owner file: `src/papyrus/interfaces/web/presenters/revision_audit_sequence_presenter.py`
+  - upstream data source: object audit events
+  - CSS location: `src/papyrus/interfaces/web/static/css/revision.css`
+  - test location: `tests/test_web_revision_presenters.py`
+- `Revision Comparison Cues`
+  - `data-component`: `revision-comparison-cues`
+  - owner file: `src/papyrus/interfaces/web/presenters/revision_comparison_cues_presenter.py`
+  - upstream data source: presenter-owned comparison guidance
+  - CSS location: `src/papyrus/interfaces/web/static/css/revision.css`
+  - test location: `tests/test_web_revision_presenters.py`
+
+### Impact
+
+- `Impact Summary`
+  - `data-component`: `impact-summary`
+  - owner file: `src/papyrus/interfaces/web/presenters/impact_summary_presenter.py`
+  - upstream data source: impact route payload counts
+  - CSS location: `src/papyrus/interfaces/web/static/css/impact.css`
+  - test location: `tests/test_web_impact_presenters.py`
+- `Impact Trace`
+  - `data-component`: `impact-trace`
+  - owner file: `src/papyrus/interfaces/web/presenters/impact_trace_presenter.py`
+  - upstream data source: impacted object list and URL selection state
+  - CSS location: `src/papyrus/interfaces/web/static/css/impact.css`
+  - test location: `tests/test_web_impact_presenters.py`
+- `Impact Profile`
+  - `data-component`: `impact-profile`
+  - owner file: `src/papyrus/interfaces/web/presenters/impact_profile_presenter.py`
+  - upstream data source: current impact summary for object or service
+  - CSS location: `src/papyrus/interfaces/web/static/css/impact.css`
+  - test location: `tests/test_web_impact_presenters.py`
+- `Impact Selected Item`
+  - `data-component`: `impact-selected-item`
+  - owner file: `src/papyrus/interfaces/web/presenters/impact_selected_item_presenter.py`
+  - upstream data source: currently selected impacted object
+  - CSS location: `src/papyrus/interfaces/web/static/css/impact.css`
+  - test location: `tests/test_web_impact_presenters.py`
+- `Impact Event Log`
+  - `data-component`: `impact-event-log`
+  - owner file: `src/papyrus/interfaces/web/presenters/impact_event_log_presenter.py`
+  - upstream data source: impact route recent events
+  - CSS location: `src/papyrus/interfaces/web/static/css/impact.css`
+  - test location: `tests/test_web_impact_presenters.py`
+- `Impact Relationship List`
+  - `data-component`: `impact-relationship-list`
+  - owner file: `src/papyrus/interfaces/web/presenters/impact_relationship_list_presenter.py`
+  - upstream data source: inbound relationships, citation dependents, and related services
+  - CSS location: `src/papyrus/interfaces/web/static/css/impact.css`
+  - test location: `tests/test_web_impact_presenters.py`
+
+### Ingest
+
+- `Ingest Upload`
+  - `data-component`: `ingest-upload`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_upload_presenter.py`
+  - upstream data source: import form state and validation errors
+  - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
+  - test location: `tests/test_web_ingest_presenters.py`
+- `Ingest List`
+  - `data-component`: `ingest-list`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_list_presenter.py`
+  - upstream data source: import workbench listing payload
+  - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
+  - test location: `tests/test_web_ingest_presenters.py`
+- `Ingest Progress`
+  - `data-component`: `ingest-progress`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_progress_presenter.py`
+  - upstream data source: ingestion detail lifecycle state
+  - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
+  - test location: `tests/test_web_ingest_presenters.py`
+- `Ingest Stage Board`
+  - `data-component`: `ingest-stage-board`, `ingest-stage-card`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_stage_board_presenter.py`
+  - upstream data source: normalized content, classification, and mapping summary
+  - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
+  - test location: `tests/test_web_ingest_presenters.py`
+- `Ingest Parsed Content`
+  - `data-component`: `ingest-parsed-content`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_parsed_content_presenter.py`
+  - upstream data source: normalized parsed-content summary
+  - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
+  - test location: `tests/test_web_ingest_presenters.py`
+- `Ingest Parser Assessment`
+  - `data-component`: `ingest-parser-assessment`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_parser_assessment_presenter.py`
+  - upstream data source: parser warnings and extraction quality
+  - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
+  - test location: `tests/test_web_ingest_presenters.py`
+- `Ingest Mapping Table`
+  - `data-component`: `ingest-mapping-table`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_mapping_table_presenter.py`
+  - upstream data source: mapping result sections
+  - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
+  - test location: `tests/test_web_ingest_presenters.py`
+- `Ingest Mapping Gaps`
+  - `data-component`: `ingest-mapping-gaps`, `ingest-mapping-gap`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_mapping_gaps_presenter.py`
+  - upstream data source: mapping result gaps and conflicts
+  - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
+  - test location: `tests/test_web_ingest_presenters.py`
+- `Ingest Convert Form`
+  - `data-component`: `ingest-convert-form`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_convert_form_presenter.py`
+  - upstream data source: mapping review detail, taxonomy choices, and conversion errors
+  - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
+  - test location: `tests/test_web_ingest_presenters.py`
+
 ## Web Authoring Route Contract
 
 - `POST /write/objects/{object_id}/revisions/start` is the explicit guided authoring start route. It may reuse a compatible draft or create a new one through application-owned policy.
@@ -76,12 +372,13 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 ## Current Boundaries
 
-- The main remaining route-level UI outliers were moved into presenters during Phase 2, including ingest and shared error pages.
-- Shared components can still emit low-level markup fragments, but page composition should stay in presenters and templates.
+- Page presenters now assemble browser-visible surfaces from explicit owner files for Home, Read, object detail, services, knowledge health, review, activity, revision history, impact, and ingest.
+- Shared components still provide low-level building blocks such as badges, decision cells, and governed panels, but surface-specific copy and internal markup now live in the owning presenter for that visible component.
+- `papyrus.application.read_models.home_dashboard` now supplies raw actor-scoped dashboard data rather than Home-specific launch or activity structures.
 - No authentication or CSRF layer is introduced in this interface; the surface remains intended for local or otherwise trusted operator environments.
 
 ## Testing And Maintenance
 
 - Prefer presenter tests and WSGI surface tests over copy-pinned HTML assertions.
-- When a new top-level UI pattern is needed, extend the shared component canon instead of introducing page-local primitives.
-- When a page needs different grouping or emphasis, change presenter composition first and only add a new partial when the pattern is reusable across surfaces.
+- When a new visible surface is introduced, give it an explicit owner, `data-component`, CSS scope, and localized test coverage before considering abstraction.
+- Shared helpers should stay low-level. Do not move browser-visible rows, tiles, badges, or copy back into broad read models or page assemblers.

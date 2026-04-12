@@ -4,64 +4,13 @@ from typing import Any
 
 from papyrus.application.read_models.article_projection import build_article_projection
 from papyrus.domain.actor import resolve_actor
+from papyrus.interfaces.web.presenters.article_context_panel_presenter import render_article_context_panel
+from papyrus.interfaces.web.presenters.article_hero_presenter import render_article_hero
+from papyrus.interfaces.web.presenters.article_section_presenter import render_article_section
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import compact_action_menu_html
 from papyrus.interfaces.web.rendering import TemplateRenderer
-from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path
-
-
-def _render_block(block: dict[str, Any]) -> str:
-    kind = str(block.get("kind") or "")
-    title = str(block.get("title") or "").strip()
-    title_html = f'<p class="article-block-title">{escape(title)}</p>' if title else ""
-    if kind == "paragraph":
-        return f'<div class="article-block article-block-paragraph">{title_html}<p>{escape(block["text"])}</p></div>'
-    if kind == "list":
-        return (
-            f'<div class="article-block article-block-list">{title_html}<ul class="article-list">'
-            + join_html([f"<li>{escape(item)}</li>" for item in block["items"]])
-            + "</ul></div>"
-        )
-    if kind == "facts":
-        return (
-            f'<div class="article-block article-block-facts">{title_html}<dl class="article-facts">'
-            + join_html([f"<div><dt>{escape(label)}</dt><dd>{escape(value)}</dd></div>" for label, value in block["rows"]])
-            + "</dl></div>"
-        )
-    return ""
-
-
-def _render_article_section(section: dict[str, Any]) -> str:
-    blocks = [block for block in section.get("blocks") or [] if block]
-    body_html = join_html([_render_block(block) for block in blocks]) if blocks else f'<p class="article-empty">{escape(section.get("empty") or "No article content recorded.")}</p>'
-    return (
-        '<section class="article-section" data-component="article-section" data-surface="object-detail">'
-        f'<p class="article-section-kicker">{escape(section["eyebrow"])}</p>'
-        f'<h2>{escape(section["title"])}</h2>'
-        f"{body_html}</section>"
-    )
-
-
-def _render_context_section(section: dict[str, Any]) -> str:
-    blocks = [block for block in section.get("blocks") or [] if block]
-    raw_markdown = str(section.get("raw_markdown") or "").strip()
-    section_surface = "posture" if str(section.get("section_id") or "") == "governance" else "object-detail"
-    body_html = join_html([_render_block(block) for block in blocks]) if blocks else ""
-    if raw_markdown:
-        body_html += (
-            '<details class="source-disclosure" data-component="inline-disclosure">'
-            "<summary>View revision source</summary>"
-            f'<pre class="source-markdown">{escape(raw_markdown)}</pre>'
-            "</details>"
-        )
-    if not body_html:
-        body_html = f'<p class="article-empty">{escape(section.get("empty") or "No supporting context recorded.")}</p>'
-    return (
-        f'<section class="article-context-panel" data-component="surface-panel" data-surface="{section_surface}">'
-        f'<p class="article-context-kicker">{escape(section["eyebrow"])}</p>'
-        f'<h3>{escape(section["title"])}</h3>'
-        f"{body_html}</section>"
-    )
+from papyrus.interfaces.web.view_helpers import join_html, link, quoted_path
 
 
 def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any], actor_id: str = "") -> dict[str, Any]:
@@ -101,21 +50,9 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any],
                 css_class="button button-primary",
             ),
         )
-    hero_html = (
-        '<section class="article-hero" data-component="article-hero" data-surface="object-detail">'
-        f'<p class="article-hero-kicker">{escape(article["hero"]["eyebrow"])}</p>'
-        f'<h1>{escape(article["hero"]["title"])}</h1>'
-        f'<p class="article-hero-summary">{escape(article["hero"]["summary"])}</p>'
-        + (
-            f'<p class="article-hero-use-now">{escape(article["hero"]["use_now"])}</p>'
-            if str(article["hero"].get("use_now") or "").strip()
-            else ""
-        )
-        + f'<div class="article-hero-actions" data-component="action-cluster">{join_html([action for action in actions if action])}</div>'
-        + "</section>"
-    )
-    primary_html = join_html([_render_article_section(section) for section in article["sections"]])
-    secondary_html = join_html([_render_context_section(section) for section in article["secondary_sections"]])
+    hero_html = render_article_hero(hero=article["hero"], actions=actions)
+    primary_html = join_html([render_article_section(section=section) for section in article["sections"]])
+    secondary_html = join_html([render_article_context_panel(section=section) for section in article["secondary_sections"]])
     appendix_html = "" if article["show_context_rail"] else secondary_html
     aside_html = secondary_html if article["show_context_rail"] else ""
     return {

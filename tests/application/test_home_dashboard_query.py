@@ -87,14 +87,18 @@ class HomeDashboardQueryTests(unittest.TestCase):
 
             self.assertIn("counts", reviewer_dashboard)
             self.assertIn("events", reviewer_dashboard)
-            self.assertIn("primary_blocks", reviewer_dashboard)
-            self.assertIn("secondary_blocks", reviewer_dashboard)
+            self.assertIn("read_queue", reviewer_dashboard)
+            self.assertIn("manage", reviewer_dashboard)
+            self.assertIn("services", reviewer_dashboard)
             self.assertEqual(reviewer_dashboard["actor_id"], "local.reviewer")
             self.assertEqual(manager_dashboard["actor_id"], "local.manager")
             self.assertEqual(reviewer_dashboard["layout_mode"], "review-launchpad")
             self.assertEqual(manager_dashboard["layout_mode"], "pressure-launchpad")
-            self.assertEqual(reviewer_dashboard["primary_blocks"][0]["block_id"], "queue_status")
-            self.assertEqual(manager_dashboard["primary_blocks"][0]["block_id"], "risk_pressure")
+            self.assertNotIn("headline", reviewer_dashboard)
+            self.assertNotIn("primary_blocks", reviewer_dashboard)
+            self.assertIn("needs_decision", reviewer_dashboard["manage"])
+            self.assertIn("ready_for_review", reviewer_dashboard["manage"])
+            self.assertGreaterEqual(reviewer_dashboard["counts"]["review_required"], 1)
 
 
 if __name__ == "__main__":

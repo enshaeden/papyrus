@@ -18,6 +18,14 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
     render_projection_overview_panel,
     render_projection_status_panel,
 )
+from papyrus.interfaces.web.presenters.activity_audit_log_presenter import render_activity_audit_log
+from papyrus.interfaces.web.presenters.activity_event_list_presenter import render_activity_event_list
+from papyrus.interfaces.web.presenters.activity_filter_bar_presenter import render_activity_filter_bar
+from papyrus.interfaces.web.presenters.activity_hero_presenter import render_activity_hero
+from papyrus.interfaces.web.presenters.activity_validation_log_presenter import render_activity_validation_log
+from papyrus.interfaces.web.presenters.review_cleanup_strip_presenter import render_review_cleanup_strip
+from papyrus.interfaces.web.presenters.review_hero_presenter import render_review_hero
+from papyrus.interfaces.web.presenters.review_lane_presenter import render_review_lane
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import (
     escape,
@@ -326,58 +334,16 @@ def present_manage_queue_page(
     cleanup_counts = queue.get("cleanup_counts") or {}
 
     def table_html(title: str, items: list[dict[str, Any]]) -> str:
-        if not items:
-            return (
-                '<section class="review-lane" data-component="review-lane" data-surface="review">'
-                f"<h2>{escape(title)}</h2><p class=\"review-lane-empty\">No items in this lane.</p></section>"
-            )
-        rows = []
-        for item in items:
-            object_id = str(item.get("object_id") or "")
-            revision_id = str(item.get("revision_id") or item.get("current_revision_id") or "")
-            is_selected = object_id == active_object_id and (not active_revision_id or revision_id == active_revision_id)
-            use_guidance = projection_use_guidance(item.get("ui_projection"))
-            rows.append(
-                (
-                    f'<tr{" class=\"is-selected\"" if is_selected else ""}{" aria-selected=\"true\"" if is_selected else ""}>'
-                    f'<td><a class="selected-row-link" href="/review?selected_object_id={escape(object_id)}&selected_revision_id={escape(revision_id)}">{escape(item["title"])}</a><span class="table-support">{escape(item.get("change_summary") or item.get("summary") or "")}</span></td>'
-                    f'<td>{escape(str(use_guidance.get("summary") or "Review item"))}</td>'
-                    f'<td>{escape(", ".join(projection_reasons(item.get("ui_projection"))) or "No explicit reasons")}</td>'
-                    f'<td>{escape(str(item.get("owner") or "Unowned"))}</td>'
-                    f'<td>{_manage_item_actions(components, item)}</td>'
-                    "</tr>"
-                )
-            )
-        return (
-            '<section class="review-lane" data-component="review-lane" data-surface="review">'
-            f"<h2>{escape(title)}</h2>"
-            '<table class="workbench-table">'
-            "<thead><tr><th>Guidance</th><th>Status</th><th>Why now</th><th>Owner</th><th>Action</th></tr></thead>"
-            "<tbody>"
-            + join_html(rows)
-            + "</tbody></table></section>"
+        return render_review_lane(
+            title=title,
+            items=items,
+            active_object_id=active_object_id,
+            active_revision_id=active_revision_id,
+            action_html_resolver=lambda item: _manage_item_actions(components, item),
         )
 
-    overview_html = (
-        '<section class="review-workbench-hero" data-component="review-hero" data-surface="review">'
-        "<h1>Make review decisions with the blocking context visible.</h1>"
-        "<p>Review is a dense workbench: each lane is grouped by the decision it needs, not by decorative governance chrome.</p>"
-        '<div class="review-workbench-metrics">'
-        f'<article><p>{escape(len(queue["ready_for_review"]))}</p><span>Ready for review</span></article>'
-        f'<article><p>{escape(len(queue["needs_decision"]))}</p><span>Needs decision</span></article>'
-        f'<article><p>{escape(len(queue["needs_revalidation"]))}</p><span>Needs revalidation</span></article>'
-        f'<article><p>{escape(len(queue["recently_changed"][:10]))}</p><span>Recently changed</span></article>'
-        "</div></section>"
-    )
-    cleanup_html = (
-        '<section class="review-cleanup-strip" data-component="cleanup-strip" data-surface="review">'
-        f'<span>Placeholder-heavy {escape(cleanup_counts.get("placeholder-heavy", 0))}</span>'
-        f'<span>Legacy fallback {escape(cleanup_counts.get("legacy-blueprint-fallback", 0))}</span>'
-        f'<span>Ownership gaps {escape(cleanup_counts.get("unclear-ownership", 0))}</span>'
-        f'<span>Weak evidence {escape(cleanup_counts.get("weak-evidence", 0))}</span>'
-        f'<span>Migration gaps {escape(cleanup_counts.get("migration-gaps", 0))}</span>'
-        "</section>"
-    )
+    overview_html = render_review_hero(queue=queue)
+    cleanup_html = render_review_cleanup_strip(cleanup_counts=cleanup_counts)
     tables_html = join_html(
         [
             cleanup_html,
@@ -756,83 +722,6 @@ def present_audit_page(
     selected_group: str,
 ) -> dict[str, Any]:
     del renderer
-    filter_controls_html = (
-        '<form class="activity-filters" method="get" action="/activity">'
-        f'<input type="text" name="object_id" placeholder="Filter object ID" value="{escape(object_id or "")}" />'
-        '<select name="group">'
-        f'<option value=""{" selected" if not selected_group else ""}>All activity groups</option>'
-        f'<option value="service_changes"{" selected" if selected_group == "service_changes" else ""}>Service changes</option>'
-        f'<option value="evidence_degradation"{" selected" if selected_group == "evidence_degradation" else ""}>Evidence degradation</option>'
-        f'<option value="validation_failures"{" selected" if selected_group == "validation_failures" else ""}>Validation failures</option>'
-        f'<option value="manual_suspect_marks"{" selected" if selected_group == "manual_suspect_marks" else ""}>Manual suspect marks</option>'
-        "</select>"
-        '<button class="button button-primary" type="submit">Show activity</button>'
-        "</form>"
-    )
-    summary_html = (
-        '<section class="activity-hero" data-component="activity-hero" data-surface="activity">'
-        "<h1>See consequences before payload detail.</h1>"
-        "<p>Activity is consequence-first: what changed, what it affected, and what to do next stay in the primary scan path. Raw audit payloads stay behind disclosure.</p>"
-        '<div class="activity-metrics">'
-        f'<article><p>{escape(sum(1 for event in structured_events if event["group"] == "service_changes"))}</p><span>Service changes</span></article>'
-        f'<article><p>{escape(sum(1 for event in structured_events if event["group"] == "evidence_degradation"))}</p><span>Evidence issues</span></article>'
-        f'<article><p>{escape(sum(1 for event in structured_events if event["group"] == "validation_failures"))}</p><span>Validation failures</span></article>'
-        f'<article><p>{escape(sum(1 for event in structured_events if event["group"] == "manual_suspect_marks"))}</p><span>Suspect marks</span></article>'
-        "</div></section>"
-    )
-    event_html = (
-        join_html(
-            [
-                (
-                    '<article class="activity-event" data-component="activity-event" data-surface="activity">'
-                    f'<p class="activity-event-kicker">{escape(event["group"].replace("_", " "))} · {escape(format_timestamp(event["occurred_at"]))}</p>'
-                    f'<h2>{escape(event["what_happened"])}</h2>'
-                    f'<p class="activity-event-affected">{escape(str(event["entity_type"]) + ":" + str(event["entity_id"]))}</p>'
-                    f'<p class="activity-event-next">{escape(event["next_action"])}</p>'
-                    '<details class="activity-event-details"><summary>Show audit details</summary>'
-                    f'<pre>{escape(", ".join(str(key) + "=" + str(value) for key, value in event["payload"].items() if value) or "No extra payload details")}</pre>'
-                    "</details></article>"
-                )
-                for event in structured_events
-            ]
-        )
-        if structured_events
-        else '<section class="activity-empty"><h2>No matching activity</h2><p>Adjust the filter or wait for the next recorded event.</p></section>'
-    )
-    audit_html = (
-        '<section class="activity-audit-log" data-component="audit-log" data-surface="activity">'
-        "<h2>Audit log</h2>"
-        '<div class="activity-audit-list">'
-        + join_html(
-            [
-                (
-                    '<article class="activity-audit-item">'
-                    f'<p>{escape(event["event_type"])} · {escape(format_timestamp(event["occurred_at"]))} · {escape(event["actor"])}</p>'
-                    f'<p>{escape(event["object_id"] or "No object")} · {escape(event["revision_id"] or "No revision")}</p>'
-                    "</article>"
-                )
-                for event in events[:20]
-            ]
-        )
-        + "</div></section>"
-    )
-    validation_html = (
-        '<section class="activity-validation" data-component="validation-log" data-surface="activity">'
-        "<h2>Validation runs</h2>"
-        '<div class="activity-validation-list">'
-        + join_html(
-            [
-                (
-                    '<article class="activity-validation-item">'
-                    f'<p>{escape(run["run_type"])} · {escape(run["status"])} · findings {escape(run["finding_count"])}</p>'
-                    f'<p>{escape(format_timestamp(run["completed_at"]))}</p>'
-                    "</article>"
-                )
-                for run in validation_runs[:20]
-            ]
-        )
-        + "</div></section>"
-    )
     return _page_definition(
         page_template="pages/manage_audit.html",
         page_title="Activity / History",
@@ -840,11 +729,11 @@ def present_audit_page(
         active_nav="activity",
         show_actor_links=False,
         page_context={
-            "summary_html": summary_html,
-            "filter_bar_html": filter_controls_html,
-            "audit_html": audit_html,
-            "event_html": event_html,
-            "validation_html": validation_html,
+            "summary_html": render_activity_hero(structured_events=structured_events),
+            "filter_bar_html": render_activity_filter_bar(object_id=object_id, selected_group=selected_group),
+            "audit_html": render_activity_audit_log(events=events),
+            "event_html": render_activity_event_list(structured_events=structured_events),
+            "validation_html": render_activity_validation_log(validation_runs=validation_runs),
         },
     )
 

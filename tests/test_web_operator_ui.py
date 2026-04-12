@@ -901,7 +901,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn('href="/review"', reviewer_body)
             self.assertIn('href="/activity"', reviewer_body)
             self.assertIn('<aside class="context-column">', reviewer_body)
-            self.assert_component(reviewer_body, "selected-context")
+            self.assert_component(reviewer_body, "read-selected-context")
             self.assertNotIn("Start Here", reviewer_body)
             self.assertNotIn('class="actor-banner', reviewer_body)
 

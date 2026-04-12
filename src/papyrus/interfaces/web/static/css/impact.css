@@ -1,0 +1,51 @@
+.impact-summary,
+.impact-trace,
+.impact-profile,
+.impact-selected-item,
+.impact-event-log,
+.impact-relationship-list {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: 1.2rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 250, 246, 0.95) 100%);
+  box-shadow: var(--shadow-panel);
+}
+
+.impact-summary__kicker,
+.impact-trace__kicker,
+.impact-profile__kicker,
+.impact-selected-item__kicker,
+.impact-event-log__kicker,
+.impact-relationship-list__kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand-depth);
+}
+
+.impact-summary__header p:last-child {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.impact-summary__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.impact-selected-item__footer,
+.impact-profile__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.impact-event-log__item + .impact-event-log__item,
+.impact-relationship-list__item + .impact-relationship-list__item {
+  margin-top: 0.75rem;
+}

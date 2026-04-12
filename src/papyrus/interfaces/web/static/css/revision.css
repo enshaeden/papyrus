@@ -1,0 +1,26 @@
+.revision-history-table,
+.revision-audit-sequence,
+.revision-comparison-cues {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: 1.2rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 250, 246, 0.95) 100%);
+  box-shadow: var(--shadow-panel);
+}
+
+.revision-history-table__kicker,
+.revision-audit-sequence__kicker,
+.revision-comparison-cues__kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand-depth);
+}
+
+.revision-audit-sequence__item + .revision-audit-sequence__item {
+  margin-top: 0.75rem;
+}

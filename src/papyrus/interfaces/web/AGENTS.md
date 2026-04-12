@@ -61,6 +61,130 @@ Do not preserve a visually attractive UI if it still communicates the wrong stru
 - Cards, tables, panels, and metadata blocks must have a clear reason to exist. Remove decorative or redundant containers.
 - Long-form content views must use readable line length, consistent heading rhythm, and visual separation between content and metadata.
 
+## Component Ownership and Removal Rules
+
+Papyrus web UI must be structured for local ownership, traceability, and safe self-service removal.
+
+### One visible component = one owner
+
+Every major visible UI surface must have a single obvious owner file.
+
+A component must have:
+
+* a dedicated presenter or component file
+* a unique and stable `data-component` name
+* clearly traceable CSS scope, either as a dedicated file or a clearly delimited section
+* a corresponding test file or clearly scoped test coverage
+
+A developer must be able to inspect an element in the browser, search its `data-component`, and land directly in the owning file.
+
+If this is not possible, the implementation is incorrect.
+
+### Page files are assemblers only
+
+Page-level presenter and template files must compose components and pass data into them.
+
+They must not:
+
+* define detailed internal markup for subcomponents
+* render nested lists, rows, badges, buttons, or substructure for component internals
+* carry copy for sub-elements that belong to a component
+
+If a page file owns component internals, split that component out.
+
+### Read models do not shape UI structure
+
+Read models may decide which components appear and what data they need.
+
+Read models must not:
+
+* define UI-specific structures such as cards, rows, tiles, lists, or launch items
+* construct nested UI objects whose only purpose is presentation
+* carry copy tied only to a local visual treatment
+
+If removing a paragraph, badge, list, or button requires editing a read model, the architecture is wrong unless that content is truly domain data.
+
+### Component-local rendering
+
+All markup for a component must live in its owner.
+
+If a component contains:
+
+* a header
+* optional summary copy
+* item rows
+* badges
+* buttons
+* supporting metadata
+
+that structure must be rendered inside the component owner, not split between page files, shared helpers, and read models.
+
+### Component-scoped styling
+
+Styles must be traceable by component.
+
+Prefer:
+
+* dedicated component CSS files, or
+* clearly delimited component sections in shared CSS
+
+Avoid:
+
+* large page-level CSS blobs that style many unrelated structures
+* selectors whose ownership is unclear from name alone
+
+A search for a component name must quickly reveal its styles.
+
+### Component-scoped tests
+
+Tests must mirror component ownership.
+
+A developer changing or deleting a component must be able to identify the impacted tests immediately.
+
+Do not bury component expectations inside broad, multi-surface presenter tests when focused tests are practical.
+
+### Deletion must be local
+
+The system must be built so a developer can remove a UI element by editing its component owner and its directly associated styles and tests.
+
+If deletion routinely requires touching:
+
+* page assemblers
+* broad read models
+* unrelated helper utilities
+* generic rendering maps
+
+then the structure is too coupled and must be simplified.
+
+### Avoid abstraction that hides ownership
+
+Do not introduce broader generic UI layers merely to reduce repetition.
+
+Do not solve this with:
+
+* generic card frameworks
+* centralised UI schema registries
+* shared render helpers that obscure which file owns a surface
+* reusable launch/dashboard abstractions that make deletion harder
+
+Prefer explicit component files over abstraction density.
+
+Clarity, traceability, and removability take priority over reuse.
+
+### Required reporting for UI refactors
+
+For each new or refactored visible component, report:
+
+* component name
+* `data-component`
+* owner file
+* upstream data source
+* CSS location
+* test location
+
+If this ownership map is unclear, the refactor is incomplete.
+
+
 ## Content Surface Rules
 
 - Knowledge pages must clearly distinguish:
@@ -74,6 +198,7 @@ Do not preserve a visually attractive UI if it still communicates the wrong stru
 - Do not render raw structure, internal fields, or schema-oriented terminology in end-user reading flows unless the design explicitly calls for it.
 - When showing entries within a knowledge object, make the relationship clear and navigable.
 - When showing partial content by role or context, ensure the view feels intentionally filtered, not arbitrarily incomplete.
+
 
 ## Authoring and Workflow Rules
 
@@ -110,6 +235,10 @@ When changing routes, components, UI flows, labels, or screenshots:
 Do not let the docs describe a cleaner UI than the one that actually ships.
 
 ## Working Rules
+* When refactoring UI, prefer component extraction over adding more helper indirection.
+* When a visible element is hard to trace or hard to remove, stop and simplify ownership before changing copy or styling.
+* Do not leave component internals split across page presenters, read models, and CSS blobs when they can be localised to one owner.
+* For browser-visible surfaces, `data-component` names, owner files, CSS scope, and tests should align in naming where practical.
 
 - Make the smallest correct structural change that resolves the issue at the source.
 - Do not use CSS overrides as a substitute for fixing the underlying component contract.
@@ -131,14 +260,15 @@ This web surface ships through the Python application and WSGI entrypoints in `s
 For UI work, completion requires all applicable checks plus direct verification of the affected routes and states.
 
 Minimum bar:
-- lint passes
-- typecheck passes
-- relevant tests pass
-- build succeeds
-- affected routes render without obvious regressions
-- desktop and mobile breakpoints checked for changed views
-- loading, empty, and error states checked when touched
-- docs updated if labels, flows, screenshots, or route behaviour changed
+
+* relevant tests pass
+* build succeeds
+* affected routes render without obvious regressions
+* desktop and mobile breakpoints checked for changed views
+* loading, empty, and error states checked when touched
+* docs updated if labels, flows, screenshots, or route behaviour changed
+* for UI architecture work, the ownership map for affected components is reported explicitly
+
 
 ## Reporting Format
 
