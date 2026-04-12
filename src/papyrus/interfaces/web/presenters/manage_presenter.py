@@ -316,37 +316,6 @@ def present_manage_queue_page(
     selected_revision_id: str = "",
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
-    overview_html = components.summary_strip(
-        title="Stewardship workload",
-        badges=[
-            components.badge(label="Ready for review", value=len(queue["ready_for_review"]), tone="pending"),
-            components.badge(label="Needs decision", value=len(queue["needs_decision"]), tone="pending"),
-            components.badge(label="Needs revalidation", value=len(queue["needs_revalidation"]), tone="warning"),
-            components.badge(label="Recently changed", value=len(queue["recently_changed"]), tone="brand"),
-        ],
-        summary="Work is grouped by the next decision, not by raw state.",
-        surface="review-queue",
-        variant="overview",
-    )
-    cleanup_counts = queue.get("cleanup_counts") or {}
-    cleanup_html = components.context_panel(
-        title="Cleanup priorities",
-        eyebrow="Cleanup",
-        summary="Prioritize operational usefulness gaps before adding more governance ceremony.",
-        body_html=render_list(
-            [
-                escape(f"Placeholder-heavy items: {cleanup_counts.get('placeholder-heavy', 0)}"),
-                escape(f"Legacy blueprint fallback: {cleanup_counts.get('legacy-blueprint-fallback', 0)}"),
-                escape(f"Unclear ownership: {cleanup_counts.get('unclear-ownership', 0)}"),
-                escape(f"Weak evidence: {cleanup_counts.get('weak-evidence', 0)}"),
-                escape(f"Migration gaps: {cleanup_counts.get('migration-gaps', 0)}"),
-            ],
-            css_class="panel-list",
-        ),
-        tone="context",
-        variant="cleanup-priorities",
-        surface="review-queue",
-    )
     selected_item = _selected_manage_item(
         queue,
         selected_object_id=selected_object_id,
@@ -354,14 +323,69 @@ def present_manage_queue_page(
     )
     active_object_id = str((selected_item or {}).get("object_id") or "")
     active_revision_id = str((selected_item or {}).get("revision_id") or (selected_item or {}).get("current_revision_id") or "")
+    cleanup_counts = queue.get("cleanup_counts") or {}
+
+    def table_html(title: str, items: list[dict[str, Any]]) -> str:
+        if not items:
+            return (
+                '<section class="review-lane" data-component="review-lane" data-surface="review">'
+                f"<h2>{escape(title)}</h2><p class=\"review-lane-empty\">No items in this lane.</p></section>"
+            )
+        rows = []
+        for item in items:
+            object_id = str(item.get("object_id") or "")
+            revision_id = str(item.get("revision_id") or item.get("current_revision_id") or "")
+            is_selected = object_id == active_object_id and (not active_revision_id or revision_id == active_revision_id)
+            use_guidance = projection_use_guidance(item.get("ui_projection"))
+            rows.append(
+                (
+                    f'<tr{" class=\"is-selected\"" if is_selected else ""}{" aria-selected=\"true\"" if is_selected else ""}>'
+                    f'<td><a class="selected-row-link" href="/review?selected_object_id={escape(object_id)}&selected_revision_id={escape(revision_id)}">{escape(item["title"])}</a><span class="table-support">{escape(item.get("change_summary") or item.get("summary") or "")}</span></td>'
+                    f'<td>{escape(str(use_guidance.get("summary") or "Review item"))}</td>'
+                    f'<td>{escape(", ".join(projection_reasons(item.get("ui_projection"))) or "No explicit reasons")}</td>'
+                    f'<td>{escape(str(item.get("owner") or "Unowned"))}</td>'
+                    f'<td>{_manage_item_actions(components, item)}</td>'
+                    "</tr>"
+                )
+            )
+        return (
+            '<section class="review-lane" data-component="review-lane" data-surface="review">'
+            f"<h2>{escape(title)}</h2>"
+            '<table class="workbench-table">'
+            "<thead><tr><th>Guidance</th><th>Status</th><th>Why now</th><th>Owner</th><th>Action</th></tr></thead>"
+            "<tbody>"
+            + join_html(rows)
+            + "</tbody></table></section>"
+        )
+
+    overview_html = (
+        '<section class="review-workbench-hero" data-component="review-hero" data-surface="review">'
+        "<h1>Make review decisions with the blocking context visible.</h1>"
+        "<p>Review is a dense workbench: each lane is grouped by the decision it needs, not by decorative governance chrome.</p>"
+        '<div class="review-workbench-metrics">'
+        f'<article><p>{escape(len(queue["ready_for_review"]))}</p><span>Ready for review</span></article>'
+        f'<article><p>{escape(len(queue["needs_decision"]))}</p><span>Needs decision</span></article>'
+        f'<article><p>{escape(len(queue["needs_revalidation"]))}</p><span>Needs revalidation</span></article>'
+        f'<article><p>{escape(len(queue["recently_changed"][:10]))}</p><span>Recently changed</span></article>'
+        "</div></section>"
+    )
+    cleanup_html = (
+        '<section class="review-cleanup-strip" data-component="cleanup-strip" data-surface="review">'
+        f'<span>Placeholder-heavy {escape(cleanup_counts.get("placeholder-heavy", 0))}</span>'
+        f'<span>Legacy fallback {escape(cleanup_counts.get("legacy-blueprint-fallback", 0))}</span>'
+        f'<span>Ownership gaps {escape(cleanup_counts.get("unclear-ownership", 0))}</span>'
+        f'<span>Weak evidence {escape(cleanup_counts.get("weak-evidence", 0))}</span>'
+        f'<span>Migration gaps {escape(cleanup_counts.get("migration-gaps", 0))}</span>'
+        "</section>"
+    )
     tables_html = join_html(
-        [cleanup_html,
-            _manage_table(components, title="Ready for review", items=queue["ready_for_review"], selected_object_id=active_object_id, selected_revision_id=active_revision_id),
-            _manage_table(components, title="Needs decision", items=queue["needs_decision"], selected_object_id=active_object_id, selected_revision_id=active_revision_id),
-            _manage_table(components, title="Needs revalidation", items=queue["needs_revalidation"], selected_object_id=active_object_id, selected_revision_id=active_revision_id),
-            _manage_table(components, title="Drafts and rework", items=queue["draft_items"], selected_object_id=active_object_id, selected_revision_id=active_revision_id),
-            _manage_table(components, title="Recently changed", items=queue["recently_changed"][:10], selected_object_id=active_object_id, selected_revision_id=active_revision_id),
-            _manage_table(components, title="Superseded or deprecated guidance", items=queue["superseded_items"], selected_object_id=active_object_id, selected_revision_id=active_revision_id),
+        [
+            cleanup_html,
+            table_html("Needs decision", queue["needs_decision"]),
+            table_html("Ready for review", queue["ready_for_review"]),
+            table_html("Needs revalidation", queue["needs_revalidation"]),
+            table_html("Drafts and rework", queue["draft_items"]),
+            table_html("Recently changed", queue["recently_changed"][:10]),
         ]
     )
     return _page_definition(
@@ -369,7 +393,7 @@ def present_manage_queue_page(
         page_title="Review / Approvals",
         headline="Review queue",
         active_nav="review",
-        show_actor_links=True,
+        show_actor_links=False,
         aside_html=_manage_context_panel(components, selected_item) if selected_item is not None else "",
         page_context={"overview_html": overview_html, "tables_html": tables_html},
     )
@@ -731,9 +755,9 @@ def present_audit_page(
     object_id: str | None,
     selected_group: str,
 ) -> dict[str, Any]:
-    components = ComponentPresenter(renderer)
+    del renderer
     filter_controls_html = (
-        '<form class="filter-form" method="get" action="/activity">'
+        '<form class="activity-filters" method="get" action="/activity">'
         f'<input type="text" name="object_id" placeholder="Filter object ID" value="{escape(object_id or "")}" />'
         '<select name="group">'
         f'<option value=""{" selected" if not selected_group else ""}>All activity groups</option>'
@@ -745,113 +769,79 @@ def present_audit_page(
         '<button class="button button-primary" type="submit">Show activity</button>'
         "</form>"
     )
-    summary_html = components.trust_summary(
-        title="Activity overview",
-        badges=[
-            components.badge(label="Service changes", value=sum(1 for event in structured_events if event["group"] == "service_changes"), tone="warning"),
-            components.badge(label="Evidence issues", value=sum(1 for event in structured_events if event["group"] == "evidence_degradation"), tone="warning"),
-            components.badge(label="Validation failures", value=sum(1 for event in structured_events if event["group"] == "validation_failures"), tone="danger"),
-            components.badge(label="Suspect marks", value=sum(1 for event in structured_events if event["group"] == "manual_suspect_marks"), tone="pending"),
-        ],
-        summary="Activity should show consequence and next step, not raw payloads.",
+    summary_html = (
+        '<section class="activity-hero" data-component="activity-hero" data-surface="activity">'
+        "<h1>See consequences before payload detail.</h1>"
+        "<p>Activity is consequence-first: what changed, what it affected, and what to do next stay in the primary scan path. Raw audit payloads stay behind disclosure.</p>"
+        '<div class="activity-metrics">'
+        f'<article><p>{escape(sum(1 for event in structured_events if event["group"] == "service_changes"))}</p><span>Service changes</span></article>'
+        f'<article><p>{escape(sum(1 for event in structured_events if event["group"] == "evidence_degradation"))}</p><span>Evidence issues</span></article>'
+        f'<article><p>{escape(sum(1 for event in structured_events if event["group"] == "validation_failures"))}</p><span>Validation failures</span></article>'
+        f'<article><p>{escape(sum(1 for event in structured_events if event["group"] == "manual_suspect_marks"))}</p><span>Suspect marks</span></article>'
+        "</div></section>"
     )
-    audit_html = components.section_card(
-        title="Governed audit trail",
-        eyebrow="History",
-        body_html=components.queue_table(
-            headers=["Event", "Affected", "Recorded", "Details"],
-            rows=[
-                [
-                    components.decision_cell(
-                        title_html=escape(event["event_type"]),
-                        meta=[escape(event["actor"])],
-                    ),
-                    components.decision_cell(
-                        title_html=escape(event["object_id"] or "No object"),
-                        meta=[escape(event["revision_id"] or "No revision")],
-                    ),
-                    escape(format_timestamp(event["occurred_at"])),
-                    components.decision_cell(
-                        title_html=escape(", ".join(f"{key}={value}" for key, value in event["details"].items() if value) or "No extra details"),
-                    ),
-                ]
-                for event in events
-            ],
-            table_id="audit-history",
-        ),
-    )
-    grouped_labels = (
-        ("service_changes", "Service changes"),
-        ("evidence_degradation", "Evidence degradation"),
-        ("validation_failures", "Validation failures"),
-        ("manual_suspect_marks", "Manual suspect marks"),
-        ("review_activity", "Review activity"),
-        ("other", "Other activity"),
-    )
-    event_sections: list[str] = []
-    for group_key, label in grouped_labels:
-        group_events = [event for event in structured_events if event["group"] == group_key]
-        if not group_events:
-            continue
-        event_sections.append(
-            components.section_card(
-                title=label,
-                eyebrow="Activity",
-                body_html=components.queue_table(
-                    headers=["What happened", "Affected", "Recorded", "Do next"],
-                    rows=[
-                        [
-                            components.decision_cell(
-                                title_html=escape(event["what_happened"]),
-                                meta=[escape(event["actor"])],
-                            ),
-                            components.decision_cell(
-                                title_html=escape(f"{event['entity_type']}:{event['entity_id']}"),
-                            ),
-                            escape(format_timestamp(event["occurred_at"])),
-                            components.decision_cell(
-                                title_html=escape(event["next_action"]),
-                            ),
-                        ]
-                        for event in group_events
-                    ],
-                    table_id=f"activity-{group_key}",
-                ),
-            )
+    event_html = (
+        join_html(
+            [
+                (
+                    '<article class="activity-event" data-component="activity-event" data-surface="activity">'
+                    f'<p class="activity-event-kicker">{escape(event["group"].replace("_", " "))} · {escape(format_timestamp(event["occurred_at"]))}</p>'
+                    f'<h2>{escape(event["what_happened"])}</h2>'
+                    f'<p class="activity-event-affected">{escape(str(event["entity_type"]) + ":" + str(event["entity_id"]))}</p>'
+                    f'<p class="activity-event-next">{escape(event["next_action"])}</p>'
+                    '<details class="activity-event-details"><summary>Show audit details</summary>'
+                    f'<pre>{escape(", ".join(str(key) + "=" + str(value) for key, value in event["payload"].items() if value) or "No extra payload details")}</pre>'
+                    "</details></article>"
+                )
+                for event in structured_events
+            ]
         )
-    event_html = join_html(event_sections) or components.empty_state(
-        title="No matching activity",
-        description="Adjust the activity filter or wait for the next recorded event.",
+        if structured_events
+        else '<section class="activity-empty"><h2>No matching activity</h2><p>Adjust the filter or wait for the next recorded event.</p></section>'
     )
-    validation_html = components.section_card(
-        title="Validation runs",
-        eyebrow="History",
-        body_html=components.queue_table(
-            headers=["Run", "Status", "Findings", "Completed"],
-            rows=[
-                [
-                    components.decision_cell(
-                        title_html=escape(run["run_type"]),
-                        meta=[escape(run["run_id"])],
-                    ),
-                    escape(run["status"]),
-                    escape(run["finding_count"]),
-                    escape(format_timestamp(run["completed_at"])),
-                ]
+    audit_html = (
+        '<section class="activity-audit-log" data-component="audit-log" data-surface="activity">'
+        "<h2>Audit log</h2>"
+        '<div class="activity-audit-list">'
+        + join_html(
+            [
+                (
+                    '<article class="activity-audit-item">'
+                    f'<p>{escape(event["event_type"])} · {escape(format_timestamp(event["occurred_at"]))} · {escape(event["actor"])}</p>'
+                    f'<p>{escape(event["object_id"] or "No object")} · {escape(event["revision_id"] or "No revision")}</p>'
+                    "</article>"
+                )
+                for event in events[:20]
+            ]
+        )
+        + "</div></section>"
+    )
+    validation_html = (
+        '<section class="activity-validation" data-component="validation-log" data-surface="activity">'
+        "<h2>Validation runs</h2>"
+        '<div class="activity-validation-list">'
+        + join_html(
+            [
+                (
+                    '<article class="activity-validation-item">'
+                    f'<p>{escape(run["run_type"])} · {escape(run["status"])} · findings {escape(run["finding_count"])}</p>'
+                    f'<p>{escape(format_timestamp(run["completed_at"]))}</p>'
+                    "</article>"
+                )
                 for run in validation_runs[:20]
-            ],
-            table_id="audit-validation-runs",
-        ),
+            ]
+        )
+        + "</div></section>"
     )
     return _page_definition(
         page_template="pages/manage_audit.html",
         page_title="Activity / History",
         headline="Activity",
         active_nav="activity",
-        show_actor_links=True,
+        show_actor_links=False,
         page_context={
             "summary_html": summary_html,
-            "filter_bar_html": components.filter_bar(title="Activity filters", controls_html=filter_controls_html),
+            "filter_bar_html": filter_controls_html,
             "audit_html": audit_html,
             "event_html": event_html,
             "validation_html": validation_html,

@@ -23,13 +23,14 @@ Papyrus is a local-first operational knowledge control plane for IT support and 
 
 ## Use Modes
 
-- `Read`: find the right runbook, known error, service record, policy, or system design and decide whether it is safe to use now.
+- `Home`: role-shaped launchpad. Operators get `Do now`, `Continue`, and `Watch`; reviewers get queue pressure and blocked decisions; managers get portfolio pressure across risk, review, services, and cleanup.
+- `Read`: search and selection workspace plus an article-first detail surface for runbooks, known errors, service records, policies, and system designs.
 - `Write`: create an object shell, choose a blueprint, complete guided sections, record citations and evidence posture, validate progress, and submit the draft for review.
 - `Import`: upload Markdown, DOCX, or text-based PDF files; inspect parser warnings, extraction quality, mapping gaps, and mapping conflicts; and convert reviewed imports into the same draft lifecycle used by native authoring.
-- `Review / Approvals`: inspect what changed, what evidence supports it, what is unresolved, and whether it should become canonical guidance.
-- `Knowledge Health`: monitor stale guidance, weak evidence, suspect objects, and review pressure as stewardship work.
-- `Services`: move from a service context into the right operational guidance path.
-- `Activity / History`: understand what changed, what it affected, and what now needs review or revalidation.
+- `Review / Approvals`: dense reviewer workbench for pending decisions, blocked reviews, and direct actions.
+- `Knowledge Health`: stewardship and risk board grouped by intervention type instead of generic queue order.
+- `Services`: service-entry map that starts from service owner, criticality, health, and linked guidance path.
+- `Activity / History`: consequence-first feed for what changed, what it affected, and what now needs follow-up.
 
 ## Short Start
 
@@ -38,7 +39,7 @@ Papyrus is a local-first operational knowledge control plane for IT support and 
 python3 scripts/run.py --operator
 ```
 
-Start at the web home page. Papyrus now opens on a lifecycle-guided landing page instead of dropping straight into a raw queue.
+Start at the web home page. Papyrus now opens on a role-shaped launch surface instead of a lifecycle-summary landing page or raw queue.
 
 Primary authoring rules:
 
@@ -56,9 +57,17 @@ Primary authoring rules:
 Contract-driven surface boundary:
 
 - `papyrus.application.ui_projection`, workflow projections, and action descriptors define governed status, safe-to-use guidance, action availability, operator messaging, and acknowledgement requirements.
-- CLI, API, and web render those contracts. They may format the output differently, but they must not derive governed meaning from raw database state or template-local policy rules.
+- CLI, API, and web render those contracts. They may format the output differently, but they must not derive governed meaning from raw database state, presenter regexes, or template-local policy rules.
 - If a surface needs truth that is not present in the current contract, extend the backend contract or projection first. Do not add page-local lifecycle, acknowledgement, or policy logic as a workaround.
 - Guided authoring GET routes are load-only. Web draft creation or reuse must flow through application-owned helpers and explicit start actions, not route-local guesses.
+
+Current UX shape:
+
+- actor switching changes landing target, page density, section hierarchy, context rails, and primary actions
+- the web shell keeps Papyrus brand contrast centered on the plum/aubergine topbar, branded active states, and stronger command surfaces rather than low-contrast neutral chrome
+- `Read` is split into a search/select workspace and a blueprint-aware article surface
+- governance stays available as secondary context instead of dominating the top of every page
+- `Services`, `Review`, `Knowledge Health`, and `Activity` each use distinct layouts and decision models
 
 For terminal-first operator checks:
 

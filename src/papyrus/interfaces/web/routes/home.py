@@ -10,14 +10,7 @@ def register(router, runtime) -> None:
     def home_page(request: Request):
         actor_id = actor_for_request(request)
         dashboard = home_dashboard(actor_id=actor_id, database_path=runtime.database_path)
-        page = present_home_page(
-            runtime.template_renderer,
-            counts=dashboard["counts"],
-            next_actions=dashboard["next_actions"],
-            work_areas=dashboard["work_areas"],
-            events=dashboard["events"],
-            summary_variant=str(dashboard["summary_variant"]),
-        )
+        page = present_home_page(runtime.template_renderer, dashboard=dashboard)
         return html_response(
             runtime.page_renderer.render_page(
                 search_value=request.query_value("query"),

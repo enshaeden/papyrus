@@ -1,40 +1,239 @@
-# Repository Rules
+# AGENTS.md
 
-This repository is a local-first knowledge system for IT support and systems operations. Keep the content model durable, low-drift, and auditable.
+## Purpose
 
-## Source Of Truth
+Papyrus is a local-first knowledge system for IT support and systems operations.
+Optimise for durability, auditability, low drift, reproducibility, and clean separation between canonical source content, application code, and derived outputs.
 
-- Canonical knowledge articles live only under `knowledge/` and `archive/knowledge/`.
-- Canonical explanatory documentation lives under `docs/` and decisions live under `decisions/`.
+This root file defines repository-wide rules.
+When a deeper `AGENTS.md` exists in a subdirectory, the deeper file governs work in that subtree.
+
+## Repository Priorities
+
+When making trade-offs, prioritise in this order:
+
+1. Canonical source integrity
+2. Schema and taxonomy consistency
+3. Reproducible generation and build behaviour
+4. Clear information architecture
+5. UX clarity for operators and readers
+6. Documentation accuracy
+7. Cosmetic polish
+
+Do not sacrifice structural correctness for visual polish or speed.
+
+## Authority Order
+
+When files or outputs disagree, use this order of authority unless a deeper `AGENTS.md` explicitly narrows it:
+
+1. `schemas/` for field definitions, validation rules, and repository policy definitions
+2. `taxonomies/` for controlled vocabularies and classification structures
+3. `templates/` for approved content structures and authoring patterns
+4. `knowledge/` and `archive/knowledge/` for canonical knowledge objects and entries
+5. `decisions/` for intentional deviations, design rationale, and governance records
+6. `src/` for application source code for system behaviour and interfaces
+7. `docs/` for explanatory and operational documentation
+8. `generated/`, `build/`, and `site/` for derived artifacts only
+
+Rendered, indexed, exported, copied, cached, or generated outputs are never authoritative.
+
+## Canonical Content Rules
+
+- Canonical knowledge articles and objects live only under `knowledge/` and `archive/knowledge/`.
+- Canonical explanatory documentation lives only under `docs/`.
+- Architectural and governance decisions live only under `decisions/`.
 - Controlled vocabularies live only under `taxonomies/`.
-- Field and repository policy definitions live only under `schemas/`.
-- Approved content templates live only under `templates/`.
+- Field definitions and repository policy definitions live only under `schemas/`.
+- Approved authoring and content templates live only under `templates/`.
 
-## Derived Artifacts
+Do not duplicate canonical content across directories.
+Do not create shadow copies of knowledge objects in documentation, UI fixtures, or test helpers unless the task explicitly requires a controlled fixture.
+
+## Derived Artifact Rules
 
 - Generated and build outputs must live only under `generated/`, `build/`, or `site/`.
 - Generated files are derived artifacts and must never be edited by hand.
 - If a generated file is wrong, fix the source or generator and rebuild.
-- Generated artifacts must remain reproducible from source files and the repository build scripts.
+- Derived artifacts must remain reproducible from canonical source files and repository build scripts.
+- If source and derived artifacts disagree, the source wins and the derived artifact must be regenerated.
+- Delete obsolete derived artifacts, stale exports, and duplicate build clutter instead of preserving them.
 
 ## Anti-Sprawl Rules
 
-- Do not add new top-level folders without a documented rationale in `decisions/`.
-- Do not create duplicate templates, parallel schemas, or parallel taxonomies.
-- Reuse the existing schema, taxonomy, and approved templates instead of forking them.
+- Do not add new top-level folders without recorded rationale in `decisions/`.
+- Do not create duplicate templates, parallel schemas, parallel taxonomies, or alternate content pipelines.
+- Reuse existing schema, taxonomy, and approved template structures instead of forking them.
 - Do not copy canonical article content into `docs/`.
 - Archive retired content instead of silently replacing or overwriting it.
-- Delete obsolete derived artifacts or duplicate clutter instead of preserving it.
+- Prefer consolidation over expansion when resolving drift or inconsistency.
 
-## Content Requirements
+## Papyrus Product Rules
 
-- Every knowledge item must declare `id`, `title`, `owner`, `object_lifecycle_state`, `created`, `updated`, `last_reviewed`, `review_cadence`, `canonical_path`, and `source_type`.
-- Deprecated or archived content must include replacement or retirement rationale according to the lifecycle policy.
-- Content lifecycle state must follow the documented lifecycle: `draft -> active -> deprecated -> archived`.
-- Changes to schema or taxonomy files require rationale in `decisions/`.
+Papyrus is not just a file repository. It is a knowledge operations product.
+Changes must preserve and strengthen the distinction between these layers:
+
+- canonical knowledge objects
+- entries or structured content within those objects
+- taxonomic and policy controls
+- ingestion and transformation flows
+- operator-facing tools
+- end-user reading surfaces
+
+Do not flatten those concerns into one generic document model if the existing architecture intentionally separates them.
+
+When changing product behaviour:
+
+- preserve the distinction between canonical source content and rendered views
+- preserve lifecycle state and auditability
+- preserve traceability from displayed content back to canonical source
+- prefer explicit structure over hidden inference
+- prefer durable system rules over page-local hacks
+
+## UX and Interface Rules
+
+Papyrus must feel like a knowledge system, not a generic dashboard and not a generic text editor.
+
+When working on web, app, or CLI surfaces:
+
+- prioritise information hierarchy over decorative density
+- remove duplicated navigation, duplicated controls, and repeated status blocks at the source component level
+- avoid static placeholder content in production-facing views unless clearly marked as fixture or demo state
+- make context changes materially affect what the user sees, not merely reshuffle navigation chrome
+- reading surfaces must read like content, not governance metadata dumps
+- operator views may expose more metadata and structure than reader views, but must still remain legible
+- preserve and extend the existing design system and colour tokens unless the task explicitly authorises a visual redesign
+- fix shared layout primitives and shared components before patching page-level symptoms
+- prefer sequential, self-explanatory flows with early error messaging and visible progress states for import, authoring, validation, and publishing flows
+
+Do not claim a UX fix if the UI still compiles but preserves the same hierarchy failure, duplication, stale content, or unreadable reading mode.
+
+## Content Model Rules
+
+Every knowledge item must declare the required fields defined by schema.
+At minimum, each canonical knowledge item must include:
+
+- `id`
+- `title`
+- `owner`
+- `object_lifecycle_state`
+- `created`
+- `updated`
+- `last_reviewed`
+- `review_cadence`
+- `canonical_path`
+- `source_type`
+
+Additional requirements:
+
+- deprecated or archived content must include replacement or retirement rationale according to lifecycle policy
+- lifecycle state must follow `draft -> active -> deprecated -> archived`
+- changes to schema or taxonomy files require rationale recorded in `decisions/`
+- do not invent undocumented fields in source content without updating the governing schema and rationale
+
+## Ingestion and Transformation Rules
+
+Papyrus may ingest external content, but imported material is not automatically canonical.
+
+When working on importers, parsers, ingestion flows, or transformation pipelines:
+
+- preserve provenance
+- distinguish imported source from canonical normalised output
+- do not discard metadata needed for audit or traceability
+- map imported content into approved structures instead of inventing parallel storage formats
+- fail early and clearly when source material cannot be mapped safely
+- prefer explicit transformation stages over hidden mutation during render
+- update documentation when ingestion capabilities, supported formats, or transformation guarantees change
+
+## Documentation Rules
+
+Documentation must explain the system that exists now, not the system that used to exist and not the system hoped for later.
+
+When code, content model, generation flows, UX flows, or CLI commands change:
+
+- update any affected documentation in the same task when practical
+- remove stale claims rather than leaving drift in place
+- verify examples, paths, and command names against implementation
+- do not let README, docs, or diagrams overstate shipped capability
+
+If documentation and implementation conflict, correct the documentation or fix the implementation before declaring completion.
+
+## Working Rules
+
+- Make the smallest correct change that resolves the issue at the source.
+- Do not patch derived artifacts to simulate a fix.
+- Do not perform broad rewrites when a targeted structural change will solve the problem cleanly.
+- Do not rename, move, or split canonical content without updating references, generation flows, and rationale where required.
+- When a task affects shared primitives, schemas, taxonomies, templates, or navigation architecture, plan first before editing.
+- When touching UI, verify the affected route or flow directly instead of assuming a shared component change solved it everywhere.
+- When touching generators or importers, verify both source correctness and regenerated output correctness.
+- When touching documentation, verify that file paths, commands, and screenshots or examples still match the current repo.
+
+## Commands
+
+Keep this section current.
+Replace placeholders with the exact repository commands and do not leave obsolete commands here.
+
+- install: `./scripts/bootstrap.sh`
+- dev web: `python3 scripts/run.py --operator`
+- dev cli: `python3 scripts/operator_view.py queue --db build/knowledge.db`
+- lint: `not separately configured; do not claim lint coverage until a dedicated lint command exists`
+- typecheck: `not separately configured; do not claim typecheck coverage until a dedicated typecheck command exists`
+- test: `python3 -m unittest discover -s tests`
+- build: `./scripts/build.sh`
+- validate content: `python3 scripts/validate.py`
+- regenerate derived artifacts: `./scripts/build_static_export.sh`
+
+Do not claim completion without running the relevant verification commands for the files changed.
 
 ## Completion Gate
 
-- Validation must pass before work is considered complete.
-- Do not treat rendered, indexed, exported, or copied outputs as authoritative.
-- If source and derived artifacts disagree, the source wins and the derived artifact must be rebuilt.
+Work is not complete until all applicable checks pass.
+
+Minimum completion bar:
+
+- validation passes
+- relevant tests pass
+- relevant lint and type checks pass
+- build succeeds when build-relevant files changed
+- derived artifacts are regenerated when required
+- no canonical-versus-derived drift remains
+- affected documentation is updated or explicitly confirmed current
+- affected routes, views, or flows are manually checked for obvious regressions
+- schema or taxonomy changes include rationale in `decisions/`
+
+## Reporting Format
+
+At the end of each task, report in this order:
+
+1. summary of what changed
+4. validation, lint, typecheck, test, and build results
+6. documentation updated
+7. unresolved risks, follow-up work, or intentional deferrals
+
+Do not state or imply success without this evidence.
+
+## Planning Trigger
+
+Create a written plan before editing when the task:
+
+- touches multiple top-level directories
+- changes shared schemas, taxonomies, or templates
+- changes ingestion or transformation behaviour
+- restructures canonical content
+- modifies generators, build flows, or publishing flows
+- changes shared navigation, layout primitives, or design system rules
+- has ambiguous source-of-truth implications
+- is large enough that failure to sequence work would create drift or rework
+
+## Subtree Guidance Expectations
+
+Add deeper `AGENTS.md` files where local rules materially differ.
+Strong candidates include:
+
+- `apps/web/` for layout, navigation, reading mode, and design-system rules
+- `apps/cli/` for command behaviour and output expectations
+- `docs/` for documentation drift and evidence standards
+- `knowledge/` for content object and lifecycle handling
+- generator or importer directories for transformation-specific guardrails
+
+The deeper file must narrow or extend these rules, not contradict them without explicit rationale.

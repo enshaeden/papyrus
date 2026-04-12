@@ -10,13 +10,14 @@ from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for
 def register(router, runtime) -> None:
     def object_detail_page(request: Request):
         object_id = request.route_value("object_id")
-        detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
-        page = present_object_detail(runtime.template_renderer, detail=detail)
+        actor_id = actor_for_request(request)
+        detail = knowledge_object_detail(object_id, database_path=runtime.database_path, actor_id=actor_id)
+        page = present_object_detail(runtime.template_renderer, detail=detail, actor_id=actor_id)
         return html_response(
             runtime.page_renderer.render_page(
                 search_value=request.query_value("query"),
                 flash_html=flash_html_for_request(runtime, request),
-                actor_id=actor_for_request(request),
+                actor_id=actor_id,
                 current_path=request.path,
                 **page,
             )
@@ -24,14 +25,15 @@ def register(router, runtime) -> None:
 
     def object_revision_history_page(request: Request):
         object_id = request.route_value("object_id")
+        actor_id = actor_for_request(request)
         history = revision_history(object_id, database_path=runtime.database_path)
-        detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        detail = knowledge_object_detail(object_id, database_path=runtime.database_path, actor_id=actor_id)
         page = present_revision_history(runtime.template_renderer, history=history, detail=detail)
         return html_response(
             runtime.page_renderer.render_page(
                 search_value=request.query_value("query"),
                 flash_html=flash_html_for_request(runtime, request),
-                actor_id=actor_for_request(request),
+                actor_id=actor_id,
                 current_path=request.path,
                 **page,
             )

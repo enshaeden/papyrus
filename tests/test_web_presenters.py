@@ -155,11 +155,11 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
                 ],
             },
         )
-        self.assertIn("/manage/reviews/kb-review/kb-review-r1", page["page_context"]["primary_html"])
-        self.assert_component(page["page_context"]["primary_html"], "table")
-        self.assert_action_id(page["page_context"]["primary_html"], "open-primary-surface")
-        self.assertIn("Review the decision.", page["page_context"]["primary_html"])
-        self.assertIn("Review decision pending", page["aside_html"])
+        board_html = page["page_context"]["summary_cards_html"]
+        self.assertIn("Intervene by debt type", board_html)
+        self.assert_component(board_html, "health-board")
+        self.assert_action_id(board_html, "open-primary-surface")
+        self.assertIn("Review the decision.", board_html)
 
     def test_queue_presenter_keeps_trust_and_filters_visible(self) -> None:
         page = present_queue_page(
@@ -193,13 +193,13 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
         )
         self.assertEqual(page["page_title"], "Read Guidance")
         self.assertEqual(page["aside_html"], "")
-        self.assert_component(page["page_context"]["filter_bar_html"], "filter-bar")
-        self.assert_component(page["page_context"]["summary_html"], "summary-strip")
-        self.assert_component(page["page_context"]["queue_html"], "decision-card")
-        self.assert_surface(page["page_context"]["queue_html"], "read-queue")
+        workspace_html = page["page_context"]["workspace_html"]
+        self.assert_component(workspace_html, "filter-bar")
+        self.assert_component(workspace_html, "article-result")
+        self.assert_surface(workspace_html, "read-queue")
         self.assertIn(
-            "Backend contract says this guidance is still in review.",
-            page["page_context"]["queue_html"],
+            "Review decision pending",
+            workspace_html,
         )
 
     def test_object_presenter_surfaces_citations_relationships_and_audit(self) -> None:
@@ -286,14 +286,11 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
                 "audit_events": [{"event_type": "revision_approved", "actor": "reviewer", "occurred_at": "2026-04-07T01:00:00+00:00", "details": {}}],
             },
         )
-        self.assertIn("Supporting evidence", page["aside_html"])
-        self.assertIn("Recent audit trail", page["aside_html"])
-        self.assertIn("Linked service context", page["aside_html"])
-        self.assertNotIn("Current status", page["aside_html"])
-        self.assert_component(page["page_context"]["content_sections_html"], "surface-panel")
-        self.assert_action_id(page["aside_html"], "mark_suspect")
-        self.assertIn("The runtime contract marks this object safe for use.", page["page_context"]["content_sections_html"])
-        self.assert_not_component(page["page_context"]["content_sections_html"], "object-header")
+        article_html = page["page_context"]["article_html"] + page["page_context"]["appendix_html"]
+        self.assertIn("Linked service context", article_html)
+        self.assertIn("The runtime contract marks this object safe for use.", article_html)
+        self.assert_component(article_html, "article-section")
+        self.assert_not_component(article_html, "object-header")
 
     def test_object_presenter_prefers_projection_truth_over_raw_state_fallbacks(self) -> None:
         page = present_object_detail(
@@ -366,13 +363,14 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
                 "audit_events": [],
             },
         )
-        self.assertIn("Projection says stop and inspect", page["page_context"]["content_sections_html"])
+        article_html = page["page_context"]["article_html"] + page["page_context"]["appendix_html"]
+        self.assertIn("Projection says stop and inspect", article_html)
         self.assertIn(
             "Projection-backed detail should appear instead of any raw-state fallback.",
-            page["page_context"]["content_sections_html"],
+            article_html,
         )
-        self.assertNotIn("Raw posture fallback should not render.", page["page_context"]["content_sections_html"])
-        self.assertNotIn("Safe to use now", page["page_context"]["content_sections_html"])
+        self.assertNotIn("Raw posture fallback should not render.", article_html)
+        self.assertNotIn("Safe to use now", article_html)
 
     def test_queue_presenter_prefers_projection_guidance_over_raw_status_copy(self) -> None:
         page = present_queue_page(
@@ -405,41 +403,43 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
             selected_trust="all",
             selected_review_state="all",
         )
-        queue_html = page["page_context"]["queue_html"]
-        self.assertIn("Projection summary wins", queue_html)
-        self.assertIn("Follow the projection-backed next step.", queue_html)
-        self.assert_component(queue_html, "decision-card")
-        self.assertNotIn("Raw queue fallback should not render.", queue_html)
-        self.assertNotIn("Safe to use now", queue_html)
+        workspace_html = page["page_context"]["workspace_html"]
+        self.assertIn("Projection summary wins", workspace_html)
+        self.assertIn("Open article", workspace_html)
+        self.assert_component(workspace_html, "article-result")
+        self.assertNotIn("Raw queue fallback should not render.", workspace_html)
+        self.assertNotIn("Safe to use now", workspace_html)
 
     def test_home_presenter_uses_flat_sections_instead_of_grid_cards(self) -> None:
         page = present_home_page(
             TEMPLATE_RENDERER,
-            counts={
-                "read_ready": 4,
-                "drafts": 1,
-                "review_required": 2,
-                "needs_revalidation": 1,
-                "needs_attention": 2,
-                "services": 3,
-                "recent_activity": 2,
+            dashboard={
+                "layout_mode": "launchpad",
+                "headline": "Start from the article, not the audit trail.",
+                "intro": "Home is a launch surface for today’s work.",
+                "primary_blocks": [
+                    {
+                        "block_id": "do_now",
+                        "title": "Do now",
+                        "summary": "Open the best current guidance first.",
+                        "items": [{"title": "Use current guidance", "detail": "Read the best answer first.", "href": "/read", "metric": "4", "tone": "approved"}],
+                    },
+                    {
+                        "block_id": "continue",
+                        "title": "Continue",
+                        "summary": "Move work already in flight.",
+                        "items": [{"title": "Continue authoring", "detail": "Finish a draft.", "href": "/write/objects/new", "metric": "1", "tone": "brand"}],
+                    },
+                ],
+                "secondary_blocks": [],
+                "activity": [],
             },
-            next_actions=[
-                {"title": "Use current guidance", "detail": "Read the best answer first.", "href": "/read", "label": "Read guidance", "count": 4},
-                {"title": "Continue authoring", "detail": "Finish a draft.", "href": "/write/objects/new", "label": "Start a draft", "count": 1},
-            ],
-            work_areas=[
-                {"title": "Read", "metric_label": "Guidance items", "metric_value": 4, "description": "Find the current answer fast.", "href": "/read", "action_label": "Read guidance", "tone": "brand"},
-                {"title": "Write", "metric_label": "Drafts", "metric_value": 1, "description": "Create a draft.", "href": "/write/objects/new", "action_label": "Start a draft", "tone": "default"},
-            ],
-            events=[],
-            summary_variant="local.operator",
         )
-
-        self.assertIn("next-action-row", page["page_context"]["next_actions_html"])
-        self.assertIn("work-area-row", page["page_context"]["work_areas_html"])
-        self.assertNotIn("dual-grid", page["page_context"]["next_actions_html"])
-        self.assertIn('class="section-card content-section', page["page_context"]["next_actions_html"])
+        self.assert_component(page["page_context"]["hero_html"], "launch-hero")
+        self.assert_component(page["page_context"]["primary_blocks_html"], "launch-block")
+        self.assertNotIn("dual-grid", page["page_context"]["primary_blocks_html"])
+        self.assertIn('href="/read">Open</a>', page["page_context"]["primary_blocks_html"])
+        self.assertNotIn('href="/read">Use current guidance</a>', page["page_context"]["primary_blocks_html"])
 
     def test_revision_history_renders_single_current_governed_actions_panel(self) -> None:
         page = present_revision_history(

@@ -75,7 +75,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("Start draft", body)
             self.assertIn('class="sidebar"', body)
             self.assertIn('class="topbar-menu"', body)
-            self.assertIn('class="topbar-menu-chip is-active" href="/write/objects/new">Write</a>', body)
+            self.assertIn('class="sidebar-link is-active" href="/write/objects/new">Write</a>', body)
 
     def test_policy_revision_page_shows_guided_policy_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -209,7 +209,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("Save and continue", guided_body)
             self.assertIn('class="sidebar"', guided_body)
             self.assertIn('class="topbar-menu"', guided_body)
-            self.assertIn('class="topbar-menu-chip is-active" href="/write/objects/new">Write</a>', guided_body)
+            self.assertIn('class="sidebar-link is-active" href="/write/objects/new">Write</a>', guided_body)
             self.assertNotIn("shell-columns-focus", guided_body)
             self.assertIn("/static/js/citation_picker.js", guided_body)
             self.assertIn("/static/js/multi_value_picker.js", guided_body)

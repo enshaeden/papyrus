@@ -173,7 +173,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertEqual(status, "200 OK")
         self.assertIn("VPN Troubleshooting", body)
         self.assert_page_contract(body, primary_surface="object-detail", components=("surface-panel",))
-        self.assertIn('<aside class="context-column">', body)
+        self.assertNotIn('<aside class="context-column">', body)
         self.assert_not_component(body, "object-header")
 
         status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity/revisions")
@@ -187,21 +187,21 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
 
         status, _, body = call_wsgi(application, "/dashboard/trust")
         self.assertEqual(status, "200 OK")
-        self.assert_page_contract(body, primary_surface="knowledge-health", components=("surface-panel",))
-        self.assertIn('data-variant="cleanup"', body)
+        self.assert_page_contract(body, primary_surface="knowledge-health", components=("health-board",))
+        self.assertIn("Cleanup and trust debt", body)
 
         status, _, body = call_wsgi(application, "/services")
         self.assertEqual(status, "200 OK")
-        self.assert_page_contract(body, primary_surface="services", components=("decision-card",))
+        self.assert_page_contract(body, primary_surface="services", components=("service-map",))
         self.assertNotIn('<aside class="context-column">', body)
 
         status, _, body = call_wsgi(application, "/manage/queue")
         self.assertEqual(status, "200 OK")
-        self.assert_page_contract(body, primary_surface="review", components=("summary-strip",))
+        self.assert_page_contract(body, primary_surface="review", components=("review-lane",))
 
         status, _, body = call_wsgi(application, "/manage/audit")
         self.assertEqual(status, "200 OK")
-        self.assert_page_contract(body, primary_surface="activity", components=("table",))
+        self.assert_page_contract(body, primary_surface="activity", components=("activity-event",))
 
         status, _, body = call_wsgi(application, "/impact/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")

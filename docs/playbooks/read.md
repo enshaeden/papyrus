@@ -1,6 +1,6 @@
 # Read Playbook
 
-Use this playbook when you need the right operational guidance, need to know whether it is safe to rely on, and need a clear next step if it is not.
+Use this playbook when you need the right operational guidance, need to know whether it is safe to rely on, and need a readable article with a clear next step if it is not.
 
 ## Build Or Refresh The Runtime
 
@@ -38,7 +38,7 @@ python3 scripts/serve_api.py
 - Web knowledge health route: `/health`
 - API queue route: `/queue`
 
-Use search when you know the topic. Use the home page, read surface, service detail, or knowledge-health view when you need to browse by lifecycle or operational posture.
+Use search when you know the topic. Use the home page, read workspace, service map, or knowledge-health board when you need to browse by role, service context, or operational posture.
 
 Use the operator CLI when you need parity checks without opening the browser:
 
@@ -46,6 +46,24 @@ Use the operator CLI when you need parity checks without opening the browser:
 - `python3 scripts/operator_view.py health --db build/knowledge.db`
 - `python3 scripts/operator_view.py object <object_id> --db build/knowledge.db`
 - `python3 scripts/operator_view.py activity --db build/knowledge.db`
+
+## Use The Two-Step Read Flow
+
+1. Use `/read` as the selection workspace.
+2. Open the object detail page to read the article in operational order.
+
+What the article surface prioritizes:
+
+- title and short summary
+- when to use it
+- prerequisites and scope
+- steps or guidance
+- verification
+- rollback and recovery
+- escalation and boundaries
+- linked service context
+
+Governance, evidence posture, and raw revision source stay secondary so the article reads like an operational document first.
 
 ## Check Trust Posture Before Acting
 
@@ -69,11 +87,11 @@ Failure signals:
 - Suspect-object flags caused by upstream change.
 - No clear owner for escalation.
 
-## Read The Object, Evidence, And Related Context
+## Read The Article, Then The Supporting Context
 
 From the runtime-backed surfaces, inspect:
 
-- Object detail for safe-to-use posture, last review, service fit, and what changed recently.
+- Object detail for article guidance first, then safe-to-use posture, last review, service fit, and what changed recently.
 - Revision history for what changed and who approved it.
 - Supporting evidence for the claims behind the guidance.
 - Related objects, service detail, activity history, and impact views for dependencies and follow-on work.

@@ -2,6 +2,8 @@
 
 Use this playbook when you are creating, importing, or revising canonical knowledge and need to move it cleanly through the lifecycle from draft to review.
 
+Write is still governed, but the surrounding UX now assumes `Read` is article-first and role-shaped. Authoring should improve the operator article surface, not add governance-first chrome.
+
 ## Start With The Guided Blueprint Flow
 
 The primary web path is now:
@@ -13,6 +15,13 @@ The primary web path is now:
 
 Use the write surface when you want Papyrus to show progress, required versus optional work, evidence posture, and what will happen if the revision is approved.
 
+When revising an existing object, optimize for the eventual article flow:
+
+- summary should explain what the guidance is for
+- purpose and scope should make `when to use` obvious
+- procedure should be operator-readable without opening raw Markdown
+- verification, rollback, and escalation should be explicit because they now sit in fixed article positions
+
 Current primary authoring rules:
 
 - Papyrus does not use a generic rich-text editor as the primary authoring surface.
@@ -21,6 +30,7 @@ Current primary authoring rules:
 - The visible next action should always be the next required section or the submit step.
 - Guided section editing is the primary web authoring path.
 - Guided section editing now includes citation lookup and searchable multi-select controls for related guidance, services, and controlled tags.
+- Presenter or template code must not regex-assemble article structure from Markdown headings when structured section content already exists.
 
 Current first-class blueprints:
 

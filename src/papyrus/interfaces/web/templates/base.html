@@ -10,11 +10,11 @@
   <link rel="stylesheet" href="/static/css/pages.css" />
 </head>
 <body>
-  <div class="app-shell {{ shell_variant_class }}">
+  <div class="app-shell {{ shell_variant_class }}" data-actor="{{ actor_id }}" data-page-mode="{{ page_mode }}" data-page-density="{{ page_density }}">
     {{ topbar_html }}
     <div class="{{ shell_columns_class }}">
       {{ sidebar_html }}
-      <main class="main-column" data-surface="{{ page_surface }}">
+      <main class="main-column {{ content_layout_class }}" data-surface="{{ page_surface }}" data-active-nav="{{ active_nav }}">
         {{ page_header_html }}
         {{ flash_html }}
         {{ content_html }}

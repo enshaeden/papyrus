@@ -833,8 +833,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, object_body = call_wsgi(application, f"/objects/{created.object_id}")
             self.assertEqual(status, "200 OK")
-            self.assert_surface_count(object_body, "posture", 1)
-            self.assert_component_count(object_body, "action-cluster", 1)
+            self.assert_component_count(object_body, "article-hero", 1)
 
             status, _, history_body = call_wsgi(application, f"/objects/{created.object_id}/revisions")
             self.assertEqual(status, "200 OK")
@@ -874,20 +873,15 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("<title>Home | Papyrus</title>", home_body)
             self.assertIn("Local Manager", home_body)
             self.assertIn('class="topbar-menu"', home_body)
-            self.assertIn("Working as", home_body)
             self.assertNotIn('<aside class="context-column">', home_body)
             self.assertNotIn('class="actor-banner', home_body)
 
             status, _, operator_body = call_wsgi(application, "/queue", cookies={"papyrus_actor": "local.operator"})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local Operator", operator_body)
-            self.assertIn("Working as", operator_body)
             self.assertIn('class="topbar-menu"', operator_body)
             self.assertNotIn("Reader / Writer", operator_body)
-            self.assertIn('class="topbar-menu-chip is-active" href="/read">Read</a>', operator_body)
-            self.assertIn('class="topbar-menu-chip" href="/write/objects/new">Write</a>', operator_body)
-            self.assertIn('class="topbar-menu-chip" href="/services">Services</a>', operator_body)
-            self.assertIn("Navigation", operator_body)
+            self.assertIn("Operator flow", operator_body)
             self.assertEqual(operator_body.count('class="sidebar-group"'), 1)
             self.assertNotIn('class="sidebar-block"', operator_body)
             self.assertNotIn("Start Here", operator_body)
@@ -907,7 +901,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn('href="/review"', reviewer_body)
             self.assertIn('href="/activity"', reviewer_body)
             self.assertIn('<aside class="context-column">', reviewer_body)
-            self.assert_component(reviewer_body, "table")
+            self.assert_component(reviewer_body, "selected-context")
             self.assertNotIn("Start Here", reviewer_body)
             self.assertNotIn('class="actor-banner', reviewer_body)
 
@@ -926,7 +920,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             status, _, reviewer_review_body = call_wsgi(application, "/review", cookies={"papyrus_actor": "local.reviewer"})
             self.assertEqual(status, "200 OK")
             self.assertIn("Review / Approvals", reviewer_review_body)
-            self.assertIn('topbar-menu-chip is-active', reviewer_review_body)
+            self.assertIn('class="sidebar-link is-active" href="/review"', reviewer_review_body)
 
     def test_shell_only_object_is_searchable_and_routes_back_to_revision_draft(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -978,7 +972,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("&section=", body)
             self.assertIn('class="sidebar"', body)
             self.assertIn('class="topbar-menu"', body)
-            self.assertIn('class="topbar-menu-chip is-active" href="/write/objects/new">Write</a>', body)
+            self.assertIn('class="sidebar-link is-active" href="/write/objects/new">Write</a>', body)
             self.assert_component(body, "progress-strip")
             self.assertNotIn('class="write-stage-label"', body)
             self.assertNotIn("shell-columns-focus", body)

@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import Iterable
 
-from papyrus.interfaces.web.route_utils import WEB_ACTOR_OPTIONS, actor_home_path, actor_shell_for_id
+from papyrus.interfaces.web.route_utils import WEB_ACTOR_OPTIONS, actor_home_path, actor_page_behavior, actor_page_config, actor_shell_for_id
 from papyrus.interfaces.web.view_helpers import escape, join_html, link
 
 
@@ -51,85 +51,67 @@ class PageRenderer:
         page_surface: str = "",
     ) -> str:
         role_config = actor_shell_for_id(actor_id)
-        normalized_shell_variant = shell_variant if shell_variant in {"normal", "focus", "minimal"} else "normal"
-        actor_class = role_config.actor.actor_id.replace(".", "-")
+        surface_id = str(page_surface or active_nav or page_title).strip()
+        page_config = actor_page_config(actor_id, surface_id)
+        page_behavior = actor_page_behavior(actor_id, surface_id)
+        normalized_shell_variant = shell_variant if shell_variant in {"normal", "focus", "minimal"} else page_config.shell_variant
         content_html = self.template_renderer.render(page_template, page_context or {})
-        has_aside = bool(str(aside_html).strip()) and normalized_shell_variant == "normal"
         active_item = self._active_nav_item(role_config.nav_sections, active_nav=active_nav, current_path=current_path)
+        has_aside = bool(str(aside_html).strip()) and normalized_shell_variant == "normal"
         topbar_html = self.template_renderer.render(
             "partials/topbar.html",
             {
                 "search_value": escape(search_value),
                 "topbar_menu_html": self._topbar_menu_html(
                     role_config=role_config,
-                    active_item=active_item,
                     active_nav=active_nav,
                     current_path=current_path,
-                    page_title=page_title,
-                    shell_variant=normalized_shell_variant,
-                    page_header=page_header or {},
+                    show_quick_links=page_config.show_quick_links,
                 ),
             },
         )
-        nav_sections_html = join_html(
-            [
-                (
-                    '<section class="sidebar-group">'
-                    f'<p class="sidebar-label">{escape(section.title)}</p>'
-                    + (
-                        f'<p class="sidebar-copy">{escape(section.description)}</p>'
-                        if section.description
-                        else ""
-                    )
-                    + '<ul class="sidebar-nav">'
-                    + join_html(
-                        [
-                            "<li class=\"sidebar-item\">"
-                            + link(
-                                item.label,
-                                item.href,
-                                css_class="sidebar-link is-active" if self._nav_item_is_active(item, active_nav=active_nav, current_path=current_path) else "sidebar-link",
-                            )
-                            + "</li>"
-                            for item in section.items
-                        ]
-                    )
-                    + "</ul></section>"
-                )
-                for section in role_config.nav_sections
-            ]
-        )
         sidebar_html = ""
         if normalized_shell_variant == "normal":
+            nav_sections_html = join_html(
+                [
+                    (
+                        '<section class="sidebar-group">'
+                        f'<p class="sidebar-label">{escape(section.title)}</p>'
+                        + (f'<p class="sidebar-copy">{escape(section.description)}</p>' if section.description else "")
+                        + '<ul class="sidebar-nav">'
+                        + join_html(
+                            [
+                                "<li class=\"sidebar-item\">"
+                                + link(
+                                    item.label,
+                                    item.href,
+                                    css_class="sidebar-link is-active" if self._nav_item_is_active(item, active_nav=active_nav, current_path=current_path) else "sidebar-link",
+                                )
+                                + "</li>"
+                                for item in section.items
+                            ]
+                        )
+                        + "</ul></section>"
+                    )
+                    for section in role_config.nav_sections
+                ]
+            )
             sidebar_html = self.template_renderer.render(
                 "partials/sidebar.html",
                 {
                     "nav_sections_html": nav_sections_html,
+                    "actor_name": escape(role_config.actor.display_name),
+                    "actor_summary": escape(role_config.banner_summary),
                 },
             )
-        page_header_html = self._page_header_html(
-            role_config=role_config,
-            active_item=active_item,
-            active_nav=active_nav,
-            current_path=current_path,
-            page_title=page_title,
-            shell_variant=normalized_shell_variant,
-            page_header=page_header or {},
-        )
-        aside_column_html = (
-            f'<aside class="context-column">{aside_html}</aside>'
-            if has_aside
-            else ""
-        )
+        page_header_html = self._page_header_html(page_header=page_header or {}, header_variant=page_config.header_variant)
+        aside_column_html = f'<aside class="context-column">{aside_html}</aside>' if has_aside else ""
         shell_columns_classes = ["shell-columns", f"shell-columns-{escape(normalized_shell_variant)}"]
         if sidebar_html.strip():
             shell_columns_classes.append("has-sidebar")
         if aside_column_html.strip():
             shell_columns_classes.append("has-aside")
-        scripts_html = join_html(
-            [f'<script src="{escape(path)}" defer></script>' for path in scripts],
-            "\n",
-        )
+        scripts_html = join_html([f'<script src="{escape(path)}" defer></script>' for path in scripts], "\n")
         return self.template_renderer.render(
             "base.html",
             {
@@ -141,9 +123,24 @@ class PageRenderer:
                 "content_html": content_html,
                 "aside_column_html": aside_column_html,
                 "scripts_html": scripts_html,
-                "shell_variant_class": escape(f"shell-{normalized_shell_variant} actor-{actor_class}"),
+                "shell_variant_class": escape(
+                    " ".join(
+                        [
+                            f"shell-{normalized_shell_variant}",
+                            f"actor-{role_config.actor.actor_id.replace('.', '-')}",
+                            f"surface-mode-{(page_behavior.mode if page_behavior is not None else 'default').replace('_', '-')}",
+                            f"surface-density-{(page_behavior.density if page_behavior is not None else 'comfortable').replace('_', '-')}",
+                            f"surface-columns-{(page_behavior.columns if page_behavior is not None else 'single').replace('_', '-')}",
+                        ]
+                    )
+                ),
                 "shell_columns_class": escape(" ".join(shell_columns_classes)),
-                "page_surface": escape(page_surface or active_nav or page_title),
+                "page_surface": escape(surface_id),
+                "page_mode": escape(page_behavior.mode if page_behavior is not None else "default"),
+                "page_density": escape(page_behavior.density if page_behavior is not None else "comfortable"),
+                "actor_id": escape(role_config.actor.actor_id),
+                "content_layout_class": escape(f"content-layout-{(page_behavior.columns if page_behavior is not None else 'single').replace('_', '-')}"),
+                "active_nav": escape(active_item.key if active_item is not None else active_nav or ""),
             },
         )
 
@@ -175,37 +172,22 @@ class PageRenderer:
         return None
 
     @staticmethod
-    def _role_hint_label(role_hint: str) -> str:
-        mapping = {
-            "reader_writer": "Reader / Writer",
-            "reviewer": "Reviewer",
-            "manager": "Manager",
-        }
-        return mapping.get(str(role_hint), str(role_hint).replace("_", " ").title())
-
-    @staticmethod
     def _path_matches(current_path: str, prefix: str) -> bool:
+        if prefix == "/":
+            return current_path == "/"
         if prefix.endswith("/"):
             return current_path.startswith(prefix)
         return current_path == prefix or current_path.startswith(prefix + "/")
 
-    def _page_header_html(
-        self,
-        *,
-        role_config,
-        active_item,
-        active_nav: str,
-        current_path: str,
-        page_title: str,
-        shell_variant: str,
-        page_header: dict[str, object],
-    ) -> str:
+    def _page_header_html(self, *, page_header: dict[str, object], header_variant: str) -> str:
         headline = str(page_header.get("headline") or "").strip()
         kicker = str(page_header.get("kicker") or "").strip()
         intro = str(page_header.get("intro") or "").strip()
         context_html = str(page_header.get("context_html") or "").strip()
         detail_html = str(page_header.get("detail_html") or "").strip()
         actions_html = str(page_header.get("actions_html") or "").strip()
+        if not any((headline, kicker, intro, context_html, detail_html, actions_html)):
+            return ""
         fragments = [
             f'<p class="page-kicker">{escape(kicker)}</p>' if kicker else "",
             f"<h1>{escape(headline)}</h1>" if headline else "",
@@ -214,30 +196,16 @@ class PageRenderer:
             detail_html,
             f'<div class="page-header-actions">{actions_html}</div>' if actions_html else "",
         ]
-        header_body = join_html([fragment for fragment in fragments if str(fragment).strip()])
-        if not header_body:
-            return ""
-        header_classes = ["page-header", f"page-header-{escape(shell_variant)}"]
-        if intro:
-            header_classes.append("has-intro")
-        if actions_html:
-            header_classes.append("has-actions")
-        return f'<header class="{" ".join(header_classes)}">{header_body}</header>'
+        return f'<header class="page-header page-header-{escape(header_variant)}">' + join_html([fragment for fragment in fragments if fragment]) + "</header>"
 
     def _topbar_menu_html(
         self,
         *,
         role_config,
-        active_item,
         active_nav: str,
         current_path: str,
-        page_title: str,
-        shell_variant: str,
-        page_header: dict[str, object],
+        show_quick_links: bool,
     ) -> str:
-        if shell_variant != "normal":
-            return ""
-
         actor_options_html = "\n".join(
             (
                 f'<option value="{escape(actor.actor_id)}" data-home="{escape(actor_home_path(actor.actor_id))}"'
@@ -255,11 +223,8 @@ class PageRenderer:
             "</select>"
             "</form>"
         )
-        menu_items = [
-            '<span class="topbar-menu-label">Working as</span>',
-            actor_form_html,
-        ]
-        if bool(page_header.get("show_actor_links")):
+        menu_items = [actor_form_html]
+        if show_quick_links:
             menu_items.extend(
                 link(
                     item.label,
@@ -272,4 +237,4 @@ class PageRenderer:
                 )
                 for item in role_config.quick_links
             )
-        return '<nav class="topbar-menu" aria-label="Actor and quick navigation">' + join_html(menu_items) + "</nav>"
+        return '<nav class="topbar-menu" aria-label="Actor controls">' + join_html(menu_items) + "</nav>"

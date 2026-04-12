@@ -2,6 +2,12 @@
 
 Use this playbook when you review revisions, make lifecycle decisions, monitor knowledge health, or inspect the consequence trail behind a change.
 
+The rebuilt manage surfaces are intentionally distinct:
+
+- `Review / Approvals` is a dense reviewer workbench
+- `Knowledge Health` is an intervention board grouped by debt type
+- `Activity / History` is a consequence-first feed
+
 ## Refresh The Runtime Before Review
 
 ```bash
@@ -33,9 +39,9 @@ python3 scripts/operator_view.py activity --db build/knowledge.db
 
 Use these surfaces by purpose:
 
-- `Review / Approvals`: ready for review, needs decision, drafts and rework
-- `Knowledge Health`: stale guidance, weak evidence, suspect objects, superseded but still relied-on guidance
-- `Activity / History`: recent consequences, validation outcomes, and writeback/audit recovery context
+- `Review / Approvals`: ready for review, needs decision, drafts and rework, with selected context only when it helps a decision
+- `Knowledge Health`: stale guidance, weak evidence, suspect objects, ownership gaps, and cleanup debt grouped by intervention type
+- `Activity / History`: recent consequences, validation outcomes, and writeback/audit recovery context, with raw payload detail behind disclosure
 
 Imported drafts and native drafts use the same review and approval path only after the import workbench conversion step. Parser warnings, degraded extraction, mapping conflicts, low-confidence matches, and unmapped content stay in the import review stage and should not be hidden during draft conversion.
 
@@ -81,6 +87,12 @@ Use object detail, activity history, and revision history to answer:
 - what should be revalidated or reviewed next
 
 If the trail is unclear, do not approve the revision until the author updates the source and change summary.
+
+Manager view guidance:
+
+- start from `Knowledge Health` when you need to reduce risk across the portfolio
+- start from `Services` when service criticality or ownership should drive intervention
+- use `Activity / History` to understand downstream consequence before escalating process or staffing pressure
 
 ## Run Stale And Content-Health Checks
 

@@ -35,10 +35,11 @@ def register(router, runtime) -> None:
         selected_object_id = request.query_value("selected_object_id").strip()
         selected_revision_id = request.query_value("selected_revision_id").strip()
         limit = int(request.query_value("limit", "100"))
+        ranking = "triage" if actor_id in {"local.reviewer", "local.manager"} else "operator"
         items = (
             search_knowledge_objects(query, limit=limit, database_path=runtime.database_path)
             if query
-            else knowledge_queue(limit=limit, database_path=runtime.database_path)
+            else knowledge_queue(limit=limit, database_path=runtime.database_path, ranking=ranking)
         )
         items = _apply_filters(
             items,
