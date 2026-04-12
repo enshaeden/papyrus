@@ -77,6 +77,17 @@ Papyrus supports deterministic seeding from legacy exports without promoting raw
   - `scripts/validate_migration.py`
 - Future migration cleanup should work from those audited artifacts rather than reintroducing a direct legacy import command unless a new decision explicitly restores that capability.
 
+## Active Experience and Interface Decisions
+
+The following decisions are active and govern current Papyrus UI and workflow separation:
+
+- [Role and visibility matrix](role-experience-visibility-matrix.md)
+- [Route separation and experience boundaries](route-separation-and-experience-boundaries.md)
+- [Knowledge workflows and lifecycle](knowledge-workflows-and-lifecycle.md)
+- [Layout contracts by role](../docs/guides/layout-contracts-by-role.md)
+
+These records govern role-scoped experience visibility, route ownership, workflow boundaries, and layout contracts for current and future UI work.
+
 ## Control-Plane Architecture
 
 Papyrus is intentionally knowledge-object-centric rather than article-centric.
