@@ -275,7 +275,7 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
                     {
                         "source_title": "Seed manifest",
                         "source_type": "document",
-                        "source_ref": "migration/import-manifest.yml",
+                        "source_ref": "docs/migration/seed-migration-rationale.md",
                         "note": "Evidence",
                         "validity_status": "verified",
                     }

@@ -6,7 +6,7 @@ summary: Deprecated variant of the loaner policy. Use the shared loaner-device p
 knowledge_object_type: runbook
 legacy_article_type: asset
 object_lifecycle_state: deprecated
-owner: service_owner
+owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Loaner Laptop Policy

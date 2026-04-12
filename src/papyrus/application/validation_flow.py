@@ -9,6 +9,7 @@ from papyrus.application.impact_flow import find_possible_duplicate_documents
 from papyrus.application.authoring_flow import compute_completion_state, derive_section_content
 from papyrus.application.blueprint_registry import get_blueprint
 from papyrus.domain.actor import require_actor_id
+from papyrus.domain.policies import ownership_rank
 from papyrus.domain.entities import KnowledgeDocument, ValidationIssue
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.parser import (
@@ -621,6 +622,16 @@ def validate_knowledge_documents(
                 )
             )
 
+        owner = str(metadata.get("owner") or "")
+        if ownership_rank(owner) > 0:
+            issues.append(
+                ValidationIssue(
+                    path,
+                    "owner must not use a placeholder value",
+                    "owner",
+                )
+            )
+
         replaced_by = metadata.get("superseded_by") or metadata.get("replaced_by")
         retirement_reason = metadata.get("retirement_reason")
         object_lifecycle_state = metadata.get("object_lifecycle_state")
@@ -683,7 +694,7 @@ def validate_knowledge_documents(
                         )
                     )
             source_ref = citation.get("source_ref")
-            if source_ref and str(source_ref).startswith(("knowledge/", "archive/knowledge/", "docs/", "decisions/", "migration/")):
+            if source_ref and str(source_ref).startswith(("knowledge/", "archive/knowledge/", "docs/", "decisions/")):
                 repo_target = ROOT / str(source_ref)
                 if not repo_target.exists():
                     issues.append(

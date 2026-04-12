@@ -40,5 +40,4 @@ class ScriptInventoryTests(unittest.TestCase):
         script_text = (SCRIPTS_DIR / "import_knowledge_portal.py").read_text(encoding="utf-8")
         self.assertIn("retired and unsupported", script_text)
         self.assertIn("decisions/index.md", script_text)
-        self.assertIn("migration/seed-plan.yml", script_text)
-        self.assertIn("migration/import-manifest.yml", script_text)
+        self.assertIn("docs/migration/seed-migration-rationale.md", script_text)

@@ -75,9 +75,6 @@
   --color-topbar-field-border: rgba(255, 255, 255, 0.2);
   --color-topbar-field-text: var(--color-text-primary);
   --color-topbar-field-placeholder: rgba(32, 37, 34, 0.58);
-  --color-actor-banner-bg: var(--color-panel-governance-bg);
-  --color-actor-banner-border: var(--color-panel-governance-border);
-  --color-actor-banner-accent: var(--color-brand-hero);
 
   --color-status-success: #36584b;
   --color-status-success-bg: #dce7e0;

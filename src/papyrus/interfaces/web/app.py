@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,6 +10,7 @@ from urllib.parse import unquote
 from wsgiref.simple_server import make_server
 
 from papyrus.application.queries import KnowledgeObjectNotFoundError, RuntimeUnavailableError, ServiceNotFoundError
+from papyrus.infrastructure.observability import get_logger, log_event
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.infrastructure.repositories.knowledge_repo import load_taxonomies
 from papyrus.interfaces.web.http import Request, html_response, redirect_response, request_from_environ, static_response
@@ -18,6 +20,8 @@ from papyrus.interfaces.web.route_utils import actor_for_request, actor_home_pat
 from papyrus.interfaces.web.runtime import WebRuntime
 from papyrus.interfaces.web.routes import dashboard, home, impact, ingest, manage, objects, queue, services, write
 from papyrus.interfaces.startup_guard import prepare_operator_source_root
+
+LOGGER = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -157,21 +161,25 @@ def app(
             response = route.handler(routed_request)
             return response.as_wsgi(start_response)
         except RuntimeUnavailableError as exc:
+            log_event(LOGGER, logging.ERROR, "web_runtime_unavailable", path=request.path, error=str(exc))
             return html_response(
                 _error_page(runtime, title="Runtime unavailable", detail=str(exc), status="503", action="Run `python3 scripts/build_index.py` and reload the page.", active_nav="manage"),
                 status="503 Service Unavailable",
             ).as_wsgi(start_response)
         except (KnowledgeObjectNotFoundError, ServiceNotFoundError) as exc:
+            log_event(LOGGER, logging.ERROR, "web_resource_not_found", path=request.path, error=str(exc))
             return html_response(
                 _error_page(runtime, title="Not found", detail=str(exc), status="404", action="Verify the object, revision, or service identifier.", active_nav="manage"),
                 status="404 Not Found",
             ).as_wsgi(start_response)
         except ValueError as exc:
+            log_event(LOGGER, logging.ERROR, "web_request_rejected", path=request.path, error=str(exc))
             return html_response(
                 _error_page(runtime, title="Request rejected", detail=str(exc), status="400", action="Correct the form input or workflow state and try again.", active_nav="manage"),
                 status="400 Bad Request",
             ).as_wsgi(start_response)
         except Exception:  # pragma: no cover
+            log_event(LOGGER, logging.ERROR, "web_internal_error", path=request.path)
             return html_response(
                 _error_page(runtime, title="Internal error", detail="Papyrus could not complete the request safely.", status="500", action="Retry the action. If it persists, inspect local server logs and the audit trail.", active_nav="manage"),
                 status="500 Internal Server Error",

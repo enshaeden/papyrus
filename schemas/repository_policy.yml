@@ -19,7 +19,6 @@ directories:
     - docs
     - generated
     - knowledge
-    - migration
     - reports
     - schemas
     - scripts
@@ -69,7 +68,6 @@ path_policy:
   archive_root: archive/knowledge
   local_ingest_read_roots:
     - build/local-ingest
-    - migration
   mutation_root: build/mutations
   backup_root: build/writeback-backups
 duplicate_detection:

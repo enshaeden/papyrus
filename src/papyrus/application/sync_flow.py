@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import logging
 from pathlib import Path
 import uuid
 
@@ -17,6 +18,7 @@ from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_datab
 from papyrus.infrastructure.markdown.parser import normalize_object_metadata
 from papyrus.infrastructure.markdown.serializer import date_to_iso, json_dump
 from papyrus.infrastructure.migrations import apply_runtime_schema
+from papyrus.infrastructure.observability import get_logger, log_event
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
 from papyrus.infrastructure.repositories.knowledge_repo import (
     get_knowledge_object,
@@ -37,6 +39,8 @@ from papyrus.infrastructure.repositories.validation_repo import insert_validatio
 from papyrus.infrastructure.search.indexer import fts5_available, summarize_for_search
 from papyrus.jobs.citation_scan import scan_citations
 from papyrus.jobs.stale_scan import cadence_to_days
+
+LOGGER = get_logger(__name__)
 
 
 def _content_hash(normalized_metadata_json: str, body: str) -> str:
@@ -101,6 +105,7 @@ def _seed_services(connection, taxonomies: dict[str, dict[str, object]]) -> dict
 
 
 def build_search_projection(database_path: Path) -> tuple[int, str]:
+    log_event(LOGGER, logging.INFO, "build_search_projection_started", database_path=str(database_path))
     policy = load_policy()
     documents = load_knowledge_documents(policy)
     object_schemas = load_object_schemas()
@@ -108,6 +113,15 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
     taxonomies = load_taxonomies()
     issues = validate_knowledge_documents(documents, object_schemas, legacy_schema, taxonomies, policy)
     if issues:
+        log_event(
+            LOGGER,
+            logging.ERROR,
+            "build_search_projection_validation_failed",
+            database_path=str(database_path),
+            document_count=len(documents),
+            issue_count=len(issues),
+            sample_issues=[f"{issue.path}:{issue.message}" for issue in issues[:5]],
+        )
         raise ValueError("index build aborted because validation failed")
 
     connection = open_runtime_database(database_path, minimum_schema_version=RUNTIME_SCHEMA_VERSION)
@@ -362,4 +376,13 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
     finally:
         connection.close()
 
-    return len(documents), "fts5" if has_fts5 else "like-fallback"
+    mode = "fts5" if has_fts5 else "like-fallback"
+    log_event(
+        LOGGER,
+        logging.INFO,
+        "build_search_projection_completed",
+        database_path=str(database_path),
+        document_count=len(documents),
+        mode=mode,
+    )
+    return len(documents), mode

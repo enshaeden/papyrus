@@ -62,7 +62,7 @@ python3 scripts/operator_view.py create-draft \
   --object-id kb-example-runbook \
   --title "Example Runbook" \
   --summary "Example guided draft." \
-  --owner service_owner \
+  --owner it_operations \
   --team "IT Operations" \
   --canonical-path knowledge/examples/example-runbook.md
 ```
@@ -127,7 +127,7 @@ python3 scripts/operator_view.py convert-ingestion <ingestion_id> \
   --object-id kb-imported-example \
   --title "Imported Example" \
   --canonical-path knowledge/imported/imported-example.md \
-  --owner service_owner \
+  --owner it_operations \
   --team "IT Operations"
 ```
 

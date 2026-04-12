@@ -43,34 +43,18 @@ class CliWorkflowTests(unittest.TestCase):
         generated_index = ROOT / "generated" / "site_docs" / "knowledge" / "index.md"
         generated_docs_index = ROOT / "generated" / "site_docs" / "system-design-docs" / "index.md"
         generated_explorer = ROOT / "generated" / "site_docs" / "knowledge" / "explorer.md"
-        generated_ticket_guide = (
-            ROOT
-            / "generated"
-            / "site_docs"
-            / "knowledge"
-            / "user-lifecycle"
-            / "job-and-org-change"
-            / "job-and-org-change-ticket-review-guide.md"
-        )
-        generated_license_guide = (
-            ROOT
-            / "generated"
-            / "site_docs"
-            / "knowledge"
-            / "applications"
-            / "access-and-license-management"
-            / "add-productivity-platform-licenses.md"
-        )
+        generated_access_index = ROOT / "generated" / "site_docs" / "knowledge" / "access" / "index.md"
+        generated_runbooks_index = ROOT / "generated" / "site_docs" / "knowledge" / "runbooks" / "index.md"
         self.assertTrue(generated_home.exists())
         self.assertTrue(generated_index.exists())
         self.assertTrue(generated_docs_index.exists())
         self.assertTrue(generated_explorer.exists())
-        self.assertTrue(generated_ticket_guide.exists())
-        self.assertTrue(generated_license_guide.exists())
+        self.assertTrue(generated_access_index.exists())
+        self.assertTrue(generated_runbooks_index.exists())
         generated_home_text = generated_home.read_text(encoding="utf-8")
         generated_explorer_text = generated_explorer.read_text(encoding="utf-8")
-        generated_ticket_guide_text = generated_ticket_guide.read_text(encoding="utf-8")
-        generated_license_guide_text = generated_license_guide.read_text(encoding="utf-8")
+        generated_access_index_text = generated_access_index.read_text(encoding="utf-8")
+        generated_runbooks_index_text = generated_runbooks_index.read_text(encoding="utf-8")
         self.assertIn("approved-content export", generated_home_text)
         self.assertIn("consolidated operator-facing governance record", generated_home_text)
         self.assertIn('href="knowledge/"', generated_home_text)
@@ -82,10 +66,8 @@ class CliWorkflowTests(unittest.TestCase):
         site_paths = re.findall(r'"site_path": "([^"]+)"', generated_explorer_text)
         self.assertTrue(site_paths)
         self.assertTrue(all(not path.endswith(".md") for path in site_paths))
-        self.assertNotIn("](<INTERNAL_URL>)", generated_ticket_guide_text)
-        self.assertIn("Job and Org Change", generated_ticket_guide_text)
-        self.assertNotIn("](<INTERNAL_URL>)", generated_license_guide_text)
-        self.assertNotIn("](<SUPPLIER_PORTAL_URL>)", generated_license_guide_text)
+        self.assertIn("Access", generated_access_index_text)
+        self.assertIn("Runbooks", generated_runbooks_index_text)
 
     def test_build_site_docs_cli_exports_only_runtime_approved_objects(self) -> None:
         generated_vpn_guide = (
@@ -264,7 +246,7 @@ class CliWorkflowTests(unittest.TestCase):
         result = run_command("scripts/report_content_health.py", "--section", "citation-health")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("[citation-health]", result.stdout)
-        self.assertIn("kb-applications-access-and-license-management-add-productivity-platform-licenses", result.stdout)
+        self.assertIn("kb-runbooks-laptop-provisioning", result.stdout)
 
     def test_content_health_report_docs_warning_section(self) -> None:
         result = run_command("scripts/report_content_health.py", "--section", "knowledge-like-docs")
@@ -301,7 +283,7 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("retired and unsupported", result.stderr)
         self.assertIn("decisions/index.md", result.stderr)
-        self.assertIn("migration/import-manifest.yml", result.stderr)
+        self.assertIn("docs/migration/seed-migration-rationale.md", result.stderr)
         self.assertIn("scripts/validate_migration.py", result.stderr)
 
     def test_validate_migration_cli(self) -> None:

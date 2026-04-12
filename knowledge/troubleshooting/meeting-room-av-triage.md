@@ -7,7 +7,7 @@ summary: Triage common meeting room audio, display, and conferencing issues befo
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
 object_lifecycle_state: active
-owner: service_owner
+owner: it_operations
 source_type: native
 source_system: repository
 source_title: Meeting Room AV Triage

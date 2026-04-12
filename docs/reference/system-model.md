@@ -58,7 +58,7 @@ Papyrus does not treat compatibility aliases such as `status`, `revision_state`,
 python3 scripts/validate.py
 python3 scripts/build_index.py
 python3 scripts/ingest.py path/to/source.md
-python3 scripts/operator_view.py create-draft --type runbook --object-id kb-example --title "Example" --summary "Example" --owner service_owner --team "IT Operations" --canonical-path knowledge/examples/example.md
+python3 scripts/operator_view.py create-draft --type runbook --object-id kb-example --title "Example" --summary "Example" --owner it_operations --team "IT Operations" --canonical-path knowledge/examples/example.md
 python3 scripts/operator_view.py show-progress --object kb-example --revision <revision_id>
 python3 scripts/operator_view.py list-ingestions
 python3 scripts/report_stale.py

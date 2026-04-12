@@ -59,12 +59,11 @@ class ContentHealthReadModelTests(unittest.TestCase):
                 "kb-applications-access-and-license-management-add-productivity-platform-licenses" in line
                 and "placeholder-heavy(" in line
                 and "legacy-blueprint-fallback" in line
-                and "unclear-owner(service_owner)" in line
                 for line in migration_lines
             )
         )
 
-    def test_runtime_backed_usefulness_sections_report_ownership_and_evidence_risk(self) -> None:
+    def test_runtime_backed_usefulness_sections_report_evidence_risk(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
@@ -74,12 +73,7 @@ class ContentHealthReadModelTests(unittest.TestCase):
                 database_path=database_path,
             )
 
-        self.assertTrue(
-            any(
-                "kb-troubleshooting-vpn-connectivity" in line and "owner=service_owner" in line
-                for line in outputs["unclear-ownership"]
-            )
-        )
+        self.assertEqual(outputs["unclear-ownership"], [])
         self.assertTrue(
             any(
                 "kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide" in line

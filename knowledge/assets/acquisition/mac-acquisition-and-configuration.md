@@ -8,7 +8,7 @@ summary: All Mac laptops are configured through the automated device enrollment.
 knowledge_object_type: runbook
 legacy_article_type: asset
 object_lifecycle_state: deprecated
-owner: service_owner
+owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Mac Acquisition and Configuration

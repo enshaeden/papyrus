@@ -2,7 +2,7 @@
 
 ## Scope
 
-This repository seed follows the curated migration model under `migration/seed-plan.yml` and does not redesign the information architecture. Draft source pages are excluded from the migration review set. The legacy knowledge export is treated only as temporary migration input; canonical Markdown with YAML front matter lives under `knowledge/`.
+This repository seed follows a curated migration model captured in this rationale and does not redesign the information architecture. Draft source pages are excluded from the migration review set. The legacy knowledge export is treated only as temporary migration input; canonical Markdown with YAML front matter lives under `knowledge/`.
 
 ## What Was Kept
 
@@ -28,6 +28,6 @@ The migration creates collection pages for top-level and nested sections so the 
 
 ## Determinism And Auditability
 
-- `migration/seed-plan.yml` records the sanitized canonical collection structure.
-- `migration/import-manifest.yml` records the sanitized imported article set and collection indexes without preserving raw source identifiers.
-- `scripts/validate_migration.py` fails when canonical titles are duplicated, planned articles are missing, or required collection indexes are absent.
+- `docs/migration/seed-migration-rationale.md` is the maintained migration record for the sanitized seed structure and provenance boundary.
+- Canonical collection indexes live directly under `knowledge/` and remain the source used by the runtime and validators.
+- `scripts/validate_migration.py` verifies that the maintained migration rationale is present, does not refer to removed migration artifacts, and that the required top-level collection indexes still exist.

@@ -4,7 +4,8 @@ from typing import Any
 
 from papyrus.application.read_models.article_projection import build_article_projection
 from papyrus.domain.actor import resolve_actor
-from papyrus.interfaces.web.presenters.governed_presenter import authoring_entry_html
+from papyrus.interfaces.web.presenters.common import ComponentPresenter
+from papyrus.interfaces.web.presenters.governed_presenter import compact_action_menu_html
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path
 
@@ -44,6 +45,7 @@ def _render_article_section(section: dict[str, Any]) -> str:
 def _render_context_section(section: dict[str, Any]) -> str:
     blocks = [block for block in section.get("blocks") or [] if block]
     raw_markdown = str(section.get("raw_markdown") or "").strip()
+    section_surface = "posture" if str(section.get("section_id") or "") == "governance" else "object-detail"
     body_html = join_html([_render_block(block) for block in blocks]) if blocks else ""
     if raw_markdown:
         body_html += (
@@ -55,7 +57,7 @@ def _render_context_section(section: dict[str, Any]) -> str:
     if not body_html:
         body_html = f'<p class="article-empty">{escape(section.get("empty") or "No supporting context recorded.")}</p>'
     return (
-        '<section class="article-context-panel" data-component="surface-panel" data-surface="object-detail">'
+        f'<section class="article-context-panel" data-component="surface-panel" data-surface="{section_surface}">'
         f'<p class="article-context-kicker">{escape(section["eyebrow"])}</p>'
         f'<h3>{escape(section["title"])}</h3>'
         f"{body_html}</section>"
@@ -63,7 +65,7 @@ def _render_context_section(section: dict[str, Any]) -> str:
 
 
 def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any], actor_id: str = "") -> dict[str, Any]:
-    del renderer
+    components = ComponentPresenter(renderer)
     actor = resolve_actor(actor_id or "local.operator")
     article = detail.get("article_projection") or build_article_projection(
         item=detail["object"],
@@ -81,14 +83,13 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any],
     revision = detail.get("current_revision")
     actions = [
         link("See history", f"/objects/{quoted_path(item['object_id'])}/revisions", css_class="button button-ghost"),
-        authoring_entry_html(
-            object_id=str(item["object_id"]),
+        compact_action_menu_html(
+            components,
             ui_projection=detail.get("ui_projection"),
+            object_id=str(item["object_id"]),
+            revision_id=str((revision or {}).get("revision_id") or "") or None,
             current_revision_id=str(item.get("current_revision_id") or "") or None,
-            label_override="Revise guidance",
-            allow_start_when_not_in_draft_state=True,
-        )
-        or "",
+        ),
         link("See consequences", f"/impact/object/{quoted_path(item['object_id'])}", css_class="button button-ghost"),
     ]
     if actor.actor_id == "local.reviewer" and revision is not None:
@@ -110,7 +111,7 @@ def present_object_detail(renderer: TemplateRenderer, *, detail: dict[str, Any],
             if str(article["hero"].get("use_now") or "").strip()
             else ""
         )
-        + f'<div class="article-hero-actions">{join_html([action for action in actions if action])}</div>'
+        + f'<div class="article-hero-actions" data-component="action-cluster">{join_html([action for action in actions if action])}</div>'
         + "</section>"
     )
     primary_html = join_html([_render_article_section(section) for section in article["sections"]])

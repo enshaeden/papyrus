@@ -6,7 +6,7 @@ summary: Deprecated site-specific duplicate. Use the shared Touch Controller Roo
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
 object_lifecycle_state: deprecated
-owner: service_owner
+owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: <VIDEO_CONFERENCING_PLATFORM> Enabled Meeting Rooms - User Guide

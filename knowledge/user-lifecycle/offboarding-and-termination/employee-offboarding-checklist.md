@@ -6,7 +6,7 @@ summary: Disable access, recover assets, and preserve required records when a us
 knowledge_object_type: runbook
 legacy_article_type: offboarding
 object_lifecycle_state: active
-owner: service_owner
+owner: it_operations
 source_type: native
 source_system: repository
 source_title: Employee Offboarding Checklist

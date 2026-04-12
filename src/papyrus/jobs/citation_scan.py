@@ -15,7 +15,7 @@ from papyrus.infrastructure.storage.evidence_store import EvidenceStore
 from papyrus.jobs.stale_scan import cadence_to_days
 
 
-LOCAL_EVIDENCE_PREFIXES = ("knowledge/", "archive/knowledge/", "docs/", "decisions/", "migration/")
+LOCAL_EVIDENCE_PREFIXES = ("knowledge/", "archive/knowledge/", "docs/", "decisions/")
 
 
 @dataclass(frozen=True)
@@ -105,13 +105,6 @@ def classify_citation(
                 if parse_iso_date(target_object["updated_date"]) > object_last_reviewed:
                     status = worse_citation_validity(status, "stale")
                     reasons.append("cited knowledge object changed after the current object was last reviewed")
-        elif source_ref.startswith("migration/"):
-            if captured_at is None:
-                status = worse_citation_validity(status, "unverified")
-                reasons.append("migration provenance lacks captured_at")
-            if integrity_hash is None:
-                status = worse_citation_validity(status, "unverified")
-                reasons.append("migration provenance lacks integrity_hash")
         return status, reasons
 
     if captured_at is None:

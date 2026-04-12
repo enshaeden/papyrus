@@ -7,7 +7,7 @@ summary: Template for coordinating the initial response to an IT service inciden
 knowledge_object_type: runbook
 legacy_article_type: incident
 object_lifecycle_state: active
-owner: service_owner
+owner: it_operations
 source_type: native
 source_system: repository
 source_title: Incident Response Template

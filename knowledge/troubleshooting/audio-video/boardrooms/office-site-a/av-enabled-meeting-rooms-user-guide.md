@@ -6,7 +6,7 @@ summary: Deprecated site-specific duplicate. Use the shared Standard AV Room Use
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
 object_lifecycle_state: deprecated
-owner: service_owner
+owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: AV Enabled Meeting Rooms - User Guide

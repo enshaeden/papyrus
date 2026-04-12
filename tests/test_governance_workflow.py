@@ -68,7 +68,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
             {
                 "source_title": "Seed import manifest",
                 "source_type": "document",
-                "source_ref": "migration/import-manifest.yml",
+                "source_ref": "docs/migration/seed-migration-rationale.md",
                 "note": "Used as an internal provenance placeholder for the test.",
             }
         ],
@@ -77,7 +77,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "retirement_reason": None,
         "services": ["Remote Access"],
         "related_articles": [],
-        "references": [{"title": "Seed import manifest", "path": "migration/import-manifest.yml"}],
+        "references": [{"title": "Seed import manifest", "path": "docs/migration/seed-migration-rationale.md"}],
         "change_log": [{"date": "2026-04-07", "summary": "Initial draft.", "author": "tests"}],
     }
 

@@ -7,7 +7,7 @@ summary: Template for documenting incident impact, root cause, corrective action
 knowledge_object_type: known_error
 legacy_article_type: postmortem
 object_lifecycle_state: active
-owner: service_owner
+owner: it_operations
 source_type: native
 source_system: repository
 source_title: Postmortem Template

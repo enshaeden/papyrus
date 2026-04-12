@@ -48,7 +48,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
             {
                 "source_title": "Evidence note",
                 "source_type": "document",
-                "source_ref": "migration/import-manifest.yml",
+                "source_ref": "docs/migration/seed-migration-rationale.md",
                 "note": "Snapshot-managed test evidence.",
                 "claim_anchor": None,
                 "excerpt": None,
@@ -67,7 +67,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "retirement_reason": None,
         "services": ["Remote Access"],
         "related_articles": [],
-        "references": [{"title": "Evidence note", "path": "migration/import-manifest.yml"}],
+        "references": [{"title": "Evidence note", "path": "docs/migration/seed-migration-rationale.md"}],
         "change_log": [{"date": "2026-04-08", "summary": "Initial draft.", "author": "tests"}],
     }
 

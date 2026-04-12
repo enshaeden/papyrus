@@ -7,7 +7,7 @@ summary: Restore common office printing failures by checking queue state, consum
 knowledge_object_type: known_error
 legacy_article_type: troubleshooting
 object_lifecycle_state: active
-owner: service_owner
+owner: it_operations
 source_type: native
 source_system: repository
 source_title: Printer Troubleshooting

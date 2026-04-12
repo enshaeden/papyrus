@@ -6,7 +6,7 @@ summary: Canonical article for Label Directory imported from <KNOWLEDGE_PORTAL>.
 knowledge_object_type: service_record
 legacy_article_type: reference
 object_lifecycle_state: active
-owner: service_owner
+owner: it_operations
 source_type: derived
 source_system: knowledge_portal
 source_title: Label Directory
@@ -31,7 +31,7 @@ citations:
 - article_id: null
   source_title: <KNOWLEDGE_PORTAL> seed import manifest
   source_type: document
-  source_ref: migration/import-manifest.yml
+  source_ref: docs/migration/seed-migration-rationale.md
   note: Sanitized source record.
   excerpt: null
   captured_at: null
@@ -60,7 +60,7 @@ related_articles:
 - kb-governance-documentation-standards-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
-  path: migration/import-manifest.yml
+  path: docs/migration/seed-migration-rationale.md
   note: Sanitized source record.
 change_log:
 - date: '2026-04-07'

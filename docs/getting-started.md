@@ -61,7 +61,7 @@ python3 scripts/operator_view.py activity --db build/knowledge.db --format json
 For structured drafting and import from the terminal:
 
 ```bash
-python3 scripts/operator_view.py create-draft --type runbook --object-id kb-example --title "Example" --summary "Example" --owner service_owner --team "IT Operations" --canonical-path knowledge/examples/example.md
+python3 scripts/operator_view.py create-draft --type runbook --object-id kb-example --title "Example" --summary "Example" --owner it_operations --team "IT Operations" --canonical-path knowledge/examples/example.md
 python3 scripts/operator_view.py edit-section --object kb-example --revision <revision_id> --section purpose --field use_when="Use this when the blueprint applies."
 python3 scripts/operator_view.py show-progress --object kb-example --revision <revision_id>
 python3 scripts/ingest.py path/to/source.docx
@@ -93,7 +93,7 @@ Guardrail:
 - Startup and governed mutation entry points run pending mutation recovery before they proceed. Papyrus rolls back or reclaims stale journals and stale locks when safe, and blocks the operation with an explicit error when recovery cannot prove a safe result.
 - Browser-submitted local path ingestion is off by default. Enable it only on a trusted local operator web surface with `python3 scripts/run.py --operator --allow-web-ingest-local-paths` or `python3 scripts/serve_web.py --allow-web-ingest-local-paths`.
 - When web local-path ingest is enabled, Papyrus reads an absolute path from the machine running Papyrus, not from the browser device.
-- Local-path ingest is still confined to allowlisted read roots from `schemas/repository_policy.yml`. The default read roots are `build/local-ingest/` and `migration/`.
+- Local-path ingest is still confined to allowlisted read roots from `schemas/repository_policy.yml`. The default read root is `build/local-ingest/`.
 - If you embed the WSGI apps directly in tests or local tooling, `papyrus.interfaces.web.app(...)` and `papyrus.interfaces.api.app(...)` enforce the same rule. Use `allow_noncanonical_source_root=True` only for sandboxed demo/test roots.
 
 ## 3. Pick The Right Playbook
@@ -128,4 +128,4 @@ Guardrail:
 | Serve and operator entrypoints | `run.py`, `serve.sh`, `serve_web.py`, `serve_api.py`, `serve_static_export.sh`, `operator_view.py`, `search.py` | Web, API, shell, and operator-facing read/manage entrypoints. |
 | Authoring, import, and source mutation | `new_article.py`, `ingest.py`, `ingest_event.py`, `source_sync.py` | Create or ingest knowledge, record events, and manage governed source synchronization. |
 | Reporting, demo, and migration | `report_stale.py`, `report_content_health.py`, `demo_runtime.py`, `run_scenario.py`, `validate_migration.py` | Reporting, demo/runtime seeding, scenario exercises, and migration validation. |
-| Retired legacy migration shim | `import_knowledge_portal.py` | Stable filename kept for compatibility only. The command is retired and points operators to `decisions/index.md` plus the maintained migration artifacts under `migration/` and `docs/migration/`. |
+| Retired legacy migration shim | `import_knowledge_portal.py` | Stable filename kept for compatibility only. The command is retired and points operators to `decisions/index.md` plus the maintained migration rationale under `docs/migration/`. |

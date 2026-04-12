@@ -7,7 +7,7 @@ summary: Create laptop and accessory shipments for <REGION_B> and <REGION_C> usi
 knowledge_object_type: runbook
 legacy_article_type: asset
 object_lifecycle_state: active
-owner: service_owner
+owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: <REGION_B> and <REGION_C> - <SHIPPING_CARRIER>
@@ -40,7 +40,7 @@ citations:
 - article_id: null
   source_title: <KNOWLEDGE_PORTAL> seed import manifest
   source_type: document
-  source_ref: migration/import-manifest.yml
+  source_ref: docs/migration/seed-migration-rationale.md
   note: Sanitized source record.
   excerpt: null
   captured_at: null
@@ -57,7 +57,7 @@ related_articles:
 - kb-assets-shipping-index
 references:
 - title: <KNOWLEDGE_PORTAL> seed import manifest
-  path: migration/import-manifest.yml
+  path: docs/migration/seed-migration-rationale.md
   note: Sanitized source record.
 change_log:
 - date: '2026-04-07'

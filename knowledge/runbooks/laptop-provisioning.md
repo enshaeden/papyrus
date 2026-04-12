@@ -7,7 +7,7 @@ summary: Prepare and hand off a standard employee laptop with inventory, identit
 knowledge_object_type: runbook
 legacy_article_type: runbook
 object_lifecycle_state: active
-owner: service_owner
+owner: it_operations
 source_type: native
 source_system: repository
 source_title: Laptop Provisioning
