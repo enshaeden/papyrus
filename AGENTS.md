@@ -89,6 +89,19 @@ When changing product behaviour:
 - prefer explicit structure over hidden inference
 - prefer durable system rules over page-local hacks
 
+## Role-Scoped Experience Rules
+
+Papyrus must preserve strict separation between Reader, Operator, and Admin experiences.
+
+- Do not implement cross-role UI by hiding or disabling shared controls inside one blended shell.
+- Do not expose navigation, routes, actions, metadata panels, or search results to roles not explicitly permitted to see them.
+- Treat route separation, visibility rules, and workflow boundaries as binding architecture.
+- When touching navigation, routing, layouts, object views, or workflow actions, consult:
+  - `docs/decisions/role-experience-visibility-matrix.md`
+  - `docs/decisions/route-separation-and-experience-boundaries.md`
+  - `docs/guides/layout-contracts-by-role.md`
+  - `docs/decisions/knowledge-workflows-and-lifecycle.md`
+
 ## Product Experience Principle
 
 Papyrus must present itself as a knowledge system, not a generic dashboard or generic text editor.

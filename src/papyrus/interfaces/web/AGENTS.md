@@ -41,6 +41,19 @@ Do not preserve a visually attractive UI if it still communicates the wrong stru
 - Prefer focused views with strong hierarchy over dense screens with many competing panels.
 - Avoid mixing unrelated concerns on the same page when those concerns belong to different workflows.
 
+## Role-Separated Web Architecture
+
+- Maintain separate route groups and layout ownership for Reader, Operator, and Admin.
+- Do not collapse role experiences into one dashboard with conditional sections.
+- Left navigation must be generated from role-scoped route definitions, not filtered from a single global nav list.
+- Reader object views must remain content-first.
+- Operator surfaces must remain task-first.
+- Admin surfaces must remain control-plane-first.
+- When changing layouts, routes, or object pages, follow:
+  - `docs/decisions/route-separation-and-experience-boundaries.md`
+  - `docs/guides/layout-contracts-by-role.md`
+  - `docs/decisions/role-experience-visibility-matrix.md`
+
 ## Navigation Rules
 
 - Remove duplicated navigation, duplicated filters, duplicated action bars, and duplicated status summaries at the shared-component or layout level.
