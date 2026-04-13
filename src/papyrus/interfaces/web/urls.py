@@ -50,6 +50,10 @@ def write_new_url() -> str:
     return "/operator/write/new"
 
 
+def write_advanced_url() -> str:
+    return "/operator/write/advanced"
+
+
 def write_object_start_url(object_id: str) -> str:
     return f"/operator/write/object/{quoted_path(object_id)}/start"
 
@@ -132,10 +136,14 @@ def evidence_revalidation_url(role: str | None, object_id: str) -> str:
     return f"{prefix}/{quoted_path(object_id)}/evidence/revalidate"
 
 
-def governance_url(role: str | None = None) -> str:
+def oversight_url(role: str | None = None) -> str:
     if normalize_role(role) == ADMIN_ROLE:
         return "/admin/governance"
     return "/operator/review/governance"
+
+
+def governance_url(role: str | None = None) -> str:
+    return oversight_url(role)
 
 
 def activity_url(role: str | None = None) -> str:

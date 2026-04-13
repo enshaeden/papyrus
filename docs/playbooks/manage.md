@@ -125,7 +125,7 @@ Treat these as escalation conditions:
 Use oversight for trend and review visibility:
 
 - Web oversight route: `/operator/review/governance`
-- API trust dashboard route: `/dashboard/trust`
+- API oversight dashboard route: `/dashboard/oversight`
 - CLI oversight view: `python3 scripts/operator_view.py health --db build/knowledge.db`
 
 Additional governed manage routes:

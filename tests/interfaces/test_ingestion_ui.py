@@ -10,7 +10,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.interfaces.web import app as web_app
+from papyrus.interfaces.web.app import app as web_app
 from tests.web_assertions import SemanticHookAssertions
 
 

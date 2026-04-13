@@ -29,7 +29,7 @@ from .support import (
 )
 
 
-def manage_queue(
+def review_queue(
     *,
     limit: int = 200,
     database_path: str | Path = DB_PATH,
@@ -259,6 +259,16 @@ def manage_queue(
         }
     finally:
         connection.close()
+
+
+def manage_queue(
+    *,
+    limit: int = 200,
+    database_path: str | Path = DB_PATH,
+    authority: PolicyAuthority | None = None,
+) -> dict[str, Any]:
+    """Compatibility alias for older callers."""
+    return review_queue(limit=limit, database_path=database_path, authority=authority)
 
 
 def review_detail(

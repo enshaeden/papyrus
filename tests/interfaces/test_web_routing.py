@@ -13,6 +13,11 @@ from papyrus.interfaces.web.http import Request
 
 
 class WebRoutingTests(unittest.TestCase):
+    def test_explicit_web_app_factory_import_is_callable(self) -> None:
+        from papyrus.interfaces.web.app import app as create_app
+
+        self.assertTrue(callable(create_app))
+
     def test_request_with_route_params_returns_new_request(self) -> None:
         request = Request(method="GET", path="/objects/kb-test", query={}, form={})
         routed = request.with_route_params({"object_id": "kb-test"})

@@ -275,6 +275,9 @@ RUNBOOK_BLUEPRINT = Blueprint(
     validation_rules={"require_related_service": True},
     evidence_requirements={"minimum_citations": 1},
     lifecycle_defaults={"object_lifecycle_state": "draft", "review_cadence": "quarterly"},
+    authoring_scope="primary",
+    visible_order=10,
+    import_target=True,
 )
 
 KNOWN_ERROR_BLUEPRINT = Blueprint(
@@ -375,6 +378,9 @@ KNOWN_ERROR_BLUEPRINT = Blueprint(
     validation_rules={"require_related_service": True},
     evidence_requirements={"minimum_citations": 1},
     lifecycle_defaults={"object_lifecycle_state": "draft", "review_cadence": "after_change"},
+    authoring_scope="primary",
+    visible_order=20,
+    import_target=True,
 )
 
 SERVICE_RECORD_BLUEPRINT = Blueprint(
@@ -483,6 +489,9 @@ SERVICE_RECORD_BLUEPRINT = Blueprint(
     validation_rules={"require_dependencies": True},
     evidence_requirements={"minimum_citations": 1},
     lifecycle_defaults={"object_lifecycle_state": "draft", "review_cadence": "quarterly"},
+    authoring_scope="primary",
+    visible_order=30,
+    import_target=True,
 )
 
 POLICY_BLUEPRINT = Blueprint(
@@ -533,6 +542,9 @@ POLICY_BLUEPRINT = Blueprint(
     ),
     evidence_requirements={"minimum_citations": 1},
     lifecycle_defaults={"object_lifecycle_state": "draft", "review_cadence": "annual"},
+    authoring_scope="advanced",
+    visible_order=40,
+    import_target=True,
 )
 
 SYSTEM_DESIGN_BLUEPRINT = Blueprint(
@@ -608,6 +620,9 @@ SYSTEM_DESIGN_BLUEPRINT = Blueprint(
     ),
     evidence_requirements={"minimum_citations": 1},
     lifecycle_defaults={"object_lifecycle_state": "draft", "review_cadence": "after_change"},
+    authoring_scope="advanced",
+    visible_order=50,
+    import_target=True,
 )
 
 

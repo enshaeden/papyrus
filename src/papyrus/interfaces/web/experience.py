@@ -144,7 +144,7 @@ OPERATOR_EXPERIENCE = ExperienceContext(
                     match_prefixes=("/operator/review",),
                 ),
                 ShellLink(
-                    "health",
+                    "oversight",
                     "Oversight",
                     "/operator/review/governance",
                     match_prefixes=("/operator/review/governance", "/operator/review/impact"),
@@ -187,14 +187,14 @@ OPERATOR_EXPERIENCE = ExperienceContext(
             show_context_rail=True,
         ),
         ExperiencePageBehavior(
-            "knowledge-health",
-            mode="review-stewardship",
+            "oversight",
+            mode="review-oversight",
             density="dense",
             columns="wide",
             show_context_rail=True,
         ),
         ExperiencePageBehavior(
-            "activity", mode="consequence-feed", density="medium", columns="wide"
+            "activity", mode="history-feed", density="medium", columns="wide"
         ),
         ExperiencePageBehavior("services", mode="entry-map", density="comfortable", columns="wide"),
     ),
@@ -205,7 +205,7 @@ OPERATOR_EXPERIENCE = ExperienceContext(
             "object-detail",
             "services",
             "review",
-            "knowledge-health",
+            "oversight",
             "activity",
         ),
         *_page_configs("impact-object", "impact-service"),
@@ -231,7 +231,7 @@ ADMIN_EXPERIENCE = ExperienceContext(
                 ),
                 ShellLink("review", "Review", "/admin/review", match_prefixes=("/admin/review",)),
                 ShellLink(
-                    "health",
+                    "oversight",
                     "Oversight",
                     "/admin/governance",
                     match_prefixes=("/admin/governance", "/admin/impact"),
@@ -269,8 +269,8 @@ ADMIN_EXPERIENCE = ExperienceContext(
             "review", mode="control-review", density="dense", columns="wide", show_context_rail=True
         ),
         ExperiencePageBehavior(
-            "knowledge-health",
-            mode="control-governance",
+            "oversight",
+            mode="control-oversight",
             density="dense",
             columns="wide",
             show_context_rail=True,
@@ -287,7 +287,7 @@ ADMIN_EXPERIENCE = ExperienceContext(
             "object-detail",
             "services",
             "review",
-            "knowledge-health",
+            "oversight",
             "activity",
         ),
         *_page_configs("impact-object", "impact-service"),

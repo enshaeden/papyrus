@@ -21,7 +21,7 @@ from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.commands import archive_object_command
 from papyrus.interfaces.api import app as api_app
 from papyrus.interfaces.cli import operator_main
-from papyrus.interfaces.web import app as web_app
+from papyrus.interfaces.web.app import app as web_app
 from papyrus.interfaces.web.presenters.governed_presenter import action_href
 from papyrus.infrastructure.transactional_mutation import TransactionalMutation
 from papyrus.application.writeback_flow import restore_last_writeback

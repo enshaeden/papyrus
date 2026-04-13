@@ -4,12 +4,12 @@ Use this playbook when you are creating, importing, or revising canonical knowle
 
 Authoring is still governed, but the surrounding UX now assumes `Content` is article-first and operator-centered while broader role separation remains transitional. Authoring should improve the operator article surface, not add governance-first chrome.
 
-## Start With The Guided Blueprint Flow
+## Start With The Primary Template Flow
 
 The primary web path is now:
 
 1. create object shell
-2. choose or confirm the blueprint
+2. choose the primary template
 3. complete the guided section flow
 4. validate and submit for review
 
@@ -32,13 +32,21 @@ Current primary authoring rules:
 - Guided section editing now includes citation lookup and searchable multi-select controls for related guidance, services, and controlled tags.
 - Presenter or template code must not regex-assemble article structure from Markdown headings when structured section content already exists.
 
-Current first-class blueprints:
+Primary visible templates:
 
 - `runbook`
 - `known_error`
 - `service_record`
+
+Deferred advanced blueprint classes:
+
 - `policy`
 - `system_design`
+
+Current web entrypoints:
+
+- `/operator/write/new` exposes the primary template set.
+- `/operator/write/advanced` keeps the full blueprint model available for internal or deferred classes.
 
 ## Understand Blueprints Versus Templates
 
@@ -51,6 +59,8 @@ Blueprints are the authoritative runtime structure for authoring and ingestion. 
 - what lifecycle defaults a new draft starts with
 
 Approved Markdown templates still exist for repository-side source scaffolding and controlled file generation. They are not the primary authoring experience. If Papyrus is guiding a draft in the web UI, CLI, or API, the blueprint is the source of structure and validation.
+
+Papyrus markets and organizes visible authoring around runbooks, known errors, service records, governed revisions, and import-to-draft review. Advanced blueprint classes remain supported, but they are not the default operator story.
 
 ## Create A Canonical Source Object
 
@@ -113,7 +123,7 @@ Web path:
 1. open `/operator/import`
 2. upload the file, or provide a local host path only on a trusted local operator web surface with explicit opt-in
 3. inspect parse output, parser warnings, and extraction quality
-4. review the blueprint mapping, including conflicts, low-confidence matches, and unmapped content
+4. review the mapped draft target, including conflicts, low-confidence matches, unmapped content, and whether the target is a primary or advanced blueprint
 5. confirm conversion to a governed draft
 6. continue editing in the normal write flow
 
@@ -161,6 +171,8 @@ For each material claim:
 
 Current web authoring boundary:
 
+- `/operator/write/new` is the primary visible entrypoint for runbooks, known errors, and service records
+- `/operator/write/advanced` keeps the full blueprint model available when you intentionally need deferred classes
 - guided section editing at `/operator/write/object/{object_id}?revision_id=...` is the primary web path after a draft already exists
 - web draft creation or reuse starts through object setup or the explicit `POST /operator/write/object/{object_id}/start` action; the guided GET route itself is load-only
 - the guided path owns citation lookup and searchable multi-select controls

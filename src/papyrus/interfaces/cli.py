@@ -34,11 +34,11 @@ from papyrus.application.queries import (
     event_history,
     knowledge_object_detail,
     knowledge_queue,
-    manage_queue,
+    oversight_dashboard,
     review_detail,
+    review_queue,
     search_projection,
     stale_projection,
-    trust_dashboard,
     validation_run_history,
 )
 from papyrus.application.writeback_flow import preview_revision_writeback
@@ -901,11 +901,11 @@ def operator_main() -> int:
         )
 
     if args.command in {"dashboard", "health"}:
-        payload = trust_dashboard(database_path=database_path)
+        payload = oversight_dashboard(database_path=database_path)
         if output_format == "json":
             return _emit_payload(payload, output_format=output_format)
         lines = [
-            "Knowledge health",
+            "Oversight",
             f"objects={payload['object_count']}",
             "trust="
             + ", ".join(f"{key}={value}" for key, value in sorted(payload["trust_counts"].items())),
@@ -1000,7 +1000,7 @@ def operator_main() -> int:
         return _emit_payload(lines or ["no events found"], output_format="text")
 
     if args.command == "manage-queue":
-        payload = manage_queue(database_path=database_path)
+        payload = review_queue(database_path=database_path)
         if output_format == "json":
             return _emit_payload(payload, output_format=output_format)
         lines = [

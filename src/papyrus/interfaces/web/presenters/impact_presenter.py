@@ -1,18 +1,9 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlencode
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
-from papyrus.interfaces.web.presenters.impact_event_log_presenter import render_impact_event_log
-from papyrus.interfaces.web.presenters.impact_profile_presenter import render_impact_profile
-from papyrus.interfaces.web.presenters.impact_relationship_list_presenter import (
-    render_impact_relationship_list,
-)
-from papyrus.interfaces.web.presenters.impact_selected_item_presenter import (
-    render_impact_selected_item,
-)
-from papyrus.interfaces.web.presenters.impact_summary_presenter import render_impact_summary
-from papyrus.interfaces.web.presenters.impact_trace_presenter import render_impact_trace
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.urls import (
     impact_object_url,
@@ -20,7 +11,191 @@ from papyrus.interfaces.web.urls import (
     object_url,
     service_url,
 )
-from papyrus.interfaces.web.view_helpers import escape, join_html, link
+from papyrus.interfaces.web.view_helpers import (
+    escape,
+    join_html,
+    link,
+    render_definition_rows,
+)
+
+
+def render_impact_summary(
+    *,
+    components: ComponentPresenter,
+    title: str,
+    summary: str,
+    impacted_count: int,
+    recent_events_count: int,
+    surface: str,
+    related_services_count: int | None = None,
+) -> str:
+    badges = [
+        components.badge(label="Impacted", value=impacted_count, tone="warning"),
+        components.badge(label="Recent events", value=recent_events_count, tone="brand"),
+    ]
+    if related_services_count is not None:
+        badges.append(
+            components.badge(label="Related services", value=related_services_count, tone="context")
+        )
+    return (
+        f'<section class="impact-summary" data-component="impact-summary" data-surface="{escape(surface)}">'
+        '<div class="impact-summary__header">'
+        '<p class="impact-summary__kicker">Impact</p>'
+        f"<h2>{escape(title)}</h2>"
+        f"<p>{escape(summary)}</p>"
+        "</div>"
+        f'<div class="impact-summary__badges">{join_html(badges, " ")}</div>'
+        "</section>"
+    )
+
+
+def render_impact_profile(
+    *,
+    title: str,
+    rows: list[tuple[str, str]],
+    footer_html: str,
+    surface: str,
+) -> str:
+    return (
+        f'<section class="impact-profile" data-component="impact-profile" data-surface="{escape(surface)}">'
+        '<p class="impact-profile__kicker">Impact</p>'
+        f"<h2>{escape(title)}</h2>"
+        f"{render_definition_rows([(label, escape(value)) for label, value in rows])}"
+        f'<div class="impact-profile__footer">{footer_html}</div>'
+        "</section>"
+    )
+
+
+def render_impact_event_log(
+    *, title: str, events: list[dict[str, object]], empty_label: str, surface: str
+) -> str:
+    body_html = (
+        join_html(
+            [
+                (
+                    '<article class="impact-event-log__item">'
+                    f"<p><strong>{escape(event['occurred_at'])}</strong> · {escape(event['event_type'])}</p>"
+                    f"<p>{escape(event['actor'])} · {escape(event['source'])}</p>"
+                    f"<p>{escape(str(event['payload'].get('summary') or event['payload'].get('reason') or 'No event summary.'))}</p>"
+                    "</article>"
+                )
+                for event in events
+            ]
+        )
+        if events
+        else f'<p class="impact-event-log__empty">{escape(empty_label)}</p>'
+    )
+    return (
+        f'<section class="impact-event-log" data-component="impact-event-log" data-surface="{escape(surface)}">'
+        '<p class="impact-event-log__kicker">Audit</p>'
+        f"<h2>{escape(title)}</h2>"
+        f"{body_html}</section>"
+    )
+
+
+def render_impact_relationship_list(
+    *,
+    title: str,
+    eyebrow: str,
+    items_html: list[str],
+    empty_label: str,
+    surface: str,
+) -> str:
+    body_html = (
+        '<div class="impact-relationship-list__items">'
+        + join_html(
+            [f'<div class="impact-relationship-list__item">{item}</div>' for item in items_html]
+        )
+        + "</div>"
+        if items_html
+        else f'<p class="impact-relationship-list__empty">{escape(empty_label)}</p>'
+    )
+    return (
+        f'<section class="impact-relationship-list" data-component="impact-relationship-list" data-surface="{escape(surface)}">'
+        f'<p class="impact-relationship-list__kicker">{escape(eyebrow)}</p>'
+        f"<h2>{escape(title)}</h2>"
+        f"{body_html}</section>"
+    )
+
+
+def render_impact_selected_item(*, item: dict[str, Any], role: str, surface: str) -> str:
+    return (
+        f'<section class="impact-selected-item" data-component="impact-selected-item" data-surface="{escape(surface)}">'
+        '<p class="impact-selected-item__kicker">Selected item</p>'
+        f"<h2>{escape(str(item['title']))}</h2>"
+        + join_html(
+            [
+                f"<p><strong>{escape(item['reason'])}</strong></p>",
+                f"<p><strong>Trust:</strong> {escape(item['trust_state'])}</p>",
+                f"<p><strong>Changed:</strong> {escape(item['what_changed'])}</p>",
+                f"<p><strong>Propagation path:</strong> {escape(' -> '.join(item['propagation_path']))}</p>",
+                f"<p><strong>Revalidate:</strong> {escape(' | '.join(item['revalidate']))}</p>",
+            ]
+        )
+        + f'<div class="impact-selected-item__footer">{link("Open guidance", object_url(role, str(item["object_id"])), css_class="button button-secondary")}</div>'
+        + "</section>"
+    )
+
+
+def _impact_selection_href(base_path: str, *, object_id: str, revision_id: str = "") -> str:
+    return (
+        base_path
+        + "?"
+        + urlencode(
+            {
+                key: value
+                for key, value in {
+                    "selected_object_id": object_id,
+                    "selected_revision_id": revision_id,
+                }.items()
+                if value
+            }
+        )
+    )
+
+
+def render_impact_trace(
+    *,
+    components: ComponentPresenter,
+    role: str,
+    title: str,
+    items: list[dict[str, Any]],
+    base_path: str,
+    selected_item: dict[str, Any] | None,
+    surface: str,
+    empty_label: str,
+) -> str:
+    if not items:
+        return (
+            f'<section class="impact-trace" data-component="impact-trace" data-surface="{escape(surface)}">'
+            '<p class="impact-trace__kicker">Impact</p>'
+            f"<h2>{escape(title)}</h2>"
+            f'<p class="impact-trace__empty">{escape(empty_label)}</p>'
+            "</section>"
+        )
+    rows: list[str] = []
+    for item in items:
+        object_id = str(item["object_id"])
+        revision_id = str(item.get("revision_id") or "")
+        is_selected = (
+            selected_item is not None and str(selected_item.get("object_id") or "") == object_id
+        )
+        rows.append(
+            f"<tr{' class=\"is-selected\"' if is_selected else ''}>"
+            f"<td>{components.decision_cell(title_html=link(str(item['title']), _impact_selection_href(base_path, object_id=object_id, revision_id=revision_id), css_class='selected-row-link'), supporting_html=escape(item['reason']), meta=[escape(item['trust_state'])])}</td>"
+            f"<td>{components.decision_cell(title_html=escape(item['what_changed']), supporting_html=escape(' -> '.join(item['propagation_path'])))}</td>"
+            f"<td>{components.decision_cell(title_html=escape(' | '.join(item['revalidate'])))}</td>"
+            f"<td>{link('Open', object_url(role, object_id), css_class='button button-secondary')}</td>"
+            "</tr>"
+        )
+    return (
+        f'<section class="impact-trace" data-component="impact-trace" data-surface="{escape(surface)}">'
+        '<p class="impact-trace__kicker">Impact</p>'
+        f"<h2>{escape(title)}</h2>"
+        '<table class="workbench-table" id="impact-trace-table">'
+        "<thead><tr><th>Guidance</th><th>Changed through</th><th>Revalidate</th><th>Open</th></tr></thead>"
+        "<tbody>" + join_html(rows) + "</tbody></table></section>"
+    )
 
 
 def _selected_item(
@@ -141,7 +316,7 @@ def present_object_impact(
             "headline": f"Change impact: {entity['title']}",
             "show_actor_links": True,
         },
-        "active_nav": "health",
+        "active_nav": "oversight",
         "aside_html": aside_html,
         "page_context": {"summary_html": summary_html, "impacts_html": impacts_html},
         "page_surface": "impact-object",
@@ -217,7 +392,7 @@ def present_service_impact(
             "headline": f"Change impact: {entity['service_name']}",
             "show_actor_links": True,
         },
-        "active_nav": "health",
+        "active_nav": "oversight",
         "aside_html": aside_html,
         "page_context": {"summary_html": summary_html, "impacts_html": impacts_html},
         "page_surface": "impact-service",

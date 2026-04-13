@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.application.sync_flow import build_search_projection
-from papyrus.interfaces.web import app as web_app
+from papyrus.interfaces.web.app import app as web_app
 from tests.web_assertions import SemanticHookAssertions
 
 
@@ -1076,7 +1076,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertNotIn("kb-operator-ui-shell-search", reader_body)
             self.assertNotIn("/reader/object/kb-operator-ui-shell-search", reader_body)
 
-    def test_manage_queue_exposes_next_governance_actions_for_shells_and_drafts(self) -> None:
+    def test_review_queue_exposes_next_governance_actions_for_shells_and_drafts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
@@ -1092,13 +1092,13 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 "/operator/write/new",
                 method="POST",
                 form={
-                    "object_id": "kb-operator-ui-manage-shell",
+                    "object_id": "kb-operator-ui-review-shell",
                     "object_type": "runbook",
-                    "title": "Manage Queue Shell",
-                    "summary": "Manage queue should show the next authoring step.",
+                    "title": "Review Queue Shell",
+                    "summary": "Review queue should show the next authoring step.",
                     "owner": "workflow_owner",
                     "team": "IT Operations",
-                    "canonical_path": "knowledge/runbooks/manage-queue-shell.md",
+                    "canonical_path": "knowledge/runbooks/review-queue-shell.md",
                     "review_cadence": "quarterly",
                     "object_lifecycle_state": "draft",
                     "systems": PRIMARY_SYSTEM,
@@ -1109,34 +1109,34 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, body = call_wsgi(application, "/operator/review")
             self.assertEqual(status, "200 OK")
-            self.assertIn("Manage Queue Shell", body)
+            self.assertIn("Review Queue Shell", body)
             self.assertIn("Continue draft", body)
-            self.assertIn("/operator/write/object/kb-operator-ui-manage-shell?revision_id=", body)
+            self.assertIn("/operator/write/object/kb-operator-ui-review-shell?revision_id=", body)
             self.assertIn('<aside class="context-column">', body)
             self.assertIn('aria-selected="true"', body)
 
             complete_guided_runbook_revision(
                 application,
                 request_path_without_fragment(headers["Location"]),
-                object_id="kb-operator-ui-manage-shell",
-                title="Manage Queue Shell",
-                canonical_path="knowledge/runbooks/manage-queue-shell.md",
-                summary="Manage queue should show the next authoring step.",
-                change_summary="Seed first draft for manage queue testing.",
+                object_id="kb-operator-ui-review-shell",
+                title="Review Queue Shell",
+                canonical_path="knowledge/runbooks/review-queue-shell.md",
+                summary="Review queue should show the next authoring step.",
+                change_summary="Seed first draft for review queue testing.",
             )
 
             status, _, body = call_wsgi(application, "/operator/review")
             self.assertEqual(status, "200 OK")
             self.assertIn("Submit for review", body)
-            self.assertIn("/operator/write/object/kb-operator-ui-manage-shell?revision_id=", body)
+            self.assertIn("/operator/write/object/kb-operator-ui-review-shell?revision_id=", body)
             self.assertIn(
-                "/operator/write/object/kb-operator-ui-manage-shell/submit?revision_id=", body
+                "/operator/write/object/kb-operator-ui-review-shell/submit?revision_id=", body
             )
-            self.assertIn("selected_object_id=kb-operator-ui-manage-shell", body)
+            self.assertIn("selected_object_id=kb-operator-ui-review-shell", body)
 
             status, _, selected_body = call_wsgi(
                 application,
-                "/operator/review?selected_object_id=kb-operator-ui-manage-shell",
+                "/operator/review?selected_object_id=kb-operator-ui-review-shell",
             )
             self.assertEqual(status, "200 OK")
             self.assertIn('aria-selected="true"', selected_body)

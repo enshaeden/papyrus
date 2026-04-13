@@ -176,7 +176,7 @@ def service_catalog(
         connection.close()
 
 
-def trust_dashboard(
+def oversight_dashboard(
     *,
     database_path: str | Path = DB_PATH,
 ) -> dict[str, Any]:
@@ -270,3 +270,11 @@ def trust_dashboard(
         }
     finally:
         connection.close()
+
+
+def trust_dashboard(
+    *,
+    database_path: str | Path = DB_PATH,
+) -> dict[str, Any]:
+    """Compatibility alias for older callers."""
+    return oversight_dashboard(database_path=database_path)

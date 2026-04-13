@@ -63,21 +63,21 @@ Actors must not be treated as authority for permanent route structure, navigatio
 | Global search bar | Yes | Yes | Yes | Results filtered by role visibility |
 | Account/system menu | Yes | Yes | Yes | Menu entries may differ by role |
 | Dev-only role switcher | Dev only | Dev only | Dev only | Never in production |
-| Reader browse / tree / object read | Yes | Yes in Read | Optional inspect only | Admin inspection is not the primary framing |
+| Reader browse / content / object detail | Yes | Yes in Content | Optional inspect only | Admin inspection is not the primary framing |
 | Flag submission | Yes | Yes | Yes | Reader sees only the submission affordance |
 | Full flag details and resolution | No | Yes if authorised | Yes | Policy-controlled |
-| Operator Write workspace | No | Yes | Optional override | Admin access must be explicit |
+| Operator Authoring workspace | No | Yes | Optional override | Admin access must be explicit |
 | Review queues and assignments | No | Yes | Yes | Admin uses oversight framing, not automatic workflow inheritance |
-| Templates | No | Read/use only if needed | Yes | Template administration is Admin-owned by default |
+| Templates | No | Use only if needed | Yes | Template administration is Admin-owned by default |
 | Schemas | No | No or limited inspect | Yes | Strong admin boundary |
 | Users, roles, spaces, access, settings | No | No | Yes | Admin-only |
 | Audit log | No | Limited object history | Yes | Distinguish local history from full system audit |
 
 ## Explicit role boundaries
 
-- Reader must never see Write, Review, Template, Schema, Admin, Publish, or User Management controls.
+- Reader must never see Authoring, Review, Template, Schema, Admin, Publish, or User Management controls.
 - Operator must never see User Management, Access Management, Schema Administration, or System Settings unless explicitly elevated.
-- Admin owns access, schema, template, governance policy, publishing policy, and audit controls.
+- Admin owns access, schema, template, oversight policy, publishing policy, and audit controls.
 - Admin does not automatically inherit general writing or review workflows.
 - Admin is not a catch-all for every advanced or inconvenient screen.
 
@@ -164,7 +164,7 @@ Actors must not be treated as authority for permanent route structure, navigatio
 - Papyrus uses a governed tonal family centered on Pantone 7659 C, not a single-color theme.
 - Pantone 7659 C (`#5D3754`) is identity and intent. Use it for primary actions, active navigation, object identity cues, command highlights, summary chips, and review-intent controls.
 - Pantone 7658 C (`#6A3460`) is authority and depth. Use it for shell bars, pressed or hover states of hero controls, dense metadata emphasis, and other high-contrast depth cues.
-- Pantone 7660 C (`#9991A4`) is context and grouping. Use it for contextual fills, selected rows, grouped secondary controls, filter states, timeline rails, and governance or metadata panels.
+- Pantone 7660 C (`#9991A4`) is context and grouping. Use it for contextual fills, selected rows, grouped secondary controls, filter states, timeline rails, and oversight or metadata panels.
 - Semantic success, warning, error, and info colors remain separate from the 7658/7659/7660 family.
 - Most surfaces remain neutral. The purple family is reserved for orientation, context, and high-intent actions.
 - Use one dominant purple-family tone per component. Do not mix hero, depth, and context equally on the same element.

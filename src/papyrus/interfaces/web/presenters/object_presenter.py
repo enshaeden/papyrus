@@ -4,16 +4,53 @@ from typing import Any
 
 from papyrus.application.role_visibility import ADMIN_ROLE, READER_ROLE
 from papyrus.interfaces.web.experience import ExperienceContext
-from papyrus.interfaces.web.presenters.article_context_panel_presenter import (
-    render_article_context_panel,
-)
-from papyrus.interfaces.web.presenters.article_section_presenter import render_article_section
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import compact_action_menu_html
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.urls import impact_object_url, object_history_url, review_decision_url
 from papyrus.interfaces.web.view_helpers import escape, join_html, link
 from papyrus.interfaces.web.view_models.article_projection import build_article_projection
+
+from .article_content_presenter import render_article_block
+
+
+def render_article_section(*, section: dict[str, Any]) -> str:
+    blocks = [block for block in section.get("blocks") or [] if block]
+    body_html = (
+        join_html([render_article_block(block) for block in blocks])
+        if blocks
+        else f'<p class="article-empty">{escape(section.get("empty") or "No article content recorded.")}</p>'
+    )
+    return (
+        '<section class="article-section" data-component="article-section" data-surface="object-detail">'
+        f'<p class="article-section__kicker">{escape(section["eyebrow"])}</p>'
+        f"<h2>{escape(section['title'])}</h2>"
+        f"{body_html}</section>"
+    )
+
+
+def render_article_context_panel(*, section: dict[str, Any]) -> str:
+    blocks = [block for block in section.get("blocks") or [] if block]
+    raw_markdown = str(section.get("raw_markdown") or "").strip()
+    section_surface = (
+        "posture" if str(section.get("section_id") or "") == "governance" else "object-detail"
+    )
+    body_html = join_html([render_article_block(block) for block in blocks]) if blocks else ""
+    if raw_markdown:
+        body_html += (
+            '<details class="article-context-panel__source" data-component="inline-disclosure">'
+            "<summary>View revision source</summary>"
+            f'<pre class="source-markdown">{escape(raw_markdown)}</pre>'
+            "</details>"
+        )
+    if not body_html:
+        body_html = f'<p class="article-empty">{escape(section.get("empty") or "No supporting context recorded.")}</p>'
+    return (
+        f'<section class="article-context-panel" data-component="article-context-panel" data-surface="{section_surface}">'
+        f'<p class="article-context-panel__kicker">{escape(section["eyebrow"])}</p>'
+        f"<h3>{escape(section['title'])}</h3>"
+        f"{body_html}</section>"
+    )
 
 
 def present_object_detail(

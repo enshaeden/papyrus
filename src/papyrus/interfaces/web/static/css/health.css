@@ -1,21 +1,21 @@
-.page-health {
+.page-oversight {
   display: grid;
   gap: 1.15rem;
 }
 
-.health-board {
+.oversight-board {
   display: grid;
   gap: 1rem;
 }
 
-.health-board__grid {
+.oversight-board__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   align-items: start;
 }
 
-.health-board__column {
+.oversight-board__column {
   display: grid;
   gap: 0.85rem;
   align-content: start;
@@ -23,44 +23,44 @@
   padding: 1.1rem 1.15rem;
 }
 
-.health-board__column > h2,
-.health-board__column > p {
+.oversight-board__column > h2,
+.oversight-board__column > p {
   margin: 0;
 }
 
-.health-board__column.tone-danger {
+.oversight-board__column.tone-danger {
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
   background: var(--color-status-error-bg);
   box-shadow: var(--shadow-panel);
 }
 
-.health-board__column.tone-warning {
+.oversight-board__column.tone-warning {
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
   background: var(--color-status-warning-bg);
   box-shadow: var(--shadow-panel);
 }
 
-.health-board__column.tone-brand {
+.oversight-board__column.tone-brand {
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
   background: var(--color-panel-governance-bg);
   box-shadow: var(--shadow-panel);
 }
 
-.health-board__column.tone-default {
+.oversight-board__column.tone-default {
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
   background: var(--color-surface-panel);
   box-shadow: var(--shadow-panel);
 }
 
-.health-board__summary {
+.oversight-board__summary {
   color: var(--color-text-muted);
 }
 
-.health-board__card {
+.oversight-board__card {
   display: grid;
   gap: 0.45rem;
   min-width: 0;
@@ -69,13 +69,13 @@
   border-top: 1px solid var(--color-panel-governance-border);
 }
 
-.health-board__card:first-of-type {
+.oversight-board__card:first-of-type {
   margin-top: 0;
   padding-top: 0;
   border-top: 0;
 }
 
-.health-board__card h3 {
+.oversight-board__card h3 {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
@@ -83,15 +83,15 @@
   overflow-wrap: anywhere;
 }
 
-.health-board__card p {
+.oversight-board__card p {
   overflow-wrap: anywhere;
 }
 
-.health-board__card .button {
+.oversight-board__card .button {
   justify-self: start;
 }
 
-.health-board__card-kicker {
+.oversight-board__card-kicker {
   margin: 0 0 0.35rem;
   font-size: 0.72rem;
   font-weight: 800;
@@ -100,14 +100,14 @@
   color: var(--color-panel-governance-label);
 }
 
-.health-board__card-next {
+.oversight-board__card-next {
   margin: 0;
   font-weight: 700;
   color: var(--color-accent-primary);
 }
 
-.health-cleanup-board,
-.health-validation-board {
+.oversight-cleanup-board,
+.oversight-validation-board {
   padding: 1.1rem 1.15rem;
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
@@ -115,13 +115,13 @@
   box-shadow: var(--shadow-panel);
 }
 
-.health-cleanup-board__grid {
+.oversight-cleanup-board__grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.9rem;
 }
 
-.health-cleanup-board__grid article {
+.oversight-cleanup-board__grid article {
   display: grid;
   gap: 0.25rem;
   min-width: 0;
@@ -131,12 +131,12 @@
   background: var(--color-surface-raised);
 }
 
-.health-cleanup-board__grid article p:last-child {
+.oversight-cleanup-board__grid article p:last-child {
   margin: 0;
   color: var(--color-text-muted);
 }
 
-.health-cleanup-board__metric {
+.oversight-cleanup-board__metric {
   margin: 0;
   font-family: var(--font-serif);
   font-size: 2rem;
@@ -144,25 +144,25 @@
   color: var(--color-accent-primary);
 }
 
-.page-health .health-cleanup-board {
+.page-oversight .oversight-cleanup-board {
   margin-top: 0.2rem;
 }
 
-.health-board__empty,
-.health-validation-board p:last-child {
+.oversight-board__empty,
+.oversight-validation-board p:last-child {
   margin: 0;
 }
 
 @media (max-width: 1100px) {
-  .health-board__grid,
-  .health-cleanup-board__grid {
+  .oversight-board__grid,
+  .oversight-cleanup-board__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
-  .health-board__grid,
-  .health-cleanup-board__grid {
+  .oversight-board__grid,
+  .oversight-cleanup-board__grid {
     grid-template-columns: 1fr;
   }
 }

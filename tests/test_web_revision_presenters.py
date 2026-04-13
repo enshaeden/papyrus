@@ -8,11 +8,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.interfaces.web.presenters.revision_history_table_presenter import (
+from papyrus.interfaces.web.presenters.common import ComponentPresenter
+from papyrus.interfaces.web.presenters.revision_presenter import (
+    present_revision_history,
     render_revision_history_table,
 )
-from papyrus.interfaces.web.presenters.revision_presenter import present_revision_history
-from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions
 

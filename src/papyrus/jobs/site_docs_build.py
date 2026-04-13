@@ -12,6 +12,10 @@ from os import path as os_path
 from pathlib import Path
 from urllib.parse import urlencode
 
+from papyrus.application.blueprint_registry import (
+    list_primary_authoring_blueprints,
+    ordered_blueprint_ids,
+)
 from papyrus.application.export_flow import (
     ExportRuntimeUnavailableError,
     approved_export_object_ids,
@@ -362,6 +366,16 @@ def format_plain_values(values: list[str], empty: str = "None documented") -> st
 def primary_object_type(article) -> str:
     metadata = article.metadata
     return metadata.get("knowledge_object_type") or "unknown"
+
+
+def visible_blueprint_type_order(articles: list) -> list[str]:
+    primary_types = {blueprint.blueprint_id for blueprint in list_primary_authoring_blueprints()}
+    present_types = {
+        primary_object_type(article)
+        for article in articles
+        if str(primary_object_type(article) or "").strip() and primary_object_type(article) != "unknown"
+    }
+    return ordered_blueprint_ids(primary_types | present_types)
 
 
 def article_link(article, current_relative: Path) -> str:
@@ -925,7 +939,7 @@ def render_explorer_page(
         )
 
     explorer_taxonomies = {
-        "type": [entry["name"] for entry in taxonomies["knowledge_object_types"]["values"]],
+        "type": visible_blueprint_type_order(articles),
         "audience": [entry["name"] for entry in taxonomies["audiences"]["values"]],
         "service": [entry["name"] for entry in taxonomies["services"]["values"]],
         "system": [entry["name"] for entry in taxonomies["systems"]["values"]],
@@ -1377,7 +1391,7 @@ def render_content_health_page(
 
 def render_coverage_matrix_page(articles: list, taxonomies: dict[str, dict[str, object]]) -> str:
     current_relative = Path("knowledge/coverage-matrix.md")
-    type_order = [entry["name"] for entry in taxonomies["knowledge_object_types"]["values"]]
+    type_order = visible_blueprint_type_order(articles)
     service_order = [entry["name"] for entry in taxonomies["services"]["values"]]
     articles_by_service_type = defaultdict(int)
     unclassified_label = "Unclassified"
@@ -1392,7 +1406,7 @@ def render_coverage_matrix_page(articles: list, taxonomies: dict[str, dict[str, 
         "",
         "# Coverage Matrix",
         "",
-        "Counts below show canonical knowledge-object coverage by service and knowledge-object type. Each count links back into the explorer for follow-up review.",
+        "Counts below show canonical knowledge-object coverage by service and knowledge-object type. Primary templates are listed first; advanced types appear only when populated. Each count links back into the explorer for follow-up review.",
         "",
         "| Service | " + " | ".join(type_order) + " | Total |",
         "| --- | " + " | ".join("---" for _ in type_order) + " | --- |",
@@ -1444,7 +1458,7 @@ def render_landing_page(
         ),
         (
             "By Type",
-            "Browse approved export content grouped by knowledge object type.",
+            "Browse approved export content grouped by primary templates first, with advanced types only when populated.",
             page_href(current_relative, "by-type.md"),
         ),
     ]
@@ -1464,7 +1478,7 @@ def render_landing_page(
         "",
         "This landing page exposes the approved static export of Papyrus knowledge objects.",
         "",
-        "The interactive operator queue, trust dashboard, and impact views live in the runtime-backed web and API surfaces, not in this export.",
+        "The interactive operator queue, oversight dashboard, and impact views live in the runtime-backed web and API surfaces, not in this export.",
         "",
         render_card_grid(cards),
         "",
@@ -1618,11 +1632,11 @@ def main() -> int:
     (knowledge_root / "by-type.md").write_text(
         render_grouped_index_page(
             "Knowledge By Type",
-            "Browse current knowledge grouped by knowledge-object type.",
+            "Browse current knowledge grouped by primary templates first. Advanced or deferred types appear only when populated.",
             by_type,
             "knowledge/by-type.md",
             "type",
-            [entry["name"] for entry in taxonomies["knowledge_object_types"]["values"]],
+            visible_blueprint_type_order(visible_articles),
         ),
         encoding="utf-8",
     )

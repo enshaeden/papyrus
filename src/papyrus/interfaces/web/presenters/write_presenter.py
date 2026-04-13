@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from papyrus.application.blueprint_registry import list_blueprints
+from papyrus.application.blueprint_registry import (
+    list_advanced_authoring_blueprints,
+    list_primary_authoring_blueprints,
+)
 from papyrus.application.ui_projection import (
     build_draft_readiness_projection,
     workflow_projection_payload,
 )
+from papyrus.domain.blueprints import Blueprint
 from papyrus.domain.evidence import summarize_evidence_posture
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
@@ -23,26 +27,120 @@ from papyrus.interfaces.web.presenters.write_support_presenter import (
     submit_evidence_posture_detail,
     support_details_html,
 )
-from papyrus.interfaces.web.urls import write_object_url, write_submit_url
-from papyrus.interfaces.web.view_helpers import escape, join_html, render_list
+from papyrus.interfaces.web.urls import (
+    write_advanced_url,
+    write_new_url,
+    write_object_url,
+    write_submit_url,
+)
+from papyrus.interfaces.web.view_helpers import escape, join_html, link, render_list
+
+
+def _blueprint_select_html(
+    *,
+    field_id: str,
+    field_name: str,
+    value: str,
+    blueprints: list[Blueprint],
+) -> str:
+    option_html = "".join(
+        f'<option value="{escape(blueprint.blueprint_id)}"{" selected" if blueprint.blueprint_id == value else ""}>'
+        f"{escape(blueprint.display_name)}</option>"
+        for blueprint in blueprints
+    )
+    return (
+        f'<select id="{escape(field_id)}" name="{escape(field_name)}" '
+        'data-component="form-control" data-control-type="select">'
+        f"{option_html}</select>"
+    )
+
+
+def _blueprint_scope_list_html(blueprints: list[Blueprint]) -> str:
+    return (
+        '<ul class="stack-list">'
+        + join_html(
+            [
+                (
+                    "<li><strong>"
+                    + escape(blueprint.display_name)
+                    + ":</strong> "
+                    + escape(blueprint.description)
+                    + "</li>"
+                )
+                for blueprint in blueprints
+            ]
+        )
+        + "</ul>"
+    )
+
+
+def _primary_guidance_html() -> str:
+    primary_blueprints = list_primary_authoring_blueprints()
+    return (
+        "<p>Start with the strongest operational templates first.</p>"
+        + _blueprint_scope_list_html(primary_blueprints)
+        + "<p>Need an internal or deferred blueprint class?</p>"
+        + "<p>"
+        + link(
+            "Open advanced authoring",
+            write_advanced_url(),
+            css_class="button button-secondary",
+            attrs={"data-action-id": "open-advanced-authoring"},
+        )
+        + "</p>"
+    )
+
+
+def _advanced_guidance_html() -> str:
+    advanced_blueprints = list_advanced_authoring_blueprints()
+    primary_blueprints = list_primary_authoring_blueprints()
+    return (
+        "<p>This path keeps the full blueprint model available, including deferred classes.</p>"
+        + (
+            "<p><strong>Advanced targets</strong></p>" + _blueprint_scope_list_html(advanced_blueprints)
+            if advanced_blueprints
+            else ""
+        )
+        + "<p><strong>Preferred primary templates</strong></p>"
+        + _blueprint_scope_list_html(primary_blueprints)
+        + "<p>"
+        + link(
+            "Return to primary templates",
+            write_new_url(),
+            css_class="button button-secondary",
+            attrs={"data-action-id": "open-primary-authoring"},
+        )
+        + "</p>"
+    )
 
 
 def present_object_setup_page(
-    runtime, values: dict[str, str], errors: dict[str, list[str]], *, form_action: str
+    runtime,
+    values: dict[str, str],
+    errors: dict[str, list[str]],
+    *,
+    form_action: str,
+    authoring_blueprints: list[Blueprint],
+    authoring_mode: str,
 ) -> dict[str, str]:
     forms = FormPresenter(runtime.template_renderer)
     components = ComponentPresenter(runtime.template_renderer)
+    is_advanced_mode = authoring_mode == "advanced"
     primary_controls = [
         forms.field(
             field_id="object_type",
             label="Content type",
-            control_html=forms.select(
+            control_html=_blueprint_select_html(
                 field_id="object_type",
-                name="object_type",
+                field_name="object_type",
                 value=values["object_type"],
-                options=[blueprint.blueprint_id for blueprint in list_blueprints()],
+                blueprints=authoring_blueprints,
             ),
-            hint="Choose the structure that best fits the guidance.",
+            hint=(
+                "Choose the blueprint that best fits the guidance, including deferred classes."
+                if is_advanced_mode
+                else "Choose the primary template that best fits the guidance."
+            ),
             errors=errors.get("object_type"),
         ),
         forms.field(
@@ -178,12 +276,23 @@ def present_object_setup_page(
         "validation_html": validation_html,
         "progress_html": render_object_progress_html(components, values=values, errors=errors),
         "form_html": components.content_section(
-            title="Set up the draft", eyebrow="Authoring", body_html=body_html
+            title="Start an advanced draft" if is_advanced_mode else "Start from a primary template",
+            eyebrow="Authoring",
+            body_html=body_html,
         ),
         "guidance_html": support_details_html(
-            title="What happens next",
-            summary="Papyrus opens the first required section after setup.",
-            body_html="<p>After setup, complete one required section at a time and then hand the revision to review.</p>",
+            title="Advanced and deferred authoring"
+            if is_advanced_mode
+            else "Primary template set",
+            summary=(
+                "Use this path when the draft belongs to an internal or deferred blueprint class."
+                if is_advanced_mode
+                else "Papyrus markets and organizes visible authoring around runbooks, known errors, and service records."
+            ),
+            body_html=(
+                _advanced_guidance_html() if is_advanced_mode else _primary_guidance_html()
+            )
+            + "<p>After setup, complete one required section at a time and then hand the revision to review.</p>",
         ),
     }
 

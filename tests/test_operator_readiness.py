@@ -19,7 +19,7 @@ from papyrus.application.queries import search_knowledge_objects
 from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.interfaces.api import app as api_app
-from papyrus.interfaces.web import app as web_app
+from papyrus.interfaces.web.app import app as web_app
 from tests.web_assertions import SemanticHookAssertions
 
 

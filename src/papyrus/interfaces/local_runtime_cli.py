@@ -14,7 +14,7 @@ from papyrus.infrastructure.observability import get_logger, log_event
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.interfaces.api import app as api_app
 from papyrus.interfaces.startup_guard import resolve_operator_source_root
-from papyrus.interfaces.web import app as web_app
+from papyrus.interfaces.web.app import app as web_app
 
 LOGGER = get_logger(__name__)
 

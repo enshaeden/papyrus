@@ -153,19 +153,19 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 - `Read Filter Bar`
   - `data-component`: `read-filter-bar`
-  - owner file: `src/papyrus/interfaces/web/presenters/read_filter_bar_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/queue_presenter.py`
   - upstream data source: role-scoped read-route query/filter state
   - CSS location: `src/papyrus/interfaces/web/static/css/read.css`
   - test location: `tests/test_web_read_queue_presenters.py`
 - `Read Result Card` and `Read Results Table`
   - `data-component`: `read-result-card`, `read-results-table`
-  - owner file: `src/papyrus/interfaces/web/presenters/read_results_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/queue_presenter.py`
   - upstream data source: queue items plus `ui_projection.use_guidance`
   - CSS location: `src/papyrus/interfaces/web/static/css/read.css`
   - test location: `tests/test_web_read_queue_presenters.py`
 - `Read Selected Context`
   - `data-component`: `read-selected-context`
-  - owner file: `src/papyrus/interfaces/web/presenters/read_selected_context_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/queue_presenter.py`
   - upstream data source: selected queue item
   - CSS location: `src/papyrus/interfaces/web/static/css/read.css`
   - test location: `tests/test_web_read_queue_presenters.py`
@@ -175,13 +175,13 @@ Tests should assert those hooks plus structured contract payload behavior instea
 - Object detail title, summary, and primary actions render through the shared page header in `src/papyrus/interfaces/web/rendering.py`.
 - `Article Section`
   - `data-component`: `article-section`
-  - owner file: `src/papyrus/interfaces/web/presenters/article_section_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/object_presenter.py`
   - upstream data source: `papyrus.interfaces.web.view_models.article_projection`
   - CSS location: `src/papyrus/interfaces/web/static/css/article.css`
   - test location: `tests/test_web_object_detail_presenters.py`
 - `Article Context Panel`
   - `data-component`: `article-context-panel`
-  - owner file: `src/papyrus/interfaces/web/presenters/article_context_panel_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/object_presenter.py`
   - upstream data source: `papyrus.interfaces.web.view_models.article_projection`
   - CSS location: `src/papyrus/interfaces/web/static/css/article.css`
   - test location: `tests/test_web_object_detail_presenters.py`
@@ -190,48 +190,48 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 - `Service Map`
   - `data-component`: `service-map`
-  - owner file: `src/papyrus/interfaces/web/presenters/service_map_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/service_presenter.py`
   - upstream data source: `/services` route payload
   - CSS location: `src/papyrus/interfaces/web/static/css/services.css`
   - test location: `tests/test_web_service_presenters.py`
 - `Service Map Card`
   - `data-component`: `service-map-card`
-  - owner file: `src/papyrus/interfaces/web/presenters/service_map_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/service_presenter.py`
   - upstream data source: service catalog rows
   - CSS location: `src/papyrus/interfaces/web/static/css/services.css`
   - test location: `tests/test_web_service_presenters.py`
 - Service detail title, service facts, and primary actions render through the shared page header in `src/papyrus/interfaces/web/rendering.py`.
 - `Service Pressure`
   - `data-component`: `service-pressure`
-  - owner file: `src/papyrus/interfaces/web/presenters/service_pressure_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/service_presenter.py`
   - upstream data source: service posture summary
   - CSS location: `src/papyrus/interfaces/web/static/css/services.css`
   - test location: `tests/test_web_service_presenters.py`
 - `Service Path`
   - `data-component`: `service-path`, `service-path-item`
-  - owner file: `src/papyrus/interfaces/web/presenters/service_path_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/service_presenter.py`
   - upstream data source: linked service objects
   - CSS location: `src/papyrus/interfaces/web/static/css/services.css`
   - test location: `tests/test_web_service_presenters.py`
 
 ### Oversight
 
-- `Health Board`
-  - `data-component`: `health-board`
-  - owner file: `src/papyrus/interfaces/web/presenters/health_board_presenter.py`
-  - upstream data source: trust dashboard queue payload
+- `Oversight Board`
+  - `data-component`: `oversight-board`
+  - owner file: `src/papyrus/interfaces/web/presenters/dashboard_presenter.py`
+  - upstream data source: oversight dashboard queue payload
   - CSS location: `src/papyrus/interfaces/web/static/css/health.css`
   - test location: `tests/test_web_health_presenters.py`
-- `Health Cleanup Board`
-  - `data-component`: `health-cleanup-board`
-  - owner file: `src/papyrus/interfaces/web/presenters/health_cleanup_board_presenter.py`
-  - upstream data source: trust dashboard cleanup counts
+- `Oversight Cleanup Board`
+  - `data-component`: `oversight-cleanup-board`
+  - owner file: `src/papyrus/interfaces/web/presenters/dashboard_presenter.py`
+  - upstream data source: oversight dashboard cleanup counts
   - CSS location: `src/papyrus/interfaces/web/static/css/health.css`
   - test location: `tests/test_web_health_presenters.py`
-- `Health Validation Board`
-  - `data-component`: `health-validation-board`
-  - owner file: `src/papyrus/interfaces/web/presenters/health_validation_board_presenter.py`
-  - upstream data source: trust dashboard validation posture
+- `Oversight Validation Board`
+  - `data-component`: `oversight-validation-board`
+  - owner file: `src/papyrus/interfaces/web/presenters/dashboard_presenter.py`
+  - upstream data source: oversight dashboard validation posture
   - CSS location: `src/papyrus/interfaces/web/static/css/health.css`
   - test location: `tests/test_web_health_presenters.py`
 
@@ -239,13 +239,13 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 - `Review Cleanup Strip`
   - `data-component`: `review-cleanup-strip`
-  - owner file: `src/papyrus/interfaces/web/presenters/review_cleanup_strip_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/review_presenter.py`
   - upstream data source: review queue cleanup counts
   - CSS location: `src/papyrus/interfaces/web/static/css/review.css`
   - test location: `tests/test_web_review_presenters.py`
 - `Review Lane`
   - `data-component`: `review-lane`
-  - owner file: `src/papyrus/interfaces/web/presenters/review_lane_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/review_presenter.py`
   - upstream data source: review queue lane items plus governed actions
   - CSS location: `src/papyrus/interfaces/web/static/css/review.css`
   - test location: `tests/test_web_review_presenters.py`
@@ -254,25 +254,25 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 - `Activity Filter Bar`
   - `data-component`: `activity-filter-bar`
-  - owner file: `src/papyrus/interfaces/web/presenters/activity_filter_bar_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/activity_presenter.py`
   - upstream data source: `/operator/review/activity` and `/admin/audit` filter state
   - CSS location: `src/papyrus/interfaces/web/static/css/activity.css`
   - test location: `tests/test_web_activity_presenters.py`
 - `Activity Event`
   - `data-component`: `activity-event`
-  - owner file: `src/papyrus/interfaces/web/presenters/activity_event_list_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/activity_presenter.py`
   - upstream data source: structured activity events
   - CSS location: `src/papyrus/interfaces/web/static/css/activity.css`
   - test location: `tests/test_web_activity_presenters.py`
 - `Activity Audit Log`
   - `data-component`: `activity-audit-log`
-  - owner file: `src/papyrus/interfaces/web/presenters/activity_audit_log_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/activity_presenter.py`
   - upstream data source: raw audit events
   - CSS location: `src/papyrus/interfaces/web/static/css/activity.css`
   - test location: `tests/test_web_activity_presenters.py`
 - `Activity Validation Log`
   - `data-component`: `activity-validation-log`
-  - owner file: `src/papyrus/interfaces/web/presenters/activity_validation_log_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/activity_presenter.py`
   - upstream data source: validation run summaries
   - CSS location: `src/papyrus/interfaces/web/static/css/activity.css`
   - test location: `tests/test_web_activity_presenters.py`
@@ -281,19 +281,19 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 - `Revision History Table`
   - `data-component`: `revision-history-table`
-  - owner file: `src/papyrus/interfaces/web/presenters/revision_history_table_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/revision_presenter.py`
   - upstream data source: object revision history payload
   - CSS location: `src/papyrus/interfaces/web/static/css/revision.css`
   - test location: `tests/test_web_revision_presenters.py`
 - `Revision Audit Sequence`
   - `data-component`: `revision-audit-sequence`
-  - owner file: `src/papyrus/interfaces/web/presenters/revision_audit_sequence_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/revision_presenter.py`
   - upstream data source: object audit events
   - CSS location: `src/papyrus/interfaces/web/static/css/revision.css`
   - test location: `tests/test_web_revision_presenters.py`
 - `Revision Comparison Cues`
   - `data-component`: `revision-comparison-cues`
-  - owner file: `src/papyrus/interfaces/web/presenters/revision_comparison_cues_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/revision_presenter.py`
   - upstream data source: presenter-owned comparison guidance
   - CSS location: `src/papyrus/interfaces/web/static/css/revision.css`
   - test location: `tests/test_web_revision_presenters.py`
@@ -302,37 +302,37 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 - `Impact Summary`
   - `data-component`: `impact-summary`
-  - owner file: `src/papyrus/interfaces/web/presenters/impact_summary_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/impact_presenter.py`
   - upstream data source: impact route payload counts
   - CSS location: `src/papyrus/interfaces/web/static/css/impact.css`
   - test location: `tests/test_web_impact_presenters.py`
 - `Impact Trace`
   - `data-component`: `impact-trace`
-  - owner file: `src/papyrus/interfaces/web/presenters/impact_trace_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/impact_presenter.py`
   - upstream data source: impacted object list and URL selection state
   - CSS location: `src/papyrus/interfaces/web/static/css/impact.css`
   - test location: `tests/test_web_impact_presenters.py`
 - `Impact Profile`
   - `data-component`: `impact-profile`
-  - owner file: `src/papyrus/interfaces/web/presenters/impact_profile_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/impact_presenter.py`
   - upstream data source: current impact summary for object or service
   - CSS location: `src/papyrus/interfaces/web/static/css/impact.css`
   - test location: `tests/test_web_impact_presenters.py`
 - `Impact Selected Item`
   - `data-component`: `impact-selected-item`
-  - owner file: `src/papyrus/interfaces/web/presenters/impact_selected_item_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/impact_presenter.py`
   - upstream data source: currently selected impacted object
   - CSS location: `src/papyrus/interfaces/web/static/css/impact.css`
   - test location: `tests/test_web_impact_presenters.py`
 - `Impact Event Log`
   - `data-component`: `impact-event-log`
-  - owner file: `src/papyrus/interfaces/web/presenters/impact_event_log_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/impact_presenter.py`
   - upstream data source: impact route recent events
   - CSS location: `src/papyrus/interfaces/web/static/css/impact.css`
   - test location: `tests/test_web_impact_presenters.py`
 - `Impact Relationship List`
   - `data-component`: `impact-relationship-list`
-  - owner file: `src/papyrus/interfaces/web/presenters/impact_relationship_list_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/impact_presenter.py`
   - upstream data source: inbound relationships, citation dependents, and related services
   - CSS location: `src/papyrus/interfaces/web/static/css/impact.css`
   - test location: `tests/test_web_impact_presenters.py`
@@ -341,55 +341,55 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 - `Ingest Upload`
   - `data-component`: `ingest-upload`
-  - owner file: `src/papyrus/interfaces/web/presenters/ingest_upload_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_presenter.py`
   - upstream data source: import form state and validation errors
   - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
   - test location: `tests/test_web_ingest_presenters.py`
 - `Ingest List`
   - `data-component`: `ingest-list`
-  - owner file: `src/papyrus/interfaces/web/presenters/ingest_list_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_presenter.py`
   - upstream data source: import workbench listing payload
   - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
   - test location: `tests/test_web_ingest_presenters.py`
 - `Ingest Progress`
   - `data-component`: `ingest-progress`
-  - owner file: `src/papyrus/interfaces/web/presenters/ingest_progress_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_presenter.py`
   - upstream data source: ingestion detail lifecycle state
   - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
   - test location: `tests/test_web_ingest_presenters.py`
 - `Ingest Stage Board`
   - `data-component`: `ingest-stage-board`, `ingest-stage-card`
-  - owner file: `src/papyrus/interfaces/web/presenters/ingest_stage_board_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_presenter.py`
   - upstream data source: normalized content, classification, and mapping summary
   - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
   - test location: `tests/test_web_ingest_presenters.py`
 - `Ingest Parsed Content`
   - `data-component`: `ingest-parsed-content`
-  - owner file: `src/papyrus/interfaces/web/presenters/ingest_parsed_content_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_presenter.py`
   - upstream data source: normalized parsed-content summary
   - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
   - test location: `tests/test_web_ingest_presenters.py`
 - `Ingest Parser Assessment`
   - `data-component`: `ingest-parser-assessment`
-  - owner file: `src/papyrus/interfaces/web/presenters/ingest_parser_assessment_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_presenter.py`
   - upstream data source: parser warnings and extraction quality
   - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
   - test location: `tests/test_web_ingest_presenters.py`
 - `Ingest Mapping Table`
   - `data-component`: `ingest-mapping-table`
-  - owner file: `src/papyrus/interfaces/web/presenters/ingest_mapping_table_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_presenter.py`
   - upstream data source: mapping result sections
   - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
   - test location: `tests/test_web_ingest_presenters.py`
 - `Ingest Mapping Gaps`
   - `data-component`: `ingest-mapping-gaps`, `ingest-mapping-gap`
-  - owner file: `src/papyrus/interfaces/web/presenters/ingest_mapping_gaps_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_presenter.py`
   - upstream data source: mapping result gaps and conflicts
   - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
   - test location: `tests/test_web_ingest_presenters.py`
 - `Ingest Convert Form`
   - `data-component`: `ingest-convert-form`
-  - owner file: `src/papyrus/interfaces/web/presenters/ingest_convert_form_presenter.py`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_presenter.py`
   - upstream data source: mapping review detail, taxonomy choices, and conversion errors
   - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
   - test location: `tests/test_web_ingest_presenters.py`
@@ -401,7 +401,9 @@ Tests should assert those hooks plus structured contract payload behavior instea
   - with `revision_id`, it loads that revision context only
   - without `revision_id`, it may load only an existing compatible draft
   - if no compatible draft exists, it returns `400 Bad Request` with an operator-facing reason and does not redirect implicitly
-- `/operator/write/new` creates the object shell and eagerly starts the first draft before redirecting to the guided page with a concrete `revision_id`.
+- `/operator/write/new` exposes only the primary visible templates: runbooks, known errors, and service records.
+- `/operator/write/advanced` exposes the full blueprint set, including deferred internal classes such as policy and system design.
+- Both `/operator/write/new` and `/operator/write/advanced` create the object shell and eagerly start the first draft before redirecting to the guided page with a concrete `revision_id`.
 - `GET /operator/write/citations/search` and `GET /operator/write/objects/search` are operator-only JSON helpers for guided authoring widgets.
 - Presenters should link to an existing guided revision only when they already have a concrete `revision_id`. When a draft may need to be created or reused, presenters should use the explicit POST start route instead of GET-side effects.
 

@@ -8,13 +8,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.interfaces.web.presenters.queue_presenter import present_queue_page
-from papyrus.interfaces.web.presenters.read_filter_bar_presenter import render_read_filter_bar
-from papyrus.interfaces.web.presenters.read_results_presenter import (
+from papyrus.interfaces.web.presenters.queue_presenter import (
+    present_queue_page,
+    render_read_filter_bar,
     queue_item_href,
     render_read_result_cards,
-)
-from papyrus.interfaces.web.presenters.read_selected_context_presenter import (
     render_read_selected_context,
 )
 from papyrus.interfaces.web.rendering import TemplateRenderer

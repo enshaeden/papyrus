@@ -11,13 +11,13 @@ Use this documentation set to operate Papyrus from the repository as it exists n
 ## Playbooks
 
 - [Content](playbooks/read.md): search, inspect trust posture, follow related objects, and spot stale or suspect knowledge.
-- [Authoring](playbooks/write.md): create or revise canonical source, attach citations, validate, and prepare review handoff.
+- [Authoring](playbooks/write.md): start primary templates, continue governed revisions, review imports before draft creation, and prepare review handoff.
 - [Oversight](playbooks/manage.md): review queues, inspect revision history and audit trails, and run content-health checks.
 
 ## System Model
 
-- [System model](reference/system-model.md): the object, revision, trust, citation, validation, runtime, and export rules in one place.
-- [Operator web UI](reference/operator-web-ui.md): server-rendered operator shell for content, authoring, review, and oversight workflows.
+- [System model](reference/system-model.md): the object, revision, trust, citation, validation, runtime, and export rules in one place, including the primary template scope and advanced blueprint boundary.
+- [Operator web UI](reference/operator-web-ui.md): server-rendered operator shell for content, primary template authoring, import review, advanced authoring, review, and oversight workflows.
 - [Operator readiness](reference/operator-readiness.md): implementation hardening notes, demo/runtime path, operator CLI parity, and structured findings.
 - [Placeholder glossary](reference/placeholder-glossary.md): stable definitions for the sanitization placeholders still used across source and migration artifacts.
 

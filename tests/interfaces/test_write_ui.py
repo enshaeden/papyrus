@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.application.review_flow import GovernanceWorkflow
-from papyrus.interfaces.web import app as web_app
+from papyrus.interfaces.web.app import app as web_app
 from tests.web_assertions import SemanticHookAssertions
 
 
@@ -82,6 +82,59 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn(
                 'class="sidebar-link is-active" href="/operator/write/new">Authoring</a>', body
             )
+            self.assertIn('option value="runbook"', body)
+            self.assertIn('option value="known_error"', body)
+            self.assertIn('option value="service_record"', body)
+            self.assertNotIn('option value="policy"', body)
+            self.assertNotIn('option value="system_design"', body)
+            self.assertIn('href="/operator/write/advanced"', body)
+
+    def test_advanced_write_entry_page_exposes_all_blueprints(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(
+                database_path, source_root=source_root, allow_noncanonical_source_root=True
+            )
+
+            status, _, body = call_wsgi(application, "/operator/write/advanced")
+            self.assertEqual(status, "200 OK")
+            self.assert_primary_surface(body, "write")
+            self.assertIn("Advanced authoring", body)
+            self.assertIn('option value="runbook"', body)
+            self.assertIn('option value="known_error"', body)
+            self.assertIn('option value="service_record"', body)
+            self.assertIn('option value="policy"', body)
+            self.assertIn('option value="system_design"', body)
+
+    def test_primary_write_route_rejects_deferred_blueprints(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(
+                database_path, source_root=source_root, allow_noncanonical_source_root=True
+            )
+
+            status, _, body = call_wsgi(
+                application,
+                "/operator/write/new",
+                method="POST",
+                form={
+                    "object_id": "kb-ui-policy-rejected",
+                    "object_type": "policy",
+                    "title": "Policy Rejected On Primary Route",
+                    "summary": "Primary route should reject deferred blueprint types.",
+                    "owner": "workflow_owner",
+                    "team": "IT Operations",
+                    "canonical_path": "knowledge/policies/policy-rejected-on-primary-route.md",
+                    "review_cadence": "annual",
+                    "object_lifecycle_state": "draft",
+                    "systems": "Remote Access Gateway",
+                    "tags": "vpn",
+                },
+            )
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Choose a supported object type.", body)
 
     def test_policy_revision_page_shows_guided_policy_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -93,7 +146,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, headers, _ = call_wsgi(
                 application,
-                "/operator/write/new",
+                "/operator/write/advanced",
                 method="POST",
                 form={
                     "object_id": "kb-ui-policy",
@@ -142,7 +195,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, headers, _ = call_wsgi(
                 application,
-                "/operator/write/new",
+                "/operator/write/advanced",
                 method="POST",
                 form={
                     "object_id": "kb-ui-system-design",
@@ -174,7 +227,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("/static/js/multi_value_picker.js", guided_body)
             self.assertNotIn("/revisions/fallback", guided_body)
 
-    def test_read_filters_expose_policy_and_system_design_types(self) -> None:
+    def test_read_filters_hide_policy_and_system_design_types_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
@@ -185,8 +238,8 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, body = call_wsgi(application, "/operator/read")
             self.assertEqual(status, "200 OK")
-            self.assertIn('option value="policy"', body)
-            self.assertIn('option value="system_design"', body)
+            self.assertNotIn('option value="policy"', body)
+            self.assertNotIn('option value="system_design"', body)
 
     def test_guided_revision_page_owns_search_backed_controls(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

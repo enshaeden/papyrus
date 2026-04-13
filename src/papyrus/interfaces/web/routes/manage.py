@@ -17,8 +17,8 @@ from papyrus.application.queries import (
     event_history,
     impact_view_for_object,
     knowledge_object_detail,
-    manage_queue,
     review_detail,
+    review_queue,
     validation_run_history,
 )
 from papyrus.application.writeback_flow import preview_revision_writeback
@@ -33,18 +33,20 @@ from papyrus.interfaces.web.forms.review_forms import (
 )
 from papyrus.interfaces.web.forms.revision_forms import build_submission_findings
 from papyrus.interfaces.web.http import Request, html_response, redirect_response
-from papyrus.interfaces.web.presenters.governed_presenter import action_descriptor
-from papyrus.interfaces.web.presenters.manage_presenter import (
+from papyrus.interfaces.web.presenters.activity_presenter import (
     present_audit_page,
+    present_validation_run_new_page,
+    present_validation_runs_page,
+)
+from papyrus.interfaces.web.presenters.governed_presenter import action_descriptor
+from papyrus.interfaces.web.presenters.review_presenter import (
     present_evidence_revalidation_page,
-    present_manage_queue_page,
     present_object_archive_page,
     present_object_supersede_page,
     present_object_suspect_page,
     present_review_assignment_page,
     present_review_decision_page,
-    present_validation_run_new_page,
-    present_validation_runs_page,
+    present_review_queue_page,
     present_warning_flash,
 )
 from papyrus.interfaces.web.route_utils import flash_html_for_request
@@ -72,10 +74,10 @@ def _render_page(
 
 
 def register(router, runtime) -> None:
-    def manage_queue_page(request: Request):
+    def review_queue_page(request: Request):
         experience = require_experience(request, "operator", "admin")
-        queue = manage_queue(database_path=runtime.database_path)
-        page = present_manage_queue_page(
+        queue = review_queue(database_path=runtime.database_path)
+        page = present_review_queue_page(
             runtime.template_renderer,
             role=experience.role,
             queue=queue,
@@ -419,8 +421,8 @@ def register(router, runtime) -> None:
         )
         return _render_page(runtime, request, page=page)
 
-    router.add(["GET"], "/operator/review", manage_queue_page)
-    router.add(["GET"], "/admin/review", manage_queue_page)
+    router.add(["GET"], "/operator/review", review_queue_page)
+    router.add(["GET"], "/admin/review", review_queue_page)
     router.add(
         ["GET", "POST"], "/operator/review/object/{object_id}/supersede", object_supersede_page
     )

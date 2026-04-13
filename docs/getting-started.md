@@ -39,15 +39,16 @@ What to expect:
 - Operator surfaces live under `/operator/*`.
 - Admin surfaces live under `/admin/*`.
 - Navigation is organized as `Content`, `Authoring`, `Import`, `Review`, `Oversight`, `Services`, and `History` within the active role route group.
-- `/operator/write/new` starts blueprint-driven guided section authoring with citation lookup and searchable multi-select controls in the same flow.
+- `/operator/write/new` starts the primary template flow for runbooks, known errors, and service records.
+- `/operator/write/advanced` keeps the full blueprint set available, including deferred internal classes such as policy and system design.
 - Guided drafting stays on the shared `normal` shell, so sidebar navigation and the topbar role label remain visible while you author.
 - `Content` is split into a search/select workspace and an article surface. The default object page reads in article order: what it is, when to use it, what to do, how to verify, how to recover, and only then governance/source detail.
 - `Services`, `Review`, `Oversight`, and `History` are intentionally different work surfaces rather than the same queue chrome with different labels.
 - Guided draft creation is explicit: object setup creates the first draft before redirecting, and later entrypoints use a governed start action rather than relying on GET requests to create state.
-- `/operator/import` starts the upload, parse, classify, map, review, and convert flow for external files.
+- `/operator/import` starts the upload, parse, classify, map, review, and convert flow for external files before draft creation.
 - Browser upload is the normal web ingest path. Browser-submitted local file paths are disabled unless you explicitly enable `--allow-web-ingest-local-paths` on the local operator web surface.
 - Markdown and DOCX parse locally. PDF import is limited to text-based PDFs and may surface degraded extraction warnings.
-- Import review shows parser warnings, extraction quality, mapping gaps, low-confidence matches, unmapped content, and mapping conflicts before conversion.
+- Import review shows parser warnings, extraction quality, mapping gaps, low-confidence matches, unmapped content, mapping conflicts, and whether the draft target is primary or advanced before conversion.
 - Content, authoring, review, and oversight screens consume backend projection and action contracts. If a screen needs governed truth that is missing, extend the backend contract layer rather than adding route-local lifecycle or acknowledgement logic.
 
 For terminal-first work:
@@ -116,7 +117,7 @@ Guardrail:
 - Demo source created under `build/demo-source/` is disposable local state, not canonical repository content.
 - Approved revisions can become canonical Markdown through a governed source-sync mutation. Papyrus records a mutation journal under `build/mutations/`, persists explicit `source_sync_state`, and rejects root escapes or symlink traversal for governed source paths.
 - Governed mutation contracts carry operator messages, transition payloads, and required acknowledgements. CLI, API, and web should display those contracts instead of restating the rules locally.
-- Papyrus constructs drafts from blueprints and converts imported files into the same draft model after review.
+- Papyrus constructs drafts from primary templates by default, keeps advanced blueprint classes on the explicit advanced route, and converts imported files into the same draft model after review.
 - Source sync is inspectable: use review pages or `scripts/source_sync.py preview` before approval or explicit source sync, and use `scripts/source_sync.py restore-last` when you need to recover the previous canonical state. If live source drift is detected, Papyrus reports a conflict instead of claiming the sync is safe.
 
 ## 5. Script Inventory

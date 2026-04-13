@@ -118,3 +118,34 @@ Result:
 
 Disposition:
 - Shared web routes removed. Any future role-prefixed API change requires a separate decision and migration.
+
+## Search: retired thin presenter shards after family consolidation
+
+Pattern:
+- `read_filter_bar_presenter`
+- `article_section_presenter`
+- `service_map_presenter`
+- `health_board_presenter`
+- `review_lane_presenter`
+- `activity_event_list_presenter`
+- `revision_history_table_presenter`
+- `impact_summary_presenter`
+- `ingest_upload_presenter`
+- `manage_presenter`
+
+Result:
+- No matches remain under `src/` or `tests/`.
+- Documentation ownership references now point to:
+  - `queue_presenter.py`
+  - `object_presenter.py`
+  - `service_presenter.py`
+  - `dashboard_presenter.py`
+  - `review_presenter.py`
+  - `activity_presenter.py`
+  - `revision_presenter.py`
+  - `impact_presenter.py`
+  - `ingest_presenter.py`
+
+Disposition:
+- Thin presenter shards removed completely.
+- Shared primitives intentionally retained in `common.py`, `form_presenter.py`, `governed_presenter.py`, `write_presenter.py`, and `write_support_presenter.py`.

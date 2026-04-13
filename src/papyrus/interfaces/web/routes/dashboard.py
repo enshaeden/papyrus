@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from papyrus.application.queries import trust_dashboard
+from papyrus.application.queries import oversight_dashboard
 from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.http import Request, html_response
-from papyrus.interfaces.web.presenters.dashboard_presenter import present_trust_dashboard
+from papyrus.interfaces.web.presenters.dashboard_presenter import present_oversight_dashboard
 from papyrus.interfaces.web.route_utils import flash_html_for_request
 
 
 def register(router, runtime) -> None:
-    def trust_dashboard_page(request: Request):
+    def oversight_dashboard_page(request: Request):
         experience = require_experience(request, "operator", "admin")
-        dashboard = trust_dashboard(database_path=runtime.database_path)
-        page = present_trust_dashboard(
+        dashboard = oversight_dashboard(database_path=runtime.database_path)
+        page = present_oversight_dashboard(
             runtime.template_renderer,
             role=experience.role,
             dashboard=dashboard,
@@ -28,5 +28,5 @@ def register(router, runtime) -> None:
             )
         )
 
-    router.add(["GET"], "/operator/review/governance", trust_dashboard_page)
-    router.add(["GET"], "/admin/governance", trust_dashboard_page)
+    router.add(["GET"], "/operator/review/governance", oversight_dashboard_page)
+    router.add(["GET"], "/admin/governance", oversight_dashboard_page)

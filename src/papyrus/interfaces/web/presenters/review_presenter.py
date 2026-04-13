@@ -1,18 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from urllib.parse import urlencode
 
-from papyrus.interfaces.web.presenters.activity_audit_log_presenter import render_activity_audit_log
-from papyrus.interfaces.web.presenters.activity_event_list_presenter import (
-    render_activity_event_list,
-)
-from papyrus.interfaces.web.presenters.activity_filter_bar_presenter import (
-    render_activity_filter_bar,
-)
-from papyrus.interfaces.web.presenters.activity_validation_log_presenter import (
-    render_activity_validation_log,
-)
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import (
@@ -28,12 +17,8 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
     render_projection_overview_panel,
     render_projection_status_panel,
 )
-from papyrus.interfaces.web.presenters.review_cleanup_strip_presenter import (
-    render_review_cleanup_strip,
-)
-from papyrus.interfaces.web.presenters.review_lane_presenter import render_review_lane
 from papyrus.interfaces.web.rendering import TemplateRenderer
-from papyrus.interfaces.web.urls import review_queue_url, validation_run_new_url
+from papyrus.interfaces.web.urls import review_queue_url
 from papyrus.interfaces.web.view_helpers import (
     escape,
     format_timestamp,
@@ -41,8 +26,6 @@ from papyrus.interfaces.web.view_helpers import (
     link,
     render_definition_rows,
     render_list,
-    tone_for_review_state,
-    tone_for_trust,
 )
 
 
@@ -85,7 +68,7 @@ def present_warning_flash(
     return FormPresenter(renderer).flash(title=title, body=body, tone="warning")
 
 
-def _manage_item_detail_href(item: dict[str, object], *, role: str) -> str:
+def _review_item_detail_href(item: dict[str, object], *, role: str) -> str:
     return primary_surface_href(
         role=role,
         object_id=str(item["object_id"]),
@@ -96,7 +79,7 @@ def _manage_item_detail_href(item: dict[str, object], *, role: str) -> str:
     )
 
 
-def _manage_item_actions(
+def _review_item_actions(
     components: ComponentPresenter, item: dict[str, object], *, role: str
 ) -> str:
     return compact_action_menu_html(
@@ -152,116 +135,59 @@ def _governed_context_html(
     return join_html(panels)
 
 
-def _manage_table(
-    components: ComponentPresenter,
-    *,
-    role: str,
-    title: str,
-    items: list[dict[str, object]],
-    selected_object_id: str,
-    selected_revision_id: str,
-) -> str:
-    rows = []
-    row_attrs: list[dict[str, object]] = []
-    for item in items:
-        use_guidance = projection_use_guidance(item.get("ui_projection"))
-        state = projection_state(item.get("ui_projection"))
-        reasons = projection_reasons(item.get("ui_projection"))
-        object_id = str(item.get("object_id") or "")
-        revision_id = str(item.get("revision_id") or item.get("current_revision_id") or "")
-        selection_params = {
-            key: value
-            for key, value in {
-                "selected_object_id": object_id,
-                "selected_revision_id": revision_id,
-            }.items()
-            if value
-        }
-        selection_href = review_queue_url(role)
-        if selection_params:
-            selection_href = selection_href + "?" + urlencode(selection_params)
-        rows.append(
-            [
-                components.decision_cell(
-                    title_html=link(
-                        str(item["title"]), selection_href, css_class="selected-row-link"
-                    ),
-                    supporting_html=escape(
-                        item.get("change_summary")
-                        or item.get("summary")
-                        or "No recent summary recorded."
-                    ),
-                    meta=[escape(str(item.get("object_id") or ""))],
-                ),
-                components.decision_cell(
-                    title_html=escape(
-                        use_guidance.get("summary") or "Backend guidance unavailable"
-                    ),
-                    badges=[
-                        components.badge(
-                            label="Trust",
-                            value=str(state.get("trust_state") or "unknown"),
-                            tone=tone_for_trust(str(state.get("trust_state") or "unknown")),
-                        ),
-                        components.badge(
-                            label="Review",
-                            value=str(state.get("revision_review_state") or "unknown"),
-                            tone=tone_for_review_state(
-                                str(state.get("revision_review_state") or "unknown")
-                            ),
-                        ),
-                    ],
-                    supporting_html=escape(
-                        use_guidance.get("detail")
-                        or "Papyrus did not return governed detail for this queue item."
-                    ),
-                ),
-                components.decision_cell(
-                    title_html=escape(use_guidance.get("next_action") or "Review this item"),
-                    supporting_html=escape(
-                        ", ".join(reasons)
-                        or "Papyrus did not attach explicit reasons to this queue item."
-                    ),
-                    extra_html=(
-                        components.inline_disclosure(
-                            label="Why this item is here",
-                            body_html=render_list(
-                                [escape(reason) for reason in reasons], css_class="panel-list"
-                            )
-                            or '<p class="empty-state-copy">No explicit reasons were attached to this queue item.</p>',
-                        )
-                        if reasons
-                        else ""
-                    ),
-                ),
-                components.decision_cell(title_html=escape(str(item["owner"]))),
-                _manage_item_actions(components, item, role=role),
-            ]
-        )
-        row_attrs.append(
-            {"aria-selected": "true", "class": "is-selected"}
-            if object_id == selected_object_id
-            and (not selected_revision_id or revision_id == selected_revision_id)
-            else {}
-        )
-    return components.context_panel(
-        title=title,
-        eyebrow="Oversight",
-        body_html=(
-            components.queue_table(
-                headers=["Guidance", "Status", "Attention", "Steward", "Next action"],
-                rows=rows,
-                row_attrs=row_attrs,
-                table_id=title.lower().replace(" ", "-"),
-                variant="dense-table",
-            )
-            if rows
-            else '<p class="empty-state-copy">No items in this queue.</p>'
-        ),
+def render_review_cleanup_strip(*, cleanup_counts: dict[str, object]) -> str:
+    return (
+        '<section class="review-cleanup-strip" data-component="review-cleanup-strip" data-surface="review">'
+        f"<span>Placeholder-heavy {escape(cleanup_counts.get('placeholder-heavy', 0))}</span>"
+        f"<span>Legacy fallback {escape(cleanup_counts.get('legacy-blueprint-fallback', 0))}</span>"
+        f"<span>Ownership gaps {escape(cleanup_counts.get('unclear-ownership', 0))}</span>"
+        f"<span>Weak evidence {escape(cleanup_counts.get('weak-evidence', 0))}</span>"
+        f"<span>Migration gaps {escape(cleanup_counts.get('migration-gaps', 0))}</span>"
+        "</section>"
     )
 
 
-def _selected_manage_item(
+def render_review_lane(
+    *,
+    role: str,
+    title: str,
+    items: list[dict[str, Any]],
+    active_object_id: str,
+    active_revision_id: str,
+    action_html_resolver,
+) -> str:
+    if not items:
+        return (
+            '<section class="review-lane" data-component="review-lane" data-surface="review">'
+            f'<h2>{escape(title)}</h2><p class="review-lane-empty">No items in this lane.</p></section>'
+        )
+    rows = []
+    for item in items:
+        object_id = str(item.get("object_id") or "")
+        revision_id = str(item.get("revision_id") or item.get("current_revision_id") or "")
+        is_selected = object_id == active_object_id and (
+            not active_revision_id or revision_id == active_revision_id
+        )
+        use_guidance = projection_use_guidance(item.get("ui_projection"))
+        rows.append(
+            f"<tr{' class=\"is-selected\"' if is_selected else ''}{' aria-selected=\"true\"' if is_selected else ''}>"
+            f'<td><a class="selected-row-link" href="{escape(review_queue_url(role))}?selected_object_id={escape(object_id)}&selected_revision_id={escape(revision_id)}">{escape(item["title"])}</a><span class="table-support">{escape(item.get("change_summary") or item.get("summary") or "")}</span></td>'
+            f"<td>{escape(str(use_guidance.get('summary') or 'Review item'))}</td>"
+            f"<td>{escape(', '.join(projection_reasons(item.get('ui_projection'))) or 'No explicit reasons')}</td>"
+            f"<td>{escape(str(item.get('owner') or 'Unowned'))}</td>"
+            f"<td>{action_html_resolver(item)}</td>"
+            "</tr>"
+        )
+    return (
+        '<section class="review-lane" data-component="review-lane" data-surface="review">'
+        f"<h2>{escape(title)}</h2>"
+        '<table class="workbench-table">'
+        "<thead><tr><th>Guidance</th><th>Status</th><th>Why now</th><th>Owner</th><th>Action</th></tr></thead>"
+        "<tbody>" + join_html(rows) + "</tbody></table></section>"
+    )
+
+
+def _selected_review_item(
     queue: dict[str, Any], *, selected_object_id: str, selected_revision_id: str
 ) -> dict[str, object] | None:
     ordered_groups = (
@@ -285,7 +211,7 @@ def _selected_manage_item(
     return all_items[0]
 
 
-def _manage_context_panel(
+def _review_context_panel(
     components: ComponentPresenter, item: dict[str, object], *, role: str
 ) -> str:
     state = projection_state(item.get("ui_projection"))
@@ -317,10 +243,10 @@ def _manage_context_panel(
             [
                 link(
                     "Open guidance",
-                    _manage_item_detail_href(item, role=role),
+                    _review_item_detail_href(item, role=role),
                     css_class="button button-secondary",
                 ),
-                _manage_item_actions(components, item, role=role),
+                _review_item_actions(components, item, role=role),
             ],
             " ",
         ),
@@ -329,7 +255,7 @@ def _manage_context_panel(
     )
 
 
-def _manage_object_form_page(
+def _review_object_form_page(
     renderer: TemplateRenderer,
     *,
     role: str,
@@ -360,13 +286,13 @@ def _manage_object_form_page(
         page_template="pages/manage_object_form.html",
         page_title=page_title,
         headline=headline,
-        active_nav="health",
+        active_nav="oversight",
         shell_variant="minimal",
         page_context={"summary_html": summary_html, "form_html": form_html},
     )
 
 
-def present_manage_queue_page(
+def present_review_queue_page(
     renderer: TemplateRenderer,
     *,
     role: str,
@@ -375,7 +301,7 @@ def present_manage_queue_page(
     selected_revision_id: str = "",
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
-    selected_item = _selected_manage_item(
+    selected_item = _selected_review_item(
         queue,
         selected_object_id=selected_object_id,
         selected_revision_id=selected_revision_id,
@@ -388,25 +314,24 @@ def present_manage_queue_page(
     )
     cleanup_counts = queue.get("cleanup_counts") or {}
 
-    def table_html(title: str, items: list[dict[str, Any]]) -> str:
+    def lane_html(title: str, items: list[dict[str, Any]]) -> str:
         return render_review_lane(
             role=role,
             title=title,
             items=items,
             active_object_id=active_object_id,
             active_revision_id=active_revision_id,
-            action_html_resolver=lambda item: _manage_item_actions(components, item, role=role),
+            action_html_resolver=lambda item: _review_item_actions(components, item, role=role),
         )
 
-    cleanup_html = render_review_cleanup_strip(cleanup_counts=cleanup_counts)
     tables_html = join_html(
         [
-            cleanup_html,
-            table_html("Needs decision", queue["needs_decision"]),
-            table_html("Ready for review", queue["ready_for_review"]),
-            table_html("Needs revalidation", queue["needs_revalidation"]),
-            table_html("Drafts and rework", queue["draft_items"]),
-            table_html("Recently changed", queue["recently_changed"][:10]),
+            render_review_cleanup_strip(cleanup_counts=cleanup_counts),
+            lane_html("Needs decision", queue["needs_decision"]),
+            lane_html("Ready for review", queue["ready_for_review"]),
+            lane_html("Needs revalidation", queue["needs_revalidation"]),
+            lane_html("Drafts and rework", queue["draft_items"]),
+            lane_html("Recently changed", queue["recently_changed"][:10]),
         ]
     )
     return _page_definition(
@@ -415,7 +340,7 @@ def present_manage_queue_page(
         headline="Review",
         active_nav="review",
         show_actor_links=False,
-        aside_html=_manage_context_panel(components, selected_item, role=role)
+        aside_html=_review_context_panel(components, selected_item, role=role)
         if selected_item is not None
         else "",
         page_context={"tables_html": tables_html},
@@ -456,7 +381,7 @@ def present_object_supersede_page(
         + forms.button(label="Set replacement")
         + "</form>"
     )
-    return _manage_object_form_page(
+    return _review_object_form_page(
         renderer,
         role=role,
         detail=detail,
@@ -516,7 +441,7 @@ def present_object_suspect_page(
         + forms.button(label="Flag for review")
         + "</form>"
     )
-    return _manage_object_form_page(
+    return _review_object_form_page(
         renderer,
         role=role,
         detail=detail,
@@ -583,7 +508,7 @@ def present_object_archive_page(
         + forms.button(label="Archive guidance")
         + "</form>"
     )
-    return _manage_object_form_page(
+    return _review_object_form_page(
         renderer,
         role=role,
         detail=detail,
@@ -618,7 +543,7 @@ def present_evidence_revalidation_page(
         + forms.button(label="Request evidence revalidation")
         + "</form>"
     )
-    return _manage_object_form_page(
+    return _review_object_form_page(
         renderer,
         role=role,
         detail=detail,
@@ -843,151 +768,4 @@ def present_review_decision_page(
         active_nav="review",
         shell_variant="minimal",
         page_context={"summary_html": summary_html, "decisions_html": decisions_html},
-    )
-
-
-def present_audit_page(
-    renderer: TemplateRenderer,
-    *,
-    role: str,
-    events: list[dict[str, Any]],
-    structured_events: list[dict[str, Any]],
-    validation_runs: list[dict[str, Any]],
-    object_id: str | None,
-    selected_group: str,
-) -> dict[str, Any]:
-    del renderer
-    is_admin = role == "admin"
-    return _page_definition(
-        page_template="pages/manage_audit.html",
-        page_title="Audit" if is_admin else "History",
-        headline="Audit" if is_admin else "History",
-        active_nav="activity",
-        show_actor_links=False,
-        page_context={
-            "filter_bar_html": render_activity_filter_bar(
-                role=role, object_id=object_id, selected_group=selected_group
-            ),
-            "audit_html": render_activity_audit_log(events=events),
-            "event_html": render_activity_event_list(structured_events=structured_events),
-            "validation_html": render_activity_validation_log(validation_runs=validation_runs),
-        },
-    )
-
-
-def present_validation_runs_page(
-    renderer: TemplateRenderer,
-    *,
-    role: str,
-    runs: list[dict[str, Any]],
-) -> dict[str, Any]:
-    components = ComponentPresenter(renderer)
-    add_run_html = components.action_bar(
-        items=[
-            link(
-                "Record validation run",
-                validation_run_new_url(role),
-                css_class="button button-primary",
-            )
-        ]
-    )
-    validation_table_html = components.section_card(
-        title="Validation runs",
-        eyebrow="Validation",
-        body_html=components.queue_table(
-            headers=["Run", "Status", "Findings", "Completed"],
-            rows=[
-                [
-                    components.decision_cell(
-                        title_html=escape(run["run_type"]),
-                        meta=[escape(run["run_id"])],
-                    ),
-                    escape(run["status"]),
-                    escape(run["finding_count"]),
-                    escape(format_timestamp(run["completed_at"])),
-                ]
-                for run in runs
-            ],
-            table_id="validation-runs",
-        ),
-    )
-    return _page_definition(
-        page_template="pages/manage_validation_runs.html",
-        page_title="Validation runs",
-        headline="Validation runs",
-        active_nav="activity",
-        show_actor_links=True,
-        actions_html=add_run_html,
-        page_context={"validation_table_html": validation_table_html},
-    )
-
-
-def present_validation_run_new_page(
-    renderer: TemplateRenderer,
-    *,
-    values: dict[str, str],
-    errors: dict[str, list[str]],
-) -> dict[str, Any]:
-    forms = FormPresenter(renderer)
-    components = ComponentPresenter(renderer)
-    form_html = components.section_card(
-        title="Record validation run",
-        eyebrow="Validation",
-        body_html=(
-            '<form class="governed-form" method="post">'
-            + forms.field(
-                field_id="run_id",
-                label="Run ID",
-                control_html=forms.input(field_id="run_id", name="run_id", value=values["run_id"]),
-                errors=errors.get("run_id"),
-            )
-            + forms.field(
-                field_id="run_type",
-                label="Run type",
-                control_html=forms.input(
-                    field_id="run_type",
-                    name="run_type",
-                    value=values["run_type"],
-                    placeholder="manual_operator_check",
-                ),
-                errors=errors.get("run_type"),
-            )
-            + forms.field(
-                field_id="status",
-                label="Status",
-                control_html=forms.input(
-                    field_id="status", name="status", value=values["status"], placeholder="passed"
-                ),
-                errors=errors.get("status"),
-            )
-            + forms.field(
-                field_id="finding_count",
-                label="Finding count",
-                control_html=forms.input(
-                    field_id="finding_count",
-                    name="finding_count",
-                    value=values["finding_count"],
-                    input_type="number",
-                ),
-                errors=errors.get("finding_count"),
-            )
-            + forms.field(
-                field_id="details",
-                label="Details",
-                control_html=forms.textarea(
-                    field_id="details", name="details", value=values["details"], rows=4
-                ),
-                hint="Optional operator-readable summary stored with the run.",
-            )
-            + forms.button(label="Record validation run")
-            + "</form>"
-        ),
-    )
-    return _page_definition(
-        page_template="pages/manage_validation_run_new.html",
-        page_title="Record validation run",
-        headline="Record validation run",
-        active_nav="activity",
-        shell_variant="minimal",
-        page_context={"form_html": form_html},
     )

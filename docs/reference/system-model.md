@@ -20,8 +20,8 @@ If these layers disagree, canonical source wins and the runtime or export must b
 
 | Topic | What It Is | Why It Exists | What Breaks If Misunderstood |
 | --- | --- | --- | --- |
-| Knowledge object model | Papyrus treats runbooks, known errors, service records, policies, and system designs as first-class knowledge objects with stable identity. | Stable identity lets the runtime track revisions, relationships, services, and evidence over time. | Duplicate or forked objects fragment history, trust, and ownership. |
-| Blueprint model | Blueprints define section structure, ordering, required content, validation rules, evidence requirements, and lifecycle defaults for each knowledge object type. | Papyrus needs one central definition of valid operational knowledge instead of ad-hoc form rules or freeform blobs. | Different surfaces drift, validation becomes inconsistent, and drafts stop converging on a reliable structure. |
+| Knowledge object model | Papyrus supports runbooks, known errors, service records, policies, and system designs as typed knowledge objects with stable identity, while visible operator authoring centers on runbooks, known errors, service records, governed revisions, and import-to-draft review. | Stable identity lets the runtime track revisions, relationships, services, and evidence over time without forcing every supported type into the default operator path. | Duplicate or forked objects fragment history, trust, and ownership, and operators lose the distinction between the primary template set and deferred blueprint classes. |
+| Blueprint model | Blueprints define section structure, ordering, required content, validation rules, evidence requirements, lifecycle defaults, and whether a type belongs to the primary or advanced authoring scope. | Papyrus needs one central definition of valid operational knowledge instead of ad-hoc form rules or freeform blobs. | Different surfaces drift, validation becomes inconsistent, and deferred blueprint classes get advertised as peer templates before they are operationally obvious. |
 | Blueprint versus template boundary | Approved templates may still scaffold source files, but blueprints are the authoritative structure for guided authoring and ingestion. | Source scaffolding and runtime authoring solve different problems and should not be confused. | Operators mistake a file scaffold for governed authoring behavior and bypass progress, validation, or evidence expectations. |
 | Source sync | Approved revisions can write back to canonical Markdown through a journaled mutation flow with explicit `source_sync_state`. Preview and apply run canonical-path policy, conflict detection, and recovery rules before changing source. | Runtime governance must close the loop back to the authoritative source without manual sync work or silent overwrite. | Runtime and source drift, hostile path handling bugs, reviewers approve one state while operators read another, or people patch files outside the governed path. |
 | Revision lifecycle | Revisions move independently of object lifecycle so draft, in-review, approved, rejected, and superseded states can be tracked cleanly. | Review decisions apply to a revision, not to an abstract file snapshot. | Review history becomes ambiguous and operators cannot tell which version was approved. |
@@ -76,8 +76,9 @@ python3 scripts/operator_view.py events --db build/knowledge.db --format json
 ## Practical Rules
 
 - Edit canonical knowledge in `knowledge/` or `archive/knowledge/`.
-- Start new authoring from a blueprint, not from a blank editor.
+- Start new authoring from the primary template set unless you intentionally need the advanced route.
 - Route external documents through the import workbench before they become drafts.
+- Use `/operator/write/advanced` only when the draft belongs to a deferred blueprint class such as policy or system design.
 - In web mode, browser upload is the normal import path; browser-submitted local file reads require explicit local-operator opt-in, an absolute host path, and an allowlisted local read root.
 - Use guided section editing as the primary web authoring path. Citation lookup and searchable multi-select controls now live inside the guided flow.
 - Do not reintroduce route-local policy checks, template-local acknowledgement rules, or page-local governed action availability logic.

@@ -33,7 +33,7 @@ Top bar must not become a dumping ground for cross-role or cross-workflow action
 
 - primary task surface for the active role
 - visually dominant in the page hierarchy
-- not crowded out by contextual governance chrome
+- not crowded out by contextual oversight chrome
 
 ### Right panel
 
@@ -107,32 +107,32 @@ Forbidden content:
 
 Allowed actions vary by mode:
 
-- Read: open in Write, view flags
-- Write: save draft, validate, preview, submit for review
+- Content: open in Authoring, view flags
+- Authoring: save draft, validate, preview, submit for review
 - Review: resolve, reassign, escalate, request changes
 
 ### Left navigation
 
 Task-oriented sections:
 
-- Read
-- Write
+- Content
+- Authoring
 - Review
 
-Read may include tree navigation.
-Write may include drafts and authoring entry points.
+Content may include tree navigation.
+Authoring may include drafts and authoring entry points.
 Review may include queues and assignments.
 
 ### Main area
 
 Determined by active mode.
 
-#### Read
+#### Content
 
 - content-first document presentation
 - operational affordances without degrading readability
 
-#### Write
+#### Authoring
 
 - structured authoring workspace
 - template- and schema-driven sections
@@ -145,12 +145,12 @@ Determined by active mode.
 
 ### Right panel
 
-#### Read
+#### Content
 
-- expanded governance context
+- expanded oversight context
 - flags, history summary, status, and ownership
 
-#### Write
+#### Authoring
 
 - validation issues
 - schema guidance
@@ -168,7 +168,7 @@ Determined by active mode.
 
 - actions cluster around the active workflow
 - do not mix write and review actions on the same surface unless explicitly required
-- avoid permanent clutter in Read
+- avoid permanent clutter in Content
 
 ## Admin layout contract
 
@@ -186,7 +186,7 @@ Control-plane navigation:
 - spaces and access
 - templates
 - schemas
-- governance
+- oversight
 - publishing
 - audit
 - settings

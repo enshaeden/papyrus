@@ -28,6 +28,7 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("/admin/*", operator_web_ui)
         self.assertIn("400 bad request", operator_web_ui)
         self.assertIn("post /operator/write/object/{object_id}/start", operator_web_ui)
+        self.assertIn("/operator/write/advanced", operator_web_ui)
         self.assertIn("no separate page-header actor banner contract", operator_web_ui)
         self.assertIn("url-driven selection state", operator_web_ui)
         self.assertIn("papyrus.interfaces.web.view_models.article_projection", operator_web_ui)

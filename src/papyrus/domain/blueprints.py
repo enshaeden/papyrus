@@ -42,6 +42,9 @@ class Blueprint:
     validation_rules: dict[str, Any] = field(default_factory=dict)
     evidence_requirements: dict[str, Any] = field(default_factory=dict)
     lifecycle_defaults: dict[str, Any] = field(default_factory=dict)
+    authoring_scope: str = "primary"
+    visible_order: int = 100
+    import_target: bool = True
 
     def section(self, section_id: str) -> BlueprintSection:
         for section in self.sections:

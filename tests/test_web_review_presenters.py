@@ -8,8 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.interfaces.web.presenters.manage_presenter import present_manage_queue_page
-from papyrus.interfaces.web.presenters.review_lane_presenter import render_review_lane
+from papyrus.interfaces.web.presenters.review_presenter import (
+    present_review_queue_page,
+    render_review_lane,
+)
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions
 
@@ -48,7 +50,7 @@ class ReviewPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component(lane_html, "review-lane")
         self.assertIn("Review decision pending", lane_html)
 
-    def test_manage_queue_presenter_assembles_review_surface_from_local_components(self) -> None:
+    def test_review_queue_presenter_assembles_review_surface_from_local_components(self) -> None:
         queue = {
             "cleanup_counts": {"weak-evidence": 1},
             "needs_decision": [QUEUE_ITEM],
@@ -58,7 +60,7 @@ class ReviewPresenterTests(SemanticHookAssertions, unittest.TestCase):
             "recently_changed": [],
             "superseded_items": [],
         }
-        page = present_manage_queue_page(
+        page = present_review_queue_page(
             TEMPLATE_RENDERER, role="operator", queue=queue, selected_object_id="kb-review"
         )
 

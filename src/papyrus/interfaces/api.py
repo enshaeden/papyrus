@@ -38,12 +38,12 @@ from papyrus.application.queries import (
     impact_view_for_service,
     knowledge_object_detail,
     knowledge_queue,
-    manage_queue,
+    oversight_dashboard,
     review_detail,
+    review_queue,
     revision_history,
     service_catalog,
     service_detail,
-    trust_dashboard,
     validation_run_history,
 )
 from papyrus.domain.actor import require_actor_id
@@ -78,13 +78,17 @@ def _links_for_object(object_id: str, revision_id: str | None = None) -> dict[st
     links = {
         "object": f"/objects/{object_id}",
         "revision_history": f"/objects/{object_id}/revisions",
+        "review_queue": "/review/queue",
+        "oversight_dashboard": "/dashboard/oversight",
         "manage_queue": "/manage/queue",
+        "trust_dashboard": "/dashboard/trust",
         "queue": "/queue",
     }
     if revision_id:
-        links["review"] = f"/reviews/{object_id}/{revision_id}"
-        links["review_assignment"] = f"/manage/reviews/{object_id}/{revision_id}/assign"
-        links["review_decision"] = f"/manage/reviews/{object_id}/{revision_id}"
+        review_path = f"/reviews/{object_id}/{revision_id}"
+        links["review"] = review_path
+        links["review_assignment"] = "/reviews/assign"
+        links["review_decision"] = review_path
     return links
 
 
@@ -186,11 +190,11 @@ def app(
                     },
                 )
 
-            if method == "GET" and path == "/dashboard/trust":
+            if method == "GET" and path in {"/dashboard/oversight", "/dashboard/trust"}:
                 return _json_response(
                     start_response,
                     "200 OK",
-                    trust_dashboard(database_path=resolved_database_path),
+                    oversight_dashboard(database_path=resolved_database_path),
                 )
 
             if method == "GET" and path == "/services":
@@ -200,11 +204,11 @@ def app(
                     {"services": service_catalog(database_path=resolved_database_path)},
                 )
 
-            if method == "GET" and path == "/manage/queue":
+            if method == "GET" and path in {"/review/queue", "/manage/queue"}:
                 return _json_response(
                     start_response,
                     "200 OK",
-                    manage_queue(database_path=resolved_database_path),
+                    review_queue(database_path=resolved_database_path),
                 )
 
             if method == "GET" and path == "/manage/audit":

@@ -287,3 +287,4 @@ def main() -> int:
         print(f"Papyrus web interface listening on http://{args.host}:{args.port}")
         server.serve_forever()
     return 0
+

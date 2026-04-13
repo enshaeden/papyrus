@@ -8,10 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.interfaces.web.presenters.service_map_presenter import render_service_map
 from papyrus.interfaces.web.presenters.service_presenter import (
     present_service_catalog,
     present_service_detail,
+    render_service_map,
 )
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions

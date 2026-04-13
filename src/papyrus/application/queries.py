@@ -21,9 +21,11 @@ from papyrus.application.read_models.review_manage import (
     audit_view,
     manage_queue,
     review_detail,
+    review_queue,
     validation_run_history,
 )
 from papyrus.application.read_models.services_dashboard import (
+    oversight_dashboard,
     service_catalog,
     service_detail,
     trust_dashboard,
@@ -54,7 +56,9 @@ __all__ = [
     "knowledge_object_detail",
     "knowledge_queue",
     "manage_queue",
+    "oversight_dashboard",
     "require_runtime_connection",
+    "review_queue",
     "review_detail",
     "revision_history",
     "runtime_connection",

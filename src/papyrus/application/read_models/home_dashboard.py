@@ -12,14 +12,14 @@ from papyrus.infrastructure.paths import DB_PATH
 
 from .impact_activity import event_history
 from .queue_search import knowledge_queue
-from .review_manage import manage_queue
+from .review_manage import review_queue
 from .services_dashboard import service_catalog
 
 
 def _counts(
     *,
     read_queue: list[dict[str, Any]],
-    manage: dict[str, Any],
+    review: dict[str, Any],
     services: list[dict[str, Any]],
     events: list[dict[str, Any]],
 ) -> dict[str, int]:
@@ -31,14 +31,14 @@ def _counts(
                 dict((item.get("ui_projection") or {}).get("use_guidance") or {}).get("safe_to_use")
             )
         ),
-        "drafts": len(manage["draft_items"]),
-        "review_required": len(manage["review_required"]),
-        "ready_for_review": len(manage["ready_for_review"]),
-        "needs_decision": len(manage["needs_decision"]),
-        "needs_revalidation": len(manage["needs_revalidation"]),
-        "needs_attention": len(manage["needs_attention"]),
-        "weak_evidence": len(manage["weak_evidence_items"]),
-        "stale": len(manage["stale_items"]),
+        "drafts": len(review["draft_items"]),
+        "review_required": len(review["review_required"]),
+        "ready_for_review": len(review["ready_for_review"]),
+        "needs_decision": len(review["needs_decision"]),
+        "needs_revalidation": len(review["needs_revalidation"]),
+        "needs_attention": len(review["needs_attention"]),
+        "weak_evidence": len(review["weak_evidence_items"]),
+        "stale": len(review["stale_items"]),
         "services": len(services),
         "recent_activity": len(events),
     }
@@ -57,10 +57,10 @@ def home_dashboard(
         ranking=queue_ranking_for_role(resolved_role),
         role=resolved_role,
     )
-    manage = manage_queue(database_path=database_path)
+    review = review_queue(database_path=database_path)
     services = service_catalog(database_path=database_path)
     events = event_history(limit=8, database_path=database_path)
-    counts = _counts(read_queue=read_queue, manage=manage, services=services, events=events)
+    counts = _counts(read_queue=read_queue, review=review, services=services, events=events)
 
     layout_modes = {
         "reader": "library",
@@ -72,7 +72,8 @@ def home_dashboard(
         "layout_mode": layout_modes.get(resolved_role, "workshop"),
         "counts": counts,
         "read_queue": read_queue,
-        "manage": manage,
+        "review": review,
+        "manage": review,
         "services": services,
         "events": events,
     }

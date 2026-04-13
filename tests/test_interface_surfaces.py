@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.interfaces.api import app as api_app
-from papyrus.interfaces.web import app as web_app
+from papyrus.interfaces.web.app import app as web_app
 from tests.web_assertions import SemanticHookAssertions
 
 
@@ -118,11 +118,14 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         service_payload = json.loads(body)
         self.assertEqual(service_payload["service"]["service_name"], "Remote Access")
 
-        status, _, body = call_wsgi(application, "/dashboard/trust")
+        status, _, body = call_wsgi(application, "/dashboard/oversight")
         self.assertEqual(status, "200 OK")
         dashboard_payload = json.loads(body)
         self.assertIn("object_count", dashboard_payload)
         self.assertIn("queue", dashboard_payload)
+
+        status, _, body = call_wsgi(application, "/dashboard/trust")
+        self.assertEqual(status, "200 OK")
 
         status, _, body = call_wsgi(
             application,
@@ -153,10 +156,13 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         services_payload = json.loads(body)
         self.assertIn("services", services_payload)
 
-        status, _, body = call_wsgi(application, "/manage/queue")
+        status, _, body = call_wsgi(application, "/review/queue")
         self.assertEqual(status, "200 OK")
         manage_payload = json.loads(body)
         self.assertIn("review_required", manage_payload)
+
+        status, _, body = call_wsgi(application, "/manage/queue")
+        self.assertEqual(status, "200 OK")
 
         status, _, body = call_wsgi(
             application, "/impact/object/kb-troubleshooting-vpn-connectivity"
@@ -238,7 +244,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         status, _, body = call_wsgi(application, "/operator/review/governance")
         self.assertEqual(status, "200 OK")
         self.assert_page_contract(
-            body, primary_surface="knowledge-health", components=("health-board",)
+            body, primary_surface="oversight", components=("oversight-board",)
         )
         self.assertIn("Cleanup and trust debt", body)
 
@@ -358,7 +364,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
                 self.assertNotIn("var(--color-brand-context)", body)
 
         _, _, health_body = call_wsgi(application, "/static/css/health.css")
-        self.assertIn(".health-cleanup-board__metric {", health_body)
+        self.assertIn(".oversight-cleanup-board__metric {", health_body)
         self.assertIn("color: var(--color-accent-primary);", health_body)
 
         _, _, services_body = call_wsgi(application, "/static/css/services.css")
@@ -378,17 +384,17 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn(".read-results-table .button {", body)
         self.assertIn("min-width: 5.5rem;", body)
 
-    def test_static_health_assets_prevent_stretched_empty_governance_columns(self) -> None:
+    def test_static_oversight_assets_prevent_stretched_empty_governance_columns(self) -> None:
         application = web_app(self.database_path)
 
         status, headers, body = call_wsgi(application, "/static/css/health.css")
         self.assertEqual(status, "200 OK")
         self.assertEqual(headers["Content-Type"], "text/css")
-        self.assertIn(".health-board__grid {", body)
+        self.assertIn(".oversight-board__grid {", body)
         self.assertIn("align-items: start;", body)
-        self.assertIn(".health-board__column {", body)
+        self.assertIn(".oversight-board__column {", body)
         self.assertIn("align-content: start;", body)
-        self.assertIn(".health-board__card .button {", body)
+        self.assertIn(".oversight-board__card .button {", body)
         self.assertIn("justify-self: start;", body)
 
     def test_web_errors_and_method_guards_render_explicit_pages(self) -> None:

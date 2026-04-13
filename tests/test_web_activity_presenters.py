@@ -8,10 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.interfaces.web.presenters.activity_event_list_presenter import (
+from papyrus.interfaces.web.presenters.activity_presenter import (
+    present_audit_page,
     render_activity_event_list,
 )
-from papyrus.interfaces.web.presenters.manage_presenter import present_audit_page
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions
 

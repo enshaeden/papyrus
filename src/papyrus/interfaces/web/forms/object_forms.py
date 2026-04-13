@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass
 from typing import Any
 
@@ -18,10 +19,10 @@ class ObjectFormResult:
         return not self.errors
 
 
-def default_object_values() -> dict[str, str]:
+def default_object_values(*, object_type: str = "runbook") -> dict[str, str]:
     return {
         "object_id": "",
-        "object_type": "runbook",
+        "object_type": object_type,
         "title": "",
         "summary": "",
         "owner": "",
@@ -38,6 +39,7 @@ def validate_object_form(
     values: dict[str, str],
     *,
     taxonomies: dict[str, dict[str, Any]],
+    allowed_blueprint_ids: Collection[str] | None = None,
 ) -> ObjectFormResult:
     errors: dict[str, list[str]] = {}
 
@@ -59,7 +61,11 @@ def validate_object_form(
     elif not OBJECT_ID_PATTERN.fullmatch(object_id):
         add_error("object_id", "Reference code must use the kb-slug format.")
 
-    supported_blueprints = {blueprint.blueprint_id for blueprint in list_blueprints()}
+    supported_blueprints = (
+        {str(item).strip() for item in allowed_blueprint_ids if str(item).strip()}
+        if allowed_blueprint_ids is not None
+        else {blueprint.blueprint_id for blueprint in list_blueprints()}
+    )
     if object_type not in supported_blueprints:
         add_error("object_type", "Choose a supported object type.")
     if not title:

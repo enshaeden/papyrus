@@ -20,8 +20,8 @@ from papyrus.application.commands import (
 from papyrus.application.queries import (
     impact_view_for_service,
     knowledge_object_detail,
-    manage_queue,
-    trust_dashboard,
+    oversight_dashboard,
+    review_queue,
 )
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 
@@ -273,7 +273,7 @@ def _citation_id_for_object(database_path: Path, object_id: str) -> str:
 
 
 def _queue_counts(database_path: Path) -> dict[str, int]:
-    queue = manage_queue(database_path=database_path)
+    queue = review_queue(database_path=database_path)
     return {
         "review_required": len(queue["review_required"]),
         "stale_items": len(queue["stale_items"]),
@@ -289,7 +289,7 @@ def _scenario_summary(
     source_root: Path,
     extra: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    dashboard = trust_dashboard(database_path=database_path)
+    dashboard = oversight_dashboard(database_path=database_path)
     summary = {
         "scenario": scenario,
         "database_path": str(database_path),
@@ -710,7 +710,7 @@ def run_operator_scenario(
         )
 
     if normalized == "stale_knowledge":
-        queue = manage_queue(database_path=database_path)
+        queue = review_queue(database_path=database_path)
         return _scenario_summary(
             scenario=normalized,
             database_path=database_path,
@@ -792,7 +792,7 @@ def run_operator_scenario(
         actor=actor,
         notes="Backlog scenario assignment.",
     )
-    queue = manage_queue(database_path=database_path)
+    queue = review_queue(database_path=database_path)
     return _scenario_summary(
         scenario=normalized,
         database_path=database_path,

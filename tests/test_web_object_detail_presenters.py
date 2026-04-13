@@ -9,11 +9,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.interfaces.web.experience import experience_for_role
-from papyrus.interfaces.web.presenters.article_context_panel_presenter import (
+from papyrus.interfaces.web.presenters.object_presenter import (
+    present_object_detail,
     render_article_context_panel,
+    render_article_section,
 )
-from papyrus.interfaces.web.presenters.article_section_presenter import render_article_section
-from papyrus.interfaces.web.presenters.object_presenter import present_object_detail
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions
 
