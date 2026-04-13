@@ -30,9 +30,9 @@ When files or outputs disagree, use this order of authority unless a deeper `AGE
 2. `taxonomies/` for controlled vocabularies and classification structures
 3. `templates/` for approved content structures and authoring patterns
 4. `knowledge/` and `archive/knowledge/` for canonical knowledge objects and entries
-5. `decisions/` and `docs/decisions/` for intentional deviations, design rationale, and governance records
+5. `decisions/` for intentional deviations, design rationale, and governance records
 6. `src/` for application source code for system behaviour and interfaces
-7. `docs/` for explanatory and operational documentation outside `docs/decisions/`
+7. `docs/` for explanatory and operational documentation
 8. `generated/`, `build/`, and `site/` for derived artifacts only
 
 Rendered, indexed, exported, copied, cached, or generated outputs are never authoritative.
@@ -41,7 +41,7 @@ Rendered, indexed, exported, copied, cached, or generated outputs are never auth
 
 - Canonical knowledge articles and objects live only under `knowledge/` and `archive/knowledge/`.
 - Canonical explanatory documentation lives only under `docs/`.
-- Architectural and governance decisions live under `decisions/`, except the active experience-governance records that live under `docs/decisions/`.
+- Architectural and governance decisions live under `decisions/`.
 - Controlled vocabularies live only under `taxonomies/`.
 - Field definitions and repository policy definitions live only under `schemas/`.
 - Approved authoring and content templates live only under `templates/`.
@@ -97,12 +97,12 @@ Papyrus must preserve strict separation between Reader, Operator, and Admin expe
 - Do not expose navigation, routes, actions, metadata panels, or search results to roles not explicitly permitted to see them.
 - Treat route separation, visibility rules, and workflow boundaries as binding architecture.
 - When touching navigation, routing, layouts, object views, or workflow actions, consult:
-  - `docs/decisions/role-experience-visibility-matrix.md`
-  - `docs/decisions/route-separation-and-experience-boundaries.md`
-  - `docs/guides/layout-contracts-by-role.md`
-  - `docs/decisions/knowledge-workflows-and-lifecycle.md`
-  - `docs/decisions/experience-principles.md`
-  - `docs/decisions/actor-model-to-role-model-mapping.md`
+  - `decisions/role-experience-visibility-matrix.md`
+  - `decisions/route-separation-and-experience-boundaries.md`
+  - `decisions/layout-contracts-by-role.md`
+  - `decisions/knowledge-workflows-and-lifecycle.md`
+  - `decisions/experience-principles.md`
+  - `decisions/actor-model-to-role-model-mapping.md`
 
 ## Product Experience Principle
 

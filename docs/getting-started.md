@@ -106,7 +106,7 @@ Guardrail:
 ## 4. Use The Right Source
 
 - Canonical knowledge lives in `knowledge/` and `archive/knowledge/`.
-- Repository decisions live in `decisions/`, except the active experience-governance records that live in `docs/decisions/`.
+- Repository decisions live in `decisions/`.
 - Operator and reference docs live in `docs/`.
 - Derived output in `generated/`, `build/`, and `site/` is rebuildable and not authoritative.
 - Generated ingestion artifacts in `build/ingestions/` are reviewable runtime state, not source of truth.

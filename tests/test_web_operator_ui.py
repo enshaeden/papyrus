@@ -818,7 +818,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, object_body = call_wsgi(application, f"/operator/read/object/{created.object_id}")
             self.assertEqual(status, "200 OK")
-            self.assertNotIn('data-component="article-hero"', object_body)
+            self.assert_not_component(object_body, "article-hero")
             self.assert_component_count(object_body, "action-cluster", 1)
 
             status, _, history_body = call_wsgi(application, f"/operator/read/object/{created.object_id}/revisions")

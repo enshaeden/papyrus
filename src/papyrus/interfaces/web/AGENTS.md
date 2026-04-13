@@ -50,12 +50,12 @@ Do not preserve a visually attractive UI if it still communicates the wrong stru
 - Operator surfaces must remain task-first.
 - Admin surfaces must remain control-plane-first.
 - When changing layouts, routes, or object pages, follow:
-  - `docs/decisions/route-separation-and-experience-boundaries.md`
-  - `docs/guides/layout-contracts-by-role.md`
-  - `docs/decisions/role-experience-visibility-matrix.md`
-  - `docs/decisions/knowledge-workflows-and-lifecycle.md`
-  - `docs/decisions/experience-principles.md`
-  - `docs/decisions/actor-model-to-role-model-mapping.md`
+  - `decisions/route-separation-and-experience-boundaries.md`
+  - `decisions/layout-contracts-by-role.md`
+  - `decisions/role-experience-visibility-matrix.md`
+  - `decisions/knowledge-workflows-and-lifecycle.md`
+  - `decisions/experience-principles.md`
+  - `decisions/actor-model-to-role-model-mapping.md`
 
 ## Forbidden Web Patterns
 
@@ -285,7 +285,7 @@ Do not let the docs describe a cleaner UI than the one that actually ships.
 ## Verification
 
 This web surface ships through the Python application and WSGI entrypoints in `scripts/serve_web.py` and `scripts/run.py --operator`.
-Use `docs/guides/experience-conformance-checklist.md` when reviewing route, shell, role-visibility, and workflow-surface changes.
+Use `docs/guides/experience-conformance-checklist.md` as a review checklist when reviewing route, shell, role-visibility, and workflow-surface changes. The authoritative constraints live under `decisions/`.
 
 - dev: `python3 scripts/serve_web.py --db build/knowledge.db --source-root .`
 - lint: `not separately configured; do not claim lint coverage until a dedicated lint command exists`

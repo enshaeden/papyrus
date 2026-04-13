@@ -55,11 +55,11 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("separate decision and migration", getting_started)
 
     def test_decision_docs_lock_centered_search_and_root_entry_shim(self) -> None:
-        experience_principles = (ROOT / "docs" / "decisions" / "experience-principles.md").read_text(encoding="utf-8").lower()
-        route_boundaries = (
-            ROOT / "docs" / "decisions" / "route-separation-and-experience-boundaries.md"
-        ).read_text(encoding="utf-8").lower()
-        layout_contracts = (ROOT / "docs" / "guides" / "layout-contracts-by-role.md").read_text(encoding="utf-8").lower()
+        experience_principles = (ROOT / "decisions" / "experience-principles.md").read_text(encoding="utf-8").lower()
+        route_boundaries = (ROOT / "decisions" / "route-separation-and-experience-boundaries.md").read_text(
+            encoding="utf-8"
+        ).lower()
+        layout_contracts = (ROOT / "decisions" / "layout-contracts-by-role.md").read_text(encoding="utf-8").lower()
 
         self.assertIn("global search is shell-owned and remains centered in the top bar", experience_principles)
         self.assertIn("pantone 7659 c", experience_principles)
@@ -75,14 +75,15 @@ class DocumentationContractTests(unittest.TestCase):
         system_model = (ROOT / "docs" / "reference" / "system-model.md").read_text(encoding="utf-8").lower()
         read_playbook = (ROOT / "docs" / "playbooks" / "read.md").read_text(encoding="utf-8").lower()
 
-        self.assertIn("not part of the role-scoped web experience contract", readme)
+        self.assertIn("operator-oriented local api surface", readme)
         self.assertIn("separate decision and migration", readme)
+        self.assertIn("governance and decisions", readme)
         self.assertIn("json api remains an operator-oriented local surface", system_model)
         self.assertIn("not part of the role-scoped web route contract", system_model)
         self.assertIn("json api remains operator-oriented", read_playbook)
 
     def test_lifecycle_decision_uses_explicit_state_machines(self) -> None:
-        lifecycle = (ROOT / "docs" / "decisions" / "knowledge-workflows-and-lifecycle.md").read_text(encoding="utf-8").lower()
+        lifecycle = (ROOT / "decisions" / "knowledge-workflows-and-lifecycle.md").read_text(encoding="utf-8").lower()
         self.assertIn("object_lifecycle_state", lifecycle)
         self.assertIn("revision_review_state", lifecycle)
         self.assertIn("draft_progress_state", lifecycle)
@@ -106,3 +107,24 @@ class DocumentationContractTests(unittest.TestCase):
             text = path.read_text(encoding="utf-8").lower()
             for phrase in forbidden:
                 self.assertNotIn(phrase, text, msg=f"{path} still contains overclaim: {phrase}")
+
+    def test_docs_no_longer_reference_split_decision_tree(self) -> None:
+        for path in [
+            ROOT / "README.md",
+            ROOT / "AGENTS.md",
+            ROOT / "docs" / "AGENTS.md",
+            ROOT / "docs" / "index.md",
+            ROOT / "docs" / "getting-started.md",
+            ROOT / "src" / "papyrus" / "interfaces" / "web" / "AGENTS.md",
+        ]:
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("docs/decisions/", text, msg=f"{path} still references docs/decisions/")
+
+    def test_readme_is_current_state_entrypoint(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()
+        self.assertIn("## run it now", readme)
+        self.assertIn("## source of truth", readme)
+        self.assertIn("## read more", readme)
+        self.assertIn("python3 scripts/run.py --operator", readme)
+        self.assertIn("governance and decisions: [decisions/index.md]", readme)
+        self.assertNotIn("docs/decisions/", readme)

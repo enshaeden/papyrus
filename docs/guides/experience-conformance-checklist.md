@@ -1,6 +1,6 @@
 # Experience Conformance Checklist
 
-Use this checklist when reviewing Papyrus UI, navigation, route, shell, and workflow changes.
+Use this checklist when reviewing Papyrus UI, navigation, route, shell, and workflow changes. Treat it as an implementation review aid; the authoritative constraints live in `decisions/`.
 
 ## Role and visibility
 - Does the route belong to exactly one role-scoped experience?

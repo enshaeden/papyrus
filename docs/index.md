@@ -21,5 +21,5 @@ Use this documentation set to operate Papyrus from the repository as it exists n
 
 ## Supporting Reference
 
-- [Operator governance and decisions](decisions/index.md): active experience-governance records plus the linked legacy repository decisions.
+- [Governance and decisions](../decisions/index.md): the single authoritative index for Papyrus governance records.
 - [Migration rationale](migration/seed-migration-rationale.md): historical reference for the sanitized seed and import boundary.

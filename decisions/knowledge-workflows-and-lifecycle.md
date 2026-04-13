@@ -132,8 +132,8 @@ This decision intentionally does not assign canonical flag-state names until the
 
 Role visibility is governed separately by:
 
-- `docs/decisions/role-experience-visibility-matrix.md`
-- `docs/decisions/route-separation-and-experience-boundaries.md`
+- `role-experience-visibility-matrix.md`
+- `route-separation-and-experience-boundaries.md`
 
 ## Non-Goals
 

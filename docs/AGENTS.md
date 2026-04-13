@@ -4,7 +4,7 @@ This file governs work under `docs/`.
 
 ## Purpose
 
-`docs/` explains the system that exists now and the decisions that currently govern it.
+`docs/` explains the system that exists now and links to the decisions that currently govern it.
 Use it to reduce drift, not to preserve transitional language after the implementation moved on.
 
 ## Rules
@@ -19,7 +19,7 @@ Use it to reduce drift, not to preserve transitional language after the implemen
 
 ## Decision Records
 
-- `docs/decisions/` records active experience and governance decisions.
+- `decisions/` records authoritative experience and governance decisions.
 - When updating one decision that depends on another, check the linked records for state-name or route-model drift.
 - Do not mix lifecycle, review, draft-progress, and flag workflow terms into one status list.
 
