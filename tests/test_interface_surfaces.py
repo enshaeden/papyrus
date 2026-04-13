@@ -272,6 +272,10 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("grid-column: 2;", body)
         self.assertIn("background: var(--color-topbar-bg);", body)
         self.assertNotIn("linear-gradient(135deg, var(--color-brand-hero)", body)
+        self.assertEqual(body.count("box-shadow: var(--shadow-topbar);"), 1)
+        self.assertEqual(body.count(".topbar-menu-chip.is-active {"), 1)
+        self.assertEqual(body.count(".sidebar-link {"), 1)
+        self.assertEqual(body.count(".page-header {"), 1)
 
     def test_static_component_assets_map_primary_and_context_tones_semantically(self) -> None:
         application = web_app(self.database_path)
