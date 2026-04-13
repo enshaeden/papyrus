@@ -107,12 +107,12 @@ def main() -> int:
         source_root=str(source_root),
     )
     print(f"Papyrus {mode_name} mode is running.")
-    print(f"Home: http://{args.host}:{args.web_port}/")
+    print(f"Home: http://{args.host}:{args.web_port}/operator")
     print(f"Web: http://{args.host}:{args.web_port}")
     print(f"API: http://{args.host}:{args.api_port}")
     print(f"Runtime DB: {database_path}")
     print(f"Source root: {source_root}")
-    print("Start with Home to see next actions, lifecycle work areas, and recent operational activity.")
+    print("Local web root / redirects to /operator. Start with Home to see next actions, lifecycle work areas, and recent operational activity.")
     try:
         web_thread.join()
         api_thread.join()

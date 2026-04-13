@@ -17,7 +17,7 @@ a:hover {
 .app-shell { min-height: 100vh; }
 .topbar {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 42rem) minmax(0, 1fr);
   align-items: center;
   gap: 1rem;
   padding: 0.35rem var(--space-4);
@@ -49,6 +49,10 @@ a:hover {
   margin: 0;
   white-space: nowrap;
 }
+.topbar-identity {
+  grid-column: 1;
+  justify-self: start;
+}
 .identity-copy,
 .page-kicker,
 .panel-kicker,
@@ -72,22 +76,20 @@ a:hover {
 .topbar .identity-copy {
   color: var(--color-topbar-muted);
 }
-.topbar-utility {
-  flex: 1 1 34rem;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.55rem;
-  min-width: 0;
-}
 .topbar-search {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  flex: 1 1 36rem;
+  grid-column: 2;
+  justify-self: stretch;
   min-width: 14rem;
   margin: 0;
-  max-width: 52rem;
+  max-width: none;
+}
+.topbar-shell-controls {
+  grid-column: 3;
+  justify-self: end;
+  min-width: 0;
 }
 .topbar-menu {
   display: flex;
@@ -309,6 +311,9 @@ a:hover {
 .page-header .page-intro {
   max-width: 48rem;
 }
+.page-header .metadata-list {
+  max-width: 48rem;
+}
 .page-header-actions {
   display: flex;
   gap: var(--space-2);
@@ -359,13 +364,12 @@ a:hover {
     grid-template-columns: 1fr;
     gap: var(--space-3);
   }
-  .topbar-utility {
-    display: grid;
-    gap: 0.45rem;
-    width: 100%;
-  }
+  .topbar-identity,
   .topbar-search,
+  .topbar-shell-controls,
   .topbar-actor {
+    grid-column: 1;
+    justify-self: stretch;
     width: 100%;
   }
   .topbar-search {
@@ -422,7 +426,7 @@ body {
   top: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 42rem) minmax(0, 1fr);
   gap: var(--space-5);
   align-items: center;
   padding: 0.9rem 1.5rem 1rem;
@@ -452,10 +456,17 @@ body {
 
 .topbar-search {
   display: grid;
+  grid-column: 2;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.7rem;
   width: 100%;
-  max-width: 42rem;
+  max-width: none;
+}
+
+.topbar-shell-controls {
+  grid-column: 3;
+  justify-self: end;
+  min-width: 0;
 }
 
 .topbar-search input {
@@ -708,8 +719,11 @@ body {
     padding-inline: 1rem;
   }
 
-  .topbar-utility,
-  .topbar-search {
+  .topbar-identity,
+  .topbar-search,
+  .topbar-shell-controls {
+    grid-column: 1;
+    justify-self: stretch;
     width: 100%;
   }
 

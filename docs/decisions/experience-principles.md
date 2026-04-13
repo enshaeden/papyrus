@@ -10,6 +10,7 @@ Scope: Cross-surface experience boundaries, role separation, visibility, and she
 - Admin is for control.
 - Hidden means both absent and disabled *for that specific user*
 - Search visibility must match route visibility.
+- Global search is shell-owned and remains centered in the top bar. Brand and shell controls may change around it, but they must not displace it.
 - Separate route groups and shells are mandatory.
 - Shared primitives are allowed. Shared blended experiences are not.
 - Production role switching is forbidden.

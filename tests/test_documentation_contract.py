@@ -49,6 +49,18 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("not part of the role-scoped web experience contract", getting_started)
         self.assertIn("separate decision and migration", getting_started)
 
+    def test_decision_docs_lock_centered_search_and_root_entry_shim(self) -> None:
+        experience_principles = (ROOT / "docs" / "decisions" / "experience-principles.md").read_text(encoding="utf-8").lower()
+        route_boundaries = (
+            ROOT / "docs" / "decisions" / "route-separation-and-experience-boundaries.md"
+        ).read_text(encoding="utf-8").lower()
+        layout_contracts = (ROOT / "docs" / "guides" / "layout-contracts-by-role.md").read_text(encoding="utf-8").lower()
+
+        self.assertIn("global search is shell-owned and remains centered in the top bar", experience_principles)
+        self.assertIn("`/`", route_boundaries)
+        self.assertIn("redirecting to `/operator`", route_boundaries)
+        self.assertIn("global search remains centered in the shell", layout_contracts)
+
     def test_docs_describe_operator_only_api_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()
         system_model = (ROOT / "docs" / "reference" / "system-model.md").read_text(encoding="utf-8").lower()

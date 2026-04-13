@@ -161,9 +161,10 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
     def test_web_surface_exposes_required_phase8_views(self) -> None:
         application = web_app(self.database_path)
 
-        status, _, body = call_wsgi(application, "/")
-        self.assertEqual(status, "404 Not Found")
-        self.assert_primary_surface(body, "system-error")
+        status, headers, body = call_wsgi(application, "/")
+        self.assertEqual(status, "303 See Other")
+        self.assertEqual(headers["Location"], "/operator")
+        self.assertEqual(body, "")
 
         status, _, body = call_wsgi(application, "/operator")
         self.assertEqual(status, "200 OK")
@@ -181,9 +182,17 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         status, _, body = call_wsgi(application, "/operator/read/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
         self.assertIn("VPN Troubleshooting", body)
-        self.assert_page_contract(body, primary_surface="object-detail", components=("article-hero", "article-section"))
+        self.assert_page_contract(body, primary_surface="object-detail", components=("article-section", "article-context-panel"))
         self.assertNotIn('<aside class="context-column">', body)
         self.assert_not_component(body, "object-header")
+
+        status, _, body = call_wsgi(application, "/reader/object/kb-troubleshooting-vpn-connectivity")
+        self.assertEqual(status, "200 OK")
+        self.assertIn("VPN Troubleshooting", body)
+        self.assert_page_contract(body, primary_surface="object-detail", components=("article-section", "article-context-panel"))
+        self.assertIn('class="sidebar"', body)
+        self.assertIn('href="/reader/browse"', body)
+        self.assertNotIn("/operator/review/object/", body)
 
         status, _, body = call_wsgi(application, "/operator/read/object/kb-troubleshooting-vpn-connectivity/revisions")
         self.assertEqual(status, "200 OK")
@@ -244,6 +253,44 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("--color-accent-secondary-selected-bg: var(--color-brand-context-soft);", body)
         self.assertIn("--color-panel-governance-label: var(--color-brand-depth);", body)
         self.assertIn("--color-panel-governance-bg: var(--color-brand-context-panel);", body)
+
+    def test_static_layout_assets_keep_topbar_search_centered(self) -> None:
+        application = web_app(self.database_path)
+
+        status, headers, body = call_wsgi(application, "/static/css/layout.css")
+        self.assertEqual(status, "200 OK")
+        self.assertEqual(headers["Content-Type"], "text/css")
+        self.assertIn("grid-template-columns: minmax(0, 1fr) minmax(18rem, 42rem) minmax(0, 1fr);", body)
+        self.assertIn(".topbar-shell-controls {", body)
+        self.assertIn("grid-column: 3;", body)
+        self.assertIn("justify-self: end;", body)
+        self.assertIn("grid-column: 2;", body)
+
+    def test_static_read_assets_protect_dense_admin_results_table_layout(self) -> None:
+        application = web_app(self.database_path)
+
+        status, headers, body = call_wsgi(application, "/static/css/read.css")
+        self.assertEqual(status, "200 OK")
+        self.assertEqual(headers["Content-Type"], "text/css")
+        self.assertIn(".read-results-table .workbench-table {", body)
+        self.assertIn("min-width: 56rem;", body)
+        self.assertIn(".read-results-table .workbench-table th:nth-child(5),", body)
+        self.assertIn("white-space: nowrap;", body)
+        self.assertIn(".read-results-table .button {", body)
+        self.assertIn("min-width: 5.5rem;", body)
+
+    def test_static_health_assets_prevent_stretched_empty_governance_columns(self) -> None:
+        application = web_app(self.database_path)
+
+        status, headers, body = call_wsgi(application, "/static/css/health.css")
+        self.assertEqual(status, "200 OK")
+        self.assertEqual(headers["Content-Type"], "text/css")
+        self.assertIn(".health-board__grid {", body)
+        self.assertIn("align-items: start;", body)
+        self.assertIn(".health-board__column {", body)
+        self.assertIn("align-content: start;", body)
+        self.assertIn(".health-board__card .button {", body)
+        self.assertIn("justify-self: start;", body)
 
     def test_web_errors_and_method_guards_render_explicit_pages(self) -> None:
         application = web_app(self.database_path)

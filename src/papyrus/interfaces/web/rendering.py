@@ -158,7 +158,7 @@ class PageRenderer:
     @staticmethod
     def _nav_item_is_active(item, *, active_nav: str, current_path: str) -> bool:
         if current_path:
-            prefixes = item.match_prefixes or (item.href,)
+            prefixes = item.match_prefixes if item.match_prefixes is not None else (item.href,)
             if any(PageRenderer._path_matches(current_path, prefix) for prefix in prefixes):
                 return True
         return item.key == active_nav
@@ -194,7 +194,7 @@ class PageRenderer:
             f'<p class="page-intro">{escape(intro)}</p>' if intro else "",
             context_html,
             detail_html,
-            f'<div class="page-header-actions">{actions_html}</div>' if actions_html else "",
+            f'<div class="page-header-actions" data-component="action-cluster">{actions_html}</div>' if actions_html else "",
         ]
         return f'<header class="page-header page-header-{escape(header_variant)}">' + join_html([fragment for fragment in fragments if fragment]) + "</header>"
 
@@ -205,7 +205,7 @@ class PageRenderer:
         active_nav: str,
         show_quick_links: bool,
     ) -> str:
-        menu_items = [f'<span class="topbar-menu-role">{escape(role_config.label)}</span>']
+        menu_items = [f'<span class="topbar-menu-chip is-active topbar-menu-role">{escape(role_config.label)}</span>']
         if show_quick_links:
             menu_items.extend(
                 link(

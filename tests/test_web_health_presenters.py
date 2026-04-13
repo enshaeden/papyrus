@@ -47,6 +47,7 @@ class HealthPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component(html, "health-board")
         self.assert_component(html, "health-column")
         self.assert_component(html, "health-card")
+        self.assertIn('class="health-board__grid"', html)
         self.assertIn("Review the decision.", html)
 
     def test_dashboard_presenter_assembles_health_components(self) -> None:

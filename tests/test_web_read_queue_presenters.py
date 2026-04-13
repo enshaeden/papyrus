@@ -10,8 +10,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.interfaces.web.presenters.queue_presenter import present_queue_page
 from papyrus.interfaces.web.presenters.read_filter_bar_presenter import render_read_filter_bar
-from papyrus.interfaces.web.presenters.read_queue_hero_presenter import render_read_queue_hero
-from papyrus.interfaces.web.presenters.read_results_presenter import render_read_result_cards
+from papyrus.interfaces.web.presenters.read_results_presenter import queue_item_href, render_read_result_cards
 from papyrus.interfaces.web.presenters.read_selected_context_presenter import render_read_selected_context
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions
@@ -46,10 +45,6 @@ QUEUE_ITEM = {
 
 class ReadQueuePresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_component_owners_render_traceable_read_surface_markup(self) -> None:
-        hero_html = render_read_queue_hero(
-            headline="Search for the article you should read next.",
-            intro="Readable results come first.",
-        )
         filter_html = render_read_filter_bar(
             role="operator",
             query="vpn",
@@ -60,7 +55,6 @@ class ReadQueuePresenterTests(SemanticHookAssertions, unittest.TestCase):
         results_html = render_read_result_cards(role="operator", items=[QUEUE_ITEM])
         context_html = render_read_selected_context(role="operator", item=QUEUE_ITEM)
 
-        self.assert_component(hero_html, "read-queue-hero")
         self.assert_component(filter_html, "read-filter-bar")
         self.assert_component(results_html, "read-result-card")
         self.assert_component(context_html, "read-selected-context")
@@ -80,11 +74,11 @@ class ReadQueuePresenterTests(SemanticHookAssertions, unittest.TestCase):
         )
 
         workspace_html = page["page_context"]["workspace_html"]
-        self.assert_component(workspace_html, "read-queue-hero")
         self.assert_component(workspace_html, "read-filter-bar")
         self.assert_component(workspace_html, "read-results-table")
         self.assert_component(page["aside_html"], "read-selected-context")
         self.assert_surface(workspace_html, "read-queue")
+        self.assertEqual(page["page_header"]["headline"], "Inspect")
 
     def test_queue_presenter_prefers_projection_guidance_over_raw_status_copy(self) -> None:
         item = dict(QUEUE_ITEM)
@@ -111,3 +105,21 @@ class ReadQueuePresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("Projection summary wins", workspace_html)
         self.assert_component(workspace_html, "read-result-card")
         self.assertNotIn("Raw queue fallback should not render.", workspace_html)
+
+    def test_reader_queue_links_fail_closed_to_reader_object_surface(self) -> None:
+        item = dict(QUEUE_ITEM)
+        item["current_revision_id"] = "kb-test-rev-1"
+        item["ui_projection"] = {
+            "actions": [
+                {
+                    "action_id": "mark_suspect",
+                    "label": "Mark suspect",
+                    "availability": "allowed",
+                }
+            ]
+        }
+
+        self.assertEqual(queue_item_href(item, role="reader"), "/reader/object/kb-test")
+        reader_html = render_read_result_cards(role="reader", items=[item])
+        self.assertIn('href="/reader/object/kb-test"', reader_html)
+        self.assertNotIn("/operator/review/object/kb-test/suspect", reader_html)

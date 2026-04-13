@@ -9,7 +9,6 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.interfaces.web.presenters.manage_presenter import present_manage_queue_page
-from papyrus.interfaces.web.presenters.review_hero_presenter import render_review_hero
 from papyrus.interfaces.web.presenters.review_lane_presenter import render_review_lane
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions
@@ -37,14 +36,6 @@ QUEUE_ITEM = {
 
 class ReviewPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_review_component_owners_render_local_workbench_markup(self) -> None:
-        hero_html = render_review_hero(
-            queue={
-                "ready_for_review": [QUEUE_ITEM],
-                "needs_decision": [QUEUE_ITEM],
-                "needs_revalidation": [],
-                "recently_changed": [QUEUE_ITEM],
-            }
-        )
         lane_html = render_review_lane(
             role="operator",
             title="Needs decision",
@@ -54,7 +45,6 @@ class ReviewPresenterTests(SemanticHookAssertions, unittest.TestCase):
             action_html_resolver=lambda item: f'<a href="/operator/read/object/{item["object_id"]}">Open</a>',
         )
 
-        self.assert_component(hero_html, "review-hero")
         self.assert_component(lane_html, "review-lane")
         self.assertIn("Review decision pending", lane_html)
 
@@ -71,6 +61,6 @@ class ReviewPresenterTests(SemanticHookAssertions, unittest.TestCase):
         page = present_manage_queue_page(TEMPLATE_RENDERER, role="operator", queue=queue, selected_object_id="kb-review")
 
         tables_html = page["page_context"]["tables_html"]
-        self.assert_component(page["page_context"]["overview_html"], "review-hero")
+        self.assertNotIn("overview_html", page["page_context"])
         self.assert_component(tables_html, "review-cleanup-strip")
         self.assert_component(tables_html, "review-lane")

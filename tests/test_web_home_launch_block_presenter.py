@@ -58,8 +58,10 @@ class HomeLaunchBlockPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_surface(html, "home")
         self.assertIn("Use the projection-backed guidance first.", html)
         self.assertIn('href="/operator/read/object/kb-vpn"', html)
+        self.assertIn("runbook", html)
         self.assertIn("Open", html)
         self.assertNotIn("Fallback summary", html)
+        self.assertNotIn("runbook · kb-vpn", html)
 
     def test_admin_launch_blocks_keep_secondary_block_local_to_component_owner(self) -> None:
         html = render_home_launch_blocks(

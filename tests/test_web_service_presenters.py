@@ -68,10 +68,11 @@ class ServicePresenterTests(SemanticHookAssertions, unittest.TestCase):
 
         self.assert_component(catalog_page["page_context"]["services_html"], "service-map")
         detail_html = (
-            detail_page["page_context"]["header_html"]
-            + detail_page["page_context"]["overview_html"]
+            detail_page["page_context"]["overview_html"]
             + detail_page["page_context"]["linked_objects_html"]
         )
-        self.assert_component(detail_html, "service-detail-hero")
         self.assert_component(detail_html, "service-pressure")
         self.assert_component(detail_html, "service-path")
+        self.assertEqual(detail_page["page_header"]["headline"], "Remote Access")
+        self.assertEqual(detail_page["page_header"]["kicker"], "high · active")
+        self.assertIn("Support entrypoints", detail_page["page_header"]["detail_html"])

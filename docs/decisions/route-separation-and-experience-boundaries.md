@@ -17,6 +17,7 @@ All new route, shell, and navigation work must move the application toward the r
 ## Route groups
 
 ### Shared
+- `/` (local entry shim redirecting to `/operator`; not a role-owned destination)
 - `/search`
 - `/account`
 - `/system-menu` (if route-based)

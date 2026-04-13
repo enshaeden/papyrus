@@ -9,32 +9,6 @@
   gap: 1rem;
 }
 
-.service-map__hero,
-.service-detail-hero {
-  padding: 1.15rem 1.25rem;
-  border-radius: 1.35rem;
-  border: 1px solid var(--color-brand-context-border);
-  background:
-    linear-gradient(135deg, rgba(93, 55, 84, 0.12) 0%, rgba(240, 238, 241, 0.96) 42%, rgba(255, 255, 255, 0.98) 100%);
-  box-shadow: var(--shadow-panel);
-}
-
-.service-map__hero h1,
-.service-detail-hero h1 {
-  margin: 0;
-  font-family: var(--font-serif);
-  font-size: clamp(1.85rem, 2.9vw, 2.5rem);
-  line-height: 1.04;
-}
-
-.service-map__hero p,
-.service-detail-hero__summary {
-  margin: 0;
-  max-width: 48rem;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
 .service-map__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -66,8 +40,7 @@
   overflow-wrap: anywhere;
 }
 
-.service-map__kicker,
-.service-detail-hero__kicker {
+.service-map__kicker {
   margin: 0 0 0.35rem;
   font-size: 0.72rem;
   font-weight: 800;
@@ -77,7 +50,6 @@
 }
 
 .service-map__summary,
-.service-detail-hero__summary,
 .service-path__item p {
   overflow-wrap: anywhere;
 }
@@ -88,8 +60,7 @@
   line-height: 1.45;
 }
 
-.service-map__facts,
-.service-detail-hero__facts {
+.service-map__facts {
   display: grid;
   gap: 0.65rem;
   margin-top: 0.8rem;
@@ -101,13 +72,7 @@
   gap: 0.7rem;
 }
 
-.service-detail-hero__facts div {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.service-map__facts dt,
-.service-detail-hero__facts dt {
+.service-map__facts dt {
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -115,14 +80,12 @@
   color: var(--color-brand-depth);
 }
 
-.service-map__facts dd,
-.service-detail-hero__facts dd {
+.service-map__facts dd {
   margin: 0;
   overflow-wrap: anywhere;
 }
 
-.service-map__actions,
-.service-detail-hero__actions {
+.service-map__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;

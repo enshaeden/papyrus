@@ -14,7 +14,7 @@ class ShellLink:
     key: str
     label: str
     href: str
-    match_prefixes: tuple[str, ...] = ()
+    match_prefixes: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -122,7 +122,7 @@ OPERATOR_EXPERIENCE = ExperienceContext(
             title="Operator workflow",
             description="Read first, write only when guidance is missing, and keep governance tied to the current task.",
             items=(
-                ShellLink("home", "Home", "/operator", match_prefixes=("/operator",)),
+                ShellLink("home", "Home", "/operator", match_prefixes=()),
                 ShellLink("read", "Read", "/operator/read", match_prefixes=("/operator/read",)),
                 ShellLink("write", "Write", "/operator/write/new", match_prefixes=("/operator/write",)),
                 ShellLink("import", "Import", "/operator/import", match_prefixes=("/operator/import",)),
@@ -167,7 +167,7 @@ ADMIN_EXPERIENCE = ExperienceContext(
             title="Admin control plane",
             description="Inspect oversight, approvals, governance pressure, service impact, and audit history without blending in operator authoring routes.",
             items=(
-                ShellLink("home", "Overview", "/admin/overview", match_prefixes=("/admin",)),
+                ShellLink("home", "Overview", "/admin/overview", match_prefixes=()),
                 ShellLink("inspect", "Inspect", "/admin/inspect", match_prefixes=("/admin/inspect",)),
                 ShellLink("review", "Review", "/admin/review", match_prefixes=("/admin/review",)),
                 ShellLink("health", "Governance", "/admin/governance", match_prefixes=("/admin/governance", "/admin/impact")),

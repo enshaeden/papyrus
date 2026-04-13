@@ -9,6 +9,9 @@ from papyrus.interfaces.web.http import redirect_response
 
 
 def register(router, runtime) -> None:
+    def root_landing(_: Request):
+        return redirect_response("/operator")
+
     def home_page(request: Request):
         experience = require_experience(request, "operator", "admin")
         dashboard = home_dashboard(role=experience.role, database_path=runtime.database_path)
@@ -29,6 +32,7 @@ def register(router, runtime) -> None:
     def reader_landing(_: Request):
         return redirect_response("/reader/browse")
 
+    router.add(["GET"], "/", root_landing)
     router.add(["GET"], "/operator", home_page)
     router.add(["GET"], "/admin/overview", home_page)
     router.add(["GET"], "/admin", admin_landing)

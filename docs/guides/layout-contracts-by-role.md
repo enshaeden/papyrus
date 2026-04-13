@@ -11,6 +11,7 @@ Present on all experiences:
 - account/system menu trigger
 - page or object title
 - only role-appropriate primary actions
+- global search remains centered in the shell; identity and shell controls must yield around it instead of moving it
 
 Top bar must not become a dumping ground for cross-role actions.
 

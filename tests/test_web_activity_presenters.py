@@ -9,7 +9,6 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.interfaces.web.presenters.activity_event_list_presenter import render_activity_event_list
-from papyrus.interfaces.web.presenters.activity_hero_presenter import render_activity_hero
 from papyrus.interfaces.web.presenters.manage_presenter import present_audit_page
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions
@@ -31,10 +30,8 @@ STRUCTURED_EVENT = {
 
 class ActivityPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_activity_component_owners_render_primary_consequence_views(self) -> None:
-        hero_html = render_activity_hero(structured_events=[STRUCTURED_EVENT])
         event_html = render_activity_event_list(structured_events=[STRUCTURED_EVENT])
 
-        self.assert_component(hero_html, "activity-hero")
         self.assert_component(event_html, "activity-event")
         self.assertIn("Check linked guidance.", event_html)
 
@@ -50,13 +47,12 @@ class ActivityPresenterTests(SemanticHookAssertions, unittest.TestCase):
         )
 
         page_html = (
-            page["page_context"]["summary_html"]
-            + page["page_context"]["filter_bar_html"]
+            page["page_context"]["filter_bar_html"]
             + page["page_context"]["event_html"]
             + page["page_context"]["audit_html"]
             + page["page_context"]["validation_html"]
         )
-        self.assert_component(page_html, "activity-hero")
+        self.assertNotIn("summary_html", page["page_context"])
         self.assert_component(page_html, "activity-filter-bar")
         self.assert_component(page_html, "activity-event")
         self.assert_component(page_html, "activity-audit-log")

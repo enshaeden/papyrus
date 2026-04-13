@@ -59,6 +59,7 @@ Tests should assert those hooks plus structured contract payload behavior instea
   - `focus` for intentionally reduced-navigation work, not guided drafting
   - `minimal` for one-step decisions and system pages
 - Guided drafting uses the `normal` shell. Sidebar navigation and the topbar role label remain visible while the operator works through guided sections.
+- The global search field occupies the centered topbar slot. Identity and shell controls must not shift it off center.
 - The right rail is optional and should render only when the page has actionable contextual support.
 - The sidebar is a flat grouped list, not a stack of card containers.
 - The left rail and topbar role label come from `src/papyrus/interfaces/web/experience.py`, not page-local duplication.
@@ -75,12 +76,6 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 ### Home
 
-- `Home Hero`
-  - `data-component`: `home-hero`
-  - owner file: `src/papyrus/interfaces/web/presenters/home_hero_presenter.py`
-  - upstream data source: `papyrus.application.read_models.home_dashboard`
-  - CSS location: `src/papyrus/interfaces/web/static/css/home.css`
-  - test location: `tests/test_web_home_hero_presenter.py`
 - `Home Launch Block`
   - `data-component`: `home-launch-block`
   - owner file: `src/papyrus/interfaces/web/presenters/home_launch_block_presenter.py`
@@ -96,12 +91,6 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 ### Read
 
-- `Read Queue Hero`
-  - `data-component`: `read-queue-hero`
-  - owner file: `src/papyrus/interfaces/web/presenters/read_queue_hero_presenter.py`
-  - upstream data source: role-scoped read routes plus `src/papyrus/interfaces/web/experience.py`
-  - CSS location: `src/papyrus/interfaces/web/static/css/read.css`
-  - test location: `tests/test_web_read_queue_presenters.py`
 - `Read Filter Bar`
   - `data-component`: `read-filter-bar`
   - owner file: `src/papyrus/interfaces/web/presenters/read_filter_bar_presenter.py`
@@ -123,12 +112,7 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 ### Object Detail
 
-- `Article Hero`
-  - `data-component`: `article-hero`
-  - owner file: `src/papyrus/interfaces/web/presenters/article_hero_presenter.py`
-  - upstream data source: `papyrus.interfaces.web.view_models.article_projection`
-  - CSS location: `src/papyrus/interfaces/web/static/css/article.css`
-  - test location: `tests/test_web_object_detail_presenters.py`
+- Object detail title, summary, and primary actions render through the shared page header in `src/papyrus/interfaces/web/rendering.py`.
 - `Article Section`
   - `data-component`: `article-section`
   - owner file: `src/papyrus/interfaces/web/presenters/article_section_presenter.py`
@@ -156,12 +140,7 @@ Tests should assert those hooks plus structured contract payload behavior instea
   - upstream data source: service catalog rows
   - CSS location: `src/papyrus/interfaces/web/static/css/services.css`
   - test location: `tests/test_web_service_presenters.py`
-- `Service Detail Hero`
-  - `data-component`: `service-detail-hero`
-  - owner file: `src/papyrus/interfaces/web/presenters/service_detail_hero_presenter.py`
-  - upstream data source: service detail payload
-  - CSS location: `src/papyrus/interfaces/web/static/css/services.css`
-  - test location: `tests/test_web_service_presenters.py`
+- Service detail title, service facts, and primary actions render through the shared page header in `src/papyrus/interfaces/web/rendering.py`.
 - `Service Pressure`
   - `data-component`: `service-pressure`
   - owner file: `src/papyrus/interfaces/web/presenters/service_pressure_presenter.py`
@@ -198,12 +177,6 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 ### Review
 
-- `Review Hero`
-  - `data-component`: `review-hero`
-  - owner file: `src/papyrus/interfaces/web/presenters/review_hero_presenter.py`
-  - upstream data source: review queue group counts
-  - CSS location: `src/papyrus/interfaces/web/static/css/review.css`
-  - test location: `tests/test_web_review_presenters.py`
 - `Review Cleanup Strip`
   - `data-component`: `review-cleanup-strip`
   - owner file: `src/papyrus/interfaces/web/presenters/review_cleanup_strip_presenter.py`
@@ -219,12 +192,6 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 ### Activity
 
-- `Activity Hero`
-  - `data-component`: `activity-hero`
-  - owner file: `src/papyrus/interfaces/web/presenters/activity_hero_presenter.py`
-  - upstream data source: structured activity events
-  - CSS location: `src/papyrus/interfaces/web/static/css/activity.css`
-  - test location: `tests/test_web_activity_presenters.py`
 - `Activity Filter Bar`
   - `data-component`: `activity-filter-bar`
   - owner file: `src/papyrus/interfaces/web/presenters/activity_filter_bar_presenter.py`

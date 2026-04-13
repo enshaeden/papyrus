@@ -61,6 +61,6 @@ class HomePresenterTests(SemanticHookAssertions, unittest.TestCase):
         )
 
         self.assertEqual(page["page_template"], "pages/home.html")
-        self.assert_component(page["page_context"]["home_hero_html"], "home-hero")
+        self.assertNotIn("home_hero_html", page["page_context"])
         self.assert_component(page["page_context"]["home_launch_html"], "home-launch-block")
         self.assert_component(page["page_context"]["home_activity_html"], "home-activity-block")

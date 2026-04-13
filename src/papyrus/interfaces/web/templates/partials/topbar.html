@@ -1,13 +1,13 @@
 <header class="topbar">
-  <div class="identity-block">
+  <div class="identity-block topbar-identity">
     <a class="identity-mark" href="{{ home_href }}">Papyrus</a>
   </div>
-  <div class="topbar-utility" aria-label="Search and shell controls">
-    <form class="topbar-search" action="{{ search_action }}" method="get">
-      <label class="sr-only" for="global-search">Search Papyrus</label>
-      <input id="global-search" name="query" type="search" placeholder="Search guidance, services, or IDs" value="{{ search_value }}" />
-      <button class="button button-primary" type="submit">Search</button>
-    </form>
+  <form class="topbar-search" action="{{ search_action }}" method="get">
+    <label class="sr-only" for="global-search">Search Papyrus</label>
+    <input id="global-search" name="query" type="search" placeholder="Search guidance, services, or IDs" value="{{ search_value }}" />
+    <button class="button button-primary" type="submit">Search</button>
+  </form>
+  <div class="topbar-shell-controls" aria-label="Shell controls">
     {{ topbar_menu_html }}
   </div>
 </header>

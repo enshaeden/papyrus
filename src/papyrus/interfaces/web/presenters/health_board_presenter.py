@@ -69,10 +69,6 @@ def render_health_board(*, role: str, queue: list[dict[str, Any]]) -> str:
     groups = intervention_groups(queue)
     return (
         '<section class="health-board" data-component="health-board" data-surface="knowledge-health">'
-        '<div class="health-board__hero">'
-        "<h1>Intervene by debt type, not by generic queue order.</h1>"
-        "<p>Knowledge Health is a stewardship board: trust debt, review backlog, ownership gaps, and stable watch items are grouped by the kind of intervention they need.</p>"
-        "</div>"
         '<div class="health-board__grid">'
         + render_health_column("Trust debt", "Weak, stale, or suspect guidance that changes whether operators should trust the surface.", groups["trust_debt"], role=role, tone="danger")
         + render_health_column("Review backlog", "Guidance waiting on explicit governance decisions.", groups["review_backlog"], role=role, tone="warning")

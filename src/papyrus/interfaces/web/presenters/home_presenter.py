@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 from papyrus.interfaces.web.presenters.home_activity_block_presenter import render_home_activity_block
-from papyrus.interfaces.web.presenters.home_hero_presenter import render_home_hero
 from papyrus.interfaces.web.presenters.home_launch_block_presenter import render_home_launch_blocks
 from papyrus.interfaces.web.rendering import TemplateRenderer
 
@@ -18,7 +17,6 @@ def present_home_page(renderer: TemplateRenderer, *, dashboard: dict[str, Any]) 
         "active_nav": "home",
         "aside_html": "",
         "page_context": {
-            "home_hero_html": render_home_hero(dashboard=dashboard),
             "home_launch_html": render_home_launch_blocks(dashboard=dashboard),
             "home_activity_html": render_home_activity_block(dashboard=dashboard),
         },

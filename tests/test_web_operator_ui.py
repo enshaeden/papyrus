@@ -818,7 +818,8 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, object_body = call_wsgi(application, f"/operator/read/object/{created.object_id}")
             self.assertEqual(status, "200 OK")
-            self.assert_component_count(object_body, "article-hero", 1)
+            self.assertNotIn('data-component="article-hero"', object_body)
+            self.assert_component_count(object_body, "action-cluster", 1)
 
             status, _, history_body = call_wsgi(application, f"/operator/read/object/{created.object_id}/revisions")
             self.assertEqual(status, "200 OK")
@@ -846,9 +847,9 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 allow_noncanonical_source_root=True,
             )
 
-            status, _, home_missing_body = call_wsgi(application, "/")
-            self.assertEqual(status, "404 Not Found")
-            self.assertIn("No route for /", home_missing_body)
+            status, headers, _ = call_wsgi(application, "/")
+            self.assertEqual(status, "303 See Other")
+            self.assertEqual(headers["Location"], "/operator")
 
             status, _, missing_body = call_wsgi(
                 application,
@@ -890,6 +891,8 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("<title>Inspect Guidance | Papyrus</title>", admin_body)
             self.assertIn('data-role="admin"', admin_body)
             self.assertIn("Admin", admin_body)
+            self.assertIn('class="sidebar-link is-active" href="/admin/inspect">Inspect</a>', admin_body)
+            self.assertNotIn('class="sidebar-link is-active" href="/admin/overview">Overview</a>', admin_body)
             self.assertIn('href="/admin/review"', admin_body)
             self.assertIn('href="/admin/governance"', admin_body)
             self.assertIn('href="/admin/audit"', admin_body)
@@ -899,6 +902,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertNotIn("papyrus_actor", admin_body)
             self.assertIn('<aside class="context-column">', admin_body)
             self.assert_component(admin_body, "read-selected-context")
+
+            status, _, governance_body = call_wsgi(application, "/admin/governance")
+            self.assertEqual(status, "200 OK")
+            self.assertIn('class="sidebar-link is-active" href="/admin/governance">Governance</a>', governance_body)
+            self.assertNotIn('class="sidebar-link is-active" href="/admin/overview">Overview</a>', governance_body)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -973,7 +981,10 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn('method="post" action="/operator/write/object/kb-operator-ui-shell-search?revision_id=', body)
             self.assertIn("section=purpose", body)
             self.assertIn('class="sidebar"', body)
+            self.assertIn('class="topbar-search"', body)
+            self.assertIn('class="topbar-shell-controls"', body)
             self.assertIn('class="topbar-menu"', body)
+            self.assertIn('class="topbar-menu-chip is-active topbar-menu-role">Operator</span>', body)
             self.assertIn('class="sidebar-link is-active" href="/operator/write/new">Write</a>', body)
             self.assert_component(body, "progress-strip")
             self.assertNotIn('class="write-stage-label"', body)

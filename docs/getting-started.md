@@ -27,6 +27,7 @@ python3 scripts/run.py --operator
 ```
 
 - Web entrypoint: operator home route `/operator`
+- Local web root `/` is a convenience redirect to `/operator`, not a separate role-owned route.
 - API entrypoint: local API health route `/health`
 - Runtime DB: `build/knowledge.db`
 

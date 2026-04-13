@@ -10,7 +10,6 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.interfaces.web.experience import experience_for_role
 from papyrus.interfaces.web.presenters.article_context_panel_presenter import render_article_context_panel
-from papyrus.interfaces.web.presenters.article_hero_presenter import render_article_hero
 from papyrus.interfaces.web.presenters.article_section_presenter import render_article_section
 from papyrus.interfaces.web.presenters.object_presenter import present_object_detail
 from papyrus.interfaces.web.rendering import TemplateRenderer
@@ -95,15 +94,6 @@ DETAIL = {
 
 class ObjectDetailPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_component_owners_render_article_markup_locally(self) -> None:
-        hero_html = render_article_hero(
-            hero={
-                "eyebrow": "Read",
-                "title": "Test object",
-                "summary": "Structured summary.",
-                "use_now": "Use the current guidance.",
-            },
-            actions=["<a href=\"/objects/kb-test/revisions\">See history</a>"],
-        )
         section_html = render_article_section(
             section={
                 "eyebrow": "Use",
@@ -121,7 +111,6 @@ class ObjectDetailPresenterTests(SemanticHookAssertions, unittest.TestCase):
             }
         )
 
-        self.assert_component(hero_html, "article-hero")
         self.assert_component(section_html, "article-section")
         self.assert_component(context_html, "article-context-panel")
         self.assertIn("View revision source", context_html)
@@ -129,11 +118,15 @@ class ObjectDetailPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_object_presenter_assembles_article_surface_from_local_components(self) -> None:
         page = present_object_detail(TEMPLATE_RENDERER, detail=DETAIL, experience=experience_for_role("operator"))
 
-        article_html = page["page_context"]["hero_html"] + page["page_context"]["article_html"] + page["page_context"]["appendix_html"]
-        self.assert_component(article_html, "article-hero")
+        article_html = page["page_context"]["article_html"] + page["page_context"]["appendix_html"]
         self.assert_component(article_html, "article-section")
+        self.assert_component(article_html, "article-context-panel")
         self.assertIn("Linked service context", article_html)
         self.assertIn("The runtime contract marks this object safe for use.", article_html)
+        self.assertEqual(page["page_header"]["headline"], "Test object")
+        self.assertEqual(page["page_header"]["kicker"], "runbook · kb-test")
+        self.assertEqual(page["page_header"]["intro"], "Structured summary.")
+        self.assertIn("See history", page["page_header"]["actions_html"])
 
     def test_object_presenter_prefers_projection_truth_over_raw_state_fallbacks(self) -> None:
         detail = dict(DETAIL)

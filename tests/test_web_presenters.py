@@ -12,6 +12,7 @@ from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import (
     render_acknowledgement_panel,
     render_action_contract_panel,
+    render_projection_status_panel,
     render_workflow_projection_panel,
 )
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
@@ -77,8 +78,10 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
 
         self.assert_component(action_html, "surface-panel")
         self.assert_surface(action_html, "contract")
+        self.assertIn('class="section-card context-panel', action_html)
         self.assertIn("Papyrus will move the canonical file under archive/knowledge", action_html)
         self.assert_surface(acknowledgement_html, "acknowledgements")
+        self.assertIn('class="section-card context-panel', acknowledgement_html)
         self.assertIn("Review the archive acknowledgement before continuing.", acknowledgement_html)
         self.assertIn("canonical path will move to archive", acknowledgement_html)
 
@@ -102,9 +105,38 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
         )
         self.assert_component(html, "surface-panel")
         self.assert_surface(html, "workflow")
+        self.assertIn('class="section-card context-panel', html)
         self.assertIn("Continue guided authoring before routing this revision into review.", html)
         self.assertIn("References: 1 external/manual citation remains weak.", html)
         self.assertIn("Verification: This field is required.", html)
+
+    def test_projection_status_panel_renders_as_context_panel(self) -> None:
+        components = ComponentPresenter(TEMPLATE_RENDERER)
+        html = render_projection_status_panel(
+            components,
+            title="Current governed posture",
+            ui_projection={
+                "state": {
+                    "object_lifecycle_state": "active",
+                    "revision_review_state": "approved",
+                    "draft_progress_state": "ready_for_review",
+                    "source_sync_state": "applied",
+                    "trust_state": "trusted",
+                },
+                "use_guidance": {
+                    "summary": "Safe to use now",
+                    "detail": "The runtime contract marks this object safe for use.",
+                    "next_action": "Use the current guidance.",
+                    "safe_to_use": True,
+                },
+                "reasons": ["review:approved"],
+            },
+        )
+
+        self.assert_component(html, "surface-panel")
+        self.assert_surface(html, "posture")
+        self.assertIn('class="section-card context-panel', html)
+        self.assertIn("Safe to use now", html)
 
 
 if __name__ == "__main__":

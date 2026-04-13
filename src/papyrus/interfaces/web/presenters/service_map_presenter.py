@@ -19,10 +19,6 @@ def service_status(service: dict[str, Any]) -> str:
 def render_service_map(*, role: str, services: list[dict[str, Any]]) -> str:
     return (
         '<section class="service-map" data-component="service-map" data-surface="services">'
-        '<div class="service-map__hero">'
-        "<h1>Start from service context.</h1>"
-        "<p>Services is an entry map: ownership, criticality, health, and linked guidance paths are visible before you open an article.</p>"
-        "</div>"
         '<div class="service-map__grid">'
         + join_html(
             [

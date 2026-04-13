@@ -32,6 +32,10 @@ _HOME_LAUNCH_ACTION_LABELS = {
 }
 
 
+def _humanize_token(token: str) -> str:
+    return token.replace("_", " ").strip()
+
+
 def _projection_summary(item: dict[str, Any]) -> str:
     use_guidance = dict((item.get("ui_projection") or {}).get("use_guidance") or {})
     return str(use_guidance.get("summary") or item.get("summary") or "No summary recorded.")
@@ -92,7 +96,7 @@ def _render_do_now_block(dashboard: dict[str, Any]) -> str:
             title=str(item["title"]),
             detail=_projection_summary(item),
             href=object_url(role, str(item["object_id"])),
-            metric=f"{item['object_type']} · {item['object_id']}",
+            metric=_humanize_token(str(item["object_type"])),
             tone="approved",
             action_label=_HOME_LAUNCH_ACTION_LABELS["do_now"],
             action_id="open-primary-surface",

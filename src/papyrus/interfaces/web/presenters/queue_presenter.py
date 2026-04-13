@@ -5,7 +5,6 @@ from typing import Any
 from papyrus.application.role_visibility import ADMIN_ROLE, READER_ROLE
 from papyrus.interfaces.web.experience import experience_for_role
 from papyrus.interfaces.web.presenters.read_filter_bar_presenter import render_read_filter_bar
-from papyrus.interfaces.web.presenters.read_queue_hero_presenter import render_read_queue_hero
 from papyrus.interfaces.web.presenters.read_results_presenter import render_read_result_cards, render_read_results_table
 from papyrus.interfaces.web.presenters.read_selected_context_presenter import render_read_selected_context
 from papyrus.interfaces.web.rendering import TemplateRenderer
@@ -71,7 +70,6 @@ def present_queue_page(
         "page_context": {
             "workspace_html": join_html(
                 [
-                    render_read_queue_hero(headline=headline, intro=intro),
                     render_read_filter_bar(
                         role=role,
                         query=query,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from papyrus.application.role_visibility import READER_ROLE
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.urls import (
@@ -197,6 +198,8 @@ def primary_surface_href(
     current_revision_id: str | None,
     ui_projection: dict[str, Any] | None,
 ) -> str:
+    if role == READER_ROLE:
+        return object_url(role, object_id)
     authoring_href = authoring_entry_href(
         role=role,
         object_id=object_id,
@@ -321,7 +324,7 @@ def render_workflow_projection_panel(
             + render_list([escape(item) for item in reasons], css_class="panel-list")
             + "</div>"
         )
-    return components.surface_panel(
+    return components.context_panel(
         title=title,
         eyebrow="Workflow",
         summary=str(data.get("summary") or "Backend workflow guidance unavailable"),
@@ -368,7 +371,7 @@ def render_projection_status_panel(
             ),
         ]
     )
-    return components.surface_panel(
+    return components.context_panel(
         title=title,
         eyebrow="Governance",
         summary=str(use_guidance.get("summary") or "Backend guidance unavailable"),
@@ -427,7 +430,7 @@ def render_projection_overview_panel(
         current_revision_id=current_revision_id,
     )
     body_parts.append(f'<div class="governed-action-cta" data-component="action-cluster">{action_html}</div>')
-    return components.surface_panel(
+    return components.context_panel(
         title=title,
         eyebrow="Current posture",
         summary=str(use_guidance.get("summary") or "Backend guidance unavailable"),
@@ -478,7 +481,7 @@ def render_contract_status_panel(
             )
             + "</div>"
         )
-    return components.surface_panel(
+    return components.context_panel(
         title=title,
         eyebrow="Contract",
         summary=summary,
@@ -583,7 +586,7 @@ def render_action_descriptor_panel(
             + (f'<div class="governed-action-cta">{cta_html}</div>' if cta_html else "")
             + "</article>"
         )
-    return components.surface_panel(
+    return components.context_panel(
         title=title,
         eyebrow="Actions",
         body_html=join_html(items_html) or '<p class="empty-state-copy">No actions were returned for this screen.</p>',
@@ -646,7 +649,7 @@ def render_acknowledgement_panel(
             ),
         ]
     )
-    return components.surface_panel(
+    return components.context_panel(
         title=title,
         eyebrow="Acknowledgements",
         summary=operator_message or "Review the required acknowledgements before continuing.",

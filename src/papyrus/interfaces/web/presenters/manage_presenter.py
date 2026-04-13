@@ -21,10 +21,8 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
 from papyrus.interfaces.web.presenters.activity_audit_log_presenter import render_activity_audit_log
 from papyrus.interfaces.web.presenters.activity_event_list_presenter import render_activity_event_list
 from papyrus.interfaces.web.presenters.activity_filter_bar_presenter import render_activity_filter_bar
-from papyrus.interfaces.web.presenters.activity_hero_presenter import render_activity_hero
 from papyrus.interfaces.web.presenters.activity_validation_log_presenter import render_activity_validation_log
 from papyrus.interfaces.web.presenters.review_cleanup_strip_presenter import render_review_cleanup_strip
-from papyrus.interfaces.web.presenters.review_hero_presenter import render_review_hero
 from papyrus.interfaces.web.presenters.review_lane_presenter import render_review_lane
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.urls import review_queue_url, validation_run_new_url
@@ -353,7 +351,6 @@ def present_manage_queue_page(
             action_html_resolver=lambda item: _manage_item_actions(components, item, role=role),
         )
 
-    overview_html = render_review_hero(queue=queue)
     cleanup_html = render_review_cleanup_strip(cleanup_counts=cleanup_counts)
     tables_html = join_html(
         [
@@ -372,7 +369,7 @@ def present_manage_queue_page(
         active_nav="review",
         show_actor_links=False,
         aside_html=_manage_context_panel(components, selected_item, role=role) if selected_item is not None else "",
-        page_context={"overview_html": overview_html, "tables_html": tables_html},
+        page_context={"tables_html": tables_html},
     )
 
 
@@ -753,7 +750,6 @@ def present_audit_page(
         active_nav="activity",
         show_actor_links=False,
         page_context={
-            "summary_html": render_activity_hero(structured_events=structured_events),
             "filter_bar_html": render_activity_filter_bar(role=role, object_id=object_id, selected_group=selected_group),
             "audit_html": render_activity_audit_log(events=events),
             "event_html": render_activity_event_list(structured_events=structured_events),
