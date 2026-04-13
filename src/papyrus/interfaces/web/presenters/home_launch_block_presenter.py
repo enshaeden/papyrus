@@ -2,6 +2,17 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from papyrus.application.role_visibility import ADMIN_ROLE, OPERATOR_ROLE, READER_ROLE
+from papyrus.interfaces.web.urls import (
+    activity_url,
+    governance_url,
+    object_url,
+    review_decision_url,
+    review_queue_url,
+    service_catalog_url,
+    service_url,
+    write_new_url,
+)
 from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path
 
 
@@ -74,12 +85,13 @@ def _render_block_shell(*, block_id: str, title: str, summary: str, tone: str, i
 
 
 def _render_do_now_block(dashboard: dict[str, Any]) -> str:
+    role = str(dashboard.get("role") or OPERATOR_ROLE)
     safe_items = [item for item in dashboard["read_queue"] if _safe_to_use(item)][:3]
     items_html = [
         _render_block_item(
             title=str(item["title"]),
             detail=_projection_summary(item),
-            href=f"/objects/{quoted_path(str(item['object_id']))}",
+            href=object_url(role, str(item["object_id"])),
             metric=f"{item['object_type']} · {item['object_id']}",
             tone="approved",
             action_label=_HOME_LAUNCH_ACTION_LABELS["do_now"],
@@ -90,7 +102,7 @@ def _render_do_now_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Read guidance",
             detail="Start from the read workspace.",
-            href="/read",
+            href="/reader/browse" if role == READER_ROLE else "/operator/read",
             metric=str(dashboard["counts"]["read_ready"]),
             tone="approved",
             action_label=_HOME_LAUNCH_ACTION_LABELS["do_now"],
@@ -106,12 +118,13 @@ def _render_do_now_block(dashboard: dict[str, Any]) -> str:
 
 
 def _render_continue_block(dashboard: dict[str, Any]) -> str:
+    role = str(dashboard.get("role") or OPERATOR_ROLE)
     draft_items = list(dashboard["manage"]["draft_items"])[:3]
     items_html = [
         _render_block_item(
             title=str(item["title"]),
             detail=str(item.get("change_summary") or item.get("summary") or "No summary recorded."),
-            href=f"/objects/{quoted_path(str(item['object_id']))}",
+            href=object_url(role, str(item["object_id"])),
             metric=f"{item['revision_review_state']} · {item['owner'] or 'unowned'}",
             tone="brand",
             action_label=_HOME_LAUNCH_ACTION_LABELS["continue"],
@@ -121,7 +134,7 @@ def _render_continue_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Start a draft",
             detail="No drafts are waiting.",
-            href="/write/objects/new",
+            href=write_new_url(),
             metric=str(dashboard["counts"]["drafts"]),
             tone="brand",
             action_label=_HOME_LAUNCH_ACTION_LABELS["continue"],
@@ -137,12 +150,13 @@ def _render_continue_block(dashboard: dict[str, Any]) -> str:
 
 
 def _render_watch_block(dashboard: dict[str, Any]) -> str:
+    role = str(dashboard.get("role") or OPERATOR_ROLE)
     watch_items = list(dashboard["manage"]["needs_revalidation"])[:3]
     items_html = [
         _render_block_item(
             title=str(item["title"]),
             detail=", ".join(item["reasons"][:2]) or "Needs follow-up.",
-            href=f"/objects/{quoted_path(str(item['object_id']))}",
+            href=object_url(role, str(item["object_id"])),
             metric=str(item["trust_state"]),
             tone="warning",
             action_label=_HOME_LAUNCH_ACTION_LABELS["watch"],
@@ -152,7 +166,7 @@ def _render_watch_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Health board",
             detail="No urgent follow-up items are queued.",
-            href="/health",
+            href=governance_url(role),
             metric=str(dashboard["counts"]["needs_revalidation"]),
             tone="warning",
             action_label=_HOME_LAUNCH_ACTION_LABELS["watch"],
@@ -169,11 +183,12 @@ def _render_watch_block(dashboard: dict[str, Any]) -> str:
 
 def _render_queue_status_block(dashboard: dict[str, Any]) -> str:
     counts = dashboard["counts"]
+    role = str(dashboard.get("role") or ADMIN_ROLE)
     items_html = [
         _render_block_item(
             title="Needs decision",
             detail="Assigned items awaiting a decision.",
-            href="/review",
+            href=review_queue_url(role),
             metric=str(counts["needs_decision"]),
             tone="warning",
             action_label=_HOME_LAUNCH_ACTION_LABELS["queue_status"],
@@ -181,7 +196,7 @@ def _render_queue_status_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Ready for review",
             detail="Submitted revisions without reviewer ownership.",
-            href="/review",
+            href=review_queue_url(role),
             metric=str(counts["ready_for_review"]),
             tone="brand",
             action_label=_HOME_LAUNCH_ACTION_LABELS["queue_status"],
@@ -189,7 +204,7 @@ def _render_queue_status_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Needs revalidation",
             detail="Weak or stale guidance that can block approvals.",
-            href="/health",
+            href=governance_url(role),
             metric=str(counts["needs_revalidation"]),
             tone="danger",
             action_label=_HOME_LAUNCH_ACTION_LABELS["queue_status"],
@@ -205,11 +220,12 @@ def _render_queue_status_block(dashboard: dict[str, Any]) -> str:
 
 
 def _render_pending_decisions_block(dashboard: dict[str, Any]) -> str:
+    role = str(dashboard.get("role") or ADMIN_ROLE)
     items_html = [
         _render_block_item(
             title=str(item["title"]),
             detail=str(item.get("change_summary") or item.get("summary") or "No summary recorded."),
-            href=f"/manage/reviews/{quoted_path(str(item['object_id']))}/{quoted_path(str(item['revision_id']))}",
+            href=review_decision_url(role, str(item["object_id"]), str(item["revision_id"])),
             metric=str((item.get("assignment") or {}).get("reviewer") or "unassigned"),
             tone="warning",
             action_label=_HOME_LAUNCH_ACTION_LABELS["pending_decisions"],
@@ -219,7 +235,7 @@ def _render_pending_decisions_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Open review queue",
             detail="No assigned decisions are waiting.",
-            href="/review",
+            href=review_queue_url(role),
             metric="0",
             tone="warning",
             action_label=_HOME_LAUNCH_ACTION_LABELS["pending_decisions"],
@@ -235,11 +251,12 @@ def _render_pending_decisions_block(dashboard: dict[str, Any]) -> str:
 
 
 def _render_blocked_reviews_block(dashboard: dict[str, Any]) -> str:
+    role = str(dashboard.get("role") or ADMIN_ROLE)
     items_html = [
         _render_block_item(
             title=str(item["title"]),
             detail=", ".join(item["reasons"][:2]) or "Needs reviewer intervention.",
-            href=f"/objects/{quoted_path(str(item['object_id']))}",
+            href=object_url(role, str(item["object_id"])),
             metric=str(item["trust_state"]),
             tone="danger",
             action_label=_HOME_LAUNCH_ACTION_LABELS["blocked_reviews"],
@@ -249,7 +266,7 @@ def _render_blocked_reviews_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Inspect health board",
             detail="No trust exceptions are blocking review right now.",
-            href="/health",
+            href=governance_url(role),
             metric="0",
             tone="danger",
             action_label=_HOME_LAUNCH_ACTION_LABELS["blocked_reviews"],
@@ -265,11 +282,12 @@ def _render_blocked_reviews_block(dashboard: dict[str, Any]) -> str:
 
 
 def _render_governance_consequences_block(dashboard: dict[str, Any]) -> str:
+    role = str(dashboard.get("role") or ADMIN_ROLE)
     items_html = [
         _render_block_item(
             title=str(event.get("what_happened") or "Recent event"),
             detail=str(event.get("next_action") or "Inspect activity."),
-            href="/activity",
+            href=activity_url(role),
             metric=str(event.get("entity_type") or "event"),
             tone="default",
             action_label=_HOME_LAUNCH_ACTION_LABELS["governance_consequences"],
@@ -288,11 +306,12 @@ def _render_governance_consequences_block(dashboard: dict[str, Any]) -> str:
 
 def _render_risk_pressure_block(dashboard: dict[str, Any]) -> str:
     counts = dashboard["counts"]
+    role = str(dashboard.get("role") or ADMIN_ROLE)
     items_html = [
         _render_block_item(
             title="Needs attention",
             detail="Items across review and trust queues.",
-            href="/health",
+            href=governance_url(role),
             metric=str(counts["needs_attention"]),
             tone="danger",
             action_label=_HOME_LAUNCH_ACTION_LABELS["risk_pressure"],
@@ -300,7 +319,7 @@ def _render_risk_pressure_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Weak evidence",
             detail="Guidance with weak or missing source support.",
-            href="/health",
+            href=governance_url(role),
             metric=str(counts["weak_evidence"]),
             tone="warning",
             action_label=_HOME_LAUNCH_ACTION_LABELS["risk_pressure"],
@@ -308,7 +327,7 @@ def _render_risk_pressure_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Stale guidance",
             detail="Articles due for revalidation.",
-            href="/health",
+            href=governance_url(role),
             metric=str(counts["stale"]),
             tone="warning",
             action_label=_HOME_LAUNCH_ACTION_LABELS["risk_pressure"],
@@ -325,11 +344,12 @@ def _render_risk_pressure_block(dashboard: dict[str, Any]) -> str:
 
 def _render_review_pressure_block(dashboard: dict[str, Any]) -> str:
     counts = dashboard["counts"]
+    role = str(dashboard.get("role") or ADMIN_ROLE)
     items_html = [
         _render_block_item(
             title="Queued reviews",
             detail="Total items in review.",
-            href="/review",
+            href=review_queue_url(role),
             metric=str(counts["review_required"]),
             tone="warning",
             action_label=_HOME_LAUNCH_ACTION_LABELS["review_pressure"],
@@ -337,7 +357,7 @@ def _render_review_pressure_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Needs decision",
             detail="Assigned items waiting on reviewer action.",
-            href="/review",
+            href=review_queue_url(role),
             metric=str(counts["needs_decision"]),
             tone="brand",
             action_label=_HOME_LAUNCH_ACTION_LABELS["review_pressure"],
@@ -345,7 +365,7 @@ def _render_review_pressure_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Ready for review",
             detail="Submitted work without an owner.",
-            href="/review",
+            href=review_queue_url(role),
             metric=str(counts["ready_for_review"]),
             tone="brand",
             action_label=_HOME_LAUNCH_ACTION_LABELS["review_pressure"],
@@ -361,6 +381,7 @@ def _render_review_pressure_block(dashboard: dict[str, Any]) -> str:
 
 
 def _render_service_pressure_block(dashboard: dict[str, Any]) -> str:
+    role = str(dashboard.get("role") or ADMIN_ROLE)
     critical_services = [
         service
         for service in list(dashboard["services"])
@@ -370,7 +391,7 @@ def _render_service_pressure_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title=str(service["service_name"]),
             detail=f"{service['status']} · {service['owner'] or 'unassigned'}",
-            href=f"/services/{quoted_path(str(service['service_id']))}",
+            href=service_url(role, str(service["service_id"])),
             metric=str(service["service_criticality"]),
             tone="brand",
             action_label=_HOME_LAUNCH_ACTION_LABELS["service_pressure"],
@@ -380,7 +401,7 @@ def _render_service_pressure_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Service map",
             detail="Inspect service context.",
-            href="/services",
+            href=service_catalog_url(role),
             metric=str(dashboard["counts"]["services"]),
             tone="brand",
             action_label=_HOME_LAUNCH_ACTION_LABELS["service_pressure"],
@@ -397,11 +418,12 @@ def _render_service_pressure_block(dashboard: dict[str, Any]) -> str:
 
 def _render_cleanup_pressure_block(dashboard: dict[str, Any]) -> str:
     counts = dashboard["counts"]
+    role = str(dashboard.get("role") or ADMIN_ROLE)
     items_html = [
         _render_block_item(
             title="Drafts and rejected work",
             detail="Unfinished or reworked guidance.",
-            href="/review",
+            href=review_queue_url(role),
             metric=str(counts["drafts"]),
             tone="default",
             action_label=_HOME_LAUNCH_ACTION_LABELS["cleanup_pressure"],
@@ -409,7 +431,7 @@ def _render_cleanup_pressure_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Needs revalidation",
             detail="Items due for evidence or freshness review.",
-            href="/health",
+            href=governance_url(role),
             metric=str(counts["needs_revalidation"]),
             tone="warning",
             action_label=_HOME_LAUNCH_ACTION_LABELS["cleanup_pressure"],
@@ -426,11 +448,12 @@ def _render_cleanup_pressure_block(dashboard: dict[str, Any]) -> str:
 
 def _render_portfolio_trends_block(dashboard: dict[str, Any]) -> str:
     counts = dashboard["counts"]
+    role = str(dashboard.get("role") or ADMIN_ROLE)
     items_html = [
         _render_block_item(
             title="Review required",
             detail="Revisions still in motion.",
-            href="/review",
+            href=review_queue_url(role),
             metric=str(counts["review_required"]),
             tone="default",
             action_label=_HOME_LAUNCH_ACTION_LABELS["portfolio_trends"],
@@ -438,7 +461,7 @@ def _render_portfolio_trends_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Services in scope",
             detail="Service records currently represented.",
-            href="/services",
+            href=service_catalog_url(role),
             metric=str(counts["services"]),
             tone="default",
             action_label=_HOME_LAUNCH_ACTION_LABELS["portfolio_trends"],
@@ -446,7 +469,7 @@ def _render_portfolio_trends_block(dashboard: dict[str, Any]) -> str:
         _render_block_item(
             title="Recent activity",
             detail="Recent changes and consequences.",
-            href="/activity",
+            href=activity_url(role),
             metric=str(counts["recent_activity"]),
             tone="default",
             action_label=_HOME_LAUNCH_ACTION_LABELS["portfolio_trends"],
@@ -463,22 +486,22 @@ def _render_portfolio_trends_block(dashboard: dict[str, Any]) -> str:
 
 
 _PRIMARY_RENDERERS: dict[str, list[Callable[[dict[str, Any]], str]]] = {
-    "local.operator": [_render_do_now_block, _render_continue_block, _render_watch_block],
-    "local.reviewer": [_render_queue_status_block, _render_pending_decisions_block, _render_blocked_reviews_block],
-    "local.manager": [_render_risk_pressure_block, _render_review_pressure_block, _render_service_pressure_block, _render_cleanup_pressure_block],
+    READER_ROLE: [_render_do_now_block],
+    OPERATOR_ROLE: [_render_do_now_block, _render_continue_block, _render_watch_block],
+    ADMIN_ROLE: [_render_queue_status_block, _render_pending_decisions_block, _render_blocked_reviews_block, _render_risk_pressure_block, _render_review_pressure_block, _render_service_pressure_block],
 }
 
 _SECONDARY_RENDERERS: dict[str, list[Callable[[dict[str, Any]], str]]] = {
-    "local.operator": [],
-    "local.reviewer": [_render_governance_consequences_block],
-    "local.manager": [_render_portfolio_trends_block],
+    READER_ROLE: [],
+    OPERATOR_ROLE: [],
+    ADMIN_ROLE: [_render_governance_consequences_block, _render_cleanup_pressure_block, _render_portfolio_trends_block],
 }
 
 
 def render_home_launch_blocks(*, dashboard: dict[str, Any]) -> str:
-    actor_id = str(dashboard.get("actor_id") or "local.operator")
-    primary_renderers = _PRIMARY_RENDERERS.get(actor_id, _PRIMARY_RENDERERS["local.operator"])
-    secondary_renderers = _SECONDARY_RENDERERS.get(actor_id, _SECONDARY_RENDERERS["local.operator"])
+    role = str(dashboard.get("role") or OPERATOR_ROLE)
+    primary_renderers = _PRIMARY_RENDERERS.get(role, _PRIMARY_RENDERERS[OPERATOR_ROLE])
+    secondary_renderers = _SECONDARY_RENDERERS.get(role, _SECONDARY_RENDERERS[OPERATOR_ROLE])
     primary_html = join_html([renderer(dashboard) for renderer in primary_renderers])
     secondary_html = join_html([renderer(dashboard) for renderer in secondary_renderers])
     return (

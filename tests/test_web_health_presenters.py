@@ -42,7 +42,7 @@ QUEUE_ITEM = {
 
 class HealthPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_health_board_owner_groups_interventions_locally(self) -> None:
-        html = render_health_board(queue=[QUEUE_ITEM])
+        html = render_health_board(role="operator", queue=[QUEUE_ITEM])
 
         self.assert_component(html, "health-board")
         self.assert_component(html, "health-column")
@@ -52,6 +52,7 @@ class HealthPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_dashboard_presenter_assembles_health_components(self) -> None:
         page = present_trust_dashboard(
             TEMPLATE_RENDERER,
+            role="operator",
             dashboard={
                 "queue": [QUEUE_ITEM],
                 "cleanup_counts": {"placeholder-heavy": 1},

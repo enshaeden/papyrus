@@ -1,6 +1,6 @@
 # Getting Started
 
-Use this path when you need a working Papyrus runtime quickly and want the current actor-shaped operator path within the broader role-scoped transition, not just the underlying repository surfaces.
+Use this path when you need a working Papyrus runtime quickly and want the current role-scoped operator path, not just the underlying repository surfaces.
 
 ## 1. Prepare The Environment
 
@@ -26,23 +26,22 @@ For the default operator path:
 python3 scripts/run.py --operator
 ```
 
-- Web entrypoint: local web root route `/`
+- Web entrypoint: operator home route `/operator`
 - API entrypoint: local API health route `/health`
 - Runtime DB: `build/knowledge.db`
 
 What to expect:
-- `/` is the current local actor-shaped launchpad.
-- Operators see `Do now`, `Continue`, and `Watch`.
-- Reviewers see queue status, pending decisions, blocked reviews, and trust exceptions.
-- Managers see pressure across risk, review, services, and cleanup.
-- Navigation is organized as `Read`, `Write`, `Import`, `Review / Approvals`, `Knowledge Health`, `Services`, and `Activity / History`.
-- Actor switching changes the landing target, section hierarchy, page density, and whether side context appears.
-- `/write` starts blueprint-driven guided section authoring with citation lookup and searchable multi-select controls in the same flow.
-- Guided drafting stays on the shared `normal` shell, so sidebar navigation and topbar actor controls remain visible while you author.
+- Reader surfaces live under `/reader/*`.
+- Operator surfaces live under `/operator/*`.
+- Admin surfaces live under `/admin/*`.
+- Navigation is organized as `Read`, `Write`, `Import`, `Review / Approvals`, `Knowledge Health`, `Services`, and `Activity / History` within the active role route group.
+- Shared legacy routes may redirect into `/operator/*` during migration, but they are not the steady-state contract.
+- `/operator/write/new` starts blueprint-driven guided section authoring with citation lookup and searchable multi-select controls in the same flow.
+- Guided drafting stays on the shared `normal` shell, so sidebar navigation and the topbar role label remain visible while you author.
 - `Read` is split into a search/select workspace and an article surface. The default object page reads in article order: what it is, when to use it, what to do, how to verify, how to recover, and only then governance/source detail.
 - `Services`, `Review`, `Knowledge Health`, and `Activity` are intentionally different work surfaces rather than the same queue chrome with different labels.
 - Guided draft creation is explicit: object setup creates the first draft before redirecting, and later entrypoints use a governed start action rather than relying on GET requests to create state.
-- `/ingest` starts the upload, parse, classify, map, review, and convert flow for external files.
+- `/operator/import` starts the upload, parse, classify, map, review, and convert flow for external files.
 - Browser upload is the normal web ingest path. Browser-submitted local file paths are disabled unless you explicitly enable `--allow-web-ingest-local-paths` on the local operator web surface.
 - Markdown and DOCX parse locally. PDF import is limited to text-based PDFs and may surface degraded extraction warnings.
 - Import review shows parser warnings, extraction quality, mapping gaps, low-confidence matches, unmapped content, and mapping conflicts before conversion.
@@ -95,6 +94,7 @@ Guardrail:
 - When web local-path ingest is enabled, Papyrus reads an absolute path from the machine running Papyrus, not from the browser device.
 - Local-path ingest is still confined to allowlisted read roots from `schemas/repository_policy.yml`. The default read root is `build/local-ingest/`.
 - If you embed the WSGI apps directly in tests or local tooling, `papyrus.interfaces.web.app(...)` and `papyrus.interfaces.api.app(...)` enforce the same rule. Use `allow_noncanonical_source_root=True` only for sandboxed demo/test roots.
+- `papyrus.interfaces.api.app(...)` remains operator-oriented. It is not currently documented as a separate role-scoped public API contract.
 
 ## 3. Pick The Right Playbook
 

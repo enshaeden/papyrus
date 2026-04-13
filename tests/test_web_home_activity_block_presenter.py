@@ -16,7 +16,7 @@ class HomeActivityBlockPresenterTests(SemanticHookAssertions, unittest.TestCase)
     def test_home_activity_block_renders_operator_events_with_next_actions(self) -> None:
         html = render_home_activity_block(
             dashboard={
-                "actor_id": "local.operator",
+                "role": "operator",
                 "events": [
                     {
                         "what_happened": "VPN guidance changed",
@@ -39,7 +39,7 @@ class HomeActivityBlockPresenterTests(SemanticHookAssertions, unittest.TestCase)
     def test_home_activity_block_is_not_rendered_for_non_operator_actors(self) -> None:
         html = render_home_activity_block(
             dashboard={
-                "actor_id": "local.manager",
+                "role": "admin",
                 "events": [{"what_happened": "Event", "next_action": "Inspect"}],
             }
         )

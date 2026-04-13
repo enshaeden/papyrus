@@ -11,6 +11,7 @@ from papyrus.interfaces.web.rendering import TemplateRenderer
 def present_trust_dashboard(
     renderer: TemplateRenderer,
     *,
+    role: str,
     dashboard: dict[str, Any],
     selected_object_id: str = "",
     selected_revision_id: str = "",
@@ -27,7 +28,7 @@ def present_trust_dashboard(
         "aside_html": "",
         "page_context": {
             "summary_cards_html": (
-                render_health_board(queue=dashboard["queue"])
+                render_health_board(role=role, queue=dashboard["queue"])
                 + render_health_cleanup_board(cleanup_counts=dashboard.get("cleanup_counts") or {})
                 + render_health_validation_board(validation_posture=dashboard["validation_posture"])
             ),

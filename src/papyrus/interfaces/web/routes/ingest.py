@@ -5,21 +5,23 @@ from urllib.parse import quote_plus
 from papyrus.application.ingestion_flow import ingest_file, ingestion_detail, list_ingestions
 from papyrus.application.mapping_flow import convert_to_draft, map_to_blueprint
 from papyrus.domain.ingestion import has_mapping_result
+from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.http import Request, html_response, redirect_response
 from papyrus.interfaces.web.presenters.ingest_presenter import (
     present_ingest_list_page,
     present_ingestion_detail_page,
     present_mapping_review_page,
 )
-from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
-from papyrus.interfaces.web.view_helpers import quoted_path
+from papyrus.interfaces.web.route_utils import flash_html_for_request
+from papyrus.interfaces.web.urls import import_detail_url, write_object_url
 
 
 def _render_page(runtime, request: Request, page: dict[str, object]):
+    experience = require_experience(request, "operator")
     return html_response(
         runtime.page_renderer.render_page(
             flash_html=flash_html_for_request(runtime, request),
-            actor_id=actor_for_request(request),
+            role_id=experience.role,
             current_path=request.path,
             search_value=request.query_value("query"),
             **page,
@@ -29,6 +31,7 @@ def _render_page(runtime, request: Request, page: dict[str, object]):
 
 def register(router, runtime) -> None:
     def ingest_list_page(request: Request):
+        require_experience(request, "operator")
         errors: list[str] = []
         if request.method == "POST":
             upload = request.uploaded_file("upload")
@@ -60,7 +63,8 @@ def register(router, runtime) -> None:
                         )
                     )
                     return redirect_response(
-                        f"/ingest/{quoted_path(result['ingestion_id'])}?notice={quote_plus('Import started. Review the mapping before creating the draft.')}"
+                        import_detail_url(str(result["ingestion_id"]))
+                        + f"?notice={quote_plus('Import started. Review the mapping before creating the draft.')}"
                     )
                 except ValueError as exc:
                     errors.append(str(exc))
@@ -79,6 +83,7 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page)
 
     def ingest_review_page(request: Request):
+        experience = require_experience(request, "operator")
         ingestion_id = request.route_value("ingestion_id")
         detail = ingestion_detail(ingestion_id=ingestion_id, database_path=runtime.database_path)
         existing_mapping = detail.get("mapping_result") if has_mapping_result(detail.get("mapping_result")) else None
@@ -116,12 +121,13 @@ def register(router, runtime) -> None:
                     review_cadence=request.form_value("review_cadence").strip(),
                     status=request.form_value("status").strip(),
                     audience=request.form_value("audience").strip(),
-                    actor=actor_for_request(request),
+                    actor=str(experience.audit_actor_id),
                     database_path=runtime.database_path,
                     source_root=runtime.source_root,
                 )
                 return redirect_response(
-                    f"/write/objects/{quoted_path(converted['object_id'])}/revisions/new?revision_id={quoted_path(converted['revision_id'])}&notice={quote_plus('Draft created from the imported document.')}"
+                    write_object_url(str(converted["object_id"]), revision_id=str(converted["revision_id"]))
+                    + f"&notice={quote_plus('Draft created from the imported document.')}"
                 )
 
         page = present_mapping_review_page(
@@ -133,6 +139,6 @@ def register(router, runtime) -> None:
         )
         return _render_page(runtime, request, page)
 
-    router.add(["GET", "POST"], "/ingest", ingest_list_page)
-    router.add(["GET"], "/ingest/{ingestion_id}", ingest_detail_page)
-    router.add(["GET", "POST"], "/ingest/{ingestion_id}/review", ingest_review_page)
+    router.add(["GET", "POST"], "/operator/import", ingest_list_page)
+    router.add(["GET"], "/operator/import/{ingestion_id}", ingest_detail_page)
+    router.add(["GET", "POST"], "/operator/import/{ingestion_id}/review", ingest_review_page)

@@ -13,16 +13,16 @@ from tests.web_assertions import SemanticHookAssertions
 
 
 class HomeHeroPresenterTests(SemanticHookAssertions, unittest.TestCase):
-    def test_home_hero_renders_actor_owned_copy(self) -> None:
+    def test_home_hero_renders_role_owned_copy(self) -> None:
         html = render_home_hero(
             dashboard={
-                "actor_id": "local.reviewer",
-                "layout_mode": "review-launchpad",
+                "role": "admin",
+                "layout_mode": "control-room",
             }
         )
 
         self.assert_component(html, "home-hero")
         self.assert_surface(html, "home")
-        self.assertIn("review launchpad", html)
-        self.assertIn("Work the queue with decision context visible.", html)
-        self.assertIn("Reviewer home is a workbench", html)
+        self.assertIn("control room", html)
+        self.assertIn("Control-plane pressure before item detail.", html)
+        self.assertIn("Admin overview surfaces governance pressure", html)

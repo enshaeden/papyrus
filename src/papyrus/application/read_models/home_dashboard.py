@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from papyrus.domain.actor import resolve_actor
+from papyrus.application.role_visibility import normalize_role, queue_ranking_for_role, role_from_actor_id
 from papyrus.infrastructure.paths import DB_PATH
 
 from .impact_activity import event_history
@@ -33,20 +33,25 @@ def _counts(*, read_queue: list[dict[str, Any]], manage: dict[str, Any], service
 
 def home_dashboard(
     *,
-    actor_id: str,
+    role: str | None = None,
+    actor_id: str | None = None,
     database_path: str | Path = DB_PATH,
 ) -> dict[str, Any]:
-    actor = resolve_actor(actor_id)
-    ranking = "triage" if actor.actor_id in {"local.reviewer", "local.manager"} else "operator"
-    read_queue = knowledge_queue(limit=16, database_path=database_path, ranking=ranking)
+    resolved_role = normalize_role(role or role_from_actor_id(actor_id))
+    read_queue = knowledge_queue(limit=16, database_path=database_path, ranking=queue_ranking_for_role(resolved_role), role=resolved_role)
     manage = manage_queue(database_path=database_path)
     services = service_catalog(database_path=database_path)
     events = event_history(limit=8, database_path=database_path)
     counts = _counts(read_queue=read_queue, manage=manage, services=services, events=events)
 
+    layout_modes = {
+        "reader": "library",
+        "operator": "workshop",
+        "admin": "control-room",
+    }
     return {
-        "actor_id": actor.actor_id,
-        "layout_mode": (actor.page_behavior("home").mode if actor.page_behavior("home") is not None else "launchpad"),
+        "role": resolved_role,
+        "layout_mode": layout_modes.get(resolved_role, "workshop"),
         "counts": counts,
         "read_queue": read_queue,
         "manage": manage,

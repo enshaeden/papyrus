@@ -27,6 +27,7 @@ from papyrus.interfaces.web.presenters.review_cleanup_strip_presenter import ren
 from papyrus.interfaces.web.presenters.review_hero_presenter import render_review_hero
 from papyrus.interfaces.web.presenters.review_lane_presenter import render_review_lane
 from papyrus.interfaces.web.rendering import TemplateRenderer
+from papyrus.interfaces.web.urls import review_queue_url, validation_run_new_url
 from papyrus.interfaces.web.view_helpers import (
     escape,
     format_timestamp,
@@ -79,8 +80,9 @@ def present_warning_flash(
     return FormPresenter(renderer).flash(title=title, body=body, tone="warning")
 
 
-def _manage_item_detail_href(item: dict[str, object]) -> str:
+def _manage_item_detail_href(item: dict[str, object], *, role: str) -> str:
     return primary_surface_href(
+        role=role,
         object_id=str(item["object_id"]),
         revision_id=str(item.get("revision_id") or item.get("current_revision_id") or "").strip() or None,
         current_revision_id=str(item.get("current_revision_id") or "").strip() or None,
@@ -88,9 +90,10 @@ def _manage_item_detail_href(item: dict[str, object]) -> str:
     )
 
 
-def _manage_item_actions(components: ComponentPresenter, item: dict[str, object]) -> str:
+def _manage_item_actions(components: ComponentPresenter, item: dict[str, object], *, role: str) -> str:
     return compact_action_menu_html(
         components,
+        role=role,
         ui_projection=item.get("ui_projection"),
         object_id=str(item["object_id"]),
         revision_id=str(item.get("revision_id") or item.get("current_revision_id") or "").strip() or None,
@@ -101,6 +104,7 @@ def _manage_item_actions(components: ComponentPresenter, item: dict[str, object]
 def _governed_context_html(
     components: ComponentPresenter,
     *,
+    role: str,
     detail: dict[str, object],
     status_title: str,
     action_id: str | None = None,
@@ -114,6 +118,7 @@ def _governed_context_html(
         (
             render_projection_overview_panel(
                 components,
+                role=role,
                 title=status_title,
                 ui_projection=detail.get("ui_projection"),
                 object_id=object_id,
@@ -141,6 +146,7 @@ def _governed_context_html(
 def _manage_table(
     components: ComponentPresenter,
     *,
+    role: str,
     title: str,
     items: list[dict[str, object]],
     selected_object_id: str,
@@ -164,6 +170,10 @@ def _manage_table(
                 if value
             }
         )
+        if selection_href == "/review?":
+            selection_href = review_queue_url(role)
+        else:
+            selection_href = review_queue_url(role) + selection_href.removeprefix("/review")
         rows.append(
             [
                 components.decision_cell(
@@ -201,7 +211,7 @@ def _manage_table(
                     ),
                 ),
                 components.decision_cell(title_html=escape(str(item["owner"]))),
-                _manage_item_actions(components, item),
+                _manage_item_actions(components, item, role=role),
             ]
         )
         row_attrs.append(
@@ -246,7 +256,7 @@ def _selected_manage_item(queue: dict[str, Any], *, selected_object_id: str, sel
     return all_items[0]
 
 
-def _manage_context_panel(components: ComponentPresenter, item: dict[str, object]) -> str:
+def _manage_context_panel(components: ComponentPresenter, item: dict[str, object], *, role: str) -> str:
     state = projection_state(item.get("ui_projection"))
     use_guidance = projection_use_guidance(item.get("ui_projection"))
     reasons = projection_reasons(item.get("ui_projection"))
@@ -271,8 +281,8 @@ def _manage_context_panel(components: ComponentPresenter, item: dict[str, object
         ),
         footer_html=join_html(
             [
-                link("Open guidance", _manage_item_detail_href(item), css_class="button button-secondary"),
-                _manage_item_actions(components, item),
+                link("Open guidance", _manage_item_detail_href(item, role=role), css_class="button button-secondary"),
+                _manage_item_actions(components, item, role=role),
             ],
             " ",
         ),
@@ -284,6 +294,7 @@ def _manage_context_panel(components: ComponentPresenter, item: dict[str, object
 def _manage_object_form_page(
     renderer: TemplateRenderer,
     *,
+    role: str,
     detail: dict[str, Any],
     page_title: str,
     headline: str,
@@ -296,6 +307,7 @@ def _manage_object_form_page(
     components = ComponentPresenter(renderer)
     summary_html = _governed_context_html(
         components,
+        role=role,
         detail=detail,
         status_title=f"{detail['object']['title']} governed posture",
         action_id=action_id,
@@ -319,6 +331,7 @@ def _manage_object_form_page(
 def present_manage_queue_page(
     renderer: TemplateRenderer,
     *,
+    role: str,
     queue: dict[str, Any],
     selected_object_id: str = "",
     selected_revision_id: str = "",
@@ -335,11 +348,12 @@ def present_manage_queue_page(
 
     def table_html(title: str, items: list[dict[str, Any]]) -> str:
         return render_review_lane(
+            role=role,
             title=title,
             items=items,
             active_object_id=active_object_id,
             active_revision_id=active_revision_id,
-            action_html_resolver=lambda item: _manage_item_actions(components, item),
+            action_html_resolver=lambda item: _manage_item_actions(components, item, role=role),
         )
 
     overview_html = render_review_hero(queue=queue)
@@ -360,7 +374,7 @@ def present_manage_queue_page(
         headline="Review queue",
         active_nav="review",
         show_actor_links=False,
-        aside_html=_manage_context_panel(components, selected_item) if selected_item is not None else "",
+        aside_html=_manage_context_panel(components, selected_item, role=role) if selected_item is not None else "",
         page_context={"overview_html": overview_html, "tables_html": tables_html},
     )
 
@@ -368,6 +382,7 @@ def present_manage_queue_page(
 def present_object_supersede_page(
     renderer: TemplateRenderer,
     *,
+    role: str,
     detail: dict[str, Any],
     values: dict[str, str],
     errors: dict[str, list[str]],
@@ -394,6 +409,7 @@ def present_object_supersede_page(
     )
     return _manage_object_form_page(
         renderer,
+        role=role,
         detail=detail,
         page_title="Supersede object",
         headline="Supersede guidance",
@@ -408,6 +424,7 @@ def present_object_supersede_page(
 def present_object_suspect_page(
     renderer: TemplateRenderer,
     *,
+    role: str,
     detail: dict[str, Any],
     values: dict[str, str],
     errors: dict[str, list[str]],
@@ -446,6 +463,7 @@ def present_object_suspect_page(
     )
     return _manage_object_form_page(
         renderer,
+        role=role,
         detail=detail,
         page_title="Mark object suspect",
         headline="Mark guidance suspect",
@@ -460,6 +478,7 @@ def present_object_suspect_page(
 def present_object_archive_page(
     renderer: TemplateRenderer,
     *,
+    role: str,
     detail: dict[str, Any],
     values: dict[str, str],
     errors: dict[str, list[str]],
@@ -501,6 +520,7 @@ def present_object_archive_page(
     )
     return _manage_object_form_page(
         renderer,
+        role=role,
         detail=detail,
         page_title="Archive object",
         headline="Archive guidance",
@@ -515,6 +535,7 @@ def present_object_archive_page(
 def present_evidence_revalidation_page(
     renderer: TemplateRenderer,
     *,
+    role: str,
     detail: dict[str, Any],
     values: dict[str, str],
 ) -> dict[str, Any]:
@@ -532,6 +553,7 @@ def present_evidence_revalidation_page(
     )
     return _manage_object_form_page(
         renderer,
+        role=role,
         detail=detail,
         page_title="Revalidate evidence",
         headline="Revalidate evidence",
@@ -546,6 +568,7 @@ def present_evidence_revalidation_page(
 def present_review_assignment_page(
     renderer: TemplateRenderer,
     *,
+    role: str,
     detail: dict[str, Any],
     values: dict[str, str],
     errors: dict[str, list[str]],
@@ -554,6 +577,7 @@ def present_review_assignment_page(
     components = ComponentPresenter(renderer)
     summary_html = _governed_context_html(
         components,
+        role=role,
         detail=detail,
         status_title=f"{detail['object']['title']} review posture",
         action_id="assign_reviewer",
@@ -601,6 +625,7 @@ def present_review_assignment_page(
 def present_review_decision_page(
     renderer: TemplateRenderer,
     *,
+    role: str,
     detail: dict[str, Any],
     impact: dict[str, Any],
     preview: Any,
@@ -612,6 +637,7 @@ def present_review_decision_page(
     components = ComponentPresenter(renderer)
     summary_html = _governed_context_html(
         components,
+        role=role,
         detail=detail,
         status_title=f"{detail['object']['title']} review posture",
         action_id="approve_revision",
@@ -715,6 +741,7 @@ def present_review_decision_page(
 def present_audit_page(
     renderer: TemplateRenderer,
     *,
+    role: str,
     events: list[dict[str, Any]],
     structured_events: list[dict[str, Any]],
     validation_runs: list[dict[str, Any]],
@@ -730,7 +757,7 @@ def present_audit_page(
         show_actor_links=False,
         page_context={
             "summary_html": render_activity_hero(structured_events=structured_events),
-            "filter_bar_html": render_activity_filter_bar(object_id=object_id, selected_group=selected_group),
+            "filter_bar_html": render_activity_filter_bar(role=role, object_id=object_id, selected_group=selected_group),
             "audit_html": render_activity_audit_log(events=events),
             "event_html": render_activity_event_list(structured_events=structured_events),
             "validation_html": render_activity_validation_log(validation_runs=validation_runs),
@@ -741,11 +768,12 @@ def present_audit_page(
 def present_validation_runs_page(
     renderer: TemplateRenderer,
     *,
+    role: str,
     runs: list[dict[str, Any]],
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     add_run_html = components.action_bar(
-        items=[link("Record validation run", "/manage/validation-runs/new", css_class="button button-primary")]
+        items=[link("Record validation run", validation_run_new_url(role), css_class="button button-primary")]
     )
     validation_table_html = components.section_card(
         title="Validation runs",

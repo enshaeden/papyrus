@@ -4,6 +4,18 @@ from typing import Any
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
+from papyrus.interfaces.web.urls import (
+    archive_url,
+    evidence_revalidation_url,
+    object_url,
+    review_assignment_url,
+    review_decision_url,
+    suspect_url,
+    supersede_url,
+    write_object_start_url,
+    write_object_url,
+    write_submit_url,
+)
 from papyrus.interfaces.web.view_helpers import button_form, escape, join_html, link, quoted_path, render_definition_rows, render_list
 
 
@@ -91,6 +103,7 @@ def authoring_entry_label(
 
 def authoring_entry_href(
     *,
+    role: str,
     object_id: str,
     ui_projection: dict[str, Any] | None,
     current_revision_id: str | None,
@@ -99,7 +112,7 @@ def authoring_entry_href(
     revision_state = str(state.get("revision_review_state") or "").strip()
     if revision_state not in {"draft", "rejected"} or not str(current_revision_id or "").strip():
         return None
-    return f"/write/objects/{quoted_path(object_id)}/revisions/new?revision_id={quoted_path(str(current_revision_id))}#revision-form"
+    return write_object_url(object_id, revision_id=str(current_revision_id)) + "#revision-form"
 
 
 def authoring_entry_start_action(
@@ -112,11 +125,12 @@ def authoring_entry_start_action(
         return None
     if authoring_entry_label(ui_projection=ui_projection, current_revision_id=current_revision_id) is None:
         return None
-    return f"/write/objects/{quoted_path(object_id)}/revisions/start"
+    return write_object_start_url(object_id)
 
 
 def authoring_entry_html(
     *,
+    role: str,
     object_id: str,
     ui_projection: dict[str, Any] | None,
     current_revision_id: str | None,
@@ -128,7 +142,13 @@ def authoring_entry_html(
     if str(current_revision_id or "").strip() and revision_state in {"draft", "rejected"}:
         return link(
             label_override or "Continue draft",
-            f"/write/objects/{quoted_path(object_id)}/revisions/new?revision_id={quoted_path(str(current_revision_id))}#revision-form",
+            authoring_entry_href(
+                role=role,
+                object_id=object_id,
+                ui_projection=ui_projection,
+                current_revision_id=current_revision_id,
+            )
+            or "#",
             css_class="button button-primary",
             attrs={
                 "data-component": "action-link",
@@ -137,7 +157,7 @@ def authoring_entry_html(
         )
     if not str(current_revision_id or "").strip() or allow_start_when_not_in_draft_state:
         return button_form(
-            action=f"/write/objects/{quoted_path(object_id)}/revisions/start",
+            action=write_object_start_url(object_id),
             label=label_override or authoring_entry_label(ui_projection=ui_projection, current_revision_id=current_revision_id) or "Start draft",
             css_class="button button-primary",
             button_attrs={"data-action-id": "authoring_entry"},
@@ -147,35 +167,38 @@ def authoring_entry_html(
 
 def action_href(
     *,
+    role: str,
     action_id: str,
     object_id: str,
     revision_id: str | None,
 ) -> str | None:
     if action_id == "submit_for_review" and revision_id:
-        return f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision_id)}"
+        return write_submit_url(object_id, revision_id)
     if action_id == "assign_reviewer" and revision_id:
-        return f"/manage/reviews/{quoted_path(object_id)}/{quoted_path(revision_id)}/assign"
+        return review_assignment_url(role, object_id, revision_id)
     if action_id == "review_decision" and revision_id:
-        return f"/manage/reviews/{quoted_path(object_id)}/{quoted_path(revision_id)}"
+        return review_decision_url(role, object_id, revision_id)
     if action_id == "mark_suspect":
-        return f"/manage/objects/{quoted_path(object_id)}/suspect"
+        return suspect_url(role, object_id)
     if action_id == "supersede_object":
-        return f"/manage/objects/{quoted_path(object_id)}/supersede"
+        return supersede_url(role, object_id)
     if action_id == "archive_object":
-        return f"/manage/objects/{quoted_path(object_id)}/archive"
+        return archive_url(role, object_id)
     if action_id == "request_evidence_revalidation":
-        return f"/manage/objects/{quoted_path(object_id)}/evidence/revalidate"
+        return evidence_revalidation_url(role, object_id)
     return None
 
 
 def primary_surface_href(
     *,
+    role: str,
     object_id: str,
     revision_id: str | None,
     current_revision_id: str | None,
     ui_projection: dict[str, Any] | None,
 ) -> str:
     authoring_href = authoring_entry_href(
+        role=role,
         object_id=object_id,
         ui_projection=ui_projection,
         current_revision_id=current_revision_id,
@@ -186,18 +209,20 @@ def primary_surface_href(
         if str(action.get("availability") or "") != "allowed":
             continue
         href = action_href(
+            role=role,
             action_id=str(action.get("action_id") or ""),
             object_id=object_id,
             revision_id=revision_id,
         )
         if href is not None:
             return href
-    return f"/objects/{quoted_path(object_id)}"
+    return object_url(role, object_id)
 
 
 def compact_action_menu_html(
     components: ComponentPresenter,
     *,
+    role: str,
     ui_projection: dict[str, Any] | None,
     object_id: str,
     revision_id: str | None,
@@ -205,6 +230,7 @@ def compact_action_menu_html(
 ) -> str:
     links: list[str] = []
     authoring_action_html = authoring_entry_html(
+        role=role,
         object_id=object_id,
         ui_projection=ui_projection,
         current_revision_id=current_revision_id,
@@ -217,6 +243,7 @@ def compact_action_menu_html(
         if str(action.get("availability") or "") != "allowed":
             continue
         href = action_href(
+            role=role,
             action_id=action_id,
             object_id=object_id,
             revision_id=revision_id,
@@ -356,6 +383,7 @@ def render_projection_status_panel(
 def render_projection_overview_panel(
     components: ComponentPresenter,
     *,
+    role: str,
     title: str,
     ui_projection: dict[str, Any] | None,
     object_id: str,
@@ -392,6 +420,7 @@ def render_projection_overview_panel(
         )
     action_html = compact_action_menu_html(
         components,
+        role=role,
         ui_projection=ui_projection,
         object_id=object_id,
         revision_id=revision_id,

@@ -2,141 +2,144 @@
 
 Status: Approved
 Owner: Product / Operations / Architecture
-Scope: Flagging, authoring, review, publishing, lifecycle states
+Scope: Knowledge-object lifecycle, revision review workflow, draft progress, and flag handling
 
-## Lifecycle states
-- Draft
-- In Review
-- Published
-- Flagged
-- Archived
-- Deprecated
+## Purpose
 
-Optional future states:
-- Scheduled
-- Superseded
-- Emergency Update Pending
+This record defines the lifecycle vocabulary Papyrus uses across code, docs, and operator workflows.
 
-## Implementation status
-This record defines the governing workflow model for Papyrus.
-Current UI and route structure may still be transitional in places.
-Do not treat transitional screens or interim actor-shaped flows as authority over the lifecycle and workflow boundaries defined here.
+Do not collapse these concerns into one mixed status list.
 
-## Flag flow
+- Object lifecycle describes the canonical object.
+- Revision review describes the current revision under governance.
+- Draft progress describes whether a draft is ready to hand off.
+- Flag handling is a separate workflow attached to an object or revision.
 
-### Intent
-Allow Readers, Operators, and Admins to signal potential content issues without exposing every user to the full governance workflow.
+This record does not claim that every possible route or role-specific screen is already shipped.
 
-### Trigger
-From object view, user selects `Flag for review`.
+## Canonical State Machines
 
-### Submission
-User enters short required explanation.
-System creates flag record linked to:
-- object
-- object version if applicable
-- submitting user
-- timestamp
-- reason text
-- severity/category if supported
+### `object_lifecycle_state`
 
-### Visibility
-- Reader: can submit; cannot see full queue
-- Operator: can view queue, inspect, triage, resolve/reassign/escalate if authorised
-- Admin: can oversee and intervene
+This state belongs to the knowledge object.
 
-### Outcomes
-- resolved with no content change
-- sent to Write for revision
-- escalated
-- closed as duplicate / invalid if policy allows
+- `draft`
+- `active`
+- `deprecated`
+- `archived`
 
-## Authoring flow
+Rules:
 
-### Intent
-Enable structured knowledge creation and modification without devolving into a generic editor.
+- `draft` means the object shell exists but has not yet become active guidance.
+- `active` means the object may be surfaced as current guidance when its current revision is also reader-safe.
+- `deprecated` means the object remains readable for context but should be replaced over time.
+- `archived` means the object is retired from normal active guidance flows and preserved for traceability.
 
-### Entry points
-- create new object
-- open object in Write
-- continue draft
-- revise object from review feedback
+`in_review`, `published`, and `flagged` are not object lifecycle states.
 
-### Steps
-1. Select object type or start from object context
-2. Apply template and schema
-3. Enter structured content
-4. Save draft continuously or manually
-5. Validate required fields and schema rules
-6. Preview formatted output
-7. Submit for review
+### `revision_review_state`
 
-### Operator capabilities
-- create/edit draft
-- compare versions
-- attach references
-- respond to review comments
-- resubmit
+This state belongs to a specific revision.
 
-### Constraints
-- published content is not directly overwritten
-- every substantive change produces version history
-- validation must fail early and clearly
+- `draft`
+- `in_review`
+- `approved`
+- `rejected`
+- `superseded`
 
-## Review flow
+Rules:
 
-### Intent
-Provide a queue-based operational workflow for governance and change control.
+- `draft` means the revision is still being authored or reworked.
+- `in_review` means the revision is waiting on explicit governance action.
+- `approved` means the revision cleared review and may become the current approved revision.
+- `rejected` means the revision did not clear review and must be revised before resubmission.
+- `superseded` means a later approved revision replaced it.
 
-### Sources into review
-- submitted draft
-- governance flag
-- failed validation requiring intervention
-- reassigned review work
+`published` is not a separate revision-review state.
+Papyrus reaches a published/current outcome when an approved revision becomes the current approved revision for an active object.
 
-### Review actions
-- inspect object
-- inspect prior version
-- inspect comments and flags
-- request changes
-- approve
-- resolve flag
-- reassign
-- escalate to Admin
+### `draft_progress_state`
 
-### Outcomes
-- returned to Write
-- approved for publish
-- resolved without publish
-- escalated
+This state belongs to draft progress evaluation.
 
-### Role rules
-- Operator handles standard review
-- Admin handles policy, access, schema, and override cases
+- `blocked`
+- `in_progress`
+- `ready_for_review`
 
-## Publish flow
+Rules:
 
-### Intent
-Move reviewed content into visible reader-safe knowledge without bypassing control.
+- `blocked` means required structure or validation is missing.
+- `in_progress` means the draft can continue but is not yet ready for review.
+- `ready_for_review` means the draft cleared required authoring gates and may be submitted.
 
-### Entry conditions
-- object passes validation
-- review state permits publish
-- publishing user has permission
+`draft_progress_state` does not replace `revision_review_state`.
+A draft can be `ready_for_review` before the revision enters `in_review`.
 
-### Publish actions
-- publish immediately
-- schedule publish if supported
-- replace current published version while preserving history
-- rollback through controlled version restore if supported
+## Workflow Boundaries
 
-### Visibility after publish
-- Reader sees published content only
-- Operator sees published plus operational history as permitted
-- Admin sees full record and audit context
+### Authoring
 
-### Policy questions to lock
-- can Operators publish directly after approval
-- does Admin approval gate some object types
-- what object types require dual approval
-- whether emergency publish exists and how it is audited
+- Create a new object shell or open an existing object through an explicit authoring entrypoint.
+- Apply the blueprint structure.
+- Save draft section content.
+- Validate required structure and taxonomy rules.
+- Submit only when `draft_progress_state = ready_for_review`.
+
+Authoring does not overwrite current approved content directly.
+Each substantive change produces or updates a governed revision.
+
+### Review
+
+- Review begins when a revision enters `revision_review_state = in_review`.
+- Review outcomes are `approved` or `rejected`.
+- Review may also trigger reassignment, evidence follow-up, or downstream impact inspection.
+
+Review is queue-based governance work.
+It is not an object lifecycle state.
+
+### Publish / Current Guidance Outcome
+
+Papyrus does not use a standalone `published` lifecycle state.
+
+The effective publish/current-guidance condition is:
+
+- `object_lifecycle_state = active`
+- current revision exists
+- current revision is approved and surfaced according to role visibility rules
+
+### Archive / Deprecate
+
+- `deprecated` keeps the object readable with replacement or caution context.
+- `archived` retires the object from active guidance flows while preserving history and traceability.
+
+## Flag Workflow
+
+Flagging is a separate governance workflow.
+Do not encode it as `object_lifecycle_state = flagged`.
+
+Current rule:
+
+- a flag is attached to an object or revision
+- a flag may trigger review, evidence follow-up, or no content change
+
+This decision intentionally does not assign canonical flag-state names until the flag record schema and storage contract are formalized.
+
+## Role Expectations
+
+- Reader surfaces consume only reader-safe guidance and do not expose review or authoring controls.
+- Operator surfaces handle normal read, write, import, review, and follow-up workflows.
+- Admin surfaces handle oversight, governance pressure, audit, and intervention workflows without blending in operator authoring routes.
+
+Role visibility is governed separately by:
+
+- `docs/decisions/role-experience-visibility-matrix.md`
+- `docs/decisions/route-separation-and-experience-boundaries.md`
+
+## Non-Goals
+
+This record does not define:
+
+- a separate generic `published` status
+- actor-shaped shell behavior
+- presentation-layer layout decisions
+- future flag-state taxonomy that has not yet been implemented

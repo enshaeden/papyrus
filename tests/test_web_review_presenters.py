@@ -46,11 +46,12 @@ class ReviewPresenterTests(SemanticHookAssertions, unittest.TestCase):
             }
         )
         lane_html = render_review_lane(
+            role="operator",
             title="Needs decision",
             items=[QUEUE_ITEM],
             active_object_id="kb-review",
             active_revision_id="kb-review-r1",
-            action_html_resolver=lambda item: f'<a href="/objects/{item["object_id"]}">Open</a>',
+            action_html_resolver=lambda item: f'<a href="/operator/read/object/{item["object_id"]}">Open</a>',
         )
 
         self.assert_component(hero_html, "review-hero")
@@ -67,7 +68,7 @@ class ReviewPresenterTests(SemanticHookAssertions, unittest.TestCase):
             "recently_changed": [],
             "superseded_items": [],
         }
-        page = present_manage_queue_page(TEMPLATE_RENDERER, queue=queue, selected_object_id="kb-review")
+        page = present_manage_queue_page(TEMPLATE_RENDERER, role="operator", queue=queue, selected_object_id="kb-review")
 
         tables_html = page["page_context"]["tables_html"]
         self.assert_component(page["page_context"]["overview_html"], "review-hero")

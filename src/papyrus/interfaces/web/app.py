@@ -7,16 +7,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 from urllib.parse import unquote
+from urllib.parse import urlencode
 from wsgiref.simple_server import make_server
 
 from papyrus.application.queries import KnowledgeObjectNotFoundError, RuntimeUnavailableError, ServiceNotFoundError
 from papyrus.infrastructure.observability import get_logger, log_event
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.infrastructure.repositories.knowledge_repo import load_taxonomies
+from papyrus.interfaces.web.experience import RoleAccessDeniedError
 from papyrus.interfaces.web.http import Request, html_response, redirect_response, request_from_environ, static_response
 from papyrus.interfaces.web.presenters.system_presenter import present_error_page
 from papyrus.interfaces.web.rendering import PageRenderer
-from papyrus.interfaces.web.route_utils import actor_for_request, actor_home_path, actor_shell_for_id
 from papyrus.interfaces.web.runtime import WebRuntime
 from papyrus.interfaces.web.routes import dashboard, home, impact, ingest, manage, objects, queue, services, write
 from papyrus.interfaces.startup_guard import prepare_operator_source_root
@@ -94,6 +95,27 @@ def _error_page(
     )
 
 
+def _redirect_target(pattern: str, params: dict[str, str], request: Request) -> str:
+    location = pattern
+    for key, value in params.items():
+        location = location.replace("{" + key + "}", value)
+    query_values = {
+        key: values
+        for key, values in request.query.items()
+        if values
+    }
+    if not query_values:
+        return location
+    return f"{location}?{urlencode(query_values, doseq=True)}"
+
+
+def _register_legacy_redirect(router: Router, pattern: str, target_pattern: str) -> None:
+    def legacy_redirect(request: Request):
+        return redirect_response(_redirect_target(target_pattern, request.route_params, request))
+
+    router.add(["GET", "POST"], pattern, legacy_redirect)
+
+
 def app(
     database_path: str | Path = DB_PATH,
     source_root: str | Path = ROOT,
@@ -124,17 +146,46 @@ def app(
     ingest.register(router, runtime)
     manage.register(router, runtime)
 
+    legacy_redirects = (
+        ("/", "/operator"),
+        ("/queue", "/operator/read"),
+        ("/read", "/operator/read"),
+        ("/objects/{object_id}", "/operator/read/object/{object_id}"),
+        ("/objects/{object_id}/revisions", "/operator/read/object/{object_id}/revisions"),
+        ("/services", "/operator/read/services"),
+        ("/services/{service_id}", "/operator/read/services/{service_id}"),
+        ("/dashboard/trust", "/operator/review/governance"),
+        ("/health", "/operator/review/governance"),
+        ("/review", "/operator/review"),
+        ("/manage/queue", "/operator/review"),
+        ("/manage/objects/{object_id}/supersede", "/operator/review/object/{object_id}/supersede"),
+        ("/manage/objects/{object_id}/archive", "/operator/review/object/{object_id}/archive"),
+        ("/manage/objects/{object_id}/suspect", "/operator/review/object/{object_id}/suspect"),
+        ("/manage/objects/{object_id}/evidence/revalidate", "/operator/review/object/{object_id}/evidence/revalidate"),
+        ("/manage/reviews/{object_id}/{revision_id}/assign", "/operator/review/object/{object_id}/{revision_id}/assign"),
+        ("/manage/reviews/{object_id}/{revision_id}", "/operator/review/object/{object_id}/{revision_id}"),
+        ("/manage/audit", "/operator/review/activity"),
+        ("/activity", "/operator/review/activity"),
+        ("/manage/validation-runs", "/operator/review/validation-runs"),
+        ("/manage/validation-runs/new", "/operator/review/validation-runs/new"),
+        ("/impact/object/{object_id}", "/operator/review/impact/object/{object_id}"),
+        ("/impact/service/{service_id}", "/operator/review/impact/service/{service_id}"),
+        ("/write/objects/new", "/operator/write/new"),
+        ("/write/objects/{object_id}/revisions/start", "/operator/write/object/{object_id}/start"),
+        ("/write/objects/{object_id}/revisions/new", "/operator/write/object/{object_id}"),
+        ("/write/objects/{object_id}/submit", "/operator/write/object/{object_id}/submit"),
+        ("/write/citations/search", "/operator/write/citations/search"),
+        ("/write/objects/search", "/operator/write/objects/search"),
+        ("/ingest", "/operator/import"),
+        ("/ingest/{ingestion_id}", "/operator/import/{ingestion_id}"),
+        ("/ingest/{ingestion_id}/review", "/operator/import/{ingestion_id}/review"),
+    )
+    for pattern, target in legacy_redirects:
+        _register_legacy_redirect(router, pattern, target)
+
     def application(environ, start_response):
         request = request_from_environ(environ)
         try:
-            if request.method == "POST" and request.path == "/actor/select":
-                actor = actor_shell_for_id(request.form_value("actor")).actor.actor_id
-                next_path = request.form_value("next_path").strip() or actor_home_path(actor)
-                response = redirect_response(
-                    next_path,
-                    headers=[("Set-Cookie", f"papyrus_actor={actor}; Path=/; SameSite=Lax")],
-                )
-                return response.as_wsgi(start_response)
             if request.path.startswith("/static/"):
                 relative_path = request.path.removeprefix("/static/")
                 asset = runtime.page_renderer.load_static_asset(relative_path)
@@ -160,6 +211,11 @@ def app(
                 ).as_wsgi(start_response)
             response = route.handler(routed_request)
             return response.as_wsgi(start_response)
+        except RoleAccessDeniedError:
+            return html_response(
+                _error_page(runtime, title="Not found", detail="No route for this role and path.", status="404", action="Use the role-scoped navigation and try again.", active_nav="home"),
+                status="404 Not Found",
+            ).as_wsgi(start_response)
         except RuntimeUnavailableError as exc:
             log_event(LOGGER, logging.ERROR, "web_runtime_unavailable", path=request.path, error=str(exc))
             return html_response(

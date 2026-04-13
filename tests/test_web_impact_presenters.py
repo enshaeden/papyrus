@@ -52,7 +52,7 @@ OBJECT_IMPACT = {
 
 class ImpactPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_object_impact_presenter_assembles_local_impact_components(self) -> None:
-        page = present_object_impact(TEMPLATE_RENDERER, impact=OBJECT_IMPACT, selected_object_id="kb-dependent")
+        page = present_object_impact(TEMPLATE_RENDERER, role="operator", impact=OBJECT_IMPACT, selected_object_id="kb-dependent")
 
         self.assert_component(page["page_context"]["summary_html"], "impact-summary")
         self.assert_component(page["page_context"]["impacts_html"], "impact-trace")
@@ -64,6 +64,7 @@ class ImpactPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_service_impact_presenter_reuses_traceable_impact_owners(self) -> None:
         page = present_service_impact(
             TEMPLATE_RENDERER,
+            role="operator",
             impact={
                 "entity": {"service_id": "remote-access", "service_name": "Remote Access"},
                 "current_impact": OBJECT_IMPACT["current_impact"],

@@ -58,7 +58,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
 
 
 class HomeDashboardQueryTests(unittest.TestCase):
-    def test_home_dashboard_returns_actor_scoped_grouped_data(self) -> None:
+    def test_home_dashboard_returns_role_scoped_grouped_data(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
@@ -82,23 +82,23 @@ class HomeDashboardQueryTests(unittest.TestCase):
             )
             workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
 
-            reviewer_dashboard = home_dashboard(actor_id="local.reviewer", database_path=database_path)
-            manager_dashboard = home_dashboard(actor_id="local.manager", database_path=database_path)
+            operator_dashboard = home_dashboard(role="operator", database_path=database_path)
+            admin_dashboard = home_dashboard(role="admin", database_path=database_path)
 
-            self.assertIn("counts", reviewer_dashboard)
-            self.assertIn("events", reviewer_dashboard)
-            self.assertIn("read_queue", reviewer_dashboard)
-            self.assertIn("manage", reviewer_dashboard)
-            self.assertIn("services", reviewer_dashboard)
-            self.assertEqual(reviewer_dashboard["actor_id"], "local.reviewer")
-            self.assertEqual(manager_dashboard["actor_id"], "local.manager")
-            self.assertEqual(reviewer_dashboard["layout_mode"], "review-launchpad")
-            self.assertEqual(manager_dashboard["layout_mode"], "pressure-launchpad")
-            self.assertNotIn("headline", reviewer_dashboard)
-            self.assertNotIn("primary_blocks", reviewer_dashboard)
-            self.assertIn("needs_decision", reviewer_dashboard["manage"])
-            self.assertIn("ready_for_review", reviewer_dashboard["manage"])
-            self.assertGreaterEqual(reviewer_dashboard["counts"]["review_required"], 1)
+            self.assertIn("counts", operator_dashboard)
+            self.assertIn("events", operator_dashboard)
+            self.assertIn("read_queue", operator_dashboard)
+            self.assertIn("manage", operator_dashboard)
+            self.assertIn("services", operator_dashboard)
+            self.assertEqual(operator_dashboard["role"], "operator")
+            self.assertEqual(admin_dashboard["role"], "admin")
+            self.assertEqual(operator_dashboard["layout_mode"], "workshop")
+            self.assertEqual(admin_dashboard["layout_mode"], "control-room")
+            self.assertNotIn("headline", operator_dashboard)
+            self.assertNotIn("primary_blocks", operator_dashboard)
+            self.assertIn("needs_decision", operator_dashboard["manage"])
+            self.assertIn("ready_for_review", operator_dashboard["manage"])
+            self.assertGreaterEqual(operator_dashboard["counts"]["review_required"], 1)
 
 
 if __name__ == "__main__":

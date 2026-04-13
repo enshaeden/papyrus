@@ -47,7 +47,7 @@ HISTORY = {
 
 class RevisionPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_revision_history_owner_renders_traceable_table_component(self) -> None:
-        html = render_revision_history_table(components=ComponentPresenter(TEMPLATE_RENDERER), history=HISTORY)
+        html = render_revision_history_table(components=ComponentPresenter(TEMPLATE_RENDERER), history=HISTORY, role="operator")
 
         self.assert_component(html, "revision-history-table")
         self.assertIn("Evidence and assignments", html)
@@ -55,6 +55,7 @@ class RevisionPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_revision_history_presenter_assembles_revision_components(self) -> None:
         page = present_revision_history(
             TEMPLATE_RENDERER,
+            role="operator",
             history=HISTORY,
             detail={
                 "ui_projection": {

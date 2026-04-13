@@ -7,6 +7,7 @@ from papyrus.domain.evidence import summarize_evidence_posture
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import action_descriptor, render_action_contract_panel, render_projection_status_panel
+from papyrus.interfaces.web.urls import evidence_revalidation_url
 from papyrus.interfaces.web.view_helpers import escape, join_html, link, parse_multiline, quoted_path, render_list
 
 
@@ -188,12 +189,12 @@ def submit_evidence_posture_detail(evidence_posture: dict[str, object]) -> str:
     return "No evidence references are recorded yet."
 
 
-def evidence_guidance_body_html(*, include_action: bool = False, object_id: str | None = None) -> str:
+def evidence_guidance_body_html(*, role: str, include_action: bool = False, object_id: str | None = None) -> str:
     action_html = ""
     if include_action and object_id:
         action_html = (
             '<p><strong>Next step:</strong> request evidence follow-up for any source that still needs stronger verification.</p>'
-            + f'<p>{link("Request evidence revalidation", f"/manage/objects/{quoted_path(object_id)}/evidence/revalidate", css_class="button button-secondary", attrs={"data-component": "action-link", "data-action-id": "request_evidence_revalidation"})}</p>'
+            + f'<p>{link("Request evidence revalidation", evidence_revalidation_url(role, object_id), css_class="button button-secondary", attrs={"data-component": "action-link", "data-action-id": "request_evidence_revalidation"})}</p>'
         )
     return (
         "<p>Link existing guidance or record a source title, reference, and note.</p>"
@@ -319,17 +320,17 @@ def _remote_object_picker_control(runtime, *, field, values: dict[str, str], obj
         placeholder=str(widget.get("placeholder") or f"Search {str(field['label']).lower()}"),
         singular_label=str(widget.get("singular_label") or "related guidance item"),
         manual_entry_label=str(widget.get("manual_entry_label") or "Manual reference entry"),
-        search_url=str(widget.get("search_url") or "/write/objects/search"),
+        search_url=str(widget.get("search_url") or "/operator/write/objects/search"),
         exclude_object_id=object_id,
     )
 
 
-def render_section_fields_html(runtime, *, section, values: dict[str, str], errors: dict[str, list[str]], object_id: str) -> str:
+def render_section_fields_html(runtime, *, role: str, section, values: dict[str, str], errors: dict[str, list[str]], object_id: str) -> str:
     forms = FormPresenter(runtime.template_renderer)
     widget = _widget_config(section.fields[0]) if section.fields else {}
     if str(section.section_type.value) == "references":
         slots = int(widget.get("slots") or 3)
-        search_url = str(widget.get("search_url") or "/write/citations/search")
+        search_url = str(widget.get("search_url") or "/operator/write/citations/search")
         blocks: list[str] = []
         for index in range(1, slots + 1):
             blocks.append(

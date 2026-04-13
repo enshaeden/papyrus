@@ -1,15 +1,22 @@
 # Operator Web UI
 
-This reference records the stable server-rendered UI contract for Papyrus. It is for maintainers working on the web surface, not for operator step-by-step execution.
+This reference records the stable server-rendered web UI contract for Papyrus. It is for maintainers working on the web surface, not for operator step-by-step execution.
 
 ## Purpose
 
-- The web UI is a thin operator surface over shared application services.
+- The web UI is a thin role-scoped surface over shared application services.
 - Route handlers read request state, call application queries or commands, and hand structured data to presenters.
 - Presenters and templates own page layout, surface composition, and reusable components.
 - Routes should not emit HTML fragments or re-derive governed meaning from raw state fields.
 
 ## Shared UI Contract
+
+- Stable route groups are:
+  - Reader: `/reader/*`
+  - Operator: `/operator/*`
+  - Admin: `/admin/*`
+- Production UI must not expose an actor switcher or rely on a shared actor shell.
+- Demo or development overlays may still map local actor IDs onto roles, but they are not part of the shipped route contract.
 
 - The shared component canon is:
   - one shared surface partial with two roles:
@@ -51,18 +58,18 @@ Tests should assert those hooks plus structured contract payload behavior instea
   - `normal` for navigation and browsing surfaces
   - `focus` for intentionally reduced-navigation work, not guided drafting
   - `minimal` for one-step decisions and system pages
-- Guided drafting uses the `normal` shell. Sidebar navigation and topbar actor controls remain visible while the operator works through guided sections.
+- Guided drafting uses the `normal` shell. Sidebar navigation and the topbar role label remain visible while the operator works through guided sections.
 - The right rail is optional and should render only when the page has actionable contextual support.
 - The sidebar is a flat grouped list, not a stack of card containers.
-- The left rail and topbar actor controls come from actor shell configuration, not page-local duplication.
-- Actor identity renders through the topbar control on normal-shell pages. There is no separate page-header actor banner contract.
+- The left rail and topbar role label come from `src/papyrus/interfaces/web/experience.py`, not page-local duplication.
+- There is no production actor-selection control and no separate page-header actor banner contract.
 - Page headers are opt-in and should include only the elements the presenter asks for.
-- Page-local actor, status, and action affordances should not render as chips, pills, or soft cards; they should read as text with restrained accent cues.
+- Page-local role, status, and action affordances should not render as chips, pills, or soft cards; they should read as text with restrained accent cues.
 - Density scales by role:
-  - end-user surfaces stay lowest density
+  - reader surfaces stay lowest density
   - operator surfaces stay medium density
-  - reviewer and manager governance surfaces use denser tables and selected-item context rails
-- Reviewer and manager governance screens should prefer table-first layouts with deterministic URL-driven selection state in the right rail.
+  - admin governance surfaces use denser tables and selected-item context rails
+- Admin governance screens should prefer table-first layouts with deterministic URL-driven selection state in the right rail.
 
 ## Surface Ownership Map
 
@@ -92,13 +99,13 @@ Tests should assert those hooks plus structured contract payload behavior instea
 - `Read Queue Hero`
   - `data-component`: `read-queue-hero`
   - owner file: `src/papyrus/interfaces/web/presenters/read_queue_hero_presenter.py`
-  - upstream data source: `/queue` route payload and actor page behavior
+  - upstream data source: role-scoped read routes plus `src/papyrus/interfaces/web/experience.py`
   - CSS location: `src/papyrus/interfaces/web/static/css/read.css`
   - test location: `tests/test_web_read_queue_presenters.py`
 - `Read Filter Bar`
   - `data-component`: `read-filter-bar`
   - owner file: `src/papyrus/interfaces/web/presenters/read_filter_bar_presenter.py`
-  - upstream data source: `/queue` route query/filter state
+  - upstream data source: role-scoped read-route query/filter state
   - CSS location: `src/papyrus/interfaces/web/static/css/read.css`
   - test location: `tests/test_web_read_queue_presenters.py`
 - `Read Result Card` and `Read Results Table`
@@ -119,19 +126,19 @@ Tests should assert those hooks plus structured contract payload behavior instea
 - `Article Hero`
   - `data-component`: `article-hero`
   - owner file: `src/papyrus/interfaces/web/presenters/article_hero_presenter.py`
-  - upstream data source: `papyrus.application.read_models.article_projection`
+  - upstream data source: `papyrus.interfaces.web.view_models.article_projection`
   - CSS location: `src/papyrus/interfaces/web/static/css/article.css`
   - test location: `tests/test_web_object_detail_presenters.py`
 - `Article Section`
   - `data-component`: `article-section`
   - owner file: `src/papyrus/interfaces/web/presenters/article_section_presenter.py`
-  - upstream data source: `papyrus.application.read_models.article_projection`
+  - upstream data source: `papyrus.interfaces.web.view_models.article_projection`
   - CSS location: `src/papyrus/interfaces/web/static/css/article.css`
   - test location: `tests/test_web_object_detail_presenters.py`
 - `Article Context Panel`
   - `data-component`: `article-context-panel`
   - owner file: `src/papyrus/interfaces/web/presenters/article_context_panel_presenter.py`
-  - upstream data source: `papyrus.application.read_models.article_projection`
+  - upstream data source: `papyrus.interfaces.web.view_models.article_projection`
   - CSS location: `src/papyrus/interfaces/web/static/css/article.css`
   - test location: `tests/test_web_object_detail_presenters.py`
 
@@ -221,7 +228,7 @@ Tests should assert those hooks plus structured contract payload behavior instea
 - `Activity Filter Bar`
   - `data-component`: `activity-filter-bar`
   - owner file: `src/papyrus/interfaces/web/presenters/activity_filter_bar_presenter.py`
-  - upstream data source: `/manage/audit` filter state
+  - upstream data source: `/operator/review/activity` and `/admin/audit` filter state
   - CSS location: `src/papyrus/interfaces/web/static/css/activity.css`
   - test location: `tests/test_web_activity_presenters.py`
 - `Activity Event`
@@ -362,19 +369,21 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 ## Web Authoring Route Contract
 
-- `POST /write/objects/{object_id}/revisions/start` is the explicit guided authoring start route. It may reuse a compatible draft or create a new one through application-owned policy.
-- `GET /write/objects/{object_id}/revisions/new` is load-only:
+- `POST /operator/write/object/{object_id}/start` is the explicit guided authoring start route. It may reuse a compatible draft or create a new one through application-owned policy.
+- `GET /operator/write/object/{object_id}` is load-only:
   - with `revision_id`, it loads that revision context only
   - without `revision_id`, it may load only an existing compatible draft
   - if no compatible draft exists, it returns `400 Bad Request` with an operator-facing reason and does not redirect implicitly
-- `/write/objects/new` creates the object shell and eagerly starts the first draft before redirecting to the guided page with a concrete `revision_id`.
+- `/operator/write/new` creates the object shell and eagerly starts the first draft before redirecting to the guided page with a concrete `revision_id`.
+- `GET /operator/write/citations/search` and `GET /operator/write/objects/search` are operator-only JSON helpers for guided authoring widgets.
 - Presenters should link to an existing guided revision only when they already have a concrete `revision_id`. When a draft may need to be created or reused, presenters should use the explicit POST start route instead of GET-side effects.
 
 ## Current Boundaries
 
 - Page presenters now assemble browser-visible surfaces from explicit owner files for Home, Read, object detail, services, knowledge health, review, activity, revision history, impact, and ingest.
 - Shared components still provide low-level building blocks such as badges, decision cells, and governed panels, but surface-specific copy and internal markup now live in the owning presenter for that visible component.
-- `papyrus.application.read_models.home_dashboard` now supplies raw actor-scoped dashboard data rather than Home-specific launch or activity structures.
+- `papyrus.application.read_models.home_dashboard` now supplies role-scoped dashboard data rather than Home-specific launch or activity structures.
+- Object-detail section composition belongs to the web view-model layer, not `papyrus.application.read_models`.
 - No authentication or CSRF layer is introduced in this interface; the surface remains intended for local or otherwise trusted operator environments.
 
 ## Testing And Maintenance

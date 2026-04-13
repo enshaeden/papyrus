@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from papyrus.application.role_visibility import queue_ranking_for_role
 from papyrus.application.queries import knowledge_queue, search_knowledge_objects
+from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.http import Request, html_response
 from papyrus.interfaces.web.presenters.queue_presenter import present_queue_page
-from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
+from papyrus.interfaces.web.route_utils import flash_html_for_request
 
 
 def _apply_filters(
@@ -27,7 +29,7 @@ def _apply_filters(
 
 def register(router, runtime) -> None:
     def queue_page(request: Request):
-        actor_id = actor_for_request(request)
+        experience = require_experience(request, "reader", "operator", "admin")
         query = request.query_value("query").strip()
         selected_type = request.query_value("object_type").strip()
         selected_trust = request.query_value("trust").strip()
@@ -35,11 +37,15 @@ def register(router, runtime) -> None:
         selected_object_id = request.query_value("selected_object_id").strip()
         selected_revision_id = request.query_value("selected_revision_id").strip()
         limit = int(request.query_value("limit", "100"))
-        ranking = "triage" if actor_id in {"local.reviewer", "local.manager"} else "operator"
         items = (
-            search_knowledge_objects(query, limit=limit, database_path=runtime.database_path)
+            search_knowledge_objects(query, limit=limit, database_path=runtime.database_path, role=experience.role)
             if query
-            else knowledge_queue(limit=limit, database_path=runtime.database_path, ranking=ranking)
+            else knowledge_queue(
+                limit=limit,
+                database_path=runtime.database_path,
+                ranking=queue_ranking_for_role(experience.role),
+                role=experience.role,
+            )
         )
         items = _apply_filters(
             items,
@@ -54,7 +60,7 @@ def register(router, runtime) -> None:
             selected_type=selected_type,
             selected_trust=selected_trust,
             selected_review_state=selected_review_state,
-            actor_id=actor_id,
+            role=experience.role,
             selected_object_id=selected_object_id,
             selected_revision_id=selected_revision_id,
         )
@@ -62,11 +68,12 @@ def register(router, runtime) -> None:
             runtime.page_renderer.render_page(
                 search_value=query,
                 flash_html=flash_html_for_request(runtime, request),
-                actor_id=actor_id,
+                role_id=experience.role,
                 current_path=request.path,
                 **page,
             )
         )
 
-    router.add(["GET"], "/queue", queue_page)
-    router.add(["GET"], "/read", queue_page)
+    router.add(["GET"], "/reader/browse", queue_page)
+    router.add(["GET"], "/operator/read", queue_page)
+    router.add(["GET"], "/admin/inspect", queue_page)

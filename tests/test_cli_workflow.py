@@ -37,79 +37,88 @@ class CliWorkflowTests(unittest.TestCase):
     def test_build_site_docs_cli(self) -> None:
         build_index = run_command("scripts/build_index.py")
         self.assertEqual(build_index.returncode, 0, msg=build_index.stderr)
-        result = run_command("scripts/build_site_docs.py")
-        self.assertEqual(result.returncode, 0, msg=result.stderr)
-        generated_home = ROOT / "generated" / "site_docs" / "index.md"
-        generated_index = ROOT / "generated" / "site_docs" / "knowledge" / "index.md"
-        generated_docs_index = ROOT / "generated" / "site_docs" / "system-design-docs" / "index.md"
-        generated_explorer = ROOT / "generated" / "site_docs" / "knowledge" / "explorer.md"
-        generated_access_index = ROOT / "generated" / "site_docs" / "knowledge" / "access" / "index.md"
-        generated_runbooks_index = ROOT / "generated" / "site_docs" / "knowledge" / "runbooks" / "index.md"
-        self.assertTrue(generated_home.exists())
-        self.assertTrue(generated_index.exists())
-        self.assertTrue(generated_docs_index.exists())
-        self.assertTrue(generated_explorer.exists())
-        self.assertTrue(generated_access_index.exists())
-        self.assertTrue(generated_runbooks_index.exists())
-        generated_home_text = generated_home.read_text(encoding="utf-8")
-        generated_explorer_text = generated_explorer.read_text(encoding="utf-8")
-        generated_access_index_text = generated_access_index.read_text(encoding="utf-8")
-        generated_runbooks_index_text = generated_runbooks_index.read_text(encoding="utf-8")
-        self.assertIn("approved-content export", generated_home_text)
-        self.assertIn("consolidated operator-facing governance record", generated_home_text)
-        self.assertIn('href="knowledge/"', generated_home_text)
-        self.assertNotIn('href="knowledge/index.md"', generated_home_text)
-        self.assertIn("Papyrus Docs", generated_docs_index.read_text(encoding="utf-8"))
-        self.assertIn("Knowledge Explorer", generated_explorer_text)
-        self.assertIn('"object_lifecycle_state"', generated_explorer_text)
-        self.assertNotIn('"status":', generated_explorer_text)
-        site_paths = re.findall(r'"site_path": "([^"]+)"', generated_explorer_text)
-        self.assertTrue(site_paths)
-        self.assertTrue(all(not path.endswith(".md") for path in site_paths))
-        self.assertIn("Access", generated_access_index_text)
-        self.assertIn("Runbooks", generated_runbooks_index_text)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_root = Path(temp_dir) / "site_docs"
+            result = run_command("scripts/build_site_docs.py", "--output-root", str(output_root))
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            generated_home = output_root / "index.md"
+            generated_index = output_root / "knowledge" / "index.md"
+            generated_docs_index = output_root / "system-design-docs" / "index.md"
+            generated_explorer = output_root / "knowledge" / "explorer.md"
+            generated_access_index = output_root / "knowledge" / "access" / "index.md"
+            generated_runbooks_index = output_root / "knowledge" / "runbooks" / "index.md"
+            self.assertTrue(generated_home.exists())
+            self.assertTrue(generated_index.exists())
+            self.assertTrue(generated_docs_index.exists())
+            self.assertTrue(generated_explorer.exists())
+            self.assertTrue(generated_access_index.exists())
+            self.assertTrue(generated_runbooks_index.exists())
+            generated_home_text = generated_home.read_text(encoding="utf-8")
+            generated_explorer_text = generated_explorer.read_text(encoding="utf-8")
+            generated_access_index_text = generated_access_index.read_text(encoding="utf-8")
+            generated_runbooks_index_text = generated_runbooks_index.read_text(encoding="utf-8")
+            self.assertIn("approved-content export", generated_home_text)
+            self.assertIn("consolidated operator-facing governance record", generated_home_text)
+            self.assertIn('href="knowledge/"', generated_home_text)
+            self.assertNotIn('href="knowledge/index.md"', generated_home_text)
+            self.assertIn("Papyrus Docs", generated_docs_index.read_text(encoding="utf-8"))
+            self.assertIn("Knowledge Explorer", generated_explorer_text)
+            self.assertIn('"object_lifecycle_state"', generated_explorer_text)
+            self.assertNotIn('"status":', generated_explorer_text)
+            site_paths = re.findall(r'"site_path": "([^"]+)"', generated_explorer_text)
+            self.assertTrue(site_paths)
+            self.assertTrue(all(not path.endswith(".md") for path in site_paths))
+            self.assertIn("Access", generated_access_index_text)
+            self.assertIn("Runbooks", generated_runbooks_index_text)
 
     def test_build_site_docs_cli_exports_only_runtime_approved_objects(self) -> None:
-        generated_vpn_guide = (
-            ROOT
-            / "generated"
-            / "site_docs"
-            / "knowledge"
-            / "troubleshooting"
-            / "vpn-connectivity.md"
-        )
-        try:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                database_path = Path(temp_dir) / "workflow.db"
-                build_search_projection(database_path)
-                workflow = GovernanceWorkflow(database_path)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "workflow.db"
+            output_root = Path(temp_dir) / "site_docs"
+            generated_vpn_guide = output_root / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
+            build_search_projection(database_path)
+            workflow = GovernanceWorkflow(database_path)
 
-                document = parse_knowledge_document(
-                    ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
-                )
-                payload = copy.deepcopy(document.metadata)
-                payload["summary"] = "Draft export suppression test for VPN troubleshooting."
-                payload["change_log"] = [
-                    *payload["change_log"],
-                    {"date": "2026-04-07", "summary": "Draft export suppression test.", "author": "tests"},
-                ]
-                workflow.create_revision(
-                    object_id=payload["id"],
-                    normalized_payload=payload,
-                    body_markdown=f"{document.body}\n\nDraft export suppression test note.",
-                    actor="tests",
-                    legacy_metadata=document.metadata,
-                    change_summary="Draft export suppression test.",
-                )
+            document = parse_knowledge_document(
+                ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
+            )
+            payload = copy.deepcopy(document.metadata)
+            payload["summary"] = "Draft export suppression test for VPN troubleshooting."
+            payload["change_log"] = [
+                *payload["change_log"],
+                {"date": "2026-04-07", "summary": "Draft export suppression test.", "author": "tests"},
+            ]
+            workflow.create_revision(
+                object_id=payload["id"],
+                normalized_payload=payload,
+                body_markdown=f"{document.body}\n\nDraft export suppression test note.",
+                actor="tests",
+                legacy_metadata=document.metadata,
+                change_summary="Draft export suppression test.",
+            )
 
-                result = run_command("scripts/build_site_docs.py", "--db", str(database_path))
-                self.assertEqual(result.returncode, 0, msg=result.stderr)
-                self.assertFalse(generated_vpn_guide.exists())
-        finally:
-            rebuild_index = run_command("scripts/build_index.py")
-            self.assertEqual(rebuild_index.returncode, 0, msg=rebuild_index.stderr)
-            restore = run_command("scripts/build_site_docs.py")
-            self.assertEqual(restore.returncode, 0, msg=restore.stderr)
+            result = run_command(
+                "scripts/build_site_docs.py",
+                "--db",
+                str(database_path),
+                "--output-root",
+                str(output_root),
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertFalse(generated_vpn_guide.exists())
+
+    def test_build_site_docs_temp_output_root_does_not_break_validation(self) -> None:
+        validate_before = run_command("scripts/validate.py")
+        self.assertEqual(validate_before.returncode, 0, msg=validate_before.stderr)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_root = Path(temp_dir) / "site_docs"
+            result = run_command("scripts/build_site_docs.py", "--output-root", str(output_root))
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertTrue((output_root / "index.md").exists())
+
+        validate_after = run_command("scripts/validate.py")
+        self.assertEqual(validate_after.returncode, 0, msg=validate_after.stderr)
 
     def test_new_article_cli(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

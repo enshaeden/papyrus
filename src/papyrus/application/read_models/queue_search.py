@@ -6,6 +6,7 @@ from typing import Any
 
 from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.posture import build_posture_summary
+from papyrus.application.role_visibility import filter_queue_items_for_role, normalize_role
 from papyrus.application.runtime_projection import RuntimeStateSnapshot
 from papyrus.application.ui_projection import build_object_actions, build_ui_projection, ui_projection_payload
 from papyrus.domain.entities import SearchHit
@@ -346,8 +347,10 @@ def knowledge_queue(
     database_path: str | Path = DB_PATH,
     ranking: str = "operator",
     authority: PolicyAuthority | None = None,
+    role: str | None = None,
 ) -> list[dict[str, Any]]:
     current_authority = _policy_authority(authority)
+    resolved_role = normalize_role(role)
     connection = require_runtime_connection(database_path)
     try:
         rows = connection.execute(
@@ -355,6 +358,7 @@ def knowledge_queue(
         ).fetchall()
         items = [_queue_item_from_projection_row(row) for row in rows]
         _augment_queue_items(connection, items)
+        items = filter_queue_items_for_role(items, resolved_role)
         for item in items:
             snapshot = RuntimeStateSnapshot(
                 object_lifecycle_state=str(item["object_lifecycle_state"]),
@@ -411,8 +415,10 @@ def search_knowledge_objects(
     limit: int = 50,
     database_path: str | Path = DB_PATH,
     authority: PolicyAuthority | None = None,
+    role: str | None = None,
 ) -> list[dict[str, Any]]:
     current_authority = _policy_authority(authority)
+    resolved_role = normalize_role(role)
     connection = require_runtime_connection(database_path)
     try:
         candidate_limit = max(limit * 5, 100)
@@ -502,6 +508,7 @@ def search_knowledge_objects(
         rows = list(rows_by_object_id.values())
         items = [_queue_item_from_projection_row(row) for row in rows]
         _augment_queue_items(connection, items)
+        items = filter_queue_items_for_role(items, resolved_role)
         for item in items:
             snapshot = RuntimeStateSnapshot(
                 object_lifecycle_state=str(item["object_lifecycle_state"]),
@@ -537,4 +544,3 @@ def search_knowledge_objects(
         return items[:limit]
     finally:
         connection.close()
-

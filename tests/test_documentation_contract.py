@@ -20,10 +20,15 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("content-section", operator_web_ui)
         self.assertIn("context-panel", operator_web_ui)
         self.assertIn("guided drafting uses the `normal` shell", operator_web_ui)
+        self.assertIn("production ui must not expose an actor switcher", operator_web_ui)
+        self.assertIn("/reader/*", operator_web_ui)
+        self.assertIn("/operator/*", operator_web_ui)
+        self.assertIn("/admin/*", operator_web_ui)
         self.assertIn("400 bad request", operator_web_ui)
-        self.assertIn("post /write/objects/{object_id}/revisions/start", operator_web_ui)
-        self.assertIn("there is no separate page-header actor banner contract", operator_web_ui)
+        self.assertIn("post /operator/write/object/{object_id}/start", operator_web_ui)
+        self.assertIn("no separate page-header actor banner contract", operator_web_ui)
         self.assertIn("url-driven selection state", operator_web_ui)
+        self.assertIn("papyrus.interfaces.web.view_models.article_projection", operator_web_ui)
 
     def test_operator_readiness_records_recovery_and_cleanup_boundary(self) -> None:
         operator_readiness = (ROOT / "docs" / "reference" / "operator-readiness.md").read_text(encoding="utf-8").lower()
@@ -38,6 +43,17 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("retired legacy migration shim", getting_started)
         self.assertIn("import_knowledge_portal.py", getting_started)
         self.assertIn("decisions/index.md", getting_started)
+        self.assertIn("/operator", getting_started)
+        self.assertIn("/reader/*", getting_started)
+        self.assertIn("/admin/*", getting_started)
+
+    def test_lifecycle_decision_uses_explicit_state_machines(self) -> None:
+        lifecycle = (ROOT / "docs" / "decisions" / "knowledge-workflows-and-lifecycle.md").read_text(encoding="utf-8").lower()
+        self.assertIn("object_lifecycle_state", lifecycle)
+        self.assertIn("revision_review_state", lifecycle)
+        self.assertIn("draft_progress_state", lifecycle)
+        self.assertIn("`published` is not a separate revision-review state", lifecycle)
+        self.assertIn("do not encode it as `object_lifecycle_state = flagged`", lifecycle)
 
     def test_docs_do_not_overclaim_removed_writeback_guarantees(self) -> None:
         forbidden = (

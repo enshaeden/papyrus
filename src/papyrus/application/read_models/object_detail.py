@@ -6,6 +6,7 @@ from typing import Any
 from papyrus.application.authoring_flow import derive_section_content
 from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.posture import build_posture_summary
+from papyrus.application.role_visibility import object_visible_to_role
 from papyrus.application.runtime_projection import RuntimeStateSnapshot
 from papyrus.application.ui_projection import (
     build_object_actions,
@@ -16,7 +17,6 @@ from papyrus.application.ui_projection import (
 )
 from papyrus.infrastructure.paths import DB_PATH
 
-from .article_projection import build_article_projection
 from .support import (
     KnowledgeObjectNotFoundError,
     _draft_progress_value,
@@ -34,7 +34,7 @@ def knowledge_object_detail(
     *,
     database_path: str | Path = DB_PATH,
     authority: PolicyAuthority | None = None,
-    actor_id: str = "local.operator",
+    visibility_role: str | None = None,
 ) -> dict[str, Any]:
     current_authority = _policy_authority(authority)
     connection = require_runtime_connection(database_path)
@@ -236,6 +236,12 @@ def knowledge_object_detail(
             if current_revision is not None
             else None
         )
+        if not object_visible_to_role(
+            visibility_role,
+            object_lifecycle_state=_object_lifecycle_value(object_row),
+            revision_review_state=revision_review_state,
+        ):
+            raise KnowledgeObjectNotFoundError(f"knowledge object not found: {object_id}")
         posture = build_posture_summary(
             trust_state=str(object_row["trust_state"]),
             revision_review_state=revision_review_state,
@@ -278,58 +284,21 @@ def knowledge_object_detail(
             )
         )
 
+        section_content = (
+            _json_dict(current_revision["section_content_json"])
+            if current_revision is not None and str(current_revision["section_content_json"] or "").strip() not in {"", "{}"}
+            else (
+                derive_section_content(
+                    blueprint_id=str(current_revision["blueprint_id"] or object_row["object_type"]),
+                    metadata=metadata,
+                    body_markdown=str(current_revision["body_markdown"]),
+                )
+                if current_revision is not None
+                else {}
+            )
+        )
+
         return {
-            "article_projection": build_article_projection(
-                item={
-                    "object_id": str(object_row["object_id"]),
-                    "object_type": str(object_row["object_type"]),
-                    "title": str(object_row["title"]),
-                    "summary": str(object_row["summary"]),
-                    "object_lifecycle_state": _object_lifecycle_value(object_row),
-                    "owner": str(object_row["owner"]),
-                    "team": str(object_row["team"]),
-                    "canonical_path": str(object_row["canonical_path"]),
-                    "last_reviewed": str(object_row["last_reviewed"]),
-                    "review_cadence": str(object_row["review_cadence"]),
-                    "trust_state": str(object_row["trust_state"]),
-                    "revision_review_state": revision_review_state,
-                    "systems": [str(item) for item in _json_list(object_row["systems_json"])],
-                    "tags": [str(item) for item in _json_list(object_row["tags_json"])],
-                },
-                revision=(
-                    {
-                        "revision_id": str(current_revision["revision_id"]),
-                        "revision_number": int(current_revision["revision_number"]),
-                        "revision_review_state": _revision_review_value(current_revision),
-                        "blueprint_id": str(current_revision["blueprint_id"] or object_row["object_type"]),
-                        "imported_at": str(current_revision["imported_at"]),
-                        "change_summary": str(current_revision["change_summary"]) if current_revision["change_summary"] is not None else None,
-                        "body_markdown": str(current_revision["body_markdown"]),
-                    }
-                    if current_revision is not None
-                    else None
-                ),
-                metadata=metadata,
-                section_content=(
-                    _json_dict(current_revision["section_content_json"])
-                    if current_revision is not None and str(current_revision["section_content_json"] or "").strip() not in {"", "{}"}
-                    else (
-                        derive_section_content(
-                            blueprint_id=str(current_revision["blueprint_id"] or object_row["object_type"]),
-                            metadata=metadata,
-                            body_markdown=str(current_revision["body_markdown"]),
-                        )
-                        if current_revision is not None
-                        else {}
-                    )
-                ),
-                related_services=related_services,
-                citations=citations,
-                evidence_status=evidence_status,
-                audit_events=audit_events,
-                ui_projection=ui_projection,
-                actor_id=actor_id,
-            ),
             "object": {
                 "object_id": str(object_row["object_id"]),
                 "object_type": str(object_row["object_type"]),
@@ -371,21 +340,14 @@ def knowledge_object_detail(
                     "imported_at": str(current_revision["imported_at"]),
                     "change_summary": str(current_revision["change_summary"]) if current_revision["change_summary"] is not None else None,
                     "body_markdown": str(current_revision["body_markdown"]),
-                    "section_content": (
-                        _json_dict(current_revision["section_content_json"])
-                        if str(current_revision["section_content_json"] or "").strip() not in {"", "{}"}
-                        else derive_section_content(
-                            blueprint_id=str(current_revision["blueprint_id"] or object_row["object_type"]),
-                            metadata=metadata,
-                            body_markdown=str(current_revision["body_markdown"]),
-                        )
-                    ),
+                    "section_content": section_content,
                     "section_completion_map": _json_dict(current_revision["section_completion_json"]),
                 }
                 if current_revision is not None
                 else None
             ),
             "metadata": metadata,
+            "section_content": section_content,
             "citations": citations,
             "evidence_status": evidence_status,
             "related_services": related_services,

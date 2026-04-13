@@ -4,7 +4,8 @@ from typing import Any
 from urllib.parse import urlencode
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
-from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path
+from papyrus.interfaces.web.urls import object_url
+from papyrus.interfaces.web.view_helpers import escape, join_html, link
 
 
 def _impact_selection_href(base_path: str, *, object_id: str, revision_id: str = "") -> str:
@@ -23,6 +24,7 @@ def _impact_selection_href(base_path: str, *, object_id: str, revision_id: str =
 def render_impact_trace(
     *,
     components: ComponentPresenter,
+    role: str,
     title: str,
     items: list[dict[str, Any]],
     base_path: str,
@@ -48,7 +50,7 @@ def render_impact_trace(
             f'<td>{components.decision_cell(title_html=link(str(item["title"]), _impact_selection_href(base_path, object_id=object_id, revision_id=revision_id), css_class="selected-row-link"), supporting_html=escape(item["reason"]), meta=[escape(item["trust_state"])])}</td>'
             f'<td>{components.decision_cell(title_html=escape(item["what_changed"]), supporting_html=escape(" -> ".join(item["propagation_path"])))}</td>'
             f'<td>{components.decision_cell(title_html=escape(" | ".join(item["revalidate"])))}</td>'
-            f'<td>{link("Open", f"/objects/{quoted_path(object_id)}", css_class="button button-secondary")}</td>'
+            f'<td>{link("Open", object_url(role, object_id), css_class="button button-secondary")}</td>'
             "</tr>"
         )
     return (

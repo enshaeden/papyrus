@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from papyrus.interfaces.web.urls import impact_service_url, object_url
 from papyrus.interfaces.web.view_helpers import escape, link, quoted_path
 
 
-def render_service_detail_hero(*, detail: dict[str, Any]) -> str:
+def render_service_detail_hero(*, detail: dict[str, Any], role: str) -> str:
     service = detail["service"]
     return (
         '<section class="service-detail-hero" data-component="service-detail-hero" data-surface="services">'
@@ -18,9 +19,9 @@ def render_service_detail_hero(*, detail: dict[str, Any]) -> str:
         f'<div><dt>Failure modes</dt><dd>{escape(", ".join(service["common_failure_modes"]) or "None recorded")}</dd></div>'
         "</dl>"
         '<div class="service-detail-hero__actions">'
-        f'{link("Review service impact", f"/impact/service/{quoted_path(service["service_id"])}", css_class="button button-primary")}'
+        f'{link("Review service impact", impact_service_url(role, str(service["service_id"])), css_class="button button-primary")}'
         + (
-            link("Open canonical record", f"/objects/{quoted_path(detail['canonical_object']['object_id'])}", css_class="button button-ghost")
+            link("Open canonical record", object_url(role, str(detail["canonical_object"]["object_id"])), css_class="button button-ghost")
             if detail["canonical_object"] is not None
             else ""
         )

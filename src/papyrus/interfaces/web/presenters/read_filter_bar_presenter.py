@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from papyrus.interfaces.web.urls import search_url
 from papyrus.interfaces.web.view_helpers import escape
 
 
-def render_read_filter_bar(*, query: str, selected_type: str, selected_trust: str, selected_review_state: str) -> str:
+def render_read_filter_bar(*, role: str, query: str, selected_type: str, selected_trust: str, selected_review_state: str) -> str:
     return (
-        '<form class="read-filter-bar" method="get" action="/read" data-component="read-filter-bar" data-surface="read-queue">'
+        f'<form class="read-filter-bar" method="get" action="{escape(search_url(role))}" data-component="read-filter-bar" data-surface="read-queue">'
         '<div class="read-filter-bar__search">'
         f'<input type="search" name="query" placeholder="Search by title, path, service, or summary" value="{escape(query)}" />'
         '<button class="button button-primary" type="submit">Search</button>'

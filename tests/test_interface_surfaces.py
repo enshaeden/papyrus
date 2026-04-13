@@ -156,54 +156,58 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
     def test_web_surface_exposes_required_phase8_views(self) -> None:
         application = web_app(self.database_path)
 
-        status, _, body = call_wsgi(application, "/")
+        status, headers, _ = call_wsgi(application, "/")
+        self.assertEqual(status, "303 See Other")
+        self.assertEqual(headers["Location"], "/operator")
+
+        status, _, body = call_wsgi(application, "/operator")
         self.assertEqual(status, "200 OK")
         self.assertIn("<title>Home | Papyrus</title>", body)
         self.assert_primary_surface(body, "home")
         self.assertNotIn('<aside class="context-column">', body)
         self.assertNotIn('class="dual-grid"', body)
 
-        status, _, body = call_wsgi(application, "/queue")
+        status, _, body = call_wsgi(application, "/operator/read")
         self.assertEqual(status, "200 OK")
         self.assertIn("<title>Read Guidance | Papyrus</title>", body)
         self.assert_page_contract(body, primary_surface="read-queue", action_ids=("open-primary-surface",))
         self.assertNotIn('<aside class="context-column">', body)
 
-        status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity")
+        status, _, body = call_wsgi(application, "/operator/read/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
         self.assertIn("VPN Troubleshooting", body)
         self.assert_page_contract(body, primary_surface="object-detail", components=("article-hero", "article-section"))
         self.assertNotIn('<aside class="context-column">', body)
         self.assert_not_component(body, "object-header")
 
-        status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity/revisions")
+        status, _, body = call_wsgi(application, "/operator/read/object/kb-troubleshooting-vpn-connectivity/revisions")
         self.assertEqual(status, "200 OK")
         self.assert_page_contract(body, primary_surface="revision-history", components=("table",))
 
-        status, _, body = call_wsgi(application, f"/services/{self.remote_access_service_id}")
+        status, _, body = call_wsgi(application, f"/operator/read/services/{self.remote_access_service_id}")
         self.assertEqual(status, "200 OK")
         self.assert_primary_surface(body, "services")
         self.assertIn("Remote Access", body)
 
-        status, _, body = call_wsgi(application, "/dashboard/trust")
+        status, _, body = call_wsgi(application, "/operator/review/governance")
         self.assertEqual(status, "200 OK")
         self.assert_page_contract(body, primary_surface="knowledge-health", components=("health-board",))
         self.assertIn("Cleanup and trust debt", body)
 
-        status, _, body = call_wsgi(application, "/services")
+        status, _, body = call_wsgi(application, "/operator/read/services")
         self.assertEqual(status, "200 OK")
         self.assert_page_contract(body, primary_surface="services", components=("service-map",))
         self.assertNotIn('<aside class="context-column">', body)
 
-        status, _, body = call_wsgi(application, "/manage/queue")
+        status, _, body = call_wsgi(application, "/operator/review")
         self.assertEqual(status, "200 OK")
         self.assert_page_contract(body, primary_surface="review", components=("review-lane",))
 
-        status, _, body = call_wsgi(application, "/manage/audit")
+        status, _, body = call_wsgi(application, "/operator/review/activity")
         self.assertEqual(status, "200 OK")
         self.assert_page_contract(body, primary_surface="activity", components=("activity-event",))
 
-        status, _, body = call_wsgi(application, "/impact/object/kb-troubleshooting-vpn-connectivity")
+        status, _, body = call_wsgi(application, "/operator/review/impact/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
         self.assert_page_contract(body, primary_surface="impact-object", components=("impact-summary", "impact-trace"))
 
@@ -232,7 +236,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertNotIn("actor-banner", body)
         self.assertNotIn("page-kicker", body)
 
-        status, _, body = call_wsgi(application, "/queue", method="POST", form={"query": "vpn"})
+        status, _, body = call_wsgi(application, "/operator/read", method="POST", form={"query": "vpn"})
         self.assertEqual(status, "405 Method Not Allowed")
         self.assert_primary_surface(body, "system-error")
         self.assertIn("shell-columns-minimal", body)

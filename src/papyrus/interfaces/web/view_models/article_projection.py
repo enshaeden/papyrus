@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from papyrus.domain.actor import resolve_actor
+from papyrus.application.role_visibility import READER_ROLE
+from papyrus.interfaces.web.experience import ExperienceContext
 
 
 def _clean_text(value: object) -> str:
@@ -36,6 +37,16 @@ def _facts_block(rows: list[tuple[str, object]], *, title: str = "") -> dict[str
     return {"kind": "facts", "title": title, "rows": normalized_rows}
 
 
+def _section(section_id: str, title: str, *, eyebrow: str, blocks: list[dict[str, Any] | None], empty: str) -> dict[str, Any]:
+    return {
+        "section_id": section_id,
+        "title": title,
+        "eyebrow": eyebrow,
+        "blocks": [block for block in blocks if block is not None],
+        "empty": empty,
+    }
+
+
 def _service_context(related_services: list[dict[str, Any]], item: dict[str, Any]) -> dict[str, Any]:
     return {
         "section_id": "service_context",
@@ -59,9 +70,33 @@ def _service_context(related_services: list[dict[str, Any]], item: dict[str, Any
     }
 
 
-def _governance_context(item: dict[str, Any], ui_projection: dict[str, Any], evidence_status: dict[str, Any]) -> dict[str, Any]:
+def _governance_context(
+    *,
+    item: dict[str, Any],
+    ui_projection: dict[str, Any],
+    evidence_status: dict[str, Any],
+    experience: ExperienceContext,
+) -> dict[str, Any]:
     use_guidance = dict(ui_projection.get("use_guidance") or {})
     state = dict(ui_projection.get("state") or {})
+    if experience.role == READER_ROLE:
+        return {
+            "section_id": "governance",
+            "title": "Governance summary",
+            "eyebrow": "Status",
+            "blocks": [
+                _paragraph_block(use_guidance.get("summary")),
+                _facts_block(
+                    [
+                        ("Lifecycle", state.get("object_lifecycle_state") or item.get("object_lifecycle_state")),
+                        ("Owner", item.get("owner")),
+                        ("Team", item.get("team")),
+                        ("Last reviewed", item.get("last_reviewed")),
+                        ("Review cadence", item.get("review_cadence")),
+                    ]
+                ),
+            ],
+        }
     return {
         "section_id": "governance",
         "title": "Governance and readiness",
@@ -115,9 +150,7 @@ def _change_context(revision: dict[str, Any] | None, audit_events: list[dict[str
     latest_audit = audit_events[0] if audit_events else None
     latest_audit_text = ""
     if latest_audit is not None:
-        latest_audit_text = (
-            f"{latest_audit['event_type']} at {latest_audit['occurred_at']} by {latest_audit['actor']}"
-        )
+        latest_audit_text = f"{latest_audit['event_type']} at {latest_audit['occurred_at']} by {latest_audit['actor']}"
     return {
         "section_id": "audit",
         "title": "Change and audit context",
@@ -147,16 +180,6 @@ def _source_context(revision: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
-def _section(section_id: str, title: str, *, eyebrow: str, blocks: list[dict[str, Any] | None], empty: str) -> dict[str, Any]:
-    return {
-        "section_id": section_id,
-        "title": title,
-        "eyebrow": eyebrow,
-        "blocks": [block for block in blocks if block is not None],
-        "empty": empty,
-    }
-
-
 def _runbook_sections(section_content: dict[str, dict[str, Any]], metadata: dict[str, Any], item: dict[str, Any]) -> list[dict[str, Any]]:
     purpose = section_content.get("purpose", {})
     boundaries = section_content.get("boundaries", {})
@@ -174,12 +197,7 @@ def _runbook_sections(section_content: dict[str, dict[str, Any]], metadata: dict
             eyebrow="Scope",
             blocks=[
                 _list_block(section_content.get("prerequisites", {}).get("prerequisites") or metadata.get("prerequisites")),
-                _facts_block(
-                    [
-                        ("Audience", metadata.get("audience")),
-                        ("Owner", item.get("owner")),
-                    ]
-                ),
+                _facts_block([("Audience", metadata.get("audience")), ("Owner", item.get("owner"))]),
             ],
             empty="No prerequisites or scope notes are recorded.",
         ),
@@ -390,7 +408,7 @@ def _policy_sections(section_content: dict[str, dict[str, Any]], metadata: dict[
     ]
 
 
-def _system_design_sections(section_content: dict[str, dict[str, Any]], metadata: dict[str, Any], item: dict[str, Any]) -> list[dict[str, Any]]:
+def _system_design_sections(section_content: dict[str, dict[str, Any]], metadata: dict[str, Any]) -> list[dict[str, Any]]:
     operations = section_content.get("operations", {})
     return [
         _section(
@@ -456,7 +474,7 @@ def _article_sections(
         return _service_record_sections(section_content, metadata, item)
     if blueprint_id == "policy":
         return _policy_sections(section_content, metadata, item)
-    return _system_design_sections(section_content, metadata, item)
+    return _system_design_sections(section_content, metadata)
 
 
 def build_article_projection(
@@ -470,10 +488,9 @@ def build_article_projection(
     evidence_status: dict[str, Any],
     audit_events: list[dict[str, Any]],
     ui_projection: dict[str, Any],
-    actor_id: str,
+    experience: ExperienceContext,
 ) -> dict[str, Any]:
-    actor = resolve_actor(actor_id)
-    article_behavior = actor.page_behavior("object-detail")
+    surface_behavior = experience.page_behavior("object-detail")
     blueprint_id = _clean_text((revision or {}).get("blueprint_id")) or _clean_text(item.get("object_type")) or "runbook"
     primary_sections = _article_sections(
         blueprint_id,
@@ -483,19 +500,24 @@ def build_article_projection(
     )
     primary_sections.append(_service_context(related_services, item))
     all_secondary = [
-        _governance_context(item, ui_projection, evidence_status),
+        _governance_context(
+            item=item,
+            ui_projection=ui_projection,
+            evidence_status=evidence_status,
+            experience=experience,
+        ),
         _evidence_context(citations, evidence_status),
         _change_context(revision, audit_events),
         _source_context(revision),
     ]
-    allowed_secondary = set(article_behavior.secondary_sections if article_behavior is not None else ())
+    allowed_secondary = set(surface_behavior.allowed_secondary_sections if surface_behavior is not None else ())
     secondary_sections = [
         section
         for section in all_secondary
         if not allowed_secondary or section["section_id"] in allowed_secondary
     ]
     return {
-        "variant": actor.actor_id,
+        "variant": experience.role,
         "hero": {
             "title": item["title"],
             "summary": item["summary"],
@@ -504,5 +526,5 @@ def build_article_projection(
         },
         "sections": primary_sections,
         "secondary_sections": secondary_sections,
-        "show_context_rail": bool(article_behavior.show_context_rail) if article_behavior is not None else False,
+        "show_context_rail": bool(surface_behavior.show_context_rail) if surface_behavior is not None else False,
     }

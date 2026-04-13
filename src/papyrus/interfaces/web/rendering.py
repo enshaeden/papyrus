@@ -5,7 +5,8 @@ import re
 from pathlib import Path
 from typing import Iterable
 
-from papyrus.interfaces.web.route_utils import WEB_ACTOR_OPTIONS, actor_home_path, actor_page_behavior, actor_page_config, actor_shell_for_id
+from papyrus.interfaces.web.experience import experience_for_path, experience_for_role
+from papyrus.interfaces.web.urls import home_url, search_url
 from papyrus.interfaces.web.view_helpers import escape, join_html, link
 
 
@@ -45,15 +46,15 @@ class PageRenderer:
         aside_html: str = "",
         scripts: Iterable[str] = (),
         page_context: dict[str, object] | None = None,
-        actor_id: str = "",
+        role_id: str = "",
         current_path: str = "",
         shell_variant: str = "normal",
         page_surface: str = "",
     ) -> str:
-        role_config = actor_shell_for_id(actor_id)
+        role_config = experience_for_role(role_id or experience_for_path(current_path).role)
         surface_id = str(page_surface or active_nav or page_title).strip()
-        page_config = actor_page_config(actor_id, surface_id)
-        page_behavior = actor_page_behavior(actor_id, surface_id)
+        page_config = role_config.page_config(surface_id)
+        page_behavior = role_config.page_behavior(surface_id)
         normalized_shell_variant = shell_variant if shell_variant in {"normal", "focus", "minimal"} else page_config.shell_variant
         content_html = self.template_renderer.render(page_template, page_context or {})
         active_item = self._active_nav_item(role_config.nav_sections, active_nav=active_nav, current_path=current_path)
@@ -61,11 +62,12 @@ class PageRenderer:
         topbar_html = self.template_renderer.render(
             "partials/topbar.html",
             {
+                "home_href": escape(home_url(role_config.role)),
+                "search_action": escape(search_url(role_config.role)),
                 "search_value": escape(search_value),
                 "topbar_menu_html": self._topbar_menu_html(
                     role_config=role_config,
                     active_nav=active_nav,
-                    current_path=current_path,
                     show_quick_links=page_config.show_quick_links,
                 ),
             },
@@ -100,8 +102,6 @@ class PageRenderer:
                 "partials/sidebar.html",
                 {
                     "nav_sections_html": nav_sections_html,
-                    "actor_name": escape(role_config.actor.display_name),
-                    "actor_summary": escape(role_config.banner_summary),
                 },
             )
         page_header_html = self._page_header_html(page_header=page_header or {}, header_variant=page_config.header_variant)
@@ -127,7 +127,7 @@ class PageRenderer:
                     " ".join(
                         [
                             f"shell-{normalized_shell_variant}",
-                            f"actor-{role_config.actor.actor_id.replace('.', '-')}",
+                            f"role-{role_config.role}",
                             f"surface-mode-{(page_behavior.mode if page_behavior is not None else 'default').replace('_', '-')}",
                             f"surface-density-{(page_behavior.density if page_behavior is not None else 'comfortable').replace('_', '-')}",
                             f"surface-columns-{(page_behavior.columns if page_behavior is not None else 'single').replace('_', '-')}",
@@ -138,7 +138,7 @@ class PageRenderer:
                 "page_surface": escape(surface_id),
                 "page_mode": escape(page_behavior.mode if page_behavior is not None else "default"),
                 "page_density": escape(page_behavior.density if page_behavior is not None else "comfortable"),
-                "actor_id": escape(role_config.actor.actor_id),
+                "role_id": escape(role_config.role),
                 "content_layout_class": escape(f"content-layout-{(page_behavior.columns if page_behavior is not None else 'single').replace('_', '-')}"),
                 "active_nav": escape(active_item.key if active_item is not None else active_nav or ""),
             },
@@ -203,27 +203,9 @@ class PageRenderer:
         *,
         role_config,
         active_nav: str,
-        current_path: str,
         show_quick_links: bool,
     ) -> str:
-        actor_options_html = "\n".join(
-            (
-                f'<option value="{escape(actor.actor_id)}" data-home="{escape(actor_home_path(actor.actor_id))}"'
-                + (' selected="selected"' if actor.actor_id == role_config.actor.actor_id else "")
-                + f">{escape(actor.display_name)}</option>"
-            )
-            for actor in WEB_ACTOR_OPTIONS
-        )
-        actor_form_html = (
-            '<form class="topbar-menu-form topbar-actor" action="/actor/select" method="post">'
-            '<label class="sr-only" for="actor-select">Current actor</label>'
-            '<input type="hidden" name="next_path" value="" data-current-path />'
-            '<select id="actor-select" name="actor" data-actor-select>'
-            f"{actor_options_html}"
-            "</select>"
-            "</form>"
-        )
-        menu_items = [actor_form_html]
+        menu_items = [f'<span class="topbar-menu-role">{escape(role_config.label)}</span>']
         if show_quick_links:
             menu_items.extend(
                 link(
@@ -231,10 +213,10 @@ class PageRenderer:
                     item.href,
                     css_class=(
                         "topbar-menu-chip is-active"
-                        if self._nav_item_is_active(item, active_nav=active_nav, current_path=current_path)
+                        if self._nav_item_is_active(item, active_nav=active_nav, current_path="")
                         else "topbar-menu-chip"
                     ),
                 )
                 for item in role_config.quick_links
             )
-        return '<nav class="topbar-menu" aria-label="Actor controls">' + join_html(menu_items) + "</nav>"
+        return '<nav class="topbar-menu" aria-label="System controls">' + join_html(menu_items) + "</nav>"

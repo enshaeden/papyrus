@@ -16,7 +16,7 @@ class HomeLaunchBlockPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_operator_launch_blocks_render_in_owner_with_projection_and_actions(self) -> None:
         html = render_home_launch_blocks(
             dashboard={
-                "actor_id": "local.operator",
+                "role": "operator",
                 "counts": {
                     "read_ready": 1,
                     "drafts": 0,
@@ -57,14 +57,14 @@ class HomeLaunchBlockPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component_count(html, "home-launch-block", 3)
         self.assert_surface(html, "home")
         self.assertIn("Use the projection-backed guidance first.", html)
-        self.assertIn('href="/objects/kb-vpn"', html)
+        self.assertIn('href="/operator/read/object/kb-vpn"', html)
         self.assertIn("Open", html)
         self.assertNotIn("Fallback summary", html)
 
-    def test_reviewer_launch_blocks_keep_secondary_block_local_to_component_owner(self) -> None:
+    def test_admin_launch_blocks_keep_secondary_block_local_to_component_owner(self) -> None:
         html = render_home_launch_blocks(
             dashboard={
-                "actor_id": "local.reviewer",
+                "role": "admin",
                 "counts": {
                     "read_ready": 0,
                     "drafts": 0,
@@ -95,6 +95,6 @@ class HomeLaunchBlockPresenterTests(SemanticHookAssertions, unittest.TestCase):
             }
         )
 
-        self.assert_component_count(html, "home-launch-block", 4)
+        self.assert_component_count(html, "home-launch-block", 9)
         self.assertIn("Recent governance consequences", html)
         self.assertIn("Inspect the queue.", html)

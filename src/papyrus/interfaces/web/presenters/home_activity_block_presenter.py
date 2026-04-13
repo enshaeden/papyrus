@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from papyrus.application.role_visibility import OPERATOR_ROLE
+from papyrus.interfaces.web.urls import activity_url
 from papyrus.interfaces.web.view_helpers import escape, join_html, link
 
 
 def render_home_activity_block(*, dashboard: dict[str, Any]) -> str:
-    if str(dashboard.get("actor_id") or "") != "local.operator":
+    role = str(dashboard.get("role") or "")
+    if role != OPERATOR_ROLE:
         return ""
 
     events = [
@@ -33,7 +36,7 @@ def render_home_activity_block(*, dashboard: dict[str, Any]) -> str:
                     f'<p class="home-activity-block__detail">{escape(event["next_action"])}</p>'
                     "</div>"
                     '<div class="home-activity-block__meta">'
-                    f'{link("Open", "/activity", css_class="button button-ghost", attrs={"data-action-id": "open-activity"})}'
+                    f'{link("Open", activity_url(role), css_class="button button-ghost", attrs={"data-action-id": "open-activity"})}'
                     "</div>"
                     "</li>"
                 )

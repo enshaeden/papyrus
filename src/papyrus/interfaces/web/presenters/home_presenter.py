@@ -12,7 +12,7 @@ def present_home_page(renderer: TemplateRenderer, *, dashboard: dict[str, Any]) 
     del renderer
     return {
         "page_template": "pages/home.html",
-        "page_title": "Home",
+        "page_title": "Overview" if str(dashboard.get("role") or "") == "admin" else "Home",
         "page_surface": "home",
         "page_header": {},
         "active_nav": "home",

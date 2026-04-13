@@ -490,7 +490,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertEqual(status, "200 OK")
         status, _, web_body = call_wsgi(
             web_app(database_path, source_root, allow_noncanonical_source_root=True),
-            f"/objects/{object_id}",
+            f"/operator/read/object/{object_id}",
         )
         self.assertEqual(status, "200 OK")
         return cli_payload, json.loads(api_body), web_body
@@ -578,14 +578,14 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(database_path, source_root, allow_noncanonical_source_root=True)
             status, _, _ = call_wsgi(
                 application,
-                f"/manage/reviews/{object_id}/{revision_id}/assign",
+                f"/operator/review/object/{object_id}/{revision_id}/assign",
                 method="POST",
                 form={"reviewer": reviewer, "notes": "", "due_at": ""},
             )
             self.assertIn(status, {"302 Found", "303 See Other"})
             status, _, _ = call_wsgi(
                 application,
-                f"/manage/reviews/{object_id}/{revision_id}",
+                f"/admin/review/object/{object_id}/{revision_id}",
                 method="POST",
                 form={"reviewer": reviewer, "notes": "", "decision": "approve"},
             )
@@ -694,7 +694,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(database_path, source_root, allow_noncanonical_source_root=True)
             status, _, _ = call_wsgi(
                 application,
-                f"/manage/objects/{object_id}/archive",
+                f"/admin/review/object/{object_id}/archive",
                 method="POST",
                 form={
                     "retirement_reason": "Retired through web archive conformance test.",
@@ -822,7 +822,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                 if str(action.get("availability") or "") != "allowed":
                     continue
                 action_id = str(action.get("action_id") or "")
-                if action_href(action_id=action_id, object_id=object_id, revision_id=revision_id) is None:
+                if action_href(role="operator", action_id=action_id, object_id=object_id, revision_id=revision_id) is None:
                     continue
                 self.assert_action_id(web_body, action_id)
             self.assertIn(cli_payload["ui_projection"]["use_guidance"]["summary"], web_body)
@@ -843,7 +843,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, web_body = call_wsgi(
                 web_app(database_path, source_root, allow_noncanonical_source_root=True),
-                f"/manage/objects/{object_id}/archive",
+                f"/admin/review/object/{object_id}/archive",
             )
             self.assertEqual(status, "200 OK")
             self.assertIn(str(cli_archive_action["summary"]), web_body)
@@ -883,7 +883,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, web_body = call_wsgi(
                 web_app(database_path, source_root, allow_noncanonical_source_root=True),
-                f"/manage/reviews/{object_id}/{revision_id}",
+                f"/operator/review/object/{object_id}/{revision_id}",
             )
             self.assertEqual(status, "200 OK")
             self.assertIn(cli_preview["operator_message"], web_body)

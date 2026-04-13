@@ -41,6 +41,7 @@ class ActivityPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_audit_page_presenter_assembles_local_activity_components(self) -> None:
         page = present_audit_page(
             TEMPLATE_RENDERER,
+            role="operator",
             events=[{"event_type": "revision_approved", "occurred_at": "2026-04-09T00:00:00+00:00", "actor": "reviewer", "object_id": "kb-test", "revision_id": "kb-test-r1"}],
             structured_events=[STRUCTURED_EVENT],
             validation_runs=[{"run_type": "import", "status": "passed", "finding_count": 0, "completed_at": "2026-04-09T01:00:00+00:00"}],

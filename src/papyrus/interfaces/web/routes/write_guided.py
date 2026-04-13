@@ -4,11 +4,13 @@ from urllib.parse import quote_plus
 
 from papyrus.application.authoring_flow import compute_completion_state, ensure_draft_revision, load_draft_context, update_section
 from papyrus.application.queries import knowledge_object_detail
+from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.http import Request, html_response, redirect_response
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.presenters.write_presenter import present_guided_revision_page
-from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
-from papyrus.interfaces.web.view_helpers import parse_multiline, quoted_path
+from papyrus.interfaces.web.route_utils import flash_html_for_request
+from papyrus.interfaces.web.urls import write_object_start_url, write_object_url, write_submit_url
+from papyrus.interfaces.web.view_helpers import parse_multiline
 
 
 def _section_form_values(section, stored_values: dict[str, object]) -> dict[str, str]:
@@ -106,27 +108,25 @@ def _section_errors(
 
 def register(router, runtime) -> None:
     def start_revision(request: Request):
+        experience = require_experience(request, "operator")
         object_id = request.route_value("object_id")
         detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
         draft = ensure_draft_revision(
             object_id=object_id,
             blueprint_id=str(detail["object"]["object_type"]),
-            actor=actor_for_request(request),
+            actor=str(experience.audit_actor_id),
             database_path=runtime.database_path,
             source_root=runtime.source_root,
         )
         return redirect_response(
-            (
-                f"/write/objects/{quoted_path(object_id)}/revisions/new"
-                f"?revision_id={quoted_path(str(draft['revision_id']))}"
-                f"&notice={quote_plus('Draft ready. Continue guided authoring below.')}"
-                "#revision-form"
-            )
+            write_object_url(object_id, revision_id=str(draft["revision_id"]))
+            + f"&notice={quote_plus('Draft ready. Continue guided authoring below.')}"
+            + "#revision-form"
         )
 
     def create_revision_page(request: Request):
+        experience = require_experience(request, "operator")
         object_id = request.route_value("object_id")
-        actor_id = actor_for_request(request)
         draft_status = load_draft_context(
             object_id=object_id,
             revision_id=request.query_value("revision_id") or None,
@@ -158,6 +158,7 @@ def register(router, runtime) -> None:
                 )
                 page_context = present_guided_revision_page(
                     runtime,
+                    role=experience.role,
                     object_detail=detail,
                     draft_status=draft_status,
                     revision_id=revision_id,
@@ -176,7 +177,7 @@ def register(router, runtime) -> None:
                         },
                         active_nav="write",
                         flash_html=page_flash_html,
-                        actor_id=actor_id,
+                        role_id=experience.role,
                         current_path=request.path,
                         aside_html="",
                         scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
@@ -189,21 +190,23 @@ def register(router, runtime) -> None:
                 revision_id=revision_id,
                 section_id=section_id,
                 values=candidate_values,
-                actor=actor_id,
+                actor=str(experience.audit_actor_id),
                 database_path=runtime.database_path,
                 source_root=runtime.source_root,
             )
             next_section_id = str(updated["completion"]["next_section_id"])
             redirect_target = (
-                f"/write/objects/{quoted_path(object_id)}/submit?revision_id={quoted_path(revision_id)}"
+                write_submit_url(object_id, revision_id)
                 if updated["completion"]["draft_progress_state"] == "ready_for_review" and next_section_id == section_id
-                else f"/write/objects/{quoted_path(object_id)}/revisions/new?revision_id={quoted_path(revision_id)}&section={quoted_path(next_section_id)}"
+                else write_object_url(object_id, revision_id=revision_id, section_id=next_section_id)
             )
             notice = f"Section saved. Next: {blueprint.section(next_section_id).display_name}."
-            return redirect_response(f"{redirect_target}&notice={quote_plus(notice)}")
+            separator = "&" if "?" in redirect_target else "?"
+            return redirect_response(f"{redirect_target}{separator}notice={quote_plus(notice)}")
 
         page_context = present_guided_revision_page(
             runtime,
+            role=experience.role,
             object_detail=detail,
             draft_status=draft_status,
             revision_id=revision_id,
@@ -222,7 +225,7 @@ def register(router, runtime) -> None:
                 },
                 active_nav="write",
                 flash_html=page_flash_html,
-                actor_id=actor_id,
+                role_id=experience.role,
                 current_path=request.path,
                 aside_html="",
                 scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
@@ -231,5 +234,5 @@ def register(router, runtime) -> None:
             )
         )
 
-    router.add(["POST"], "/write/objects/{object_id}/revisions/start", start_revision)
-    router.add(["GET", "POST"], "/write/objects/{object_id}/revisions/new", create_revision_page)
+    router.add(["POST"], "/operator/write/object/{object_id}/start", start_revision)
+    router.add(["GET", "POST"], "/operator/write/object/{object_id}", create_revision_page)

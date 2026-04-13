@@ -46,15 +46,29 @@ from papyrus.interfaces.web.presenters.manage_presenter import (
     present_validation_runs_page,
     present_warning_flash,
 )
-from papyrus.interfaces.web.route_utils import actor_for_request, flash_html_for_request
+from papyrus.interfaces.web.experience import require_experience
+from papyrus.interfaces.web.route_utils import flash_html_for_request
+from papyrus.interfaces.web.urls import (
+    activity_url,
+    archive_url,
+    evidence_revalidation_url,
+    object_url,
+    review_assignment_url,
+    review_decision_url,
+    review_queue_url,
+    supersede_url,
+    suspect_url,
+    validation_runs_url,
+)
 from papyrus.interfaces.web.view_helpers import quoted_path
 
 
 def _render_page(runtime, request: Request, *, page: dict[str, object], flash_html: str | None = None):
+    experience = require_experience(request, "operator", "admin")
     return html_response(
         runtime.page_renderer.render_page(
             flash_html=flash_html if flash_html is not None else flash_html_for_request(runtime, request),
-            actor_id=actor_for_request(request),
+            role_id=experience.role,
             current_path=request.path,
             **page,
         )
@@ -63,9 +77,11 @@ def _render_page(runtime, request: Request, *, page: dict[str, object], flash_ht
 
 def register(router, runtime) -> None:
     def manage_queue_page(request: Request):
+        experience = require_experience(request, "operator", "admin")
         queue = manage_queue(database_path=runtime.database_path)
         page = present_manage_queue_page(
             runtime.template_renderer,
+            role=experience.role,
             queue=queue,
             selected_object_id=request.query_value("selected_object_id").strip(),
             selected_revision_id=request.query_value("selected_revision_id").strip(),
@@ -73,8 +89,9 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page=page)
 
     def object_supersede_page(request: Request):
+        experience = require_experience(request, "operator", "admin")
         object_id = request.route_value("object_id")
-        detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        detail = knowledge_object_detail(object_id, database_path=runtime.database_path, visibility_role=experience.role)
         values = {
             "replacement_object_id": request.form_value("replacement_object_id"),
             "notes": request.form_value("notes"),
@@ -88,15 +105,16 @@ def register(router, runtime) -> None:
                     source_root=runtime.source_root,
                     object_id=object_id,
                     replacement_object_id=str(result.cleaned_data["replacement_object_id"]),
-                    actor=actor_for_request(request),
+                    actor=str(experience.audit_actor_id),
                     notes=str(result.cleaned_data["notes"]),
                 )
                 return redirect_response(
-                    f"/objects/{quoted_path(object_id)}?notice={quote_plus('Object superseded and audit trail recorded')}"
+                    object_url(experience.role, object_id) + f"?notice={quote_plus('Object superseded and audit trail recorded')}"
                 )
             errors = result.errors
         page = present_object_supersede_page(
             runtime.template_renderer,
+            role=experience.role,
             detail=detail,
             values=values,
             errors=errors,
@@ -104,8 +122,9 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page=page)
 
     def object_suspect_page(request: Request):
+        experience = require_experience(request, "operator", "admin")
         object_id = request.route_value("object_id")
-        detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        detail = knowledge_object_detail(object_id, database_path=runtime.database_path, visibility_role=experience.role)
         values = {
             "reason": request.form_value("reason"),
             "changed_entity_type": request.form_value("changed_entity_type"),
@@ -118,17 +137,18 @@ def register(router, runtime) -> None:
                 mark_object_suspect_due_to_change_command(
                     database_path=runtime.database_path,
                     object_id=object_id,
-                    actor=actor_for_request(request),
+                    actor=str(experience.audit_actor_id),
                     reason=str(result.cleaned_data["reason"]),
                     changed_entity_type=str(result.cleaned_data["changed_entity_type"]),
                     changed_entity_id=result.cleaned_data["changed_entity_id"],
                 )
                 return redirect_response(
-                    f"/objects/{quoted_path(object_id)}?notice={quote_plus('Object marked suspect with explicit rationale')}"
+                    object_url(experience.role, object_id) + f"?notice={quote_plus('Object marked suspect with explicit rationale')}"
                 )
             errors = result.errors
         page = present_object_suspect_page(
             runtime.template_renderer,
+            role=experience.role,
             detail=detail,
             values=values,
             errors=errors,
@@ -136,8 +156,9 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page=page)
 
     def object_archive_page(request: Request):
+        experience = require_experience(request, "operator", "admin")
         object_id = request.route_value("object_id")
-        detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        detail = knowledge_object_detail(object_id, database_path=runtime.database_path, visibility_role=experience.role)
         values = {
             "retirement_reason": request.form_value("retirement_reason"),
             "notes": request.form_value("notes"),
@@ -160,17 +181,18 @@ def register(router, runtime) -> None:
                     database_path=runtime.database_path,
                     source_root=runtime.source_root,
                     object_id=object_id,
-                    actor=actor_for_request(request),
+                    actor=str(experience.audit_actor_id),
                     retirement_reason=str(result.cleaned_data["retirement_reason"]),
                     notes=result.cleaned_data["notes"],
                     acknowledgements=result.cleaned_data["acknowledgements"],
                 )
                 return redirect_response(
-                    f"/objects/{quoted_path(object_id)}?notice={quote_plus('Object archived and canonical path moved under archive/knowledge/')}"
+                    object_url(experience.role, object_id) + f"?notice={quote_plus('Object archived and canonical path moved under archive/knowledge/')}"
                 )
             errors = result.errors
         page = present_object_archive_page(
             runtime.template_renderer,
+            role=experience.role,
             detail=detail,
             values=values,
             errors=errors,
@@ -179,27 +201,30 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page=page)
 
     def evidence_revalidation_page(request: Request):
+        experience = require_experience(request, "operator", "admin")
         object_id = request.route_value("object_id")
-        detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
+        detail = knowledge_object_detail(object_id, database_path=runtime.database_path, visibility_role=experience.role)
         values = {"notes": request.form_value("notes")}
         if request.method == "POST":
             request_evidence_revalidation_command(
                 database_path=runtime.database_path,
                 object_id=object_id,
-                actor=actor_for_request(request),
+                actor=str(experience.audit_actor_id),
                 notes=values["notes"] or None,
             )
             return redirect_response(
-                f"/objects/{quoted_path(object_id)}?notice={quote_plus('Evidence revalidation requested')}"
+                object_url(experience.role, object_id) + f"?notice={quote_plus('Evidence revalidation requested')}"
             )
         page = present_evidence_revalidation_page(
             runtime.template_renderer,
+            role=experience.role,
             detail=detail,
             values=values,
         )
         return _render_page(runtime, request, page=page)
 
     def review_assignment_page(request: Request):
+        experience = require_experience(request, "operator", "admin")
         object_id = request.route_value("object_id")
         revision_id = request.route_value("revision_id")
         detail = review_detail(object_id, revision_id, database_path=runtime.database_path)
@@ -218,16 +243,17 @@ def register(router, runtime) -> None:
                     object_id=object_id,
                     revision_id=revision_id,
                     reviewer=str(result.cleaned_data["reviewer"]),
-                    actor=actor_for_request(request),
+                    actor=str(experience.audit_actor_id),
                     due_at=result.cleaned_data["due_at"],
                     notes=result.cleaned_data["notes"],
                 )
                 return redirect_response(
-                    f"/manage/reviews/{quoted_path(object_id)}/{quoted_path(revision_id)}?notice={quote_plus('Reviewer assigned')}"
+                    review_decision_url(experience.role, object_id, revision_id) + f"?notice={quote_plus('Reviewer assigned')}"
                 )
             errors = result.errors
         page = present_review_assignment_page(
             runtime.template_renderer,
+            role=experience.role,
             detail=detail,
             values=values,
             errors=errors,
@@ -235,6 +261,7 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page=page)
 
     def review_decision_page(request: Request):
+        experience = require_experience(request, "operator", "admin")
         object_id = request.route_value("object_id")
         revision_id = request.route_value("revision_id")
         detail = review_detail(object_id, revision_id, database_path=runtime.database_path)
@@ -268,11 +295,11 @@ def register(router, runtime) -> None:
                             object_id=object_id,
                             revision_id=revision_id,
                             reviewer=str(result.cleaned_data["reviewer"]),
-                            actor=actor_for_request(request),
+                            actor=str(experience.audit_actor_id),
                             notes=result.cleaned_data["notes"],
                         )
                         return redirect_response(
-                            f"/objects/{quoted_path(object_id)}?notice={quote_plus('Revision approved')}"
+                            object_url(experience.role, object_id) + f"?notice={quote_plus('Revision approved')}"
                         )
                     reject_revision_command(
                         database_path=runtime.database_path,
@@ -280,11 +307,11 @@ def register(router, runtime) -> None:
                         object_id=object_id,
                         revision_id=revision_id,
                         reviewer=str(result.cleaned_data["reviewer"]),
-                        actor=actor_for_request(request),
+                        actor=str(experience.audit_actor_id),
                         notes=str(result.cleaned_data["notes"]),
                     )
                     return redirect_response(
-                        f"/manage/reviews/{quoted_path(object_id)}/{quoted_path(revision_id)}?notice={quote_plus('Revision rejected')}"
+                        review_decision_url(experience.role, object_id, revision_id) + f"?notice={quote_plus('Revision rejected')}"
                     )
                 except ValueError as exc:
                     errors.setdefault("notes", []).append(str(exc))
@@ -295,6 +322,7 @@ def register(router, runtime) -> None:
                     )
         page = present_review_decision_page(
             runtime.template_renderer,
+            role=experience.role,
             detail=detail,
             impact=impact,
             preview=preview,
@@ -305,6 +333,7 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page=page, flash_html=page_flash_html)
 
     def audit_page(request: Request):
+        experience = require_experience(request, "operator", "admin")
         object_id = request.query_value("object_id") or None
         selected_group = request.query_value("group").strip()
         events = audit_view(object_id=object_id, database_path=runtime.database_path)
@@ -318,6 +347,7 @@ def register(router, runtime) -> None:
         validation_runs = validation_run_history(database_path=runtime.database_path)
         page = present_audit_page(
             runtime.template_renderer,
+            role=experience.role,
             events=events,
             structured_events=structured_events,
             validation_runs=validation_runs,
@@ -327,14 +357,17 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page=page)
 
     def validation_runs_page(request: Request):
+        experience = require_experience(request, "operator", "admin")
         runs = validation_run_history(database_path=runtime.database_path)
         page = present_validation_runs_page(
             runtime.template_renderer,
+            role=experience.role,
             runs=runs,
         )
         return _render_page(runtime, request, page=page)
 
     def validation_run_new_page(request: Request):
+        experience = require_experience(request, "operator", "admin")
         values = {
             "run_id": request.form_value("run_id"),
             "run_type": request.form_value("run_type"),
@@ -354,10 +387,11 @@ def register(router, runtime) -> None:
                     status=str(result.cleaned_data["status"]),
                     finding_count=int(result.cleaned_data["finding_count"]),
                     details={"summary": details_text} if details_text else {},
-                    actor=actor_for_request(request),
+                    actor=str(experience.audit_actor_id),
                 )
                 return redirect_response(
-                    "/manage/validation-runs?notice="
+                    validation_runs_url(experience.role)
+                    + "?notice="
                     + quote_plus("Validation run recorded with audit evidence")
                 )
             errors = result.errors
@@ -368,15 +402,23 @@ def register(router, runtime) -> None:
         )
         return _render_page(runtime, request, page=page)
 
-    router.add(["GET"], "/manage/queue", manage_queue_page)
-    router.add(["GET"], "/review", manage_queue_page)
-    router.add(["GET", "POST"], "/manage/objects/{object_id}/supersede", object_supersede_page)
-    router.add(["GET", "POST"], "/manage/objects/{object_id}/archive", object_archive_page)
-    router.add(["GET", "POST"], "/manage/objects/{object_id}/suspect", object_suspect_page)
-    router.add(["GET", "POST"], "/manage/objects/{object_id}/evidence/revalidate", evidence_revalidation_page)
-    router.add(["GET", "POST"], "/manage/reviews/{object_id}/{revision_id}/assign", review_assignment_page)
-    router.add(["GET", "POST"], "/manage/reviews/{object_id}/{revision_id}", review_decision_page)
-    router.add(["GET"], "/manage/audit", audit_page)
-    router.add(["GET"], "/activity", audit_page)
-    router.add(["GET"], "/manage/validation-runs", validation_runs_page)
-    router.add(["GET", "POST"], "/manage/validation-runs/new", validation_run_new_page)
+    router.add(["GET"], "/operator/review", manage_queue_page)
+    router.add(["GET"], "/admin/review", manage_queue_page)
+    router.add(["GET", "POST"], "/operator/review/object/{object_id}/supersede", object_supersede_page)
+    router.add(["GET", "POST"], "/admin/review/object/{object_id}/supersede", object_supersede_page)
+    router.add(["GET", "POST"], "/operator/review/object/{object_id}/archive", object_archive_page)
+    router.add(["GET", "POST"], "/admin/review/object/{object_id}/archive", object_archive_page)
+    router.add(["GET", "POST"], "/operator/review/object/{object_id}/suspect", object_suspect_page)
+    router.add(["GET", "POST"], "/admin/review/object/{object_id}/suspect", object_suspect_page)
+    router.add(["GET", "POST"], "/operator/review/object/{object_id}/evidence/revalidate", evidence_revalidation_page)
+    router.add(["GET", "POST"], "/admin/review/object/{object_id}/evidence/revalidate", evidence_revalidation_page)
+    router.add(["GET", "POST"], "/operator/review/object/{object_id}/{revision_id}/assign", review_assignment_page)
+    router.add(["GET", "POST"], "/admin/review/object/{object_id}/{revision_id}/assign", review_assignment_page)
+    router.add(["GET", "POST"], "/operator/review/object/{object_id}/{revision_id}", review_decision_page)
+    router.add(["GET", "POST"], "/admin/review/object/{object_id}/{revision_id}", review_decision_page)
+    router.add(["GET"], "/operator/review/activity", audit_page)
+    router.add(["GET"], "/admin/audit", audit_page)
+    router.add(["GET"], "/operator/review/validation-runs", validation_runs_page)
+    router.add(["GET"], "/admin/validation-runs", validation_runs_page)
+    router.add(["GET", "POST"], "/operator/review/validation-runs/new", validation_run_new_page)
+    router.add(["GET", "POST"], "/admin/validation-runs/new", validation_run_new_page)

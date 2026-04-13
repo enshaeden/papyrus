@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
+from papyrus.interfaces.web.urls import object_url
 from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, tone_for_revision
 
 
@@ -13,7 +14,7 @@ def revision_assignments_text(revision: dict[str, Any]) -> str:
     ) or "No assignments"
 
 
-def render_revision_history_table(*, components: ComponentPresenter, history: dict[str, Any]) -> str:
+def render_revision_history_table(*, components: ComponentPresenter, history: dict[str, Any], role: str) -> str:
     object_info = history["object"]
     rows = []
     for revision in history["revisions"]:
@@ -63,6 +64,6 @@ def render_revision_history_table(*, components: ComponentPresenter, history: di
         '<p class="revision-history-table__kicker">Read</p>'
         "<h2>Revision history</h2>"
         f"{body_html}"
-        f'<p class="section-footer">{link(object_info["title"], f"/objects/{quoted_path(object_info["object_id"])}")} · {escape(object_info["canonical_path"])}</p>'
+        f'<p class="section-footer">{link(object_info["title"], object_url(role, str(object_info["object_id"])))} · {escape(object_info["canonical_path"])}</p>'
         "</section>"
     )

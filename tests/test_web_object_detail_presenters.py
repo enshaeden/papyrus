@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from papyrus.interfaces.web.experience import experience_for_role
 from papyrus.interfaces.web.presenters.article_context_panel_presenter import render_article_context_panel
 from papyrus.interfaces.web.presenters.article_hero_presenter import render_article_hero
 from papyrus.interfaces.web.presenters.article_section_presenter import render_article_section
@@ -126,7 +127,7 @@ class ObjectDetailPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("View revision source", context_html)
 
     def test_object_presenter_assembles_article_surface_from_local_components(self) -> None:
-        page = present_object_detail(TEMPLATE_RENDERER, detail=DETAIL)
+        page = present_object_detail(TEMPLATE_RENDERER, detail=DETAIL, experience=experience_for_role("operator"))
 
         article_html = page["page_context"]["hero_html"] + page["page_context"]["article_html"] + page["page_context"]["appendix_html"]
         self.assert_component(article_html, "article-hero")
@@ -150,7 +151,7 @@ class ObjectDetailPresenterTests(SemanticHookAssertions, unittest.TestCase):
             },
             "actions": [],
         }
-        page = present_object_detail(TEMPLATE_RENDERER, detail=detail)
+        page = present_object_detail(TEMPLATE_RENDERER, detail=detail, experience=experience_for_role("operator"))
 
         article_html = page["page_context"]["article_html"] + page["page_context"]["appendix_html"]
         self.assertIn("Projection says stop and inspect", article_html)

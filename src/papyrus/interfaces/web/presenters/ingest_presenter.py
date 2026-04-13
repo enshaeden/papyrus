@@ -19,6 +19,7 @@ from papyrus.interfaces.web.presenters.ingest_progress_presenter import render_i
 from papyrus.interfaces.web.presenters.ingest_stage_board_presenter import render_ingest_stage_board
 from papyrus.interfaces.web.presenters.ingest_upload_presenter import render_ingest_upload
 from papyrus.interfaces.web.rendering import TemplateRenderer
+from papyrus.interfaces.web.urls import import_review_url, write_object_url
 from papyrus.interfaces.web.view_helpers import join_html, quoted_path
 
 
@@ -26,13 +27,13 @@ def _ingestion_action_href(*, detail: dict[str, object], action: dict[str, objec
     ingestion_id = quoted_path(str(detail["ingestion_id"]))
     action_id = str(action.get("action_id") or "")
     if action_id == "review_ingestion_mapping":
-        return f"/ingest/{ingestion_id}/review"
+        return import_review_url(str(detail["ingestion_id"]))
     if action_id == "convert_ingestion_to_draft":
-        return f"/ingest/{ingestion_id}/review#convert-to-draft-form"
+        return import_review_url(str(detail["ingestion_id"])) + "#convert-to-draft-form"
     if action_id == "open_converted_draft" and detail.get("converted_object_id") and detail.get("converted_revision_id"):
-        return (
-            f"/write/objects/{quoted_path(str(detail['converted_object_id']))}/revisions/new"
-            f"?revision_id={quoted_path(str(detail['converted_revision_id']))}"
+        return write_object_url(
+            str(detail["converted_object_id"]),
+            revision_id=str(detail["converted_revision_id"]),
         )
     return None
 

@@ -33,16 +33,17 @@ SERVICE = {
 
 class ServicePresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_service_map_owner_renders_cards_with_local_component_names(self) -> None:
-        html = render_service_map(services=[SERVICE])
+        html = render_service_map(role="operator", services=[SERVICE])
 
         self.assert_component(html, "service-map")
         self.assert_component(html, "service-map-card")
         self.assertIn("Open service path", html)
 
     def test_service_presenters_stay_thin_and_traceable(self) -> None:
-        catalog_page = present_service_catalog(TEMPLATE_RENDERER, services=[SERVICE])
+        catalog_page = present_service_catalog(TEMPLATE_RENDERER, services=[SERVICE], role="operator")
         detail_page = present_service_detail(
             TEMPLATE_RENDERER,
+            role="operator",
             detail={
                 "service": SERVICE,
                 "service_posture": {

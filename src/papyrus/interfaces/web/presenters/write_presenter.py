@@ -16,7 +16,8 @@ from papyrus.interfaces.web.presenters.write_support_presenter import (
     submit_evidence_posture_detail,
     support_details_html,
 )
-from papyrus.interfaces.web.view_helpers import escape, join_html, quoted_path, render_list
+from papyrus.interfaces.web.urls import write_object_url, write_submit_url
+from papyrus.interfaces.web.view_helpers import escape, join_html, render_list
 
 
 def present_object_setup_page(runtime, values: dict[str, str], errors: dict[str, list[str]], *, form_action: str) -> dict[str, str]:
@@ -169,6 +170,7 @@ def present_object_setup_page(runtime, values: dict[str, str], errors: dict[str,
 def present_guided_revision_page(
     runtime,
     *,
+    role: str,
     object_detail: dict[str, object],
     draft_status: dict[str, object],
     revision_id: str,
@@ -184,10 +186,11 @@ def present_guided_revision_page(
     completion = draft_status["completion"]
     validation_html = render_revision_error_summary_html(components, form_errors) if form_errors else ""
     section_form_html = (
-        f'<form class="governed-form" method="post" action="/write/objects/{quoted_path(str(object_detail["object"]["object_id"]))}/revisions/new?revision_id={quoted_path(revision_id)}&section={quoted_path(section_id)}">'
+        f'<form class="governed-form" method="post" action="{escape(write_object_url(str(object_detail["object"]["object_id"]), revision_id=revision_id, section_id=section_id))}">'
         f'<input type="hidden" name="section_id" value="{escape(section_id)}" />'
         + render_section_fields_html(
             runtime,
+            role=role,
             section=section,
             values=form_values,
             errors=form_errors,
@@ -198,7 +201,7 @@ def present_guided_revision_page(
         + (
             forms.link_button(
                 label="Check review handoff",
-                href=f"/write/objects/{quoted_path(str(object_detail['object']['object_id']))}/submit?revision_id={quoted_path(revision_id)}",
+                href=write_submit_url(str(object_detail["object"]["object_id"]), revision_id),
                 variant="secondary",
             )
             if completion["completion_percentage"] > 0
@@ -211,7 +214,7 @@ def present_guided_revision_page(
         guidance_html = support_details_html(
             title="Evidence handling",
             summary="Link existing guidance first and enter manual sources only when needed.",
-            body_html=evidence_guidance_body_html(),
+            body_html=evidence_guidance_body_html(role=role),
         )
     return {
         "stage_label_html": "",
@@ -239,6 +242,7 @@ def present_guided_revision_page(
 def present_submit_page(
     runtime,
     *,
+    role: str,
     detail,
     object_detail,
     blueprint,
@@ -347,6 +351,7 @@ def present_submit_page(
                 title="How to strengthen weak evidence",
                 summary="Use the manage flow when reviewer confidence depends on stronger capture metadata.",
                 body_html=evidence_guidance_body_html(
+                    role=role,
                     include_action=True,
                     object_id=str(detail["object"]["object_id"]),
                 ),

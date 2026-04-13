@@ -51,13 +51,14 @@ class ReadQueuePresenterTests(SemanticHookAssertions, unittest.TestCase):
             intro="Readable results come first.",
         )
         filter_html = render_read_filter_bar(
+            role="operator",
             query="vpn",
             selected_type="runbook",
             selected_trust="suspect",
             selected_review_state="in_review",
         )
-        results_html = render_read_result_cards(items=[QUEUE_ITEM])
-        context_html = render_read_selected_context(item=QUEUE_ITEM)
+        results_html = render_read_result_cards(role="operator", items=[QUEUE_ITEM])
+        context_html = render_read_selected_context(role="operator", item=QUEUE_ITEM)
 
         self.assert_component(hero_html, "read-queue-hero")
         self.assert_component(filter_html, "read-filter-bar")
@@ -74,7 +75,7 @@ class ReadQueuePresenterTests(SemanticHookAssertions, unittest.TestCase):
             selected_type="runbook",
             selected_trust="suspect",
             selected_review_state="in_review",
-            actor_id="local.reviewer",
+            role="admin",
             selected_object_id="kb-test",
         )
 
@@ -103,6 +104,7 @@ class ReadQueuePresenterTests(SemanticHookAssertions, unittest.TestCase):
             selected_type="runbook",
             selected_trust="all",
             selected_review_state="all",
+            role="operator",
         )
 
         workspace_html = page["page_context"]["workspace_html"]

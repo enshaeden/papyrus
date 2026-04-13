@@ -9,7 +9,7 @@ from papyrus.interfaces.web.presenters.service_pressure_presenter import render_
 from papyrus.interfaces.web.rendering import TemplateRenderer
 
 
-def present_service_catalog(renderer: TemplateRenderer, *, services: list[dict[str, Any]]) -> dict[str, Any]:
+def present_service_catalog(renderer: TemplateRenderer, *, services: list[dict[str, Any]], role: str) -> dict[str, Any]:
     del renderer
     return {
         "page_template": "pages/services.html",
@@ -20,12 +20,12 @@ def present_service_catalog(renderer: TemplateRenderer, *, services: list[dict[s
         },
         "active_nav": "services",
         "aside_html": "",
-        "page_context": {"services_html": render_service_map(services=services)},
+        "page_context": {"services_html": render_service_map(role=role, services=services)},
         "page_surface": "services",
     }
 
 
-def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]) -> dict[str, Any]:
+def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any], role: str) -> dict[str, Any]:
     del renderer
     service = detail["service"]
     return {
@@ -38,9 +38,9 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
         "active_nav": "services",
         "aside_html": "",
         "page_context": {
-            "header_html": render_service_detail_hero(detail=detail),
+            "header_html": render_service_detail_hero(detail=detail, role=role),
             "overview_html": render_service_pressure(posture=detail["service_posture"]),
-            "linked_objects_html": render_service_path(linked_objects=detail["linked_objects"]),
+            "linked_objects_html": render_service_path(role=role, linked_objects=detail["linked_objects"]),
         },
         "page_surface": "services",
     }

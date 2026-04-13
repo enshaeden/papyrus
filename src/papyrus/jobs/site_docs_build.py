@@ -169,6 +169,20 @@ MANAGER_SHORTCUTS = (
 ORPHAN_PLACEHOLDER_LINK_PATTERN = re.compile(r"\]\((<?[A-Z0-9_]+>?)\)")
 
 
+def _configure_generated_output_roots(output_root: Path) -> None:
+    global GENERATED_SITE_DOCS_DIR, LEGACY_GENERATED_DOCS_DIR
+
+    GENERATED_SITE_DOCS_DIR = output_root
+    LEGACY_GENERATED_DOCS_DIR = output_root.parent / "_legacy_generated_docs"
+
+    from papyrus.compat import kb_common
+    from papyrus.infrastructure.search import indexer
+
+    kb_common.GENERATED_SITE_DOCS_DIR = GENERATED_SITE_DOCS_DIR
+    kb_common.LEGACY_GENERATED_DOCS_DIR = LEGACY_GENERATED_DOCS_DIR
+    indexer.GENERATED_SITE_DOCS_DIR = GENERATED_SITE_DOCS_DIR
+
+
 def render_placeholder_label(label: str) -> str:
     rendered = label.strip()
     if not rendered:
@@ -1431,7 +1445,13 @@ def main() -> int:
         default=str(DB_PATH),
         help="Path to the runtime SQLite database used for approval gating.",
     )
+    parser.add_argument(
+        "--output-root",
+        default=str(GENERATED_SITE_DOCS_DIR),
+        help="Directory to write the generated site-doc export into.",
+    )
     args = parser.parse_args()
+    _configure_generated_output_roots(Path(args.output_root).resolve())
 
     policy = load_policy()
     taxonomies = load_taxonomies()

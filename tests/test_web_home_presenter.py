@@ -21,7 +21,7 @@ class HomePresenterTests(SemanticHookAssertions, unittest.TestCase):
         page = present_home_page(
             TEMPLATE_RENDERER,
             dashboard={
-                "actor_id": "local.operator",
+                "role": "operator",
                 "layout_mode": "launchpad",
                 "counts": {
                     "read_ready": 1,

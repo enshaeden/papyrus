@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 from papyrus.application.queries import knowledge_object_detail, search_knowledge_objects
+from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.http import Request, json_response
 from papyrus.interfaces.web.presenters.governed_presenter import projection_state, projection_use_guidance
 
 
 def register(router, runtime) -> None:
     def citation_search_endpoint(request: Request):
+        require_experience(request, "operator")
         query = request.query_value("query").strip()
         exclude_object_id = request.query_value("exclude_object_id").strip()
         if len(query) < 2:
             return json_response({"items": []})
-        candidates = search_knowledge_objects(query, limit=12, database_path=runtime.database_path)
+        candidates = search_knowledge_objects(query, limit=12, database_path=runtime.database_path, role="operator")
         items: list[dict[str, str]] = []
         for candidate in candidates:
             if exclude_object_id and str(candidate["object_id"]) == exclude_object_id:
@@ -41,11 +43,12 @@ def register(router, runtime) -> None:
         return json_response({"items": items})
 
     def related_object_search_endpoint(request: Request):
+        require_experience(request, "operator")
         query = request.query_value("query").strip()
         exclude_object_id = request.query_value("exclude_object_id").strip()
         if len(query) < 2:
             return json_response({"items": []})
-        candidates = search_knowledge_objects(query, limit=12, database_path=runtime.database_path)
+        candidates = search_knowledge_objects(query, limit=12, database_path=runtime.database_path, role="operator")
         items: list[dict[str, str]] = []
         for candidate in candidates:
             if exclude_object_id and str(candidate["object_id"]) == exclude_object_id:
@@ -66,5 +69,5 @@ def register(router, runtime) -> None:
             )
         return json_response({"items": items})
 
-    router.add(["GET"], "/write/citations/search", citation_search_endpoint)
-    router.add(["GET"], "/write/objects/search", related_object_search_endpoint)
+    router.add(["GET"], "/operator/write/citations/search", citation_search_endpoint)
+    router.add(["GET"], "/operator/write/objects/search", related_object_search_endpoint)

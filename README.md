@@ -22,21 +22,21 @@ Papyrus is a local-first operational knowledge control plane for IT support and 
 - What changed that may have invalidated it?
 - What else is affected by this object or service?
 
-## Use Modes
+## Experience Surfaces
 
-- `Home`: current local actor-shaped launchpad for development, demo, and operator testing. Operators get `Do now`, `Continue`, and `Watch`; reviewers get queue pressure and blocked decisions; managers get portfolio pressure across risk, review, services, and cleanup.
-- `Read`: search and selection workspace plus an article-first detail surface for runbooks, known errors, service records, policies, and system designs.
-- `Write`: create an object shell, choose a blueprint, complete guided sections, record citations and evidence posture, validate progress, and submit the draft for review.
-- `Import`: upload Markdown, DOCX, or text-based PDF files; inspect parser warnings, extraction quality, mapping gaps, and mapping conflicts; and convert reviewed imports into the same draft lifecycle used by native authoring.
-- `Review / Approvals`: dense reviewer workbench for pending decisions, blocked reviews, and direct actions.
-- `Knowledge Health`: stewardship and risk board grouped by intervention type instead of generic queue order.
-- `Services`: service-entry map that starts from service owner, criticality, health, and linked guidance path.
-- `Activity / History`: consequence-first feed for what changed, what it affected, and what now needs follow-up.
+- Reader routes: `/reader/browse`, `/reader/object/{object_id}`
+- Operator routes: `/operator`, `/operator/read`, `/operator/write/new`, `/operator/import`, `/operator/review`, `/operator/review/governance`, `/operator/read/services`, `/operator/review/activity`
+- Admin routes: `/admin/overview`, `/admin/inspect`, `/admin/review`, `/admin/governance`, `/admin/services`, `/admin/audit`
+
+Legacy shared routes still redirect to operator-scoped routes during migration.
+They are compatibility shims, not the stable product contract.
 
 ## Experience Direction
 
-Papyrus is moving toward strict role-scoped experiences for Reader, Operator, and Admin.
-Current local actor-based surfaces remain available for development, demo, and operator testing, but future experience architecture is governed by the active records in `docs/decisions/`, especially:
+Papyrus uses strict role-scoped experiences for Reader, Operator, and Admin.
+Local actor IDs remain useful for audit records, demo data, and development overlays, but they are not separate shipped product experiences.
+
+Experience architecture is governed by the active records in `docs/decisions/`, especially:
 
 - `docs/decisions/experience-principles.md`
 - `docs/decisions/role-experience-visibility-matrix.md`
@@ -50,7 +50,8 @@ Current local actor-based surfaces remain available for development, demo, and o
 python3 scripts/run.py --operator
 ```
 
-Start at the web home page. Papyrus currently opens on a local actor-shaped launch surface instead of a lifecycle-summary landing page or raw queue.
+Start at `/operator` for the operator home surface.
+Reader and Admin surfaces are mounted under `/reader/*` and `/admin/*`.
 
 Primary authoring rules:
 
@@ -74,7 +75,7 @@ Contract-driven surface boundary:
 
 Current UX shape:
 
-- actor switching changes landing target, page density, section hierarchy, context rails, and primary actions
+- route groups and navigation are role-scoped rather than actor-switched
 - the web shell keeps Papyrus brand contrast centered on the plum/aubergine topbar, branded active states, and stronger command surfaces rather than low-contrast neutral chrome
 - `Read` is split into a search/select workspace and a blueprint-aware article surface
 - governance stays available as secondary context instead of dominating the top of every page
@@ -118,6 +119,9 @@ python3 scripts/operator_view.py activity --db build/knowledge.db --format json
 python3 scripts/serve_web.py --db build/knowledge.db --source-root .
 python3 scripts/serve_api.py --db build/knowledge.db --source-root .
 ```
+
+`scripts/serve_api.py` remains an operator-oriented local API surface.
+It is not currently documented as a separate role-scoped public API contract.
 
 Guardrail:
 - `scripts/run.py --operator` only permits the canonical repository source root for governed writeback and draft validation. Use `--demo` for sandboxed writable roots.

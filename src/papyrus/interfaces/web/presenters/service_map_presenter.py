@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from papyrus.interfaces.web.urls import service_url
 from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path
 
 
@@ -15,7 +16,7 @@ def service_status(service: dict[str, Any]) -> str:
     return "Stable entry"
 
 
-def render_service_map(*, services: list[dict[str, Any]]) -> str:
+def render_service_map(*, role: str, services: list[dict[str, Any]]) -> str:
     return (
         '<section class="service-map" data-component="service-map" data-surface="services">'
         '<div class="service-map__hero">'
@@ -28,7 +29,7 @@ def render_service_map(*, services: list[dict[str, Any]]) -> str:
                 (
                     '<article class="service-map__card" data-component="service-map-card" data-surface="services">'
                     f'<p class="service-map__kicker">{escape(service["service_criticality"])} · {escape(service["status"])}</p>'
-                    f'<h2>{link(service["service_name"], f"/services/{quoted_path(service["service_id"])}")}</h2>'
+                    f'<h2>{link(service["service_name"], service_url(role, str(service["service_id"])))}</h2>'
                     f'<p class="service-map__summary">{escape(service_status(service))}</p>'
                     '<dl class="service-map__facts">'
                     f'<div><dt>Owner</dt><dd>{escape(service["owner"] or "Unassigned")}</dd></div>'
@@ -36,7 +37,7 @@ def render_service_map(*, services: list[dict[str, Any]]) -> str:
                     f'<div><dt>Linked guidance</dt><dd>{escape(service["linked_object_count"])}</dd></div>'
                     "</dl>"
                     '<div class="service-map__actions">'
-                    f'{link("Open service path", f"/services/{quoted_path(service["service_id"])}", css_class="button button-primary", attrs={"data-action-id": "open-service-path"})}'
+                    f'{link("Open service path", service_url(role, str(service["service_id"])), css_class="button button-primary", attrs={"data-action-id": "open-service-path"})}'
                     "</div></article>"
                 )
                 for service in services

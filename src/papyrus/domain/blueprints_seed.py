@@ -93,7 +93,6 @@ COMMON_STEWARDSHIP_SECTION = BlueprintSection(
             placeholder="Add one related guidance reference per line.",
             widget={
                 "type": "object_search_multi_select",
-                "search_url": "/write/objects/search",
                 "placeholder": "Search related guidance",
                 "singular_label": "related guidance item",
                 "manual_entry_label": "Manual reference entry",
@@ -122,7 +121,6 @@ COMMON_EVIDENCE_SECTION = BlueprintSection(
             kind="references",
             widget={
                 "type": "citation_lookup",
-                "search_url": "/write/citations/search",
                 "slots": 3,
             },
         ),

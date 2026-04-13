@@ -8,11 +8,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.application.read_models.article_projection import build_article_projection
+from papyrus.interfaces.web.experience import experience_for_role
+from papyrus.interfaces.web.view_models.article_projection import build_article_projection
 
 
 class ArticleProjectionTests(unittest.TestCase):
-    def test_runbook_projection_orders_article_sections_before_governance(self) -> None:
+    def test_operator_projection_keeps_article_sections_ahead_of_governance_context(self) -> None:
         projection = build_article_projection(
             item={
                 "object_id": "kb-article",
@@ -61,7 +62,7 @@ class ArticleProjectionTests(unittest.TestCase):
                 "state": {"trust_state": "trusted", "revision_review_state": "approved", "object_lifecycle_state": "active"},
                 "use_guidance": {"summary": "Safe to use now", "detail": "Current guidance is approved and trusted."},
             },
-            actor_id="local.operator",
+            experience=experience_for_role("operator"),
         )
 
         self.assertEqual(
@@ -71,13 +72,13 @@ class ArticleProjectionTests(unittest.TestCase):
         self.assertEqual([section["section_id"] for section in projection["secondary_sections"]], ["governance", "evidence", "source"])
         self.assertFalse(projection["show_context_rail"])
 
-    def test_reviewer_projection_keeps_review_context_in_secondary_sections(self) -> None:
+    def test_admin_projection_keeps_audit_context_in_secondary_rail(self) -> None:
         projection = build_article_projection(
             item={
                 "object_id": "kb-review-article",
                 "object_type": "known_error",
-                "title": "Reviewer Projection",
-                "summary": "Reviewer summary.",
+                "title": "Admin Projection",
+                "summary": "Admin summary.",
                 "owner": "workflow_owner",
                 "team": "IT Operations",
                 "review_cadence": "after_change",
@@ -105,13 +106,13 @@ class ArticleProjectionTests(unittest.TestCase):
             audit_events=[{"event_type": "revision_submitted_for_review", "occurred_at": "2026-04-11T01:00:00+00:00", "actor": "tests"}],
             ui_projection={
                 "state": {"trust_state": "suspect", "revision_review_state": "in_review", "object_lifecycle_state": "active"},
-                "use_guidance": {"summary": "Review before use", "detail": "Reviewer context is required."},
+                "use_guidance": {"summary": "Review before use", "detail": "Admin inspection context is required."},
             },
-            actor_id="local.reviewer",
+            experience=experience_for_role("admin"),
         )
 
         self.assertTrue(projection["show_context_rail"])
-        self.assertEqual([section["section_id"] for section in projection["secondary_sections"]], ["evidence", "audit", "source"])
+        self.assertEqual([section["section_id"] for section in projection["secondary_sections"]], ["governance", "evidence", "audit", "source"])
 
 
 if __name__ == "__main__":
