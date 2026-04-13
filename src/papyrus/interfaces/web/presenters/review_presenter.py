@@ -335,7 +335,7 @@ def present_review_queue_page(
         ]
     )
     return _page_definition(
-        page_template="pages/manage_queue.html",
+        page_template="pages/review_queue.html",
         page_title="Review",
         headline="Review",
         active_nav="review",

@@ -168,38 +168,3 @@ def present_oversight_dashboard(
         },
         "page_surface": "oversight",
     }
-
-
-def render_health_column(
-    title: str, summary: str, items: list[dict[str, Any]], *, role: str, tone: str
-) -> str:
-    return render_oversight_column(title, summary, items, role=role, tone=tone)
-
-
-def render_health_board(*, role: str, queue: list[dict[str, Any]]) -> str:
-    return render_oversight_board(role=role, queue=queue)
-
-
-def render_health_cleanup_board(*, cleanup_counts: dict[str, object]) -> str:
-    return render_oversight_cleanup_board(cleanup_counts=cleanup_counts)
-
-
-def render_health_validation_board(*, validation_posture: dict[str, str]) -> str:
-    return render_oversight_validation_board(validation_posture=validation_posture)
-
-
-def present_trust_dashboard(
-    renderer: TemplateRenderer,
-    *,
-    role: str,
-    dashboard: dict[str, Any],
-    selected_object_id: str = "",
-    selected_revision_id: str = "",
-) -> dict[str, Any]:
-    return present_oversight_dashboard(
-        renderer,
-        role=role,
-        dashboard=dashboard,
-        selected_object_id=selected_object_id,
-        selected_revision_id=selected_revision_id,
-    )

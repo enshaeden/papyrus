@@ -19,7 +19,6 @@ from papyrus.application.read_models.queue_search import (
 )
 from papyrus.application.read_models.review_manage import (
     audit_view,
-    manage_queue,
     review_detail,
     review_queue,
     validation_run_history,
@@ -28,7 +27,6 @@ from papyrus.application.read_models.services_dashboard import (
     oversight_dashboard,
     service_catalog,
     service_detail,
-    trust_dashboard,
 )
 from papyrus.application.read_models.support import (
     KnowledgeObjectNotFoundError,
@@ -55,7 +53,6 @@ __all__ = [
     "impact_view_for_service",
     "knowledge_object_detail",
     "knowledge_queue",
-    "manage_queue",
     "oversight_dashboard",
     "require_runtime_connection",
     "review_queue",
@@ -67,6 +64,5 @@ __all__ = [
     "service_catalog",
     "service_detail",
     "stale_projection",
-    "trust_dashboard",
     "validation_run_history",
 ]

@@ -298,6 +298,49 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("Matched passage", body)
             self.assertIn("blocked_duplicate_source_reuse", body)
 
+    def test_mapping_review_marks_advanced_blueprint_targets_clearly(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root, source_file = governed_ingest_path(temp_dir, "policy.md")
+            source_file.write_text(
+                "# Remote Access Change Policy\n\n"
+                "## Policy Scope\n\n"
+                "Applies to authentication, VPN, and remote access control changes.\n\n"
+                "## Controls\n\n"
+                "- Require CAB approval before production change\n"
+                "- Record a rollback plan before execution\n\n"
+                "## Exceptions\n\n"
+                "Emergency changes require follow-up review within 24 hours.\n",
+                encoding="utf-8",
+            )
+            application = web_app(
+                database_path,
+                source_root=source_root,
+                allow_noncanonical_source_root=True,
+                allow_web_ingest_local_paths=True,
+            )
+
+            status, headers, _ = call_wsgi(
+                application,
+                "/operator/import",
+                method="POST",
+                form={"source_path": str(source_file)},
+            )
+            self.assertEqual(status, "303 See Other")
+            detail_path = headers["Location"]
+
+            status, _, detail_body = call_wsgi(application, detail_path)
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Policy (advanced)", detail_body)
+            self.assertIn("advanced/deferred blueprint target", detail_body)
+
+            review_path = detail_path.split("?", 1)[0].rstrip("/") + "/review"
+            status, _, review_body = call_wsgi(application, review_path)
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Policy (advanced)", review_body)
+            self.assertIn("advanced/deferred blueprint target", review_body)
+            self.assertIn("runbooks, known errors, and service records", review_body)
+
     def test_multipart_upload_sanitizes_browser_filename_before_storage(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"

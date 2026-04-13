@@ -124,9 +124,6 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("object_count", dashboard_payload)
         self.assertIn("queue", dashboard_payload)
 
-        status, _, body = call_wsgi(application, "/dashboard/trust")
-        self.assertEqual(status, "200 OK")
-
         status, _, body = call_wsgi(
             application,
             "/events",
@@ -158,11 +155,8 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
 
         status, _, body = call_wsgi(application, "/review/queue")
         self.assertEqual(status, "200 OK")
-        manage_payload = json.loads(body)
-        self.assertIn("review_required", manage_payload)
-
-        status, _, body = call_wsgi(application, "/manage/queue")
-        self.assertEqual(status, "200 OK")
+        review_payload = json.loads(body)
+        self.assertIn("review_required", review_payload)
 
         status, _, body = call_wsgi(
             application, "/impact/object/kb-troubleshooting-vpn-connectivity"

@@ -142,10 +142,6 @@ def oversight_url(role: str | None = None) -> str:
     return "/operator/review/governance"
 
 
-def governance_url(role: str | None = None) -> str:
-    return oversight_url(role)
-
-
 def activity_url(role: str | None = None) -> str:
     if normalize_role(role) == ADMIN_ROLE:
         return "/admin/audit"

@@ -260,17 +260,6 @@ def review_queue(
     finally:
         connection.close()
 
-
-def manage_queue(
-    *,
-    limit: int = 200,
-    database_path: str | Path = DB_PATH,
-    authority: PolicyAuthority | None = None,
-) -> dict[str, Any]:
-    """Compatibility alias for older callers."""
-    return review_queue(limit=limit, database_path=database_path, authority=authority)
-
-
 def review_detail(
     object_id: str,
     revision_id: str,

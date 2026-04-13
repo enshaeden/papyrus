@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from shutil import copytree, which
+from types import SimpleNamespace
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -17,6 +18,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.infrastructure.markdown.parser import parse_knowledge_document
+from papyrus.jobs.site_docs_build import visible_blueprint_type_order
 
 
 def mkdocs_available() -> bool:
@@ -43,17 +45,20 @@ class CliWorkflowTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             generated_home = output_root / "index.md"
             generated_index = output_root / "knowledge" / "index.md"
+            generated_by_type = output_root / "knowledge" / "by-type.md"
             generated_docs_index = output_root / "system-design-docs" / "index.md"
             generated_explorer = output_root / "knowledge" / "explorer.md"
             generated_access_index = output_root / "knowledge" / "access" / "index.md"
             generated_runbooks_index = output_root / "knowledge" / "runbooks" / "index.md"
             self.assertTrue(generated_home.exists())
             self.assertTrue(generated_index.exists())
+            self.assertTrue(generated_by_type.exists())
             self.assertTrue(generated_docs_index.exists())
             self.assertTrue(generated_explorer.exists())
             self.assertTrue(generated_access_index.exists())
             self.assertTrue(generated_runbooks_index.exists())
             generated_home_text = generated_home.read_text(encoding="utf-8")
+            generated_by_type_text = generated_by_type.read_text(encoding="utf-8")
             generated_explorer_text = generated_explorer.read_text(encoding="utf-8")
             generated_access_index_text = generated_access_index.read_text(encoding="utf-8")
             generated_runbooks_index_text = generated_runbooks_index.read_text(encoding="utf-8")
@@ -61,6 +66,12 @@ class CliWorkflowTests(unittest.TestCase):
             self.assertIn("backend authorship and oversight", generated_home_text)
             self.assertIn('href="knowledge/"', generated_home_text)
             self.assertNotIn('href="knowledge/index.md"', generated_home_text)
+            self.assertIn(
+                "Browse current knowledge grouped by primary templates first.",
+                generated_by_type_text,
+            )
+            self.assertNotIn("## policy", generated_by_type_text)
+            self.assertNotIn("## system_design", generated_by_type_text)
             self.assertIn("Papyrus Docs", generated_docs_index.read_text(encoding="utf-8"))
             self.assertIn("Knowledge Explorer", generated_explorer_text)
             self.assertIn('"object_lifecycle_state"', generated_explorer_text)
@@ -70,6 +81,24 @@ class CliWorkflowTests(unittest.TestCase):
             self.assertTrue(all(not path.endswith(".md") for path in site_paths))
             self.assertIn("Access", generated_access_index_text)
             self.assertIn("Runbooks", generated_runbooks_index_text)
+
+    def test_site_docs_type_order_keeps_primary_templates_first(self) -> None:
+        ordered = visible_blueprint_type_order(
+            [
+                SimpleNamespace(metadata={"knowledge_object_type": "policy"}),
+                SimpleNamespace(metadata={"knowledge_object_type": "service_record"}),
+                SimpleNamespace(metadata={"knowledge_object_type": "system_design"}),
+            ]
+        )
+        self.assertEqual(
+            ordered,
+            ["runbook", "known_error", "service_record", "policy", "system_design"],
+        )
+
+        without_advanced = visible_blueprint_type_order(
+            [SimpleNamespace(metadata={"knowledge_object_type": "service_record"})]
+        )
+        self.assertEqual(without_advanced, ["runbook", "known_error", "service_record"])
 
     def test_build_site_docs_cli_exports_only_runtime_approved_objects(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
