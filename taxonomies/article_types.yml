@@ -1,3 +1,4 @@
+doc_status: delete me
 taxonomy: article_types
 description: Deprecated legacy article-type taxonomy retained only for migration compatibility.
 values:

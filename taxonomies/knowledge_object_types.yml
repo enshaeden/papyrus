@@ -1,13 +1,11 @@
 taxonomy: knowledge_object_types
 description: Supported Papyrus knowledge object types.
 values:
-  - name: runbook
-    description: Governed operational procedure.
-  - name: known_error
-    description: Diagnosed failure pattern with checks and mitigations.
-  - name: service_record
-    description: Operational record describing a service and its support posture.
   - name: policy
     description: Governed policy with scope, controls, and exceptions.
   - name: system_design
     description: Operational system design record with dependencies and interfaces.
+  - name: runbook
+    description: Governed operational procedure.
+  - name: known_error
+    description: Diagnosed failure pattern with checks and mitigations.

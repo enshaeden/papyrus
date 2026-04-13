@@ -13,8 +13,6 @@ values:
     description: Authentication topic.
   - name: vpn
     description: VPN or remote access topic.
-  - name: printer
-    description: Printing topic.
   - name: av
     description: Audio and video topic.
   - name: onboarding

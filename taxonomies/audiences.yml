@@ -5,13 +5,9 @@ values:
     description: Front-line support responders.
   - name: it_ops
     description: IT operations staff.
-  - name: identity_admins
-    description: Identity and access operators.
   - name: systems_admins
     description: Infrastructure and systems administrators.
   - name: security
     description: Security operations or governance staff.
-  - name: managers
-    description: People managers or workflow approvers.
   - name: end_users
     description: End users or self-service readers.

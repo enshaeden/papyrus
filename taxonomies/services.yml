@@ -9,8 +9,6 @@ values:
     description: Permission and group management.
   - name: Remote Access
     description: Remote connectivity support.
-  - name: Printing
-    description: Printer service management.
   - name: Collaboration
     description: Meeting room and communications support.
   - name: Onboarding
