@@ -33,9 +33,9 @@ python3 scripts/serve_web.py
 python3 scripts/serve_api.py
 ```
 
-- Web home route: `/`
-- Web read route: `/read`
-- Web knowledge health route: `/health`
+- Web operator home route: `/operator`
+- Web read route: `/operator/read`
+- Web knowledge health route: `/operator/review/governance`
 - API queue route: `/queue`
 
 Use search when you know the topic. Use the home page, read workspace, service map, or knowledge-health board when you need to browse by role, service context, or operational posture.
@@ -49,7 +49,7 @@ Use the operator CLI when you need parity checks without opening the browser:
 
 ## Use The Two-Step Read Flow
 
-1. Use `/read` as the selection workspace.
+1. Use `/operator/read` as the selection workspace.
 2. Open the object detail page to read the article in operational order.
 
 What the article surface prioritizes:
@@ -98,12 +98,12 @@ From the runtime-backed surfaces, inspect:
 
 Useful routes:
 
-- Web object detail: `/objects/{object_id}`
-- Web revision history: `/objects/{object_id}/revisions`
-- Web service detail: `/services/{service_id}`
-- Web activity history: `/activity`
-- Web impact view: `/impact/object/{object_id}`
-- API equivalents under the same route names on the local API server
+- Web object detail: `/operator/read/object/{object_id}`
+- Web revision history: `/operator/read/object/{object_id}/revisions`
+- Web service detail: `/operator/read/services/{service_id}`
+- Web activity history: `/operator/review/activity`
+- Web impact view: `/operator/review/impact/object/{object_id}`
+- The JSON API remains operator-oriented and uses its own non-role-prefixed operator routes such as `/queue`, `/objects/{object_id}`, `/services/{service_id}`, and `/impact/object/{object_id}`.
 
 ## Follow Common Navigation Paths
 

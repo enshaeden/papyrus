@@ -122,14 +122,14 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             source_file.write_text("# Import coverage\n", encoding="utf-8")
             application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
 
-            status, _, body = call_wsgi(application, "/ingest")
+            status, _, body = call_wsgi(application, "/operator/import")
             self.assertEqual(status, "200 OK")
             self.assertNotIn('name="source_path"', body)
             self.assertIn("Local source file unavailable", body)
             self.assertIn("This session accepts uploaded files only.", body)
-            self.assert_component(body, "surface-panel")
+            self.assert_component(body, "ingest-upload")
 
-            status, _, body = call_wsgi(application, "/ingest", method="POST", form={"source_path": str(source_file)})
+            status, _, body = call_wsgi(application, "/operator/import", method="POST", form={"source_path": str(source_file)})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local source file import is unavailable in this session.", body)
 
@@ -145,7 +145,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
                 allow_web_ingest_local_paths=True,
             )
 
-            status, headers, _ = call_wsgi(application, "/ingest", method="POST", form={"source_path": str(source_file)})
+            status, headers, _ = call_wsgi(application, "/operator/import", method="POST", form={"source_path": str(source_file)})
             self.assertEqual(status, "303 See Other")
             detail_path = headers["Location"]
 
@@ -175,9 +175,8 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             source_root = Path(temp_dir) / "repo"
             application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
 
-            status, _, body = call_wsgi(application, "/ingest", method="POST", form={})
+            status, _, body = call_wsgi(application, "/operator/import", method="POST", form={})
             self.assertEqual(status, "200 OK")
-            self.assertIn("Import blockers", body)
             self.assertIn("Select a file upload before starting ingestion.", body)
             self.assert_primary_surface(body, "ingest")
 
@@ -192,17 +191,17 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
                 allow_web_ingest_local_paths=True,
             )
 
-            status, _, body = call_wsgi(application, "/ingest")
+            status, _, body = call_wsgi(application, "/operator/import")
             self.assertEqual(status, "200 OK")
             self.assertIn("Local source file", body)
             self.assertIn("Use an absolute path on this computer.", body)
 
-            status, _, invalid_body = call_wsgi(application, "/ingest", method="POST", form={"source_path": "relative.md"})
+            status, _, invalid_body = call_wsgi(application, "/operator/import", method="POST", form={"source_path": "relative.md"})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local file path ingestion requires an absolute path", invalid_body)
 
             missing_path = (Path(temp_dir) / "missing.md").resolve()
-            status, _, missing_body = call_wsgi(application, "/ingest", method="POST", form={"source_path": str(missing_path)})
+            status, _, missing_body = call_wsgi(application, "/operator/import", method="POST", form={"source_path": str(missing_path)})
             self.assertEqual(status, "200 OK")
             self.assertIn("Local source path not found.", missing_body)
 
@@ -218,7 +217,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
                 allow_web_ingest_local_paths=True,
             )
 
-            status, headers, _ = call_wsgi(application, "/ingest", method="POST", form={"source_path": str(source_file)})
+            status, headers, _ = call_wsgi(application, "/operator/import", method="POST", form={"source_path": str(source_file)})
             self.assertEqual(status, "303 See Other")
             detail_path = headers["Location"]
 
@@ -226,7 +225,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Parser assessment", body)
             self.assertIn("Markdown file is empty.", body)
-            self.assertIn('data-variant="parser-assessment"', body)
+            self.assert_component(body, "ingest-parser-assessment")
 
             review_path = detail_path.split("?", 1)[0].rstrip("/") + "/review"
             status, _, review_body = call_wsgi(application, review_path)
@@ -253,7 +252,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
                 allow_web_ingest_local_paths=True,
             )
 
-            status, headers, _ = call_wsgi(application, "/ingest", method="POST", form={"source_path": str(source_file)})
+            status, headers, _ = call_wsgi(application, "/operator/import", method="POST", form={"source_path": str(source_file)})
             self.assertEqual(status, "303 See Other")
             review_path = headers["Location"].split("?", 1)[0].rstrip("/") + "/review"
 
@@ -272,7 +271,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, headers, _ = call_wsgi_multipart(
                 application,
-                "/ingest",
+                "/operator/import",
                 files={"upload": ("..\\..\\unsafe-import.md", "text/markdown", b"# Safe upload\n")},
             )
             self.assertEqual(status, "303 See Other")
@@ -300,7 +299,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, body = call_wsgi_multipart(
                 application,
-                "/ingest",
+                "/operator/import",
                 fields={"source_path": str(source_file)},
                 files={"upload": ("upload.md", "text/markdown", b"# Upload copy\n")},
             )

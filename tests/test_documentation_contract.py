@@ -46,6 +46,19 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("/operator", getting_started)
         self.assertIn("/reader/*", getting_started)
         self.assertIn("/admin/*", getting_started)
+        self.assertIn("not part of the role-scoped web experience contract", getting_started)
+        self.assertIn("separate decision and migration", getting_started)
+
+    def test_docs_describe_operator_only_api_boundary(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()
+        system_model = (ROOT / "docs" / "reference" / "system-model.md").read_text(encoding="utf-8").lower()
+        read_playbook = (ROOT / "docs" / "playbooks" / "read.md").read_text(encoding="utf-8").lower()
+
+        self.assertIn("not part of the role-scoped web experience contract", readme)
+        self.assertIn("separate decision and migration", readme)
+        self.assertIn("json api remains an operator-oriented local surface", system_model)
+        self.assertIn("not part of the role-scoped web route contract", system_model)
+        self.assertIn("json api remains operator-oriented", read_playbook)
 
     def test_lifecycle_decision_uses_explicit_state_machines(self) -> None:
         lifecycle = (ROOT / "docs" / "decisions" / "knowledge-workflows-and-lifecycle.md").read_text(encoding="utf-8").lower()

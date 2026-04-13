@@ -27,9 +27,7 @@ Papyrus is a local-first operational knowledge control plane for IT support and 
 - Reader routes: `/reader/browse`, `/reader/object/{object_id}`
 - Operator routes: `/operator`, `/operator/read`, `/operator/write/new`, `/operator/import`, `/operator/review`, `/operator/review/governance`, `/operator/read/services`, `/operator/review/activity`
 - Admin routes: `/admin/overview`, `/admin/inspect`, `/admin/review`, `/admin/governance`, `/admin/services`, `/admin/audit`
-
-Legacy shared routes still redirect to operator-scoped routes during migration.
-They are compatibility shims, not the stable product contract.
+Old shared web paths such as `/read`, `/review`, `/objects/*`, `/write/*`, and `/ingest*` are retired and should not be used.
 
 ## Experience Direction
 
@@ -121,7 +119,8 @@ python3 scripts/serve_api.py --db build/knowledge.db --source-root .
 ```
 
 `scripts/serve_api.py` remains an operator-oriented local API surface.
-It is not currently documented as a separate role-scoped public API contract.
+It is not part of the role-scoped web experience contract.
+Any future role-scoped API contract requires a separate decision and migration.
 
 Guardrail:
 - `scripts/run.py --operator` only permits the canonical repository source root for governed writeback and draft validation. Use `--demo` for sandboxed writable roots.

@@ -20,11 +20,10 @@ from papyrus.interfaces.web.presenters.ingest_stage_board_presenter import rende
 from papyrus.interfaces.web.presenters.ingest_upload_presenter import render_ingest_upload
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.urls import import_review_url, write_object_url
-from papyrus.interfaces.web.view_helpers import join_html, quoted_path
+from papyrus.interfaces.web.view_helpers import join_html
 
 
 def _ingestion_action_href(*, detail: dict[str, object], action: dict[str, object]) -> str | None:
-    ingestion_id = quoted_path(str(detail["ingestion_id"]))
     action_id = str(action.get("action_id") or "")
     if action_id == "review_ingestion_mapping":
         return import_review_url(str(detail["ingestion_id"]))

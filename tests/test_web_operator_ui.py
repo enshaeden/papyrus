@@ -846,9 +846,9 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 allow_noncanonical_source_root=True,
             )
 
-            status, headers, _ = call_wsgi(application, "/")
-            self.assertEqual(status, "303 See Other")
-            self.assertEqual(headers["Location"], "/operator")
+            status, _, home_missing_body = call_wsgi(application, "/")
+            self.assertEqual(status, "404 Not Found")
+            self.assertIn("No route for /", home_missing_body)
 
             status, _, missing_body = call_wsgi(
                 application,

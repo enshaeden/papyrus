@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
-from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path
+from papyrus.interfaces.web.urls import import_detail_url
+from papyrus.interfaces.web.view_helpers import escape, link
 
 
 def render_ingest_list(*, components: ComponentPresenter, ingestions: list[dict[str, object]], allow_web_ingest_local_paths: bool) -> str:
@@ -19,13 +20,13 @@ def render_ingest_list(*, components: ComponentPresenter, ingestions: list[dict[
         )
     rows = [
         [
-            link(str(item["filename"]), f"/ingest/{quoted_path(str(item['ingestion_id']))}"),
+            link(str(item["filename"]), import_detail_url(str(item["ingestion_id"]))),
             escape(item["ingestion_state"]),
             escape(item.get("blueprint_id") or "unclassified"),
             escape(item["updated_at"]),
             link(
                 "Review import",
-                f"/ingest/{quoted_path(str(item['ingestion_id']))}",
+                import_detail_url(str(item["ingestion_id"])),
                 css_class="button button-primary",
                 attrs={"data-component": "action-link", "data-action-id": "review-ingestion"},
             ),

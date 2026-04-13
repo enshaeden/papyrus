@@ -33,5 +33,19 @@ nav:
       - Write Playbook: system-design-docs/playbooks/write.md
       - Manage Playbook: system-design-docs/playbooks/manage.md
       - System Model: system-design-docs/reference/system-model.md
+      - Appendix:
+          - Decision Index: system-design-docs/decisions/index.md
+          - Role and Visibility Matrix: system-design-docs/decisions/role-experience-visibility-matrix.md
+          - Route Separation and Experience Boundaries: system-design-docs/decisions/route-separation-and-experience-boundaries.md
+          - Knowledge Workflows and Lifecycle: system-design-docs/decisions/knowledge-workflows-and-lifecycle.md
+          - Experience Principles: system-design-docs/decisions/experience-principles.md
+          - Actor Model to Role Model Mapping: system-design-docs/decisions/actor-model-to-role-model-mapping.md
+          - Experience Conformance Checklist: system-design-docs/guides/experience-conformance-checklist.md
+          - Layout Contracts by Role: system-design-docs/guides/layout-contracts-by-role.md
+          - Seed Migration Rationale: system-design-docs/migration/seed-migration-rationale.md
+          - Operator Readiness: system-design-docs/reference/operator-readiness.md
+          - Operator Web UI: system-design-docs/reference/operator-web-ui.md
+          - Placeholder Glossary: system-design-docs/reference/placeholder-glossary.md
+          - Web Contract Residue Log: system-design-docs/reference/web-contract-residue-log.md
   - Governance & Decisions:
       - Overview: decisions/index.md

@@ -35,7 +35,6 @@ What to expect:
 - Operator surfaces live under `/operator/*`.
 - Admin surfaces live under `/admin/*`.
 - Navigation is organized as `Read`, `Write`, `Import`, `Review / Approvals`, `Knowledge Health`, `Services`, and `Activity / History` within the active role route group.
-- Shared legacy routes may redirect into `/operator/*` during migration, but they are not the steady-state contract.
 - `/operator/write/new` starts blueprint-driven guided section authoring with citation lookup and searchable multi-select controls in the same flow.
 - Guided drafting stays on the shared `normal` shell, so sidebar navigation and the topbar role label remain visible while you author.
 - `Read` is split into a search/select workspace and an article surface. The default object page reads in article order: what it is, when to use it, what to do, how to verify, how to recover, and only then governance/source detail.
@@ -94,7 +93,8 @@ Guardrail:
 - When web local-path ingest is enabled, Papyrus reads an absolute path from the machine running Papyrus, not from the browser device.
 - Local-path ingest is still confined to allowlisted read roots from `schemas/repository_policy.yml`. The default read root is `build/local-ingest/`.
 - If you embed the WSGI apps directly in tests or local tooling, `papyrus.interfaces.web.app(...)` and `papyrus.interfaces.api.app(...)` enforce the same rule. Use `allow_noncanonical_source_root=True` only for sandboxed demo/test roots.
-- `papyrus.interfaces.api.app(...)` remains operator-oriented. It is not currently documented as a separate role-scoped public API contract.
+- `papyrus.interfaces.api.app(...)` remains operator-oriented. It is not part of the role-scoped web experience contract.
+- Any future role-scoped API contract requires a separate decision and migration.
 
 ## 3. Pick The Right Playbook
 

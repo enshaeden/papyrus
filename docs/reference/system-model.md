@@ -49,6 +49,7 @@ Papyrus does not treat compatibility aliases such as `status`, `revision_state`,
 
 - Backend contracts define governed meaning. `papyrus.domain.lifecycle`, `papyrus.application.policy_authority`, `papyrus.application.ui_projection`, workflow projections, and action descriptors decide lifecycle semantics, safe-to-use guidance, operator messages, and acknowledgement requirements.
 - CLI, API, and web render those contracts. They may choose different presentation formats, but they should not compute governed action availability, acknowledgement rules, or lifecycle meaning from raw database state.
+- The JSON API remains an operator-oriented local surface. It is not part of the role-scoped web route contract, and role-prefixed API aliases require a separate decision and migration.
 - If a surface needs governed truth that is missing, add it to the backend contract or projection layer first.
 - Guided web authoring follows the same rule: GET routes load existing revision context only, while draft creation or reuse semantics live in the application layer and are reached through explicit start actions.
 

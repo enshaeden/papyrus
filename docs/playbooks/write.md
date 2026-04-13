@@ -110,7 +110,7 @@ Use the import workbench when the source starts as Markdown, DOCX, or a text-bas
 
 Web path:
 
-1. open `/ingest`
+1. open `/operator/import`
 2. upload the file, or provide a local host path only on a trusted local operator web surface with explicit opt-in
 3. inspect parse output, parser warnings, and extraction quality
 4. review the blueprint mapping, including conflicts, low-confidence matches, and unmapped content
@@ -161,8 +161,8 @@ For each material claim:
 
 Current web authoring boundary:
 
-- guided section editing at `/write/objects/{object_id}/revisions/new?revision_id=...` is the primary web path after a draft already exists
-- web draft creation or reuse starts through object setup or the explicit `POST /write/objects/{object_id}/revisions/start` action; the guided GET route itself is load-only
+- guided section editing at `/operator/write/object/{object_id}?revision_id=...` is the primary web path after a draft already exists
+- web draft creation or reuse starts through object setup or the explicit `POST /operator/write/object/{object_id}/start` action; the guided GET route itself is load-only
 - the guided path owns citation lookup and searchable multi-select controls
 - write and submit screens render backend workflow projections, action descriptors, operator messages, and acknowledgement requirements instead of deriving review or publication meaning in the route
 - citations that point to existing governed local Papyrus content are lightweight internal references for traceability and review context

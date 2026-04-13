@@ -34,8 +34,8 @@ Disposition:
 ## Search: GET-based guided draft creation links
 
 Pattern:
-- `/write/objects/.../revisions/new` without a `revision_id`
-- `/revisions/new#revision-form`
+- `/operator/write/object/...` without a `revision_id`
+- `/operator/write/object/...#revision-form`
 
 Matches and disposition:
 - [docs/reference/operator-web-ui.md](operator-web-ui.md): intentional.
@@ -101,3 +101,20 @@ Result:
 
 Disposition:
 - Updated intentionally to match implementation.
+
+## Search: removed shared-route contract
+
+Pattern:
+- `/read`
+- `/review`
+- `/objects/`
+- `/services/`
+- `/write/objects/`
+- `/ingest`
+
+Result:
+- Repository-owned docs, presenters, and tests now use only `/reader/*`, `/operator/*`, and `/admin/*` web routes.
+- Operator JSON API routes intentionally remain non-role-prefixed in `src/papyrus/interfaces/api.py`.
+
+Disposition:
+- Shared web routes removed. Any future role-prefixed API change requires a separate decision and migration.

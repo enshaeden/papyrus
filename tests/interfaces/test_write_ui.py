@@ -63,19 +63,19 @@ def read_count(database_path: Path, query: str, parameters: tuple = ()) -> int:
 
 
 class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
-    def test_write_entry_page_keeps_shared_shell_navigation(self) -> None:
+    def test_write_entry_page_keeps_operator_shell_navigation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
             application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
 
-            status, _, body = call_wsgi(application, "/write/objects/new")
+            status, _, body = call_wsgi(application, "/operator/write/new")
             self.assertEqual(status, "200 OK")
             self.assert_primary_surface(body, "write")
             self.assertIn("Start draft", body)
             self.assertIn('class="sidebar"', body)
             self.assertIn('class="topbar-menu"', body)
-            self.assertIn('class="sidebar-link is-active" href="/write/objects/new">Write</a>', body)
+            self.assertIn('class="sidebar-link is-active" href="/operator/write/new">Write</a>', body)
 
     def test_policy_revision_page_shows_guided_policy_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -85,7 +85,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, headers, _ = call_wsgi(
                 application,
-                "/write/objects/new",
+                "/operator/write/new",
                 method="POST",
                 form={
                     "object_id": "kb-ui-policy",
@@ -117,7 +117,9 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("/static/js/multi_value_picker.js", guided_body)
             self.assertNotIn("/revisions/fallback", guided_body)
 
-            status, _, removed_body = call_wsgi(application, guided_path.replace("/revisions/new", "/revisions/fallback", 1))
+            guided_base, guided_query = guided_path.split("?", 1)
+            invalid_guided_path = guided_base + "/fallback?" + guided_query
+            status, _, removed_body = call_wsgi(application, invalid_guided_path)
             self.assertEqual(status, "404 Not Found")
             self.assert_primary_surface(removed_body, "system-error")
             self.assertIn("Not found", removed_body)
@@ -130,7 +132,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, headers, _ = call_wsgi(
                 application,
-                "/write/objects/new",
+                "/operator/write/new",
                 method="POST",
                 form={
                     "object_id": "kb-ui-system-design",
@@ -169,7 +171,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             source_root = Path(temp_dir) / "repo"
             application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
 
-            status, _, body = call_wsgi(application, "/read")
+            status, _, body = call_wsgi(application, "/operator/read")
             self.assertEqual(status, "200 OK")
             self.assertIn('option value="policy"', body)
             self.assertIn('option value="system_design"', body)
@@ -182,7 +184,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, headers, _ = call_wsgi(
                 application,
-                "/write/objects/new",
+                "/operator/write/new",
                 method="POST",
                 form={
                     "object_id": "kb-ui-guided-route",
@@ -209,7 +211,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("Save and continue", guided_body)
             self.assertIn('class="sidebar"', guided_body)
             self.assertIn('class="topbar-menu"', guided_body)
-            self.assertIn('class="sidebar-link is-active" href="/write/objects/new">Write</a>', guided_body)
+            self.assertIn('class="sidebar-link is-active" href="/operator/write/new">Write</a>', guided_body)
             self.assertNotIn("shell-columns-focus", guided_body)
             self.assertIn("/static/js/citation_picker.js", guided_body)
             self.assertIn("/static/js/multi_value_picker.js", guided_body)
@@ -219,14 +221,14 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             status, _, stewardship_body = call_wsgi(application, guided_path + "&section=stewardship")
             self.assertEqual(status, "200 OK")
             self.assertIn("data-multi-value-picker", stewardship_body)
-            self.assertIn('data-search-url="/write/objects/search"', stewardship_body)
+            self.assertIn('data-search-url="/operator/write/objects/search"', stewardship_body)
             self.assertIn("Search controlled tags", stewardship_body)
             self.assertIn("Search related services", stewardship_body)
 
             status, _, evidence_body = call_wsgi(application, guided_path + "&section=evidence")
             self.assertEqual(status, "200 OK")
             self.assertIn("data-citation-picker", evidence_body)
-            self.assertIn('data-search-url="/write/citations/search"', evidence_body)
+            self.assertIn('data-search-url="/operator/write/citations/search"', evidence_body)
 
     def test_guided_revision_get_reload_is_side_effect_free(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -236,7 +238,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, headers, _ = call_wsgi(
                 application,
-                "/write/objects/new",
+                "/operator/write/new",
                 method="POST",
                 form={
                     "object_id": "kb-ui-get-reload",
@@ -300,7 +302,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             )
             application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
 
-            status, _, body = call_wsgi(application, "/write/objects/kb-ui-empty-shell/revisions/new")
+            status, _, body = call_wsgi(application, "/operator/write/object/kb-ui-empty-shell")
 
             self.assertEqual(status, "400 Bad Request")
             self.assert_primary_surface(body, "system-error")

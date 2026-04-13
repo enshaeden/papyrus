@@ -33,9 +33,9 @@ python3 scripts/operator_view.py health --db build/knowledge.db
 python3 scripts/operator_view.py activity --db build/knowledge.db
 ```
 
-- Web review route: `/review`
-- Web knowledge health route: `/health`
-- Web activity route: `/activity`
+- Web review route: `/operator/review`
+- Web knowledge health route: `/operator/review/governance`
+- Web activity route: `/operator/review/activity`
 
 Use these surfaces by purpose:
 
@@ -56,10 +56,10 @@ Review in this order:
 
 Useful routes:
 
-- `/objects/{object_id}`
-- `/objects/{object_id}/revisions`
-- `/impact/object/{object_id}`
-- `/services/{service_id}`
+- `/operator/read/object/{object_id}`
+- `/operator/read/object/{object_id}/revisions`
+- `/operator/review/impact/object/{object_id}`
+- `/operator/read/services/{service_id}`
 
 Approval should mean the current revision is operationally usable and adequately supported. Reject when the object is materially wrong, weakly evidenced, poorly scoped, or missing governance metadata.
 
@@ -124,15 +124,15 @@ Treat these as escalation conditions:
 
 Use knowledge health for trend and stewardship visibility:
 
-- Web knowledge health route: `/health`
+- Web knowledge health route: `/operator/review/governance`
 - API trust dashboard route: `/dashboard/trust`
 - CLI knowledge health: `python3 scripts/operator_view.py health --db build/knowledge.db`
 
 Additional governed manage routes:
 
-- `/manage/objects/{object_id}/suspect`
-- `/manage/objects/{object_id}/supersede`
-- `/manage/validation-runs/new`
+- `/operator/review/object/{object_id}/suspect`
+- `/operator/review/object/{object_id}/supersede`
+- `/operator/review/validation-runs/new`
 
 ## Recover Or Inspect Canonical Writeback
 

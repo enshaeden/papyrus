@@ -33,6 +33,13 @@ class ArchitectureContractTests(unittest.TestCase):
                 with self.subTest(path=path.name, forbidden_token=forbidden_token):
                     self.assertNotIn(forbidden_token, source)
 
+    def test_operator_api_does_not_define_role_prefixed_routes(self) -> None:
+        api_source = (ROOT / "src/papyrus/interfaces/api.py").read_text(encoding="utf-8")
+
+        for forbidden_token in ('"/reader/', '"/operator/', '"/admin/'):
+            with self.subTest(forbidden_token=forbidden_token):
+                self.assertNotIn(forbidden_token, api_source)
+
 
 if __name__ == "__main__":
     unittest.main()

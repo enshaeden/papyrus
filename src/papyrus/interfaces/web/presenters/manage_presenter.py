@@ -160,20 +160,17 @@ def _manage_table(
         reasons = projection_reasons(item.get("ui_projection"))
         object_id = str(item.get("object_id") or "")
         revision_id = str(item.get("revision_id") or item.get("current_revision_id") or "")
-        selection_href = "/review?" + urlencode(
-            {
-                key: value
-                for key, value in {
-                    "selected_object_id": object_id,
-                    "selected_revision_id": revision_id,
-                }.items()
-                if value
-            }
-        )
-        if selection_href == "/review?":
-            selection_href = review_queue_url(role)
-        else:
-            selection_href = review_queue_url(role) + selection_href.removeprefix("/review")
+        selection_params = {
+            key: value
+            for key, value in {
+                "selected_object_id": object_id,
+                "selected_revision_id": revision_id,
+            }.items()
+            if value
+        }
+        selection_href = review_queue_url(role)
+        if selection_params:
+            selection_href = selection_href + "?" + urlencode(selection_params)
         rows.append(
             [
                 components.decision_cell(

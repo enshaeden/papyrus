@@ -153,12 +153,17 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         impact_payload = json.loads(body)
         self.assertEqual(impact_payload["entity"]["object_id"], "kb-troubleshooting-vpn-connectivity")
 
+        status, _, body = call_wsgi(application, "/operator/read")
+        self.assertEqual(status, "404 Not Found")
+        api_error = json.loads(body)
+        self.assertEqual(api_error["error"], "not_found")
+
     def test_web_surface_exposes_required_phase8_views(self) -> None:
         application = web_app(self.database_path)
 
-        status, headers, _ = call_wsgi(application, "/")
-        self.assertEqual(status, "303 See Other")
-        self.assertEqual(headers["Location"], "/operator")
+        status, _, body = call_wsgi(application, "/")
+        self.assertEqual(status, "404 Not Found")
+        self.assert_primary_surface(body, "system-error")
 
         status, _, body = call_wsgi(application, "/operator")
         self.assertEqual(status, "200 OK")
@@ -210,6 +215,20 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         status, _, body = call_wsgi(application, "/operator/review/impact/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
         self.assert_page_contract(body, primary_surface="impact-object", components=("impact-summary", "impact-trace"))
+
+        for removed_path in (
+            "/read",
+            "/objects/kb-troubleshooting-vpn-connectivity",
+            "/services",
+            f"/services/{self.remote_access_service_id}",
+            "/review",
+            "/write/objects/new",
+            "/ingest",
+        ):
+            with self.subTest(removed_path=removed_path):
+                status, _, removed_body = call_wsgi(application, removed_path)
+                self.assertEqual(status, "404 Not Found")
+                self.assert_primary_surface(removed_body, "system-error")
 
     def test_static_theme_assets_expose_governed_brand_tokens(self) -> None:
         application = web_app(self.database_path)
