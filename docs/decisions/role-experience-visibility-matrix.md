@@ -84,6 +84,11 @@ Scope: Web UI, app UI, search visibility, object actions, governance exposure
 | Audit log | Yes | Full system audit |
 | System settings | Yes | Admin-only |
 
+## Admin boundary rules
+- Admin owns access, schema, template, governance policy, publishing policy, and audit controls.
+- Admin does not automatically inherit general writing or review workflows unless explicitly granted.
+- Admin is not a catch-all for every advanced or inconvenient screen.
+
 ## Explicit non-visibility rules
 - Reader must never see Write, Review, Template, Schema, Admin, Publish, or User Management controls.
 - Operator must never see User Management, Access Management, Schema Administration, or System Settings unless explicitly elevated.

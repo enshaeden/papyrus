@@ -53,6 +53,28 @@ Do not preserve a visually attractive UI if it still communicates the wrong stru
   - `docs/decisions/route-separation-and-experience-boundaries.md`
   - `docs/guides/layout-contracts-by-role.md`
   - `docs/decisions/role-experience-visibility-matrix.md`
+  - `docs/decisions/knowledge-workflows-and-lifecycle.md`
+  - `docs/decisions/experience-principles.md`
+  - `docs/decisions/actor-model-to-role-model-mapping.md`
+
+## Forbidden Web Patterns
+
+Reject changes that:
+- add cross-role navigation into a shared shell
+- expose unauthorised actions as disabled instead of absent
+- preserve one global nav model and filter it at render time
+- add page-local policy logic that should live in backend contracts
+- reintroduce dashboard-style mixed panels into Reader surfaces
+- add placeholder production content to fill empty states
+
+## Required Architecture Evidence
+
+For any route, shell, navigation, or role-related UI change, report:
+- route group touched
+- shell owner
+- role visibility impact
+- navigation source of truth
+- whether any shared component contract changed
 
 ## Navigation Rules
 
@@ -263,6 +285,7 @@ Do not let the docs describe a cleaner UI than the one that actually ships.
 ## Verification
 
 This web surface ships through the Python application and WSGI entrypoints in `scripts/serve_web.py` and `scripts/run.py --operator`.
+Use `docs/guides/experience-conformance-checklist.md` when reviewing route, shell, role-visibility, and workflow-surface changes.
 
 - dev: `python3 scripts/serve_web.py --db build/knowledge.db --source-root .`
 - lint: `not separately configured; do not claim lint coverage until a dedicated lint command exists`

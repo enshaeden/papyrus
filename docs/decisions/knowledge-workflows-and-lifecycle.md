@@ -17,6 +17,11 @@ Optional future states:
 - Superseded
 - Emergency Update Pending
 
+## Implementation status
+This record defines the governing workflow model for Papyrus.
+Current UI and route structure may still be transitional in places.
+Do not treat transitional screens or interim actor-shaped flows as authority over the lifecycle and workflow boundaries defined here.
+
 ## Flag flow
 
 ### Intent

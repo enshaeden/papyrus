@@ -1,6 +1,6 @@
 # Getting Started
 
-Use this path when you need a working Papyrus runtime quickly and want the rebuilt role-shaped operator path, not just the underlying repository surfaces.
+Use this path when you need a working Papyrus runtime quickly and want the current actor-shaped operator path within the broader role-scoped transition, not just the underlying repository surfaces.
 
 ## 1. Prepare The Environment
 
@@ -31,7 +31,7 @@ python3 scripts/run.py --operator
 - Runtime DB: `build/knowledge.db`
 
 What to expect:
-- `/` is a role-shaped launchpad.
+- `/` is the current local actor-shaped launchpad.
 - Operators see `Do now`, `Continue`, and `Watch`.
 - Reviewers see queue status, pending decisions, blocked reviews, and trust exceptions.
 - Managers see pressure across risk, review, services, and cleanup.
@@ -105,7 +105,7 @@ Guardrail:
 ## 4. Use The Right Source
 
 - Canonical knowledge lives in `knowledge/` and `archive/knowledge/`.
-- Repository decisions live in `decisions/`.
+- Repository decisions live in `decisions/`, except the active experience-governance records that live in `docs/decisions/`.
 - Operator and reference docs live in `docs/`.
 - Derived output in `generated/`, `build/`, and `site/` is rebuildable and not authoritative.
 - Generated ingestion artifacts in `build/ingestions/` are reviewable runtime state, not source of truth.

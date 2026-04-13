@@ -8,6 +8,12 @@ Scope: Web app route structure, layout ownership, role isolation
 Reader, Operator, and Admin are separate experience route groups.
 They are not tabs within one dashboard and not modes of one shared page.
 
+## Implementation status
+This route model is the target architecture.
+Current Papyrus web routes remain transitional and development-shaped in places.
+Do not use transitional route patterns as justification for preserving blended shells long term.
+All new route, shell, and navigation work must move the application toward the route groups defined in this record.
+
 ## Route groups
 
 ### Shared

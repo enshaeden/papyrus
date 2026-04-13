@@ -5,7 +5,8 @@ Papyrus is a local-first operational knowledge control plane for IT support and 
 ## Repository Boundary
 
 - Canonical source of truth lives in `knowledge/` and `archive/knowledge/`.
-- Repository documentation lives in `docs/`, and repository decisions live in `decisions/`.
+- Repository documentation lives in `docs/`.
+- Repository decisions live in `decisions/`, except the active experience-governance records that live in `docs/decisions/`.
 - `build/`, `generated/`, and `site/` are derived state. They are rebuildable and must not be treated as canonical source.
 - Generated ingestion artifacts under `build/ingestions/` are reviewable runtime artifacts, not source of truth.
 - Demo mode may create a disposable writable source root under `build/demo-source/`; it is regenerated local state, not repository source.
@@ -23,7 +24,7 @@ Papyrus is a local-first operational knowledge control plane for IT support and 
 
 ## Use Modes
 
-- `Home`: role-shaped launchpad. Operators get `Do now`, `Continue`, and `Watch`; reviewers get queue pressure and blocked decisions; managers get portfolio pressure across risk, review, services, and cleanup.
+- `Home`: current local actor-shaped launchpad for development, demo, and operator testing. Operators get `Do now`, `Continue`, and `Watch`; reviewers get queue pressure and blocked decisions; managers get portfolio pressure across risk, review, services, and cleanup.
 - `Read`: search and selection workspace plus an article-first detail surface for runbooks, known errors, service records, policies, and system designs.
 - `Write`: create an object shell, choose a blueprint, complete guided sections, record citations and evidence posture, validate progress, and submit the draft for review.
 - `Import`: upload Markdown, DOCX, or text-based PDF files; inspect parser warnings, extraction quality, mapping gaps, and mapping conflicts; and convert reviewed imports into the same draft lifecycle used by native authoring.
@@ -32,6 +33,16 @@ Papyrus is a local-first operational knowledge control plane for IT support and 
 - `Services`: service-entry map that starts from service owner, criticality, health, and linked guidance path.
 - `Activity / History`: consequence-first feed for what changed, what it affected, and what now needs follow-up.
 
+## Experience Direction
+
+Papyrus is moving toward strict role-scoped experiences for Reader, Operator, and Admin.
+Current local actor-based surfaces remain available for development, demo, and operator testing, but future experience architecture is governed by the active records in `docs/decisions/`, especially:
+
+- `docs/decisions/experience-principles.md`
+- `docs/decisions/role-experience-visibility-matrix.md`
+- `docs/decisions/route-separation-and-experience-boundaries.md`
+- `docs/decisions/knowledge-workflows-and-lifecycle.md`
+
 ## Short Start
 
 ```bash
@@ -39,7 +50,7 @@ Papyrus is a local-first operational knowledge control plane for IT support and 
 python3 scripts/run.py --operator
 ```
 
-Start at the web home page. Papyrus now opens on a role-shaped launch surface instead of a lifecycle-summary landing page or raw queue.
+Start at the web home page. Papyrus currently opens on a local actor-shaped launch surface instead of a lifecycle-summary landing page or raw queue.
 
 Primary authoring rules:
 
@@ -125,4 +136,4 @@ Guardrail:
 - Manage playbook: [docs/playbooks/manage.md](docs/playbooks/manage.md)
 - System model: [docs/reference/system-model.md](docs/reference/system-model.md)
 - Operator readiness: [docs/reference/operator-readiness.md](docs/reference/operator-readiness.md)
-- Operator governance and decisions: [decisions/index.md](decisions/index.md)
+- Operator governance and decisions: [docs/decisions/index.md](docs/decisions/index.md)
