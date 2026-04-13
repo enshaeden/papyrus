@@ -151,11 +151,13 @@
 }
 
 .status-badge.tone-brand {
+  background: var(--color-summary-chip-bg);
   border-color: var(--color-summary-chip-border);
   color: var(--color-summary-chip-text);
 }
 
 .status-badge.tone-context {
+  background: var(--color-accent-muted-bg);
   border-color: var(--color-accent-muted-border);
   color: var(--color-accent-muted-text);
 }
@@ -819,31 +821,36 @@ textarea { resize: vertical; }
 }
 
 .button-primary {
-  background: linear-gradient(135deg, var(--color-brand-hero) 0%, var(--color-brand-depth) 100%);
-  border-color: var(--color-brand-hero);
-  color: var(--color-text-on-accent);
-  box-shadow: 0 10px 20px rgba(93, 55, 84, 0.2);
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary-text);
+  box-shadow: var(--shadow-panel);
 }
 
 .button-primary:hover {
-  background: linear-gradient(135deg, var(--color-brand-hero-hover) 0%, var(--color-brand-hero) 100%);
-  border-color: var(--color-brand-hero-hover);
-  color: var(--color-text-on-accent);
-  box-shadow: 0 14px 28px rgba(93, 55, 84, 0.24);
+  background: var(--color-accent-primary-hover);
+  border-color: var(--color-accent-primary-hover);
+  color: var(--color-accent-primary-text);
+}
+
+.button-primary:active {
+  background: var(--color-accent-primary-active);
+  border-color: var(--color-accent-primary-active);
+  color: var(--color-accent-primary-text);
 }
 
 .button-secondary,
 .button-ghost {
-  background: rgba(255, 255, 255, 0.94);
-  border-color: var(--color-brand-context-border);
-  color: var(--color-brand-depth);
+  background: var(--color-accent-secondary-bg);
+  border-color: var(--color-accent-secondary-border);
+  color: var(--color-accent-secondary-text);
 }
 
 .button-secondary:hover,
 .button-ghost:hover {
-  background: var(--color-brand-context-soft);
-  border-color: var(--color-brand-context);
-  color: var(--color-brand-hero);
+  background: var(--color-accent-secondary-hover-bg);
+  border-color: var(--color-accent-secondary-hover-border);
+  color: var(--color-accent-primary);
 }
 
 input,
@@ -853,22 +860,22 @@ textarea {
   padding: 0.78rem 0.95rem;
   border: 1px solid var(--color-border-strong);
   border-radius: 0.95rem;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--color-surface-raised);
   color: var(--color-text-primary);
   font: inherit;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: none;
 }
 
 input:hover,
 select:hover,
 textarea:hover {
-  border-color: var(--color-brand-context);
+  border-color: var(--color-accent-secondary-hover-border);
 }
 
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  border-color: var(--color-brand-hero);
+  border-color: var(--color-accent-primary);
   box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
@@ -879,7 +886,7 @@ textarea:focus-visible {
   border: 1px solid var(--color-border-default);
   border-radius: 1rem;
   overflow: hidden;
-  background: rgba(252, 250, 246, 0.98);
+  background: var(--color-surface-raised);
   box-shadow: var(--shadow-panel);
 }
 
@@ -893,8 +900,8 @@ textarea:focus-visible {
 }
 
 .workbench-table th {
-  background: rgba(245, 244, 246, 0.94);
-  color: var(--color-brand-depth);
+  background: var(--color-panel-governance-bg);
+  color: var(--color-panel-governance-label);
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -902,11 +909,11 @@ textarea:focus-visible {
 }
 
 .workbench-table tbody tr.is-selected {
-  background: rgba(240, 238, 241, 0.9);
+  background: var(--color-selected-fill);
 }
 
 .workbench-table tbody tr.is-selected td:first-child {
-  box-shadow: inset 0.28rem 0 0 var(--color-brand-hero);
+  box-shadow: inset 0.28rem 0 0 var(--color-selected-border);
 }
 
 .table-support {
@@ -919,7 +926,7 @@ textarea:focus-visible {
 }
 
 .selected-row-link {
-  color: var(--color-brand-depth);
+  color: var(--color-accent-primary-hover);
   font-weight: 700;
   text-decoration: none;
 }

@@ -6,7 +6,7 @@
   padding: 1rem 1.05rem;
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 250, 246, 0.95) 100%);
+  background: var(--color-surface-panel);
   box-shadow: var(--shadow-panel);
 }
 
@@ -18,7 +18,7 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-brand-depth);
+  color: var(--color-panel-governance-label);
 }
 
 .revision-audit-sequence__item + .revision-audit-sequence__item {

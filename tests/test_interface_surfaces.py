@@ -249,10 +249,15 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("--color-brand-depth: #6A3460;", body)
         self.assertIn("--color-brand-context: #9991A4;", body)
         self.assertIn("--color-accent-primary: var(--color-brand-hero);", body)
-        self.assertIn("--color-topbar-bg: var(--color-brand-hero);", body)
-        self.assertIn("--color-accent-secondary-selected-bg: var(--color-brand-context-soft);", body)
+        self.assertIn("--color-nav-active: var(--color-brand-hero);", body)
+        self.assertIn("--color-nav-active-hover: var(--color-brand-depth);", body)
+        self.assertIn("--color-topbar-bg: var(--color-brand-depth);", body)
+        self.assertIn("--color-topbar-chip-active-bg: var(--color-brand-hero);", body)
+        self.assertIn("--color-accent-secondary-selected-bg: var(--color-surface-selected);", body)
+        self.assertIn("--color-selected-fill: var(--color-surface-selected);", body)
         self.assertIn("--color-panel-governance-label: var(--color-brand-depth);", body)
-        self.assertIn("--color-panel-governance-bg: var(--color-brand-context-panel);", body)
+        self.assertIn("--color-panel-governance-bg: var(--color-surface-context-panel);", body)
+        self.assertIn("--color-command-highlight: var(--color-brand-hero);", body)
 
     def test_static_layout_assets_keep_topbar_search_centered(self) -> None:
         application = web_app(self.database_path)
@@ -265,6 +270,56 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("grid-column: 3;", body)
         self.assertIn("justify-self: end;", body)
         self.assertIn("grid-column: 2;", body)
+        self.assertIn("background: var(--color-topbar-bg);", body)
+        self.assertNotIn("linear-gradient(135deg, var(--color-brand-hero)", body)
+
+    def test_static_component_assets_map_primary_and_context_tones_semantically(self) -> None:
+        application = web_app(self.database_path)
+
+        status, headers, body = call_wsgi(application, "/static/css/components.css")
+        self.assertEqual(status, "200 OK")
+        self.assertEqual(headers["Content-Type"], "text/css")
+        self.assertIn(".button-primary {", body)
+        self.assertIn("background: var(--color-accent-primary);", body)
+        self.assertIn(".button-primary:hover {", body)
+        self.assertIn("background: var(--color-accent-primary-hover);", body)
+        self.assertIn(".button-secondary,", body)
+        self.assertIn("background: var(--color-accent-secondary-bg);", body)
+        self.assertIn("background: var(--color-accent-secondary-hover-bg);", body)
+        self.assertIn(".workbench-table tbody tr.is-selected {", body)
+        self.assertIn("background: var(--color-selected-fill);", body)
+        self.assertNotIn("linear-gradient(135deg, var(--color-brand-hero)", body)
+
+    def test_page_css_assets_route_brand_family_through_semantic_tokens(self) -> None:
+        application = web_app(self.database_path)
+
+        for asset_path in (
+            "/static/css/home.css",
+            "/static/css/health.css",
+            "/static/css/read.css",
+            "/static/css/review.css",
+            "/static/css/activity.css",
+            "/static/css/services.css",
+            "/static/css/article.css",
+            "/static/css/impact.css",
+            "/static/css/ingest.css",
+            "/static/css/revision.css",
+        ):
+            with self.subTest(asset_path=asset_path):
+                status, headers, body = call_wsgi(application, asset_path)
+                self.assertEqual(status, "200 OK")
+                self.assertEqual(headers["Content-Type"], "text/css")
+                self.assertNotIn("var(--color-brand-hero)", body)
+                self.assertNotIn("var(--color-brand-depth)", body)
+                self.assertNotIn("var(--color-brand-context)", body)
+
+        _, _, health_body = call_wsgi(application, "/static/css/health.css")
+        self.assertIn(".health-cleanup-board__metric {", health_body)
+        self.assertIn("color: var(--color-accent-primary);", health_body)
+
+        _, _, services_body = call_wsgi(application, "/static/css/services.css")
+        self.assertIn(".service-pressure__metric {", services_body)
+        self.assertIn("color: var(--color-accent-primary);", services_body)
 
     def test_static_read_assets_protect_dense_admin_results_table_layout(self) -> None:
         application = web_app(self.database_path)

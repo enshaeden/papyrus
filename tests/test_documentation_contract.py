@@ -29,6 +29,11 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("no separate page-header actor banner contract", operator_web_ui)
         self.assertIn("url-driven selection state", operator_web_ui)
         self.assertIn("papyrus.interfaces.web.view_models.article_projection", operator_web_ui)
+        self.assertIn("pantone 7659 c", operator_web_ui)
+        self.assertIn("identity and intent", operator_web_ui)
+        self.assertIn("authority and depth", operator_web_ui)
+        self.assertIn("context and grouping", operator_web_ui)
+        self.assertIn("neutral surfaces must dominate", operator_web_ui)
 
     def test_operator_readiness_records_recovery_and_cleanup_boundary(self) -> None:
         operator_readiness = (ROOT / "docs" / "reference" / "operator-readiness.md").read_text(encoding="utf-8").lower()
@@ -57,9 +62,13 @@ class DocumentationContractTests(unittest.TestCase):
         layout_contracts = (ROOT / "docs" / "guides" / "layout-contracts-by-role.md").read_text(encoding="utf-8").lower()
 
         self.assertIn("global search is shell-owned and remains centered in the top bar", experience_principles)
+        self.assertIn("pantone 7659 c", experience_principles)
+        self.assertIn("one dominant purple-family tone per component", experience_principles)
         self.assertIn("`/`", route_boundaries)
         self.assertIn("redirecting to `/operator`", route_boundaries)
         self.assertIn("global search remains centered in the shell", layout_contracts)
+        self.assertIn("pantone 7658 c", layout_contracts)
+        self.assertIn("neutral surfaces dominate", layout_contracts)
 
     def test_docs_describe_operator_only_api_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()

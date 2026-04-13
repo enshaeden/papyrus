@@ -9,9 +9,9 @@
   gap: 0.75rem;
   align-items: end;
   padding: 1rem 1.05rem;
-  border: 1px solid var(--color-brand-context-border);
+  border: 1px solid var(--color-panel-governance-border);
   border-radius: 1.1rem;
-  background: linear-gradient(180deg, rgba(245, 244, 246, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%);
+  background: var(--color-panel-governance-bg);
   box-shadow: var(--shadow-panel);
 }
 
@@ -20,7 +20,7 @@
   padding: 1.1rem 1.15rem;
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 250, 246, 0.95) 100%);
+  background: var(--color-surface-panel);
   box-shadow: var(--shadow-panel);
 }
 
@@ -46,7 +46,7 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-brand-depth);
+  color: var(--color-panel-governance-label);
 }
 
 .activity-event__affected {
@@ -58,7 +58,7 @@
 .activity-event__next {
   margin: 0;
   font-weight: 700;
-  color: var(--color-brand-depth);
+  color: var(--color-accent-primary);
 }
 
 .activity-audit-log,
@@ -66,9 +66,9 @@
   display: grid;
   gap: 0.85rem;
   padding: 1rem 1.05rem;
-  border: 1px solid var(--color-brand-context-border);
+  border: 1px solid var(--color-panel-governance-border);
   border-radius: 1.1rem;
-  background: rgba(245, 244, 246, 0.88);
+  background: var(--color-panel-governance-bg);
 }
 
 .activity-audit-log__list,
@@ -84,9 +84,9 @@
 .activity-validation-log__item {
   min-width: 0;
   padding: 0.9rem 1rem;
-  border: 1px solid var(--color-brand-context-border);
+  border: 1px solid var(--color-panel-governance-border);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--color-surface-raised);
 }
 
 .activity-audit-log__item p,
@@ -102,15 +102,15 @@
 .activity-event__details summary {
   cursor: pointer;
   font-weight: 700;
-  color: var(--color-brand-depth);
+  color: var(--color-panel-governance-label);
 }
 
 .activity-event__details pre {
   margin-top: 0.75rem;
   padding: 0.9rem;
-  border: 1px solid var(--color-brand-context-border);
+  border: 1px solid var(--color-panel-governance-border);
   border-radius: 0.9rem;
-  background: rgba(245, 244, 246, 0.96);
+  background: var(--color-panel-governance-bg);
   overflow-x: auto;
   white-space: pre-wrap;
   font-family: var(--font-mono);

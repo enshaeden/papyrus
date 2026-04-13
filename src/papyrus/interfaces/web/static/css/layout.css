@@ -167,7 +167,7 @@ a:hover {
   border-color: var(--color-topbar-chip-hover-border);
 }
 .topbar-search input:focus-visible {
-  border-color: var(--color-topbar-field-bg);
+  border-color: var(--color-accent-primary);
 }
 .topbar-search .button {
   background: var(--color-topbar-chip-bg);
@@ -270,19 +270,19 @@ a:hover {
 .sidebar-link:hover {
   background: var(--color-accent-muted-bg);
   border-left-color: var(--color-nav-hover-border);
-  color: var(--color-text-primary);
+  color: var(--color-nav-hover-text);
   text-decoration: none;
 }
 .sidebar-link.is-active {
   background: var(--color-accent-muted-bg);
-  color: var(--color-text-primary);
+  color: var(--color-nav-active);
   border-left-color: var(--color-nav-active);
   font-weight: 700;
 }
 .sidebar-link.is-active:hover {
   background: var(--color-accent-muted-bg);
   border-left-color: var(--color-nav-active-hover);
-  color: var(--color-text-primary);
+  color: var(--color-nav-active-hover);
 }
 .main-column {
   display: grid;
@@ -411,9 +411,7 @@ a:hover {
 }
 
 body {
-  background:
-    radial-gradient(circle at top left, rgba(153, 145, 164, 0.24), transparent 28rem),
-    linear-gradient(180deg, #f7f3eb 0%, var(--color-surface-app) 26%, #efe9f1 100%);
+  background: var(--color-surface-app);
   color: var(--color-text-primary);
 }
 
@@ -430,8 +428,8 @@ body {
   gap: var(--space-5);
   align-items: center;
   padding: 0.9rem 1.5rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  background: linear-gradient(135deg, var(--color-brand-hero) 0%, var(--color-brand-depth) 72%, #4f3149 100%);
+  border-bottom: 1px solid var(--color-topbar-border);
+  background: var(--color-topbar-bg);
   box-shadow: var(--shadow-topbar);
 }
 
@@ -472,11 +470,11 @@ body {
 .topbar-search input {
   min-height: 2.85rem;
   padding-inline: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  border: 1px solid var(--color-topbar-field-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--color-topbar-field-bg);
   color: var(--color-topbar-field-text);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: none;
 }
 
 .topbar-search input::placeholder {
@@ -485,14 +483,15 @@ body {
 
 .topbar-search .button.button-primary {
   min-width: 6.4rem;
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.22);
-  color: var(--color-topbar-text);
+  background: var(--color-topbar-action-bg);
+  border-color: var(--color-topbar-action-border);
+  color: var(--color-accent-primary-text);
 }
 
 .topbar-search .button.button-primary:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--color-topbar-action-hover-bg);
+  border-color: var(--color-topbar-action-hover-border);
+  color: var(--color-accent-primary-text);
 }
 
 .topbar-menu {
@@ -520,8 +519,14 @@ body {
 }
 
 .topbar-menu-chip.is-active {
-  background: rgba(255, 255, 255, 0.22);
-  border-color: rgba(255, 255, 255, 0.28);
+  background: var(--color-topbar-chip-active-bg);
+  border-color: var(--color-topbar-chip-active-border);
+  color: var(--color-topbar-chip-active-text);
+}
+
+.topbar-menu-chip.is-active:hover {
+  background: var(--color-topbar-chip-active-hover-bg);
+  border-color: var(--color-topbar-chip-active-hover-border);
   color: var(--color-topbar-chip-active-text);
 }
 
@@ -573,7 +578,7 @@ body {
   padding: 0.95rem;
   border: 1px solid var(--color-panel-governance-border);
   border-radius: 1.25rem;
-  background: linear-gradient(180deg, rgba(245, 244, 246, 0.96) 0%, rgba(255, 255, 255, 0.94) 100%);
+  background: var(--color-panel-governance-bg);
   box-shadow: var(--shadow-panel);
 }
 
@@ -590,7 +595,7 @@ body {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-brand-depth);
+  color: var(--color-panel-governance-label);
 }
 
 .sidebar-summary {
@@ -610,7 +615,7 @@ body {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-brand-depth);
+  color: var(--color-panel-governance-label);
 }
 
 .sidebar-nav {
@@ -631,20 +636,22 @@ body {
 }
 
 .sidebar-link:hover {
-  background: rgba(240, 238, 241, 0.9);
-  border-color: var(--color-brand-context-border);
-  color: var(--color-brand-depth);
+  background: var(--color-nav-hover-bg);
+  border-color: var(--color-nav-hover-border);
+  color: var(--color-nav-hover-text);
 }
 
 .sidebar-link.is-active {
-  background: linear-gradient(135deg, var(--color-brand-hero) 0%, var(--color-brand-depth) 100%);
-  border-color: var(--color-brand-hero);
-  color: var(--color-text-on-accent);
-  box-shadow: var(--shadow-panel);
+  background: var(--color-selected-fill);
+  border-color: var(--color-selected-border);
+  color: var(--color-nav-active);
+  box-shadow: inset 0.24rem 0 0 var(--color-nav-active);
 }
 
 .sidebar-link.is-active:hover {
-  color: var(--color-text-on-accent);
+  background: var(--color-selected-fill);
+  border-color: var(--color-nav-active-hover);
+  color: var(--color-nav-active-hover);
 }
 
 .main-column,

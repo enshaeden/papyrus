@@ -31,28 +31,28 @@
 .health-board__column.tone-danger {
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
-  background: linear-gradient(180deg, rgba(243, 214, 216, 0.72) 0%, rgba(255, 255, 255, 0.98) 8rem);
+  background: var(--color-status-error-bg);
   box-shadow: var(--shadow-panel);
 }
 
 .health-board__column.tone-warning {
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
-  background: linear-gradient(180deg, rgba(243, 225, 209, 0.72) 0%, rgba(255, 255, 255, 0.98) 8rem);
+  background: var(--color-status-warning-bg);
   box-shadow: var(--shadow-panel);
 }
 
 .health-board__column.tone-brand {
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
-  background: linear-gradient(180deg, rgba(240, 238, 241, 0.92) 0%, rgba(255, 255, 255, 0.98) 8rem);
+  background: var(--color-panel-governance-bg);
   box-shadow: var(--shadow-panel);
 }
 
 .health-board__column.tone-default {
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 250, 246, 0.95) 100%);
+  background: var(--color-surface-panel);
   box-shadow: var(--shadow-panel);
 }
 
@@ -66,7 +66,7 @@
   min-width: 0;
   padding-top: 0.85rem;
   margin-top: 0.85rem;
-  border-top: 1px solid rgba(209, 206, 214, 0.9);
+  border-top: 1px solid var(--color-panel-governance-border);
 }
 
 .health-board__card:first-of-type {
@@ -97,13 +97,13 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-brand-depth);
+  color: var(--color-panel-governance-label);
 }
 
 .health-board__card-next {
   margin: 0;
   font-weight: 700;
-  color: var(--color-brand-depth);
+  color: var(--color-accent-primary);
 }
 
 .health-cleanup-board,
@@ -111,7 +111,7 @@
   padding: 1.1rem 1.15rem;
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 250, 246, 0.95) 100%);
+  background: var(--color-surface-panel);
   box-shadow: var(--shadow-panel);
 }
 
@@ -126,9 +126,9 @@
   gap: 0.25rem;
   min-width: 0;
   padding: 0.95rem 1rem;
-  border: 1px solid var(--color-brand-context-border);
+  border: 1px solid var(--color-panel-governance-border);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--color-surface-raised);
 }
 
 .health-cleanup-board__grid article p:last-child {
@@ -141,7 +141,7 @@
   font-family: var(--font-serif);
   font-size: 2rem;
   line-height: 1;
-  color: var(--color-brand-hero);
+  color: var(--color-accent-primary);
 }
 
 .page-health .health-cleanup-board {

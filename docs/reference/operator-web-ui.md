@@ -72,6 +72,66 @@ Tests should assert those hooks plus structured contract payload behavior instea
   - admin governance surfaces use denser tables and selected-item context rails
 - Admin governance screens should prefer table-first layouts with deterministic URL-driven selection state in the right rail.
 
+## Color And Tone Rules
+
+- Papyrus uses a governed tonal family centered on Pantone 7659 C, not a single-color UI theme.
+- Pantone 7659 C (`#5D3754`) is identity and intent:
+  - primary buttons
+  - active navigation
+  - object identity cues
+  - command highlights
+  - key counts and summary chips
+  - review and revision intent actions
+- Pantone 7658 C (`#6A3460`) is authority and depth:
+  - shell bars and high-contrast chrome
+  - hover and pressed states of hero controls
+  - dense metadata emphasis
+  - stronger contrast labels where a neutral tone is too quiet
+- Pantone 7660 C (`#9991A4`) is context and grouping:
+  - contextual fills
+  - selected rows
+  - grouped secondary controls
+  - filter states
+  - timeline rails
+  - governance and metadata support panels
+- Semantic success, warning, error, and info colors must stay separate from the 7658/7659/7660 family.
+- Neutral surfaces must dominate the screen. The purple family is reserved for orientation, context, and high-intent action.
+- Avoid decorative purple gradients. The implementation should read as a tonal system, not a marketing splash.
+
+## Component Token Mapping
+
+- Design tokens live in `src/papyrus/interfaces/web/static/css/tokens.css`.
+- Primary button:
+  - `--color-accent-primary`
+  - `--color-accent-primary-hover`
+  - `--color-accent-primary-active`
+- Secondary and ghost buttons:
+  - `--color-accent-secondary-bg`
+  - `--color-accent-secondary-border`
+  - `--color-accent-secondary-hover-bg`
+  - `--color-accent-secondary-hover-border`
+- Active navigation:
+  - `--color-nav-active`
+  - `--color-nav-active-hover`
+  - `--color-selected-fill`
+  - `--color-selected-border`
+- Focus ring:
+  - `--color-focus-ring`
+- Governance and metadata panels:
+  - `--color-panel-governance-bg`
+  - `--color-panel-governance-border`
+  - `--color-panel-governance-label`
+- Object identity and command emphasis:
+  - `--color-object-identity`
+  - `--color-command-highlight`
+- Context grouping and selection:
+  - `--color-surface-context-subtle`
+  - `--color-surface-context-panel`
+  - `--color-surface-selected`
+  - `--color-selected-fill`
+  - `--color-selected-border`
+  - `--color-timeline-rail`
+
 ## Surface Ownership Map
 
 ### Home

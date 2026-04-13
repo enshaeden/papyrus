@@ -187,3 +187,10 @@ Used for:
 - Operator is workshop-like.
 - Admin is control-room-like.
 - No experience may inherit another’s clutter.
+
+## Tonal balance
+- Neutral surfaces dominate every role experience.
+- Pantone 7659 C (`#5D3754`) carries identity and intent for primary actions and orientation.
+- Pantone 7658 C (`#6A3460`) is reserved for shell depth, stronger emphasis, and pressed or hover states of hero controls.
+- Pantone 7660 C (`#9991A4`) appears as contextual tinting for grouping, selection, and support surfaces.
+- Role shells and panels should not combine all three tones at equal weight. One dominant purple-family tone per component is the contract.
