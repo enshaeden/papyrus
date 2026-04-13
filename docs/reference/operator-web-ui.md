@@ -149,7 +149,7 @@ Tests should assert those hooks plus structured contract payload behavior instea
   - CSS location: `src/papyrus/interfaces/web/static/css/home.css`
   - test location: `tests/test_web_home_activity_block_presenter.py`
 
-### Read
+### Content
 
 - `Read Filter Bar`
   - `data-component`: `read-filter-bar`
@@ -214,7 +214,7 @@ Tests should assert those hooks plus structured contract payload behavior instea
   - CSS location: `src/papyrus/interfaces/web/static/css/services.css`
   - test location: `tests/test_web_service_presenters.py`
 
-### Knowledge Health
+### Oversight
 
 - `Health Board`
   - `data-component`: `health-board`
@@ -250,7 +250,7 @@ Tests should assert those hooks plus structured contract payload behavior instea
   - CSS location: `src/papyrus/interfaces/web/static/css/review.css`
   - test location: `tests/test_web_review_presenters.py`
 
-### Activity
+### History / Audit
 
 - `Activity Filter Bar`
   - `data-component`: `activity-filter-bar`
@@ -407,7 +407,7 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 ## Current Boundaries
 
-- Page presenters now assemble browser-visible surfaces from explicit owner files for Home, Read, object detail, services, knowledge health, review, activity, revision history, impact, and ingest.
+- Page presenters now assemble browser-visible surfaces from explicit owner files for Home, Content, object detail, services, oversight, review, history, revision history, impact, and ingest.
 - Shared components still provide low-level building blocks such as badges, decision cells, and governed panels, but surface-specific copy and internal markup now live in the owning presenter for that visible component.
 - `papyrus.application.read_models.home_dashboard` now supplies role-scoped dashboard data rather than Home-specific launch or activity structures.
 - Object-detail section composition belongs to the web view-model layer, not `papyrus.application.read_models`.

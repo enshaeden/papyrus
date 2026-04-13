@@ -4,10 +4,10 @@ This reference records the current operator-ready boundary for Papyrus and the r
 
 ## Supported Operator Boundary
 
-- Papyrus is a local-first operational knowledge system with governed read, write, review, and manage surfaces.
+- Papyrus is a governed knowledge management database that provides end users with dependable content, while IT operators maintain backend authorship and oversight.
 - Canonical source remains Markdown under `knowledge/` and `archive/knowledge/`.
 - Runtime projections, reports, search indexes, and static exports are rebuildable and non-authoritative.
-- Read, write, review, and health surfaces rely on explicit lifecycle, review, trust, and next-action contracts rather than compatibility-era aliases.
+- Content, authoring, review, and oversight surfaces rely on explicit lifecycle, review, trust, and next-action contracts rather than compatibility-era aliases.
 
 ## Supported Startup And Recovery Paths
 

@@ -906,7 +906,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, reader_body = call_wsgi(application, "/reader/browse")
             self.assertEqual(status, "200 OK")
-            self.assertIn("<title>Browse Guidance | Papyrus</title>", reader_body)
+            self.assertIn("<title>Content | Papyrus</title>", reader_body)
             self.assertIn('data-role="reader"', reader_body)
             self.assertIn("Reader", reader_body)
             self.assertIn('href="/reader/browse"', reader_body)
@@ -918,7 +918,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, operator_body = call_wsgi(application, "/operator/read")
             self.assertEqual(status, "200 OK")
-            self.assertIn("<title>Read Guidance | Papyrus</title>", operator_body)
+            self.assertIn("<title>Content | Papyrus</title>", operator_body)
             self.assertIn('data-role="operator"', operator_body)
             self.assertIn("Operator", operator_body)
             self.assertIn('href="/operator/write/new"', operator_body)
@@ -932,11 +932,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, admin_body = call_wsgi(application, "/admin/inspect")
             self.assertEqual(status, "200 OK")
-            self.assertIn("<title>Inspect Guidance | Papyrus</title>", admin_body)
+            self.assertIn("<title>Content | Papyrus</title>", admin_body)
             self.assertIn('data-role="admin"', admin_body)
             self.assertIn("Admin", admin_body)
             self.assertIn(
-                'class="sidebar-link is-active" href="/admin/inspect">Inspect</a>', admin_body
+                'class="sidebar-link is-active" href="/admin/inspect">Content</a>', admin_body
             )
             self.assertNotIn(
                 'class="sidebar-link is-active" href="/admin/overview">Overview</a>', admin_body
@@ -954,7 +954,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             status, _, governance_body = call_wsgi(application, "/admin/governance")
             self.assertEqual(status, "200 OK")
             self.assertIn(
-                'class="sidebar-link is-active" href="/admin/governance">Governance</a>',
+                'class="sidebar-link is-active" href="/admin/governance">Oversight</a>',
                 governance_body,
             )
             self.assertNotIn(
@@ -1049,7 +1049,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 'class="topbar-menu-chip is-active topbar-menu-role">Operator</span>', body
             )
             self.assertIn(
-                'class="sidebar-link is-active" href="/operator/write/new">Write</a>', body
+                'class="sidebar-link is-active" href="/operator/write/new">Authoring</a>', body
             )
             self.assert_component(body, "progress-strip")
             self.assertNotIn('class="write-stage-label"', body)

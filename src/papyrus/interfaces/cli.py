@@ -248,7 +248,7 @@ def _line_block(*lines: str) -> list[str]:
 
 def operator_main() -> int:
     parser = argparse.ArgumentParser(
-        description="Inspect Papyrus lifecycle, stewardship, and consequence surfaces from the terminal."
+        description="Inspect Papyrus content, review, oversight, and audit surfaces from the terminal."
     )
     parser.add_argument("--db", default=str(DB_PATH), help="Path to the runtime SQLite database.")
     parser.add_argument("--format", choices=("text", "json"), default="text", help="Output format.")
@@ -275,7 +275,7 @@ def operator_main() -> int:
     dashboard_parser = subparsers.add_parser(
         "dashboard",
         aliases=["health"],
-        help="Show knowledge health and stewardship signals.",
+        help="Show content oversight signals.",
         parents=[common],
     )
     dashboard_parser.add_argument(
@@ -296,7 +296,7 @@ def operator_main() -> int:
     events_parser = subparsers.add_parser(
         "events",
         aliases=["activity"],
-        help="Show operational activity and consequence history.",
+        help="Show operational history and audit events.",
         parents=[common],
     )
     events_parser.add_argument("--limit", type=int, default=25, help="Maximum events to return.")
@@ -305,7 +305,7 @@ def operator_main() -> int:
     events_parser.add_argument("--event-type", default=None, help="Optional event type filter.")
 
     subparsers.add_parser(
-        "manage-queue", help="Show review and stewardship buckets.", parents=[common]
+        "manage-queue", help="Show review and oversight buckets.", parents=[common]
     )
     subparsers.add_parser("validation-runs", help="Show validation run history.", parents=[common])
 
@@ -568,7 +568,7 @@ def operator_main() -> int:
         payload = knowledge_queue(limit=args.limit, database_path=database_path)
         if output_format == "json":
             return _emit_payload({"queue": payload}, output_format=output_format)
-        lines = ["Read guidance", f"results={len(payload)}"]
+        lines = ["Content", f"results={len(payload)}"]
         for item in payload:
             linked_services = (
                 ", ".join(service["service_name"] for service in item.get("linked_services", []))
@@ -1004,7 +1004,7 @@ def operator_main() -> int:
         if output_format == "json":
             return _emit_payload(payload, output_format=output_format)
         lines = [
-            "Review and stewardship work",
+            "Review and oversight work",
             f"ready_for_review={len(payload['ready_for_review'])}",
             f"needs_decision={len(payload['needs_decision'])}",
             f"needs_revalidation={len(payload['needs_revalidation'])}",

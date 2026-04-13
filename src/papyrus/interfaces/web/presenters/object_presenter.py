@@ -52,7 +52,7 @@ def present_object_detail(
                     current_revision_id=str(item.get("current_revision_id") or "") or None,
                 ),
                 link(
-                    "See consequences",
+                    "See impact",
                     impact_object_url(experience.role, str(item["object_id"])),
                     css_class="button button-ghost",
                 ),

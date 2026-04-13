@@ -1,8 +1,8 @@
-# Write Playbook
+# Authoring Playbook
 
 Use this playbook when you are creating, importing, or revising canonical knowledge and need to move it cleanly through the lifecycle from draft to review.
 
-Write is still governed, but the surrounding UX now assumes `Read` is article-first and operator-centered while broader role separation remains transitional. Authoring should improve the operator article surface, not add governance-first chrome.
+Authoring is still governed, but the surrounding UX now assumes `Content` is article-first and operator-centered while broader role separation remains transitional. Authoring should improve the operator article surface, not add governance-first chrome.
 
 ## Start With The Guided Blueprint Flow
 

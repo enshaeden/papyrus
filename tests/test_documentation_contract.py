@@ -118,6 +118,10 @@ class DocumentationContractTests(unittest.TestCase):
             (ROOT / "docs" / "playbooks" / "read.md").read_text(encoding="utf-8").lower()
         )
 
+        self.assertIn(
+            "papyrus is a governed knowledge management database that provides end users with dependable content, while it operators maintain backend authorship and oversight.",
+            readme,
+        )
         self.assertIn("operator-oriented local api surface", readme)
         self.assertIn("separate decision and migration", readme)
         self.assertIn("governance and decisions", readme)

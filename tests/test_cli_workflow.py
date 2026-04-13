@@ -58,7 +58,7 @@ class CliWorkflowTests(unittest.TestCase):
             generated_access_index_text = generated_access_index.read_text(encoding="utf-8")
             generated_runbooks_index_text = generated_runbooks_index.read_text(encoding="utf-8")
             self.assertIn("approved-content export", generated_home_text)
-            self.assertIn("consolidated operator-facing governance record", generated_home_text)
+            self.assertIn("backend authorship and oversight", generated_home_text)
             self.assertIn('href="knowledge/"', generated_home_text)
             self.assertNotIn('href="knowledge/index.md"', generated_home_text)
             self.assertIn("Papyrus Docs", generated_docs_index.read_text(encoding="utf-8"))

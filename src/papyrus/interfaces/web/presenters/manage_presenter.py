@@ -246,7 +246,7 @@ def _manage_table(
         )
     return components.context_panel(
         title=title,
-        eyebrow="Stewardship",
+        eyebrow="Oversight",
         body_html=(
             components.queue_table(
                 headers=["Guidance", "Status", "Attention", "Steward", "Next action"],
@@ -411,8 +411,8 @@ def present_manage_queue_page(
     )
     return _page_definition(
         page_template="pages/manage_queue.html",
-        page_title="Review / Approvals",
-        headline="Review queue",
+        page_title="Review",
+        headline="Review",
         active_nav="review",
         show_actor_links=False,
         aside_html=_manage_context_panel(components, selected_item, role=role)
@@ -465,7 +465,7 @@ def present_object_supersede_page(
         action_id="supersede_object",
         action_title="Supersession contract",
         form_title="Supersede object",
-        form_eyebrow="Manage",
+        form_eyebrow="Oversight",
         form_body_html=form_body_html,
     )
 
@@ -525,7 +525,7 @@ def present_object_suspect_page(
         action_id="mark_suspect",
         action_title="Suspect contract",
         form_title="Mark object suspect",
-        form_eyebrow="Manage",
+        form_eyebrow="Oversight",
         form_body_html=form_body_html,
     )
 
@@ -592,7 +592,7 @@ def present_object_archive_page(
         action_id="archive_object",
         action_title="Archive contract",
         form_title="Archive object",
-        form_eyebrow="Manage",
+        form_eyebrow="Oversight",
         form_body_html=form_body_html,
     )
 
@@ -667,7 +667,7 @@ def present_review_assignment_page(
     )
     form_html = components.surface_panel(
         title="Assign reviewer",
-        eyebrow="Manage",
+        eyebrow="Oversight",
         body_html=(
             '<form class="governed-form" method="post">'
             + forms.field(
@@ -857,10 +857,11 @@ def present_audit_page(
     selected_group: str,
 ) -> dict[str, Any]:
     del renderer
+    is_admin = role == "admin"
     return _page_definition(
         page_template="pages/manage_audit.html",
-        page_title="Activity / History",
-        headline="Activity",
+        page_title="Audit" if is_admin else "History",
+        headline="Audit" if is_admin else "History",
         active_nav="activity",
         show_actor_links=False,
         page_context={

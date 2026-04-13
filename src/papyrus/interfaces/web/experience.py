@@ -93,13 +93,13 @@ READER_EXPERIENCE = ExperienceContext(
     label="Reader",
     route_prefix="/reader",
     home_path="/reader/browse",
-    shell_summary="Read current guidance without governance-heavy control surfaces.",
+    shell_summary="Open dependable content without operator controls.",
     audit_actor_id=None,
     nav_sections=(
         ShellSection(
             title="Knowledge",
-            description="Browse current guidance and open content-first object views.",
-            items=(ShellLink("read", "Browse", "/reader/browse", match_prefixes=("/reader",)),),
+            description="Open dependable content and content-first object views.",
+            items=(ShellLink("read", "Content", "/reader/browse", match_prefixes=("/reader",)),),
         ),
     ),
     page_behaviors=(
@@ -122,30 +122,30 @@ OPERATOR_EXPERIENCE = ExperienceContext(
     label="Operator",
     route_prefix="/operator",
     home_path="/operator",
-    shell_summary="Work the current guidance, draft, import, review, and follow-up surfaces safely.",
+    shell_summary="Use dependable content first, then author, review, and oversee backend knowledge work.",
     audit_actor_id="local.operator",
     nav_sections=(
         ShellSection(
             title="Operator workflow",
-            description="Read first, write only when guidance is missing, and keep governance tied to the current task.",
+            description="Use content first, author when it is missing, and keep oversight tied to the current task.",
             items=(
                 ShellLink("home", "Home", "/operator", match_prefixes=()),
-                ShellLink("read", "Read", "/operator/read", match_prefixes=("/operator/read",)),
+                ShellLink("read", "Content", "/operator/read", match_prefixes=("/operator/read",)),
                 ShellLink(
-                    "write", "Write", "/operator/write/new", match_prefixes=("/operator/write",)
+                    "write", "Authoring", "/operator/write/new", match_prefixes=("/operator/write",)
                 ),
                 ShellLink(
                     "import", "Import", "/operator/import", match_prefixes=("/operator/import",)
                 ),
                 ShellLink(
                     "review",
-                    "Review / Approvals",
+                    "Review",
                     "/operator/review",
                     match_prefixes=("/operator/review",),
                 ),
                 ShellLink(
                     "health",
-                    "Knowledge Health",
+                    "Oversight",
                     "/operator/review/governance",
                     match_prefixes=("/operator/review/governance", "/operator/review/impact"),
                 ),
@@ -157,7 +157,7 @@ OPERATOR_EXPERIENCE = ExperienceContext(
                 ),
                 ShellLink(
                     "activity",
-                    "Activity / History",
+                    "History",
                     "/operator/review/activity",
                     match_prefixes=(
                         "/operator/review/activity",
@@ -218,21 +218,21 @@ ADMIN_EXPERIENCE = ExperienceContext(
     label="Admin",
     route_prefix="/admin",
     home_path="/admin/overview",
-    shell_summary="Use the control-plane subset for oversight, governance, audit, and service impact inspection.",
+    shell_summary="Use the control-plane subset for content oversight, service impact, and audit inspection.",
     audit_actor_id="local.manager",
     nav_sections=(
         ShellSection(
             title="Admin control plane",
-            description="Inspect oversight, approvals, governance pressure, service impact, and audit history without blending in operator authoring routes.",
+            description="Inspect content, review, oversight, service impact, and audit history without blending in operator authoring routes.",
             items=(
                 ShellLink("home", "Overview", "/admin/overview", match_prefixes=()),
                 ShellLink(
-                    "inspect", "Inspect", "/admin/inspect", match_prefixes=("/admin/inspect",)
+                    "inspect", "Content", "/admin/inspect", match_prefixes=("/admin/inspect",)
                 ),
                 ShellLink("review", "Review", "/admin/review", match_prefixes=("/admin/review",)),
                 ShellLink(
                     "health",
-                    "Governance",
+                    "Oversight",
                     "/admin/governance",
                     match_prefixes=("/admin/governance", "/admin/impact"),
                 ),

@@ -178,7 +178,7 @@ def present_object_setup_page(
         "validation_html": validation_html,
         "progress_html": render_object_progress_html(components, values=values, errors=errors),
         "form_html": components.content_section(
-            title="Set up the draft", eyebrow="Write", body_html=body_html
+            title="Set up the draft", eyebrow="Authoring", body_html=body_html
         ),
         "guidance_html": support_details_html(
             title="What happens next",
@@ -292,7 +292,7 @@ def present_submit_page(
     )
     form_html = components.content_section(
         title="Send to review",
-        eyebrow="Write",
+        eyebrow="Authoring",
         body_html=(
             '<form class="governed-form" method="post">'
             + forms.field(
@@ -312,7 +312,7 @@ def present_submit_page(
     )
     summary_html = components.content_section(
         title="Submission summary",
-        eyebrow="Write",
+        eyebrow="Authoring",
         body_html=(
             f"<p><strong>Revision:</strong> #{escape(revision['revision_number'])} · {escape(revision['revision_review_state'])}</p>"
             f"<p><strong>What changed:</strong> {escape(revision['change_summary'] or 'No change summary recorded.')}</p>"

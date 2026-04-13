@@ -20,7 +20,7 @@ def render_service_path(*, role: str, linked_objects: list[dict[str, Any]]) -> s
                     f'<p class="service-path__meta">{escape(item["relationship_type"])} · {escape(item["trust_state"])} · {escape(item["revision_review_state"] or "unknown")}</p>'
                     f"<h3>{link(item['title'], object_url(role, str(item['object_id'])))}</h3>"
                     f"<p>{escape(item['path'])}</p>"
-                    f"{link('Read guidance', object_url(role, str(item['object_id'])), css_class='button button-ghost', attrs={'data-action-id': 'open-primary-surface'})}"
+                    f"{link('Open content', object_url(role, str(item['object_id'])), css_class='button button-ghost', attrs={'data-action-id': 'open-primary-surface'})}"
                     "</article>"
                 )
                 for item in linked_objects

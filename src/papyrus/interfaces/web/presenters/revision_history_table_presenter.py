@@ -70,7 +70,7 @@ def render_revision_history_table(
     )
     return (
         '<section class="revision-history-table" data-component="revision-history-table" data-surface="revision-history">'
-        '<p class="revision-history-table__kicker">Read</p>'
+        '<p class="revision-history-table__kicker">Content</p>'
         "<h2>Revision history</h2>"
         f"{body_html}"
         f'<p class="section-footer">{link(object_info["title"], object_url(role, str(object_info["object_id"])))} · {escape(object_info["canonical_path"])}</p>'

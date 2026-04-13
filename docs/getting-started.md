@@ -1,6 +1,8 @@
 # Getting Started
 
-Use this path when you need a working Papyrus runtime quickly and want the current role-scoped operator path, not just the underlying repository surfaces.
+Papyrus is a governed knowledge management database that provides end users with dependable content, while IT operators maintain backend authorship and oversight.
+
+Use this path when you need a working Papyrus runtime quickly and want the current operator workflow, not just the underlying repository surfaces.
 
 ## 1. Prepare The Environment
 
@@ -36,17 +38,17 @@ What to expect:
 - Reader surfaces live under `/reader/*`.
 - Operator surfaces live under `/operator/*`.
 - Admin surfaces live under `/admin/*`.
-- Navigation is organized as `Read`, `Write`, `Import`, `Review / Approvals`, `Knowledge Health`, `Services`, and `Activity / History` within the active role route group.
+- Navigation is organized as `Content`, `Authoring`, `Import`, `Review`, `Oversight`, `Services`, and `History` within the active role route group.
 - `/operator/write/new` starts blueprint-driven guided section authoring with citation lookup and searchable multi-select controls in the same flow.
 - Guided drafting stays on the shared `normal` shell, so sidebar navigation and the topbar role label remain visible while you author.
-- `Read` is split into a search/select workspace and an article surface. The default object page reads in article order: what it is, when to use it, what to do, how to verify, how to recover, and only then governance/source detail.
-- `Services`, `Review`, `Knowledge Health`, and `Activity` are intentionally different work surfaces rather than the same queue chrome with different labels.
+- `Content` is split into a search/select workspace and an article surface. The default object page reads in article order: what it is, when to use it, what to do, how to verify, how to recover, and only then governance/source detail.
+- `Services`, `Review`, `Oversight`, and `History` are intentionally different work surfaces rather than the same queue chrome with different labels.
 - Guided draft creation is explicit: object setup creates the first draft before redirecting, and later entrypoints use a governed start action rather than relying on GET requests to create state.
 - `/operator/import` starts the upload, parse, classify, map, review, and convert flow for external files.
 - Browser upload is the normal web ingest path. Browser-submitted local file paths are disabled unless you explicitly enable `--allow-web-ingest-local-paths` on the local operator web surface.
 - Markdown and DOCX parse locally. PDF import is limited to text-based PDFs and may surface degraded extraction warnings.
 - Import review shows parser warnings, extraction quality, mapping gaps, low-confidence matches, unmapped content, and mapping conflicts before conversion.
-- Read, write, review, and manage screens consume backend projection and action contracts. If a screen needs governed truth that is missing, extend the backend contract layer rather than adding route-local lifecycle or acknowledgement logic.
+- Content, authoring, review, and oversight screens consume backend projection and action contracts. If a screen needs governed truth that is missing, extend the backend contract layer rather than adding route-local lifecycle or acknowledgement logic.
 
 For terminal-first work:
 
@@ -100,9 +102,9 @@ Guardrail:
 
 ## 3. Pick The Right Playbook
 
-- Need to find or verify current guidance safely: [Read](playbooks/read.md)
-- Need to create, import, or revise lifecycle-managed guidance: [Write](playbooks/write.md)
-- Need to make review or stewardship decisions: [Manage](playbooks/manage.md)
+- Need to find or verify current guidance safely: [Content](playbooks/read.md)
+- Need to create, import, or revise lifecycle-managed guidance: [Authoring](playbooks/write.md)
+- Need to make review or oversight decisions: [Oversight](playbooks/manage.md)
 
 ## 4. Use The Right Source
 

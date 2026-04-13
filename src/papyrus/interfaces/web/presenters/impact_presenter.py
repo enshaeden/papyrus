@@ -59,8 +59,8 @@ def present_object_impact(
     )
     summary_html = render_impact_summary(
         components=components,
-        title="Change consequences",
-        summary="Use the selected row to inspect the most important downstream consequence.",
+        title="Change impact",
+        summary="Use the selected row to inspect the most important downstream effect.",
         impacted_count=len(impact["impacted_objects"]),
         recent_events_count=len(impact["recent_events"]),
         related_services_count=len(impact["related_services"]),
@@ -138,7 +138,7 @@ def present_object_impact(
         "page_template": "pages/impact_object.html",
         "page_title": f"Impact {entity['title']}",
         "page_header": {
-            "headline": f"Change consequences: {entity['title']}",
+            "headline": f"Change impact: {entity['title']}",
             "show_actor_links": True,
         },
         "active_nav": "health",
@@ -214,7 +214,7 @@ def present_service_impact(
         "page_template": "pages/impact_service.html",
         "page_title": f"Impact {entity['service_name']}",
         "page_header": {
-            "headline": f"Change consequences: {entity['service_name']}",
+            "headline": f"Change impact: {entity['service_name']}",
             "show_actor_links": True,
         },
         "active_nav": "health",

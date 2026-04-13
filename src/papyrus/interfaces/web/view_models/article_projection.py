@@ -207,7 +207,7 @@ def _runbook_sections(
         _section(
             "when_to_use",
             "When to use",
-            eyebrow="Read",
+            eyebrow="Content",
             blocks=[_paragraph_block(purpose.get("use_when") or metadata.get("use_when"))],
             empty="No trigger guidance is recorded.",
         ),
@@ -288,7 +288,7 @@ def _known_error_sections(
         _section(
             "when_to_use",
             "When to use",
-            eyebrow="Read",
+            eyebrow="Content",
             blocks=[
                 _list_block(
                     diagnosis.get("symptoms") or metadata.get("symptoms"), title="Symptoms"
@@ -371,7 +371,7 @@ def _service_record_sections(
         _section(
             "when_to_use",
             "When to use",
-            eyebrow="Read",
+            eyebrow="Content",
             blocks=[_paragraph_block(profile.get("scope_notes"), title="Scope")],
             empty="No scope notes are recorded.",
         ),
@@ -456,7 +456,7 @@ def _policy_sections(
         _section(
             "when_to_use",
             "When to use",
-            eyebrow="Read",
+            eyebrow="Content",
             blocks=[
                 _paragraph_block(
                     section_content.get("policy_scope", {}).get("policy_scope")
@@ -530,7 +530,7 @@ def _system_design_sections(
         _section(
             "when_to_use",
             "When to use",
-            eyebrow="Read",
+            eyebrow="Content",
             blocks=[
                 _paragraph_block(
                     section_content.get("architecture", {}).get("architecture")

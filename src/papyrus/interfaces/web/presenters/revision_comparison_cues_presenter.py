@@ -16,7 +16,7 @@ def render_revision_comparison_cues(*, components: ComponentPresenter) -> str:
     )
     return (
         '<section class="revision-comparison-cues" data-component="revision-comparison-cues" data-surface="revision-history">'
-        '<p class="revision-comparison-cues__kicker">Read</p>'
+        '<p class="revision-comparison-cues__kicker">Content</p>'
         "<h2>Comparison cues</h2>"
         f"{body_html}</section>"
     )

@@ -1,5 +1,7 @@
 # System Model
 
+Papyrus is a governed knowledge management database that provides end users with dependable content, while IT operators maintain backend authorship and oversight.
+
 Use this page when you need the minimum shared model behind Papyrus. Each rule is defined once here so operators do not have to reconstruct the system from multiple architecture notes.
 
 ## Operating Boundary
@@ -10,7 +12,7 @@ Papyrus keeps governed mutation meaning in shared backend contracts, rebuildable
 - Runtime derived state: rebuildable relational state and local workbench artifacts under `build/` used for validation, search, reporting, revision history, trust, governance views, ingestion review, and demo seeding
 - Export derived state: approved-content publication output under `generated/` and `site/`
 - Blueprint authoring flow: structured draft creation and revision driven by blueprint sections
-- Import workbench flow: upload, parse with extraction warnings and quality signals, classify, generate and review mapping, and convert external files into the same structured draft model
+- Import flow: upload, parse with extraction warnings and quality signals, classify, generate and review mapping, and convert external files into the same structured draft model
 
 If these layers disagree, canonical source wins and the runtime or export must be rebuilt.
 
@@ -28,7 +30,7 @@ If these layers disagree, canonical source wins and the runtime or export must b
 | Trust model | Trust posture is separate from lifecycle and can degrade to `suspect`, `stale`, or `weak_evidence`. | Operators need to know whether current guidance is safe to rely on, not just whether it exists. | Active objects may be used even when evidence is broken, ownership is unclear, or upstream change invalidated them. |
 | Citation model | Citations are runtime-tracked evidence records tied to claims and targets, not passive front matter decoration. Governed Papyrus references are lightweight internal references, while stronger external or manual evidence depends on capture metadata and any required snapshot. | Evidence needs to stay inspectable, degradable, and auditable as targets change. | Broken, vague, migration-era, or weakly captured citations can be mistaken for healthy evidence. |
 | Ingestion model | External files are stored as ingestion jobs with normalized artifacts, parser warnings, extraction quality, classification output, mapping review, and explicit conversion into a draft. PDF support is limited to text-based PDFs; degraded extraction, mapping conflicts, low-confidence matches, and unmapped content stay visible before conversion. | Imported content must be inspectable and reviewable before it can influence canonical knowledge. | Low-signal parse output, mapping conflicts, or unmapped content get hidden and governance review starts after structure has already drifted. |
-| Event model | Structured change, validation, and evidence events are ingested locally and stored in the runtime. | Papyrus needs explicit change inputs before it can propagate consequence and queue revalidation work. | Trust degradation becomes hidden, impact reasoning stays anecdotal, and operators cannot trace why posture changed. |
+| Event model | Structured change, validation, and evidence events are ingested locally and stored in the runtime. | Papyrus needs explicit change inputs before it can propagate review and revalidation work. | Trust degradation becomes hidden, impact reasoning stays anecdotal, and operators cannot trace why posture changed. |
 | Accountability model | Governed actions always record an actor. Web, API, CLI, demo, and scenario flows all route actor identity through the application layer. | Review, rejection, evidence, and source updates need a clear accountable actor in audit history. | Audit trails become ambiguous and governance actions cannot be defended or replayed safely. |
 | Variant modeling | Shared procedures should live once, while site or room differences stay in overview pages, access pages, or narrowly scoped exceptions. | A single base procedure reduces drift and keeps local deltas visible without forking the workflow body. | Operators update one site copy and assume the family changed everywhere, leaving hidden divergence in sibling articles. |
 | Validation and reporting | Validation enforces schema, taxonomy, metadata, link, citation, and repository rules; reporting exposes stale, duplicate, broken, isolated, or suspect content. | Papyrus depends on controlled structure and visible drift signals. | Invalid or low-quality knowledge enters the corpus and governance problems stay hidden. |

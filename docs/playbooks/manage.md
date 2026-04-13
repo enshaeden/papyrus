@@ -1,12 +1,12 @@
-# Manage Playbook
+# Oversight Playbook
 
-Use this playbook when you review revisions, make lifecycle decisions, monitor knowledge health, or inspect the consequence trail behind a change.
+Use this playbook when you review revisions, make lifecycle decisions, monitor content risk, or inspect recent change and audit history.
 
-The rebuilt manage surfaces are intentionally distinct:
+The oversight surfaces are intentionally distinct:
 
-- `Review / Approvals` is a dense reviewer workbench
-- `Knowledge Health` is an intervention board grouped by debt type
-- `Activity / History` is a consequence-first feed
+- `Review` is a dense reviewer workbench
+- `Oversight` is an intervention board grouped by debt type
+- `History` is a recent change and audit feed
 
 ## Refresh The Runtime Before Review
 
@@ -21,7 +21,7 @@ Failure signals:
 - runtime build errors
 - stale queue or trust data after source changes
 
-## Start With Review Or Knowledge Health
+## Start With Review Or Oversight
 
 Open the runtime-backed queue:
 
@@ -34,14 +34,14 @@ python3 scripts/operator_view.py activity --db build/knowledge.db
 ```
 
 - Web review route: `/operator/review`
-- Web knowledge health route: `/operator/review/governance`
-- Web activity route: `/operator/review/activity`
+- Web oversight route: `/operator/review/governance`
+- Web history route: `/operator/review/activity`
 
 Use these surfaces by purpose:
 
-- `Review / Approvals`: ready for review, needs decision, drafts and rework, with selected context only when it helps a decision
-- `Knowledge Health`: stale guidance, weak evidence, suspect objects, ownership gaps, and cleanup debt grouped by intervention type
-- `Activity / History`: recent consequences, validation outcomes, and writeback/audit recovery context, with raw payload detail behind disclosure
+- `Review`: ready for review, needs decision, drafts and rework, with selected context only when it helps a decision
+- `Oversight`: stale guidance, weak evidence, suspect objects, ownership gaps, and cleanup debt grouped by intervention type
+- `History`: recent changes, validation outcomes, and writeback or audit recovery context, with raw payload detail behind disclosure
 
 Imported drafts and native drafts use the same review and approval path only after the import workbench conversion step. Parser warnings, degraded extraction, mapping conflicts, low-confidence matches, and unmapped content stay in the import review stage and should not be hidden during draft conversion.
 
@@ -88,11 +88,11 @@ Use object detail, activity history, and revision history to answer:
 
 If the trail is unclear, do not approve the revision until the author updates the source and change summary.
 
-Manager view guidance:
+Oversight view guidance:
 
-- start from `Knowledge Health` when you need to reduce risk across the portfolio
+- start from `Oversight` when you need to reduce risk across the portfolio
 - start from `Services` when service criticality or ownership should drive intervention
-- use `Activity / History` to understand downstream consequence before escalating process or staffing pressure
+- use `History` to understand recent changes before escalating process or staffing pressure
 
 ## Run Stale And Content-Health Checks
 
@@ -122,11 +122,11 @@ Treat these as escalation conditions:
 - objects with no owner or no clear responsible team
 - current guidance that is active but overdue for review
 
-Use knowledge health for trend and stewardship visibility:
+Use oversight for trend and review visibility:
 
-- Web knowledge health route: `/operator/review/governance`
+- Web oversight route: `/operator/review/governance`
 - API trust dashboard route: `/dashboard/trust`
-- CLI knowledge health: `python3 scripts/operator_view.py health --db build/knowledge.db`
+- CLI oversight view: `python3 scripts/operator_view.py health --db build/knowledge.db`
 
 Additional governed manage routes:
 
@@ -152,6 +152,6 @@ Use these commands when source sync needs explicit inspection or rollback. Previ
 - if recovery cannot prove a safe result, Papyrus stops the operation and surfaces the blocking reason instead of ignoring the journal or lock
 - archive, writeback, and restore acknowledgements come from backend contracts; operators should only confirm what the current contract requires
 
-## Use Papyrus As A Stewardship Surface
+## Use Papyrus As An Oversight Surface
 
-Papyrus is the place to judge whether guidance is current, owned, reviewed, supported by evidence, and still safe after change. Use canonical Markdown for authored content, and use review, knowledge health, activity, service, and impact views to shepherd that content through its lifecycle.
+Papyrus is the place to judge whether guidance is current, owned, reviewed, supported by evidence, and still safe after change. Use canonical Markdown for authored content, and use review, oversight, history, service, and impact views to shepherd that content through its lifecycle.

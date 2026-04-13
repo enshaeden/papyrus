@@ -98,5 +98,5 @@ class HomeLaunchBlockPresenterTests(SemanticHookAssertions, unittest.TestCase):
         )
 
         self.assert_component_count(html, "home-launch-block", 9)
-        self.assertIn("Recent governance consequences", html)
+        self.assertIn("Recent changes", html)
         self.assertIn("Inspect the queue.", html)

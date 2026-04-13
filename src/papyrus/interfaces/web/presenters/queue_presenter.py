@@ -51,19 +51,19 @@ def present_queue_page(
     )
     dense_mode = bool(behavior and behavior.show_context_rail)
     if role == READER_ROLE:
-        intro = "Reader browse stays content-first and only surfaces reader-visible objects."
-        page_title = "Browse Guidance"
-        header_headline = "Browse"
+        intro = "Reader content stays focused on dependable reader-visible material."
+        page_title = "Content"
+        header_headline = "Content"
         active_nav = "read"
     elif role == ADMIN_ROLE:
-        intro = "Admin inspection stays dense so governance, service impact, and next action remain in scan range."
-        page_title = "Inspect Guidance"
-        header_headline = "Inspect"
+        intro = "Admin content stays dense so oversight, service impact, and next action remain in scan range."
+        page_title = "Content"
+        header_headline = "Content"
         active_nav = "inspect"
     else:
-        intro = "Operators see readable article candidates first; governance detail moves behind the article until it is needed."
-        page_title = "Read Guidance"
-        header_headline = "Read"
+        intro = "Operators see dependable content first; oversight detail stays behind the article until it is needed."
+        page_title = "Content"
+        header_headline = "Content"
         active_nav = "read"
     return {
         "page_template": "pages/queue.html",

@@ -418,12 +418,12 @@ def render_site_home(
         ),
         (
             "Operator Docs",
-            "Orientation, role-based playbooks, and the concise system model for operating Papyrus.",
+            "Orientation, workflow playbooks, and the concise system model for operating Papyrus.",
             site_href(current_relative, Path("system-design-docs/index.md")),
         ),
         (
             "Governance & Decisions",
-            "Consolidated repository policy, information-governance rules, and structural rationale for operators.",
+            "Accepted repository decisions, structural rules, and durable rationale for operating Papyrus.",
             site_href(current_relative, Path("decisions/index.md")),
         ),
     ]
@@ -439,6 +439,7 @@ def render_site_home(
     return (
         "<!-- Generated from source content. Do not edit here. -->\n\n"
         "# Papyrus\n\n"
+        "Papyrus is a governed knowledge management database that provides end users with dependable content, while IT operators maintain backend authorship and oversight.\n\n"
         "This site is an optional approved-content export from Papyrus.\n\n"
         "The primary operator surfaces are the CLI, the local runtime database, the JSON API, and the server-rendered operator web interface.\n\n"
         "Use this export for browseable approved knowledge and supporting repository documentation. Do not treat it as the operational control plane or source of truth.\n\n"
@@ -456,7 +457,7 @@ def render_site_home(
         "- Use [Operator Docs](system-design-docs/index.md) for orientation, role-based playbooks, and the concise system model.\n"
         "- Source of truth: `docs/`.\n\n"
         "### Governance & Decisions\n\n"
-        "- Use [Governance & Decisions](decisions/index.md) for the consolidated operator-facing governance record, structural rules, and durable rationale.\n"
+        "- Use [Governance & Decisions](decisions/index.md) for accepted repository decisions, structural rules, and durable rationale.\n"
         "- Source of truth: `decisions/` for accepted repository decisions, with supporting operator material referenced from `docs/`.\n"
     )
 
@@ -1086,7 +1087,9 @@ def render_authors_page(
         "## Workflow References",
         "",
         f"- [Getting started]({repo_doc_link(current_relative, 'docs/getting-started.md')})",
-        f"- [Write playbook]({repo_doc_link(current_relative, 'docs/playbooks/write.md')})",
+        f"- [Content playbook]({repo_doc_link(current_relative, 'docs/playbooks/read.md')})",
+        f"- [Authoring playbook]({repo_doc_link(current_relative, 'docs/playbooks/write.md')})",
+        f"- [Oversight playbook]({repo_doc_link(current_relative, 'docs/playbooks/manage.md')})",
         f"- [System model]({repo_doc_link(current_relative, 'docs/reference/system-model.md')})",
         "",
     ]

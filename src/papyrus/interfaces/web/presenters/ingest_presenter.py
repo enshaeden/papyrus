@@ -83,9 +83,9 @@ def present_ingest_list_page(
     forms = FormPresenter(renderer)
     return {
         "page_template": "pages/ingest_list.html",
-        "page_title": "Import workbench",
+        "page_title": "Import",
         "page_header": {
-            "headline": "Import workbench",
+            "headline": "Import",
             "show_actor_links": True,
         },
         "active_nav": "import",

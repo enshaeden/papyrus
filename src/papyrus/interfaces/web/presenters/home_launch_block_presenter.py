@@ -23,7 +23,7 @@ _HOME_LAUNCH_ACTION_LABELS = {
     "queue_status": "Open board",
     "pending_decisions": "Review",
     "blocked_reviews": "Inspect",
-    "governance_consequences": "Open activity",
+    "recent_changes": "Open history",
     "risk_pressure": "Open board",
     "review_pressure": "Open board",
     "service_pressure": "Open service",
@@ -104,7 +104,7 @@ def _render_do_now_block(dashboard: dict[str, Any]) -> str:
         for item in safe_items
     ] or [
         _render_block_item(
-            title="Read guidance",
+            title="Open content",
             detail="Start from the read workspace.",
             href="/reader/browse" if role == READER_ROLE else "/operator/read",
             metric=str(dashboard["counts"]["read_ready"]),
@@ -168,7 +168,7 @@ def _render_watch_block(dashboard: dict[str, Any]) -> str:
         for item in watch_items
     ] or [
         _render_block_item(
-            title="Health board",
+            title="Oversight",
             detail="No urgent follow-up items are queued.",
             href=governance_url(role),
             metric=str(dashboard["counts"]["needs_revalidation"]),
@@ -179,7 +179,7 @@ def _render_watch_block(dashboard: dict[str, Any]) -> str:
     return _render_block_shell(
         block_id="watch",
         title="Watch",
-        summary="These items should change today’s decisions only if they affect the article you are using.",
+        summary="These items may change whether the current content is dependable.",
         tone="warning",
         items_html=items_html,
     )
@@ -294,15 +294,15 @@ def _render_governance_consequences_block(dashboard: dict[str, Any]) -> str:
             href=activity_url(role),
             metric=str(event.get("entity_type") or "event"),
             tone="default",
-            action_label=_HOME_LAUNCH_ACTION_LABELS["governance_consequences"],
+            action_label=_HOME_LAUNCH_ACTION_LABELS["recent_changes"],
             action_id="open-activity",
         )
         for event in list(dashboard["events"])[:4]
     ]
     return _render_block_shell(
-        block_id="governance_consequences",
-        title="Recent governance consequences",
-        summary="Only recent events with reviewer follow-up stay on the home surface.",
+        block_id="recent_changes",
+        title="Recent changes",
+        summary="Only recent events with reviewer or audit follow-up stay on the home surface.",
         tone="default",
         items_html=items_html,
     )
@@ -339,8 +339,8 @@ def _render_risk_pressure_block(dashboard: dict[str, Any]) -> str:
     ]
     return _render_block_shell(
         block_id="risk_pressure",
-        title="Risk pressure",
-        summary="Guidance that is weak, stale, or suspect enough to affect portfolio trust.",
+        title="Oversight",
+        summary="Content that is weak, stale, or suspect enough to need backend oversight.",
         tone="danger",
         items_html=items_html,
     )
@@ -472,7 +472,7 @@ def _render_portfolio_trends_block(dashboard: dict[str, Any]) -> str:
         ),
         _render_block_item(
             title="Recent activity",
-            detail="Recent changes and consequences.",
+            detail="Recent changes and follow-up.",
             href=activity_url(role),
             metric=str(counts["recent_activity"]),
             tone="default",

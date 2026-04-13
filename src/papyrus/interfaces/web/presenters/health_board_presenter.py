@@ -88,14 +88,14 @@ def render_health_board(*, role: str, queue: list[dict[str, Any]]) -> str:
         )
         + render_health_column(
             "Review backlog",
-            "Guidance waiting on explicit governance decisions.",
+            "Content waiting on explicit review decisions.",
             groups["review_backlog"],
             role=role,
             tone="warning",
         )
         + render_health_column(
             "Ownership gaps",
-            "Articles that need clearer stewardship before they age into drift.",
+            "Articles that need clearer ownership before they age into drift.",
             groups["ownership_gaps"],
             role=role,
             tone="brand",

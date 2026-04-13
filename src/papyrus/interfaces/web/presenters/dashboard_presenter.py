@@ -23,10 +23,10 @@ def present_trust_dashboard(
     del renderer, selected_object_id, selected_revision_id
     return {
         "page_template": "pages/dashboard_trust.html",
-        "page_title": "Knowledge Health",
+        "page_title": "Oversight",
         "page_header": {
-            "headline": "Knowledge Health",
-            "intro": "Stewardship and risk board",
+            "headline": "Oversight",
+            "intro": "Content risk and review board",
         },
         "active_nav": "health",
         "aside_html": "",

@@ -80,7 +80,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn('class="sidebar"', body)
             self.assertIn('class="topbar-menu"', body)
             self.assertIn(
-                'class="sidebar-link is-active" href="/operator/write/new">Write</a>', body
+                'class="sidebar-link is-active" href="/operator/write/new">Authoring</a>', body
             )
 
     def test_policy_revision_page_shows_guided_policy_fields(self) -> None:
@@ -226,7 +226,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn('class="sidebar"', guided_body)
             self.assertIn('class="topbar-menu"', guided_body)
             self.assertIn(
-                'class="sidebar-link is-active" href="/operator/write/new">Write</a>', guided_body
+                'class="sidebar-link is-active" href="/operator/write/new">Authoring</a>', guided_body
             )
             self.assertNotIn("shell-columns-focus", guided_body)
             self.assertIn("/static/js/citation_picker.js", guided_body)

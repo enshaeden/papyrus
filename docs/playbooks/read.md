@@ -1,6 +1,6 @@
-# Read Playbook
+# Content Playbook
 
-Use this playbook when you need the right operational guidance, need to know whether it is safe to rely on, and need a readable article with a clear next step if it is not.
+Use this playbook when you need dependable content, need to know whether it is safe to rely on, and need a clear next step if it is not.
 
 ## Build Or Refresh The Runtime
 
@@ -34,11 +34,11 @@ python3 scripts/serve_api.py
 ```
 
 - Web operator home route: `/operator`
-- Web read route: `/operator/read`
-- Web knowledge health route: `/operator/review/governance`
+- Web content route: `/operator/read`
+- Web oversight route: `/operator/review/governance`
 - API queue route: `/queue`
 
-Use search when you know the topic. Use the home page, read workspace, service map, or knowledge-health board when you need to browse by role, service context, or operational posture.
+Use search when you know the topic. Use the home page, content workspace, service map, or oversight board when you need to browse by role, service context, or operational posture.
 
 Use the operator CLI when you need parity checks without opening the browser:
 
@@ -47,7 +47,7 @@ Use the operator CLI when you need parity checks without opening the browser:
 - `python3 scripts/operator_view.py object <object_id> --db build/knowledge.db`
 - `python3 scripts/operator_view.py activity --db build/knowledge.db`
 
-## Use The Two-Step Read Flow
+## Use The Two-Step Content Flow
 
 1. Use `/operator/read` as the selection workspace.
 2. Open the object detail page to read the article in operational order.
@@ -63,7 +63,7 @@ What the article surface prioritizes:
 - escalation and boundaries
 - linked service context
 
-Governance, evidence posture, and raw revision source stay secondary so the article reads like an operational document first.
+Governance, evidence posture, and raw revision source stay secondary so the article reads like dependable content first.
 
 ## Check Trust Posture Before Acting
 
@@ -87,7 +87,7 @@ Failure signals:
 - Suspect-object flags caused by upstream change.
 - No clear owner for escalation.
 
-## Read The Article, Then The Supporting Context
+## Use The Article, Then The Supporting Context
 
 From the runtime-backed surfaces, inspect:
 
@@ -130,4 +130,4 @@ Escalate or avoid reliance when:
 - citations are broken, missing, or obviously inherited from weak migration provenance
 - related objects or services show recent change that may invalidate the current guidance
 
-Use the manage playbook when you need to review the queue or audit why an object is suspect.
+Use the oversight playbook when you need to review the queue or audit why an object is suspect.
