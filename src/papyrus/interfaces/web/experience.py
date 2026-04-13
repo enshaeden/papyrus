@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from papyrus.application.role_visibility import ADMIN_ROLE, OPERATOR_ROLE, READER_ROLE, normalize_role
+from papyrus.application.role_visibility import (
+    ADMIN_ROLE,
+    OPERATOR_ROLE,
+    READER_ROLE,
+    normalize_role,
+)
 
 
 class RoleAccessDeniedError(Exception):
@@ -70,7 +75,9 @@ class ExperienceContext:
         return ShellPageConfig(page_id=normalized_page_id or "default")
 
 
-def _page_configs(*page_ids: str, shell_variant: str = "normal", header_variant: str = "compact") -> tuple[ShellPageConfig, ...]:
+def _page_configs(
+    *page_ids: str, shell_variant: str = "normal", header_variant: str = "compact"
+) -> tuple[ShellPageConfig, ...]:
     return tuple(
         ShellPageConfig(
             page_id=page_id,
@@ -92,13 +99,13 @@ READER_EXPERIENCE = ExperienceContext(
         ShellSection(
             title="Knowledge",
             description="Browse current guidance and open content-first object views.",
-            items=(
-                ShellLink("read", "Browse", "/reader/browse", match_prefixes=("/reader",)),
-            ),
+            items=(ShellLink("read", "Browse", "/reader/browse", match_prefixes=("/reader",)),),
         ),
     ),
     page_behaviors=(
-        ExperiencePageBehavior("read-queue", mode="library", density="comfortable", columns="single"),
+        ExperiencePageBehavior(
+            "read-queue", mode="library", density="comfortable", columns="single"
+        ),
         ExperiencePageBehavior(
             "object-detail",
             mode="document",
@@ -124,18 +131,47 @@ OPERATOR_EXPERIENCE = ExperienceContext(
             items=(
                 ShellLink("home", "Home", "/operator", match_prefixes=()),
                 ShellLink("read", "Read", "/operator/read", match_prefixes=("/operator/read",)),
-                ShellLink("write", "Write", "/operator/write/new", match_prefixes=("/operator/write",)),
-                ShellLink("import", "Import", "/operator/import", match_prefixes=("/operator/import",)),
-                ShellLink("review", "Review / Approvals", "/operator/review", match_prefixes=("/operator/review",)),
-                ShellLink("health", "Knowledge Health", "/operator/review/governance", match_prefixes=("/operator/review/governance", "/operator/review/impact")),
-                ShellLink("services", "Services", "/operator/read/services", match_prefixes=("/operator/read/services",)),
-                ShellLink("activity", "Activity / History", "/operator/review/activity", match_prefixes=("/operator/review/activity", "/operator/review/validation-runs")),
+                ShellLink(
+                    "write", "Write", "/operator/write/new", match_prefixes=("/operator/write",)
+                ),
+                ShellLink(
+                    "import", "Import", "/operator/import", match_prefixes=("/operator/import",)
+                ),
+                ShellLink(
+                    "review",
+                    "Review / Approvals",
+                    "/operator/review",
+                    match_prefixes=("/operator/review",),
+                ),
+                ShellLink(
+                    "health",
+                    "Knowledge Health",
+                    "/operator/review/governance",
+                    match_prefixes=("/operator/review/governance", "/operator/review/impact"),
+                ),
+                ShellLink(
+                    "services",
+                    "Services",
+                    "/operator/read/services",
+                    match_prefixes=("/operator/read/services",),
+                ),
+                ShellLink(
+                    "activity",
+                    "Activity / History",
+                    "/operator/review/activity",
+                    match_prefixes=(
+                        "/operator/review/activity",
+                        "/operator/review/validation-runs",
+                    ),
+                ),
             ),
         ),
     ),
     page_behaviors=(
         ExperiencePageBehavior("home", mode="launchpad", density="comfortable", columns="single"),
-        ExperiencePageBehavior("read-queue", mode="article-first", density="comfortable", columns="single"),
+        ExperiencePageBehavior(
+            "read-queue", mode="article-first", density="comfortable", columns="single"
+        ),
         ExperiencePageBehavior(
             "object-detail",
             mode="article-first",
@@ -143,13 +179,35 @@ OPERATOR_EXPERIENCE = ExperienceContext(
             columns="article",
             allowed_secondary_sections=("governance", "evidence", "source"),
         ),
-        ExperiencePageBehavior("review", mode="review-workbench", density="dense", columns="wide", show_context_rail=True),
-        ExperiencePageBehavior("knowledge-health", mode="review-stewardship", density="dense", columns="wide", show_context_rail=True),
-        ExperiencePageBehavior("activity", mode="consequence-feed", density="medium", columns="wide"),
+        ExperiencePageBehavior(
+            "review",
+            mode="review-workbench",
+            density="dense",
+            columns="wide",
+            show_context_rail=True,
+        ),
+        ExperiencePageBehavior(
+            "knowledge-health",
+            mode="review-stewardship",
+            density="dense",
+            columns="wide",
+            show_context_rail=True,
+        ),
+        ExperiencePageBehavior(
+            "activity", mode="consequence-feed", density="medium", columns="wide"
+        ),
         ExperiencePageBehavior("services", mode="entry-map", density="comfortable", columns="wide"),
     ),
     page_configs=(
-        *_page_configs("home", "read-queue", "object-detail", "services", "review", "knowledge-health", "activity"),
+        *_page_configs(
+            "home",
+            "read-queue",
+            "object-detail",
+            "services",
+            "review",
+            "knowledge-health",
+            "activity",
+        ),
         *_page_configs("impact-object", "impact-service"),
         *_page_configs("revision-history", header_variant="compact"),
     ),
@@ -168,17 +226,37 @@ ADMIN_EXPERIENCE = ExperienceContext(
             description="Inspect oversight, approvals, governance pressure, service impact, and audit history without blending in operator authoring routes.",
             items=(
                 ShellLink("home", "Overview", "/admin/overview", match_prefixes=()),
-                ShellLink("inspect", "Inspect", "/admin/inspect", match_prefixes=("/admin/inspect",)),
+                ShellLink(
+                    "inspect", "Inspect", "/admin/inspect", match_prefixes=("/admin/inspect",)
+                ),
                 ShellLink("review", "Review", "/admin/review", match_prefixes=("/admin/review",)),
-                ShellLink("health", "Governance", "/admin/governance", match_prefixes=("/admin/governance", "/admin/impact")),
-                ShellLink("services", "Services", "/admin/services", match_prefixes=("/admin/services",)),
-                ShellLink("activity", "Audit", "/admin/audit", match_prefixes=("/admin/audit", "/admin/validation-runs")),
+                ShellLink(
+                    "health",
+                    "Governance",
+                    "/admin/governance",
+                    match_prefixes=("/admin/governance", "/admin/impact"),
+                ),
+                ShellLink(
+                    "services", "Services", "/admin/services", match_prefixes=("/admin/services",)
+                ),
+                ShellLink(
+                    "activity",
+                    "Audit",
+                    "/admin/audit",
+                    match_prefixes=("/admin/audit", "/admin/validation-runs"),
+                ),
             ),
         ),
     ),
     page_behaviors=(
         ExperiencePageBehavior("home", mode="control-room", density="dense", columns="wide"),
-        ExperiencePageBehavior("read-queue", mode="triage-workbench", density="dense", columns="split", show_context_rail=True),
+        ExperiencePageBehavior(
+            "read-queue",
+            mode="triage-workbench",
+            density="dense",
+            columns="split",
+            show_context_rail=True,
+        ),
         ExperiencePageBehavior(
             "object-detail",
             mode="inspection-workbench",
@@ -187,13 +265,31 @@ ADMIN_EXPERIENCE = ExperienceContext(
             show_context_rail=True,
             allowed_secondary_sections=("governance", "evidence", "audit", "source"),
         ),
-        ExperiencePageBehavior("review", mode="control-review", density="dense", columns="wide", show_context_rail=True),
-        ExperiencePageBehavior("knowledge-health", mode="control-governance", density="dense", columns="wide", show_context_rail=True),
+        ExperiencePageBehavior(
+            "review", mode="control-review", density="dense", columns="wide", show_context_rail=True
+        ),
+        ExperiencePageBehavior(
+            "knowledge-health",
+            mode="control-governance",
+            density="dense",
+            columns="wide",
+            show_context_rail=True,
+        ),
         ExperiencePageBehavior("activity", mode="audit-feed", density="medium", columns="wide"),
-        ExperiencePageBehavior("services", mode="service-oversight", density="comfortable", columns="wide"),
+        ExperiencePageBehavior(
+            "services", mode="service-oversight", density="comfortable", columns="wide"
+        ),
     ),
     page_configs=(
-        *_page_configs("home", "read-queue", "object-detail", "services", "review", "knowledge-health", "activity"),
+        *_page_configs(
+            "home",
+            "read-queue",
+            "object-detail",
+            "services",
+            "review",
+            "knowledge-health",
+            "activity",
+        ),
         *_page_configs("impact-object", "impact-service"),
         *_page_configs("revision-history", header_variant="compact"),
     ),

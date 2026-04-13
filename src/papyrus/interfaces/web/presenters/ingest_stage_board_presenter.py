@@ -20,7 +20,11 @@ def render_ingest_stage_board(*, detail: dict[str, object]) -> str:
     mapping_generated = has_mapping_result(mapping)
     extraction_quality = normalized.get("extraction_quality") or {}
     parser_warnings = normalized.get("parser_warnings") or []
-    parse_tone = "warning" if str(extraction_quality.get("state") or "") == "degraded" or parser_warnings else "approved"
+    parse_tone = (
+        "warning"
+        if str(extraction_quality.get("state") or "") == "degraded" or parser_warnings
+        else "approved"
+    )
     cards = [
         _stage_card(
             title="Upload",
@@ -53,7 +57,12 @@ def render_ingest_stage_board(*, detail: dict[str, object]) -> str:
             title="Map",
             tone=(
                 "warning"
-                if mapping_generated and (mapping.get("missing_sections") or mapping.get("low_confidence") or mapping.get("conflicts"))
+                if mapping_generated
+                and (
+                    mapping.get("missing_sections")
+                    or mapping.get("low_confidence")
+                    or mapping.get("conflicts")
+                )
                 else "approved"
                 if mapping_generated
                 else "default"
@@ -77,7 +86,5 @@ def render_ingest_stage_board(*, detail: dict[str, object]) -> str:
         '<section class="ingest-stage-board" data-component="ingest-stage-board" data-surface="ingest-detail">'
         '<p class="ingest-stage-board__kicker">Import</p>'
         "<h2>Stage summary</h2>"
-        '<div class="ingest-stage-board__grid">'
-        + join_html(cards)
-        + "</div></section>"
+        '<div class="ingest-stage-board__grid">' + join_html(cards) + "</div></section>"
     )

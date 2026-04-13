@@ -3,7 +3,10 @@ from __future__ import annotations
 from papyrus.application.queries import impact_view_for_object, impact_view_for_service
 from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.http import Request, html_response
-from papyrus.interfaces.web.presenters.impact_presenter import present_object_impact, present_service_impact
+from papyrus.interfaces.web.presenters.impact_presenter import (
+    present_object_impact,
+    present_service_impact,
+)
 from papyrus.interfaces.web.route_utils import flash_html_for_request
 
 

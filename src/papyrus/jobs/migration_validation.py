@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
 from papyrus.infrastructure.paths import ROOT
 
@@ -35,7 +34,9 @@ def main() -> int:
         rationale_text = RATIONALE_PATH.read_text(encoding="utf-8")
         for removed_artifact in REMOVED_ARTIFACT_PATTERNS:
             if removed_artifact in rationale_text:
-                errors.append(f"migration rationale still references removed artifact: {removed_artifact}")
+                errors.append(
+                    f"migration rationale still references removed artifact: {removed_artifact}"
+                )
 
     for candidate in EXPECTED_COLLECTION_INDEXES:
         if not candidate.exists():

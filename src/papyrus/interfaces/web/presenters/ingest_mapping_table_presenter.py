@@ -4,7 +4,9 @@ from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.view_helpers import escape
 
 
-def render_ingest_mapping_table(*, components: ComponentPresenter, mapping: dict[str, object]) -> str:
+def render_ingest_mapping_table(
+    *, components: ComponentPresenter, mapping: dict[str, object]
+) -> str:
     section_rows = []
     for section_id, entry in mapping.get("sections", {}).items():
         match = entry.get("match") or {}
@@ -20,7 +22,13 @@ def render_ingest_mapping_table(*, components: ComponentPresenter, mapping: dict
         )
     body_html = (
         components.table(
-            headers=["Draft section", "Matched passage", "Matched heading", "Confidence", "Review state"],
+            headers=[
+                "Draft section",
+                "Matched passage",
+                "Matched heading",
+                "Confidence",
+                "Review state",
+            ],
             rows=section_rows,
             table_id="mapping-review",
             surface="ingest-review",

@@ -4,7 +4,9 @@ from papyrus.interfaces.web.urls import search_url
 from papyrus.interfaces.web.view_helpers import escape
 
 
-def render_read_filter_bar(*, role: str, query: str, selected_type: str, selected_trust: str, selected_review_state: str) -> str:
+def render_read_filter_bar(
+    *, role: str, query: str, selected_type: str, selected_trust: str, selected_review_state: str
+) -> str:
     return (
         f'<form class="read-filter-bar" method="get" action="{escape(search_url(role))}" data-component="read-filter-bar" data-surface="read-queue">'
         '<div class="read-filter-bar__search">'

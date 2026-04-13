@@ -74,7 +74,9 @@ DRAFT_PROGRESS_TRANSITIONS: dict[DraftProgressState, tuple[DraftProgressState, .
     ),
 }
 
-INGESTION_LIFECYCLE_TRANSITIONS: dict[IngestionLifecycleState, tuple[IngestionLifecycleState, ...]] = {
+INGESTION_LIFECYCLE_TRANSITIONS: dict[
+    IngestionLifecycleState, tuple[IngestionLifecycleState, ...]
+] = {
     IngestionLifecycleState.UPLOADED: (IngestionLifecycleState.PARSED,),
     IngestionLifecycleState.PARSED: (IngestionLifecycleState.CLASSIFIED,),
     IngestionLifecycleState.CLASSIFIED: (IngestionLifecycleState.MAPPED,),
@@ -165,7 +167,9 @@ def illegal_transition_message(machine: str, current_state: str, target_state: s
     return f"illegal {machine} transition: {current_state} -> {target_state}; allowed: {allowed}"
 
 
-def evaluate_transition(machine: str, current_state: str, target_state: str) -> TransitionDescriptor:
+def evaluate_transition(
+    machine: str, current_state: str, target_state: str
+) -> TransitionDescriptor:
     allowed_targets = allowed_transitions(machine, current_state)
     if current_state == target_state:
         return TransitionDescriptor(

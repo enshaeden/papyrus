@@ -159,10 +159,13 @@ Replace placeholders with the exact repository commands and do not leave obsolet
 - install: `./scripts/bootstrap.sh`
 - dev web: `python3 scripts/run.py --operator`
 - dev cli: `python3 scripts/operator_view.py queue --db build/knowledge.db`
-- lint: `not separately configured; do not claim lint coverage until a dedicated lint command exists`
-- typecheck: `not separately configured; do not claim typecheck coverage until a dedicated typecheck command exists`
+- format: `./scripts/format.sh`
+- lint: `./scripts/lint.sh`
+- typecheck: `./scripts/typecheck.sh`
 - test: `python3 -m unittest discover -s tests`
 - build: `./scripts/build.sh`
+- route map: `python3 scripts/build_route_map.py`
+- engineering gate: `./scripts/check.sh`
 - validate content: `python3 scripts/validate.py`
 - regenerate derived artifacts: `./scripts/build_static_export.sh`
 

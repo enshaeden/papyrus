@@ -14,7 +14,9 @@ from papyrus.infrastructure.paths import DB_PATH
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Ingest a local Markdown, DOCX, or PDF file into the Papyrus import workbench.")
+    parser = argparse.ArgumentParser(
+        description="Ingest a local Markdown, DOCX, or PDF file into the Papyrus import workbench."
+    )
     parser.add_argument("file", help="Path to the source file.")
     parser.add_argument("--db", default=str(DB_PATH), help="Runtime SQLite database path.")
     args = parser.parse_args()

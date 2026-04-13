@@ -86,51 +86,66 @@ Actors must not be treated as authority for permanent route structure, navigatio
 ### Shared
 
 - `/` (local entry shim redirecting to `/operator`; not a role-owned destination)
-- `/search`
-- `/account`
-- `/system-menu` if route-based
-- shared utility routes only when they remain role-safe
 
 ### Reader
 
 - `/reader`
 - `/reader/browse`
-- `/reader/tree/:nodeId`
-- `/reader/object/:objectId`
-- `/reader/object/:objectId/flag`
+- `/reader/object/{object_id}`
 
 ### Operator
 
 - `/operator`
 - `/operator/read`
-- `/operator/read/tree/:nodeId`
-- `/operator/read/object/:objectId`
-- `/operator/write`
-- `/operator/write/drafts`
+- `/operator/read/object/{object_id}`
+- `/operator/read/object/{object_id}/revisions`
+- `/operator/read/services`
+- `/operator/read/services/{service_id}`
+- `/operator/import`
+- `/operator/import/{ingestion_id}`
+- `/operator/import/{ingestion_id}/review`
 - `/operator/write/new`
-- `/operator/write/object/:objectId`
-- `/operator/write/object/:objectId/validate`
-- `/operator/write/object/:objectId/preview`
+- `/operator/write/object/{object_id}/start`
+- `/operator/write/object/{object_id}`
+- `/operator/write/object/{object_id}/submit`
+- `/operator/write/citations/search`
+- `/operator/write/objects/search`
 - `/operator/review`
-- `/operator/review/flags`
-- `/operator/review/flags/:flagId`
-- `/operator/review/assignments`
-- `/operator/review/object/:objectId`
+- `/operator/review/governance`
+- `/operator/review/activity`
+- `/operator/review/impact/object/{object_id}`
+- `/operator/review/impact/service/{service_id}`
+- `/operator/review/object/{object_id}/{revision_id}`
+- `/operator/review/object/{object_id}/{revision_id}/assign`
+- `/operator/review/object/{object_id}/archive`
+- `/operator/review/object/{object_id}/suspect`
+- `/operator/review/object/{object_id}/supersede`
+- `/operator/review/object/{object_id}/evidence/revalidate`
+- `/operator/review/validation-runs`
+- `/operator/review/validation-runs/new`
 
 ### Admin
 
 - `/admin`
 - `/admin/overview`
-- `/admin/users`
-- `/admin/roles`
-- `/admin/spaces`
-- `/admin/access`
-- `/admin/templates`
-- `/admin/schemas`
+- `/admin/inspect`
+- `/admin/inspect/object/{object_id}`
+- `/admin/inspect/object/{object_id}/revisions`
+- `/admin/services`
+- `/admin/services/{service_id}`
 - `/admin/governance`
-- `/admin/publishing`
+- `/admin/impact/object/{object_id}`
+- `/admin/impact/service/{service_id}`
+- `/admin/review`
+- `/admin/review/object/{object_id}/{revision_id}`
+- `/admin/review/object/{object_id}/{revision_id}/assign`
+- `/admin/review/object/{object_id}/archive`
+- `/admin/review/object/{object_id}/suspect`
+- `/admin/review/object/{object_id}/supersede`
+- `/admin/review/object/{object_id}/evidence/revalidate`
 - `/admin/audit`
-- `/admin/settings`
+- `/admin/validation-runs`
+- `/admin/validation-runs/new`
 
 ## Route and shell rules
 

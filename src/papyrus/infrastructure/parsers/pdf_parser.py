@@ -3,11 +3,10 @@ from __future__ import annotations
 import re
 import zlib
 
-
-STREAM_PATTERN = re.compile(rb"<<(?P<dictionary>.*?)>>\s*stream\r?\n(?P<data>.*?)\r?\nendstream", re.DOTALL)
-TEXT_SHOW_PATTERN = re.compile(
-    rb"(?P<operand>\((?:\\.|[^\\()])*\)|<[\da-fA-F\s]*>)\s*(?:Tj|'|\")"
+STREAM_PATTERN = re.compile(
+    rb"<<(?P<dictionary>.*?)>>\s*stream\r?\n(?P<data>.*?)\r?\nendstream", re.DOTALL
 )
+TEXT_SHOW_PATTERN = re.compile(rb"(?P<operand>\((?:\\.|[^\\()])*\)|<[\da-fA-F\s]*>)\s*(?:Tj|'|\")")
 TEXT_ARRAY_PATTERN = re.compile(rb"\[(?P<items>.*?)\]\s*TJ", re.DOTALL)
 STRING_TOKEN_PATTERN = re.compile(rb"\((?:\\.|[^\\()])*\)|<[\da-fA-F\s]*>")
 
@@ -55,7 +54,11 @@ def _decode_pdf_literal(payload: bytes) -> str:
             index += 1
             continue
         if escaped in b"\r\n":
-            if escaped == ord("\r") and index + 1 < len(payload) and payload[index + 1] == ord("\n"):
+            if (
+                escaped == ord("\r")
+                and index + 1 < len(payload)
+                and payload[index + 1] == ord("\n")
+            ):
                 index += 2
             else:
                 index += 1
@@ -103,7 +106,9 @@ def _extract_fragments(source: bytes) -> list[str]:
         if text:
             fragments.append((match.start(), text))
     for match in TEXT_ARRAY_PATTERN.finditer(source):
-        parts = [_decode_pdf_token(token) for token in STRING_TOKEN_PATTERN.findall(match.group("items"))]
+        parts = [
+            _decode_pdf_token(token) for token in STRING_TOKEN_PATTERN.findall(match.group("items"))
+        ]
         text = "".join(part for part in parts if part).strip()
         if text:
             fragments.append((match.start(), text))
@@ -121,7 +126,9 @@ def _text_sources(payload: bytes) -> tuple[list[bytes], list[str]]:
             try:
                 source = zlib.decompress(source)
             except zlib.error:
-                warnings.append("One or more compressed PDF streams could not be decompressed. Extraction may be incomplete.")
+                warnings.append(
+                    "One or more compressed PDF streams could not be decompressed. Extraction may be incomplete."
+                )
                 continue
         sources.append(source)
     if not sources:
@@ -146,14 +153,24 @@ def parse_pdf_bytes(payload: bytes) -> dict[str, object]:
         warnings.append(
             "No extractable PDF text found. Papyrus currently supports text-based PDFs with simple text operators only."
         )
-        degradation_notes.append("Scanned, image-only, encrypted, or heavily font-encoded PDFs require external OCR or preprocessing.")
+        degradation_notes.append(
+            "Scanned, image-only, encrypted, or heavily font-encoded PDFs require external OCR or preprocessing."
+        )
     elif len("\n".join(paragraphs)) < 40:
         warnings.append("Extracted PDF text is low-signal and may be incomplete.")
-        degradation_notes.append("Complex layout, unsupported encodings, or fragmented content streams may have reduced extraction quality.")
+        degradation_notes.append(
+            "Complex layout, unsupported encodings, or fragmented content streams may have reduced extraction quality."
+        )
     title = paragraphs[0] if paragraphs else ""
     extraction_quality = {
         "state": "degraded" if warnings or not paragraphs else "clean",
-        "score": 0.15 if not paragraphs else 0.45 if len("\n".join(paragraphs)) < 40 else 0.7 if warnings else 0.85,
+        "score": 0.15
+        if not paragraphs
+        else 0.45
+        if len("\n".join(paragraphs)) < 40
+        else 0.7
+        if warnings
+        else 0.85,
         "summary": (
             "PDF extraction is degraded."
             if warnings or not paragraphs

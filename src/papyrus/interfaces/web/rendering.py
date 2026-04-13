@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import mimetypes
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from papyrus.interfaces.web.experience import experience_for_path, experience_for_role
 from papyrus.interfaces.web.urls import home_url, search_url
 from papyrus.interfaces.web.view_helpers import escape, join_html, link
-
 
 PLACEHOLDER_PATTERN = re.compile(r"{{\s*([a-zA-Z0-9_]+)\s*}}")
 
@@ -55,9 +54,15 @@ class PageRenderer:
         surface_id = str(page_surface or active_nav or page_title).strip()
         page_config = role_config.page_config(surface_id)
         page_behavior = role_config.page_behavior(surface_id)
-        normalized_shell_variant = shell_variant if shell_variant in {"normal", "focus", "minimal"} else page_config.shell_variant
+        normalized_shell_variant = (
+            shell_variant
+            if shell_variant in {"normal", "focus", "minimal"}
+            else page_config.shell_variant
+        )
         content_html = self.template_renderer.render(page_template, page_context or {})
-        active_item = self._active_nav_item(role_config.nav_sections, active_nav=active_nav, current_path=current_path)
+        active_item = self._active_nav_item(
+            role_config.nav_sections, active_nav=active_nav, current_path=current_path
+        )
         has_aside = bool(str(aside_html).strip()) and normalized_shell_variant == "normal"
         topbar_html = self.template_renderer.render(
             "partials/topbar.html",
@@ -79,15 +84,23 @@ class PageRenderer:
                     (
                         '<section class="sidebar-group">'
                         f'<p class="sidebar-label">{escape(section.title)}</p>'
-                        + (f'<p class="sidebar-copy">{escape(section.description)}</p>' if section.description else "")
+                        + (
+                            f'<p class="sidebar-copy">{escape(section.description)}</p>'
+                            if section.description
+                            else ""
+                        )
                         + '<ul class="sidebar-nav">'
                         + join_html(
                             [
-                                "<li class=\"sidebar-item\">"
+                                '<li class="sidebar-item">'
                                 + link(
                                     item.label,
                                     item.href,
-                                    css_class="sidebar-link is-active" if self._nav_item_is_active(item, active_nav=active_nav, current_path=current_path) else "sidebar-link",
+                                    css_class="sidebar-link is-active"
+                                    if self._nav_item_is_active(
+                                        item, active_nav=active_nav, current_path=current_path
+                                    )
+                                    else "sidebar-link",
                                 )
                                 + "</li>"
                                 for item in section.items
@@ -104,14 +117,23 @@ class PageRenderer:
                     "nav_sections_html": nav_sections_html,
                 },
             )
-        page_header_html = self._page_header_html(page_header=page_header or {}, header_variant=page_config.header_variant)
-        aside_column_html = f'<aside class="context-column">{aside_html}</aside>' if has_aside else ""
-        shell_columns_classes = ["shell-columns", f"shell-columns-{escape(normalized_shell_variant)}"]
+        page_header_html = self._page_header_html(
+            page_header=page_header or {}, header_variant=page_config.header_variant
+        )
+        aside_column_html = (
+            f'<aside class="context-column">{aside_html}</aside>' if has_aside else ""
+        )
+        shell_columns_classes = [
+            "shell-columns",
+            f"shell-columns-{escape(normalized_shell_variant)}",
+        ]
         if sidebar_html.strip():
             shell_columns_classes.append("has-sidebar")
         if aside_column_html.strip():
             shell_columns_classes.append("has-aside")
-        scripts_html = join_html([f'<script src="{escape(path)}" defer></script>' for path in scripts], "\n")
+        scripts_html = join_html(
+            [f'<script src="{escape(path)}" defer></script>' for path in scripts], "\n"
+        )
         return self.template_renderer.render(
             "base.html",
             {
@@ -137,10 +159,16 @@ class PageRenderer:
                 "shell_columns_class": escape(" ".join(shell_columns_classes)),
                 "page_surface": escape(surface_id),
                 "page_mode": escape(page_behavior.mode if page_behavior is not None else "default"),
-                "page_density": escape(page_behavior.density if page_behavior is not None else "comfortable"),
+                "page_density": escape(
+                    page_behavior.density if page_behavior is not None else "comfortable"
+                ),
                 "role_id": escape(role_config.role),
-                "content_layout_class": escape(f"content-layout-{(page_behavior.columns if page_behavior is not None else 'single').replace('_', '-')}"),
-                "active_nav": escape(active_item.key if active_item is not None else active_nav or ""),
+                "content_layout_class": escape(
+                    f"content-layout-{(page_behavior.columns if page_behavior is not None else 'single').replace('_', '-')}"
+                ),
+                "active_nav": escape(
+                    active_item.key if active_item is not None else active_nav or ""
+                ),
             },
         )
 
@@ -167,7 +195,9 @@ class PageRenderer:
     def _active_nav_item(nav_sections, *, active_nav: str, current_path: str):
         for section in nav_sections:
             for item in section.items:
-                if PageRenderer._nav_item_is_active(item, active_nav=active_nav, current_path=current_path):
+                if PageRenderer._nav_item_is_active(
+                    item, active_nav=active_nav, current_path=current_path
+                ):
                     return item
         return None
 
@@ -194,9 +224,15 @@ class PageRenderer:
             f'<p class="page-intro">{escape(intro)}</p>' if intro else "",
             context_html,
             detail_html,
-            f'<div class="page-header-actions" data-component="action-cluster">{actions_html}</div>' if actions_html else "",
+            f'<div class="page-header-actions" data-component="action-cluster">{actions_html}</div>'
+            if actions_html
+            else "",
         ]
-        return f'<header class="page-header page-header-{escape(header_variant)}">' + join_html([fragment for fragment in fragments if fragment]) + "</header>"
+        return (
+            f'<header class="page-header page-header-{escape(header_variant)}">'
+            + join_html([fragment for fragment in fragments if fragment])
+            + "</header>"
+        )
 
     def _topbar_menu_html(
         self,
@@ -205,7 +241,9 @@ class PageRenderer:
         active_nav: str,
         show_quick_links: bool,
     ) -> str:
-        menu_items = [f'<span class="topbar-menu-chip is-active topbar-menu-role">{escape(role_config.label)}</span>']
+        menu_items = [
+            f'<span class="topbar-menu-chip is-active topbar-menu-role">{escape(role_config.label)}</span>'
+        ]
         if show_quick_links:
             menu_items.extend(
                 link(
@@ -219,4 +257,8 @@ class PageRenderer:
                 )
                 for item in role_config.quick_links
             )
-        return '<nav class="topbar-menu" aria-label="System controls">' + join_html(menu_items) + "</nav>"
+        return (
+            '<nav class="topbar-menu" aria-label="System controls">'
+            + join_html(menu_items)
+            + "</nav>"
+        )

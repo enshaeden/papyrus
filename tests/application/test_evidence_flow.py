@@ -67,7 +67,9 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "retirement_reason": None,
         "services": ["Remote Access"],
         "related_articles": [],
-        "references": [{"title": "Evidence note", "path": "docs/migration/seed-migration-rationale.md"}],
+        "references": [
+            {"title": "Evidence note", "path": "docs/migration/seed-migration-rationale.md"}
+        ],
         "change_log": [{"date": "2026-04-08", "summary": "Initial draft.", "author": "tests"}],
     }
 
@@ -92,12 +94,16 @@ class EvidenceFlowTests(unittest.TestCase):
             )
             revision = workflow.create_revision(
                 object_id=created.object_id,
-                normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+                normalized_payload=runbook_payload(
+                    created.object_id, created.canonical_path, created.title
+                ),
                 body_markdown="## Evidence\n\nLifecycle coverage.",
                 actor="tests",
                 change_summary="Evidence lifecycle coverage.",
             )
-            workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=created.object_id, revision_id=revision.revision_id, actor="tests"
+            )
             workflow.assign_reviewer(
                 object_id=created.object_id,
                 revision_id=revision.revision_id,
@@ -143,7 +149,9 @@ class EvidenceFlowTests(unittest.TestCase):
             )
             self.assertEqual(snapshot_result.object_id, created.object_id)
             self.assertIsNotNone(snapshot_result.snapshot_path)
-            self.assertTrue((source_root / snapshot_result.snapshot_path).exists())
+            snapshot_path = snapshot_result.snapshot_path
+            assert snapshot_path is not None
+            self.assertTrue((source_root / snapshot_path).exists())
 
             stale_result = mark_evidence_stale(
                 database_path=database_path,

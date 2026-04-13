@@ -10,6 +10,7 @@ from .content_health import collect_content_health_sections
 from .queue_search import knowledge_queue
 from .support import ServiceNotFoundError, _json_dict, _json_list, require_runtime_connection
 
+
 def service_detail(
     service_id_or_name: str,
     *,
@@ -82,26 +83,39 @@ def service_detail(
             "service": {
                 "service_id": str(service_row["service_id"]),
                 "service_name": str(service_row["service_name"]),
-                "canonical_object_id": str(service_row["canonical_object_id"]) if service_row["canonical_object_id"] is not None else None,
+                "canonical_object_id": str(service_row["canonical_object_id"])
+                if service_row["canonical_object_id"] is not None
+                else None,
                 "owner": str(service_row["owner"]) if service_row["owner"] is not None else None,
                 "team": str(service_row["team"]) if service_row["team"] is not None else None,
                 "status": str(service_row["status"]),
                 "service_criticality": str(service_row["service_criticality"]),
-                "support_entrypoints": [str(item) for item in _json_list(service_row["support_entrypoints_json"])],
-                "dependencies": [str(item) for item in _json_list(service_row["dependencies_json"])],
-                "common_failure_modes": [str(item) for item in _json_list(service_row["common_failure_modes_json"])],
+                "support_entrypoints": [
+                    str(item) for item in _json_list(service_row["support_entrypoints_json"])
+                ],
+                "dependencies": [
+                    str(item) for item in _json_list(service_row["dependencies_json"])
+                ],
+                "common_failure_modes": [
+                    str(item) for item in _json_list(service_row["common_failure_modes_json"])
+                ],
                 "source": str(service_row["source"]),
             },
             "canonical_object": canonical_object,
             "linked_objects": linked_objects,
             "service_posture": {
                 "linked_object_count": len(linked_objects),
-                "review_required_count": sum(1 for item in linked_objects if item["revision_review_state"] != "approved"),
-                "degraded_count": sum(1 for item in linked_objects if item["trust_state"] != "trusted"),
+                "review_required_count": sum(
+                    1 for item in linked_objects if item["revision_review_state"] != "approved"
+                ),
+                "degraded_count": sum(
+                    1 for item in linked_objects if item["trust_state"] != "trusted"
+                ),
             },
         }
     finally:
         connection.close()
+
 
 def service_catalog(
     *,
@@ -151,13 +165,16 @@ def service_catalog(
                 "service_criticality": str(row["service_criticality"]),
                 "owner": str(row["owner"]) if row["owner"] is not None else "",
                 "team": str(row["team"]) if row["team"] is not None else "",
-                "canonical_object_id": str(row["canonical_object_id"]) if row["canonical_object_id"] is not None else None,
+                "canonical_object_id": str(row["canonical_object_id"])
+                if row["canonical_object_id"] is not None
+                else None,
                 "linked_object_count": int(row["linked_object_count"] or 0),
             }
             for row in rows
         ]
     finally:
         connection.close()
+
 
 def trust_dashboard(
     *,
@@ -231,9 +248,13 @@ def trust_dashboard(
                     f"and {latest_validation['finding_count']} finding(s)."
                 ),
                 "action": "Inspect validation run history for the exact findings before approving risky changes.",
-                "severity": "informational" if latest_validation["status"] == "passed" else "serious",
+                "severity": "informational"
+                if latest_validation["status"] == "passed"
+                else "serious",
             }
-        cleanup_outputs = collect_content_health_sections(cleanup_sections, database_path=database_path)
+        cleanup_outputs = collect_content_health_sections(
+            cleanup_sections, database_path=database_path
+        )
         return {
             "object_count": object_count,
             "trust_counts": trust_counts,
@@ -243,7 +264,9 @@ def trust_dashboard(
             "queue": knowledge_queue(limit=25, database_path=database_path, ranking="triage"),
             "validation_runs": validation_runs,
             "validation_posture": validation_posture,
-            "cleanup_counts": {section: len(cleanup_outputs.get(section, [])) for section in cleanup_sections},
+            "cleanup_counts": {
+                section: len(cleanup_outputs.get(section, [])) for section in cleanup_sections
+            },
         }
     finally:
         connection.close()

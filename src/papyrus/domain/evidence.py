@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 LOCAL_GOVERNED_REFERENCE_PREFIXES = (
     "knowledge/",
     "archive/knowledge/",
@@ -49,7 +48,9 @@ def summarize_evidence_posture(citations: list[dict[str, Any]]) -> dict[str, Any
 
     if total_citations == 0:
         posture = "no_evidence"
-    elif weak_external_evidence_count and (internal_reference_count or captured_external_evidence_count):
+    elif weak_external_evidence_count and (
+        internal_reference_count or captured_external_evidence_count
+    ):
         posture = "mixed_support"
     elif weak_external_evidence_count:
         posture = "weak_external_only"

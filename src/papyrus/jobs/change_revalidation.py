@@ -3,4 +3,3 @@
 
 def run() -> list[object]:
     return []
-

@@ -3,7 +3,6 @@ from __future__ import annotations
 from papyrus.domain.blueprints import Blueprint
 from papyrus.domain.blueprints_seed import BLUEPRINTS
 
-
 _BLUEPRINTS_BY_ID = {blueprint.blueprint_id: blueprint for blueprint in BLUEPRINTS}
 
 

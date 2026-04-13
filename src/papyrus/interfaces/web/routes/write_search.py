@@ -3,7 +3,10 @@ from __future__ import annotations
 from papyrus.application.queries import knowledge_object_detail, search_knowledge_objects
 from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.http import Request, json_response
-from papyrus.interfaces.web.presenters.governed_presenter import projection_state, projection_use_guidance
+from papyrus.interfaces.web.presenters.governed_presenter import (
+    projection_state,
+    projection_use_guidance,
+)
 
 
 def register(router, runtime) -> None:
@@ -13,14 +16,18 @@ def register(router, runtime) -> None:
         exclude_object_id = request.query_value("exclude_object_id").strip()
         if len(query) < 2:
             return json_response({"items": []})
-        candidates = search_knowledge_objects(query, limit=12, database_path=runtime.database_path, role="operator")
+        candidates = search_knowledge_objects(
+            query, limit=12, database_path=runtime.database_path, role="operator"
+        )
         items: list[dict[str, str]] = []
         for candidate in candidates:
             if exclude_object_id and str(candidate["object_id"]) == exclude_object_id:
                 continue
             if candidate.get("current_revision_id") is None:
                 continue
-            detail = knowledge_object_detail(str(candidate["object_id"]), database_path=runtime.database_path)
+            detail = knowledge_object_detail(
+                str(candidate["object_id"]), database_path=runtime.database_path
+            )
             reference_projection = detail.get("reference_projection") or {}
             if not bool(reference_projection.get("eligible")):
                 continue
@@ -32,7 +39,9 @@ def register(router, runtime) -> None:
                     "title": str(candidate["title"]),
                     "path": str(candidate["path"]),
                     "object_type": str(candidate["object_type"]),
-                    "summary": str(reference_projection.get("summary") or use_guidance.get("summary") or ""),
+                    "summary": str(
+                        reference_projection.get("summary") or use_guidance.get("summary") or ""
+                    ),
                     "detail": (
                         f"{state.get('revision_review_state') or candidate.get('revision_review_state') or 'unknown'} review | "
                         f"{state.get('trust_state') or candidate.get('trust_state') or 'unknown'} trust | "
@@ -48,7 +57,9 @@ def register(router, runtime) -> None:
         exclude_object_id = request.query_value("exclude_object_id").strip()
         if len(query) < 2:
             return json_response({"items": []})
-        candidates = search_knowledge_objects(query, limit=12, database_path=runtime.database_path, role="operator")
+        candidates = search_knowledge_objects(
+            query, limit=12, database_path=runtime.database_path, role="operator"
+        )
         items: list[dict[str, str]] = []
         for candidate in candidates:
             if exclude_object_id and str(candidate["object_id"]) == exclude_object_id:

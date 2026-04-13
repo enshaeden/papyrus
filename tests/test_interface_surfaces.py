@@ -27,11 +27,13 @@ def call_wsgi(
     form: dict[str, object] | None = None,
     json_payload: dict[str, object] | None = None,
 ) -> tuple[str, dict[str, str], str]:
-    status_holder: dict[str, object] = {}
+    response_status = ""
+    response_headers: dict[str, str] = {}
 
     def start_response(status: str, headers: list[tuple[str, str]]) -> None:
-        status_holder["status"] = status
-        status_holder["headers"] = {name: value for name, value in headers}
+        nonlocal response_status, response_headers
+        response_status = status
+        response_headers = {name: value for name, value in headers}
 
     if json_payload is not None:
         body = json.dumps(json_payload).encode("utf-8")
@@ -61,11 +63,15 @@ def call_wsgi(
         "wsgi.multiprocess": False,
         "wsgi.run_once": False,
     }
-    body = b"".join(application(environ, start_response)).decode("utf-8")
-    return str(status_holder["status"]), dict(status_holder["headers"]), body
+    response_body = b"".join(application(environ, start_response)).decode("utf-8")
+    return response_status, response_headers, response_body
 
 
 class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
+    temp_dir: tempfile.TemporaryDirectory[str]
+    database_path: Path
+    remote_access_service_id: str
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.temp_dir = tempfile.TemporaryDirectory()
@@ -100,7 +106,9 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         object_payload = json.loads(body)
         self.assertEqual(object_payload["object"]["title"], "VPN Troubleshooting")
 
-        status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity/revisions")
+        status, _, body = call_wsgi(
+            application, "/objects/kb-troubleshooting-vpn-connectivity/revisions"
+        )
         self.assertEqual(status, "200 OK")
         revision_payload = json.loads(body)
         self.assertTrue(revision_payload["revisions"])
@@ -130,7 +138,9 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         )
         self.assertEqual(status, "201 Created")
 
-        status, _, body = call_wsgi(application, "/events?entity_type=service&entity_id=Remote%20Access")
+        status, _, body = call_wsgi(
+            application, "/events?entity_type=service&entity_id=Remote%20Access"
+        )
         self.assertEqual(status, "200 OK")
         events_payload = json.loads(body)
         self.assertTrue(events_payload["events"])
@@ -148,10 +158,14 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         manage_payload = json.loads(body)
         self.assertIn("review_required", manage_payload)
 
-        status, _, body = call_wsgi(application, "/impact/object/kb-troubleshooting-vpn-connectivity")
+        status, _, body = call_wsgi(
+            application, "/impact/object/kb-troubleshooting-vpn-connectivity"
+        )
         self.assertEqual(status, "200 OK")
         impact_payload = json.loads(body)
-        self.assertEqual(impact_payload["entity"]["object_id"], "kb-troubleshooting-vpn-connectivity")
+        self.assertEqual(
+            impact_payload["entity"]["object_id"], "kb-troubleshooting-vpn-connectivity"
+        )
 
         status, _, body = call_wsgi(application, "/operator/read")
         self.assertEqual(status, "404 Not Found")
@@ -176,36 +190,56 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         status, _, body = call_wsgi(application, "/operator/read")
         self.assertEqual(status, "200 OK")
         self.assertIn("<title>Read Guidance | Papyrus</title>", body)
-        self.assert_page_contract(body, primary_surface="read-queue", action_ids=("open-primary-surface",))
+        self.assert_page_contract(
+            body, primary_surface="read-queue", action_ids=("open-primary-surface",)
+        )
         self.assertNotIn('<aside class="context-column">', body)
 
-        status, _, body = call_wsgi(application, "/operator/read/object/kb-troubleshooting-vpn-connectivity")
+        status, _, body = call_wsgi(
+            application, "/operator/read/object/kb-troubleshooting-vpn-connectivity"
+        )
         self.assertEqual(status, "200 OK")
         self.assertIn("VPN Troubleshooting", body)
-        self.assert_page_contract(body, primary_surface="object-detail", components=("article-section", "article-context-panel"))
+        self.assert_page_contract(
+            body,
+            primary_surface="object-detail",
+            components=("article-section", "article-context-panel"),
+        )
         self.assertNotIn('<aside class="context-column">', body)
         self.assert_not_component(body, "object-header")
 
-        status, _, body = call_wsgi(application, "/reader/object/kb-troubleshooting-vpn-connectivity")
+        status, _, body = call_wsgi(
+            application, "/reader/object/kb-troubleshooting-vpn-connectivity"
+        )
         self.assertEqual(status, "200 OK")
         self.assertIn("VPN Troubleshooting", body)
-        self.assert_page_contract(body, primary_surface="object-detail", components=("article-section", "article-context-panel"))
+        self.assert_page_contract(
+            body,
+            primary_surface="object-detail",
+            components=("article-section", "article-context-panel"),
+        )
         self.assertIn('class="sidebar"', body)
         self.assertIn('href="/reader/browse"', body)
         self.assertNotIn("/operator/review/object/", body)
 
-        status, _, body = call_wsgi(application, "/operator/read/object/kb-troubleshooting-vpn-connectivity/revisions")
+        status, _, body = call_wsgi(
+            application, "/operator/read/object/kb-troubleshooting-vpn-connectivity/revisions"
+        )
         self.assertEqual(status, "200 OK")
         self.assert_page_contract(body, primary_surface="revision-history", components=("table",))
 
-        status, _, body = call_wsgi(application, f"/operator/read/services/{self.remote_access_service_id}")
+        status, _, body = call_wsgi(
+            application, f"/operator/read/services/{self.remote_access_service_id}"
+        )
         self.assertEqual(status, "200 OK")
         self.assert_primary_surface(body, "services")
         self.assertIn("Remote Access", body)
 
         status, _, body = call_wsgi(application, "/operator/review/governance")
         self.assertEqual(status, "200 OK")
-        self.assert_page_contract(body, primary_surface="knowledge-health", components=("health-board",))
+        self.assert_page_contract(
+            body, primary_surface="knowledge-health", components=("health-board",)
+        )
         self.assertIn("Cleanup and trust debt", body)
 
         status, _, body = call_wsgi(application, "/operator/read/services")
@@ -221,9 +255,13 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertEqual(status, "200 OK")
         self.assert_page_contract(body, primary_surface="activity", components=("activity-event",))
 
-        status, _, body = call_wsgi(application, "/operator/review/impact/object/kb-troubleshooting-vpn-connectivity")
+        status, _, body = call_wsgi(
+            application, "/operator/review/impact/object/kb-troubleshooting-vpn-connectivity"
+        )
         self.assertEqual(status, "200 OK")
-        self.assert_page_contract(body, primary_surface="impact-object", components=("impact-summary", "impact-trace"))
+        self.assert_page_contract(
+            body, primary_surface="impact-object", components=("impact-summary", "impact-trace")
+        )
 
         for removed_path in (
             "/read",
@@ -265,7 +303,9 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         status, headers, body = call_wsgi(application, "/static/css/layout.css")
         self.assertEqual(status, "200 OK")
         self.assertEqual(headers["Content-Type"], "text/css")
-        self.assertIn("grid-template-columns: minmax(0, 1fr) minmax(18rem, 42rem) minmax(0, 1fr);", body)
+        self.assertIn(
+            "grid-template-columns: minmax(0, 1fr) minmax(18rem, 42rem) minmax(0, 1fr);", body
+        )
         self.assertIn(".topbar-shell-controls {", body)
         self.assertIn("grid-column: 3;", body)
         self.assertIn("justify-self: end;", body)
@@ -361,7 +401,9 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertNotIn("actor-banner", body)
         self.assertNotIn("page-kicker", body)
 
-        status, _, body = call_wsgi(application, "/operator/read", method="POST", form={"query": "vpn"})
+        status, _, body = call_wsgi(
+            application, "/operator/read", method="POST", form={"query": "vpn"}
+        )
         self.assertEqual(status, "405 Method Not Allowed")
         self.assert_primary_surface(body, "system-error")
         self.assertIn("shell-columns-minimal", body)
@@ -370,15 +412,22 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
 
     def test_shell_templates_keep_behavior_in_static_script(self) -> None:
         topbar_template = (
-            ROOT / "src" / "papyrus" / "interfaces" / "web" / "templates" / "partials" / "topbar.html"
+            ROOT
+            / "src"
+            / "papyrus"
+            / "interfaces"
+            / "web"
+            / "templates"
+            / "partials"
+            / "topbar.html"
         ).read_text(encoding="utf-8")
-        base_template = (ROOT / "src" / "papyrus" / "interfaces" / "web" / "templates" / "base.html").read_text(
-            encoding="utf-8"
-        )
+        base_template = (
+            ROOT / "src" / "papyrus" / "interfaces" / "web" / "templates" / "base.html"
+        ).read_text(encoding="utf-8")
 
         self.assertNotIn("<script", topbar_template)
         self.assertIn("{{ topbar_menu_html }}", topbar_template)
-        self.assertIn('/static/js/shell.js', base_template)
+        self.assertIn("/static/js/shell.js", base_template)
 
     def test_api_write_endpoint_creates_object(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

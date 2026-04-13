@@ -8,7 +8,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.interfaces.web.presenters.home_activity_block_presenter import render_home_activity_block
+from papyrus.interfaces.web.presenters.home_activity_block_presenter import (
+    render_home_activity_block,
+)
 from tests.web_assertions import SemanticHookAssertions
 
 
@@ -31,7 +33,7 @@ class HomeActivityBlockPresenterTests(SemanticHookAssertions, unittest.TestCase)
         )
 
         self.assert_component(html, "home-activity-block")
-        self.assertSurface = self.assert_surface(html, "home")
+        self.assert_surface(html, "home")
         self.assertIn("VPN guidance changed", html)
         self.assertIn("Re-open the article before use.", html)
         self.assertNotIn("Ignored event", html)

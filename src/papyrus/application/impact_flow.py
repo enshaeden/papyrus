@@ -3,19 +3,24 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections import deque
+from pathlib import Path
 from typing import Any
 
 import yaml
 
-from papyrus.application.runtime_projection import refresh_current_object_projection
 from papyrus.application.policy_authority import PolicyAuthority
+from papyrus.application.runtime_projection import refresh_current_object_projection
+from papyrus.domain.entities import (
+    AuditEvent,
+    DocsPlacementWarning,
+    DuplicateCandidate,
+    KnowledgeDocument,
+)
 from papyrus.domain.events import EventBase
-from papyrus.domain.entities import AuditEvent, DocsPlacementWarning, DuplicateCandidate, KnowledgeDocument
 from papyrus.domain.policies import worse_trust_state
-from papyrus.infrastructure.markdown.parser import extract_markdown_title
 from papyrus.infrastructure.markdown.serializer import json_dump, similarity_ratio
-from papyrus.infrastructure.paths import DB_PATH
 from papyrus.infrastructure.paths import (
+    DB_PATH,
     DOCS_OPERATOR_LANGUAGE_PATTERNS,
     FRONT_MATTER_PATTERN,
     OPERATIONAL_HEADING_PATTERN,
@@ -24,18 +29,21 @@ from papyrus.infrastructure.paths import (
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
 from papyrus.infrastructure.repositories.knowledge_repo import (
     collect_docs_source_paths,
+    get_knowledge_object,
     load_object_schemas,
     load_schema,
+    load_taxonomies,
     update_knowledge_object_runtime_state,
 )
-from papyrus.infrastructure.repositories.knowledge_repo import get_knowledge_object
-from papyrus.infrastructure.repositories.knowledge_repo import get_knowledge_revision
-from papyrus.infrastructure.repositories.knowledge_repo import load_taxonomies
 
 
 def explicitly_linked(left: KnowledgeDocument, right: KnowledgeDocument) -> bool:
-    left_related = set(left.metadata.get("related_object_ids", []) or left.metadata.get("related_articles", []))
-    right_related = set(right.metadata.get("related_object_ids", []) or right.metadata.get("related_articles", []))
+    left_related = set(
+        left.metadata.get("related_object_ids", []) or left.metadata.get("related_articles", [])
+    )
+    right_related = set(
+        right.metadata.get("related_object_ids", []) or right.metadata.get("related_articles", [])
+    )
     replacements = {
         left.metadata.get("superseded_by") or left.metadata.get("replaced_by"),
         right.metadata.get("superseded_by") or right.metadata.get("replaced_by"),
@@ -57,7 +65,9 @@ def find_possible_duplicate_documents(
         for right in documents[index + 1 :]:
             if explicitly_linked(left, right):
                 continue
-            similarity = similarity_ratio(left.metadata.get("title", ""), right.metadata.get("title", ""))
+            similarity = similarity_ratio(
+                left.metadata.get("title", ""), right.metadata.get("title", "")
+            )
             if similarity >= threshold:
                 duplicates.append(
                     DuplicateCandidate(
@@ -74,7 +84,10 @@ def find_possible_duplicate_documents(
 def reference_graph(documents: list[KnowledgeDocument]) -> dict[str, set[str]]:
     graph: dict[str, set[str]] = {}
     for document in documents:
-        links = set(document.metadata.get("related_object_ids", []) or document.metadata.get("related_articles", []))
+        links = set(
+            document.metadata.get("related_object_ids", [])
+            or document.metadata.get("related_articles", [])
+        )
         replaced_by = document.metadata.get("superseded_by") or document.metadata.get("replaced_by")
         if replaced_by:
             links.add(replaced_by)
@@ -146,12 +159,16 @@ def docs_knowledge_like_warnings(
                     signals.append(f"front matter overlaps knowledge-object schemas: {preview}")
                     score += 5 + len(strong_fields)
 
-        heading_hits = sorted({item.group(1).title() for item in OPERATIONAL_HEADING_PATTERN.finditer(body)})
+        heading_hits = sorted(
+            {item.group(1).title() for item in OPERATIONAL_HEADING_PATTERN.finditer(body)}
+        )
         if heading_hits:
             signals.append("operational headings: " + ", ".join(heading_hits))
             score += len(heading_hits) * 2
 
-        phrase_hits = [label for label, pattern in DOCS_OPERATOR_LANGUAGE_PATTERNS if pattern.search(body)]
+        phrase_hits = [
+            label for label, pattern in DOCS_OPERATOR_LANGUAGE_PATTERNS if pattern.search(body)
+        ]
         if phrase_hits:
             signals.append("operator-oriented language: " + ", ".join(phrase_hits))
             score += len(phrase_hits)
@@ -188,10 +205,14 @@ def relationless_documents(documents: list[KnowledgeDocument]) -> list[Knowledge
 
 
 def missing_owner_documents(documents: list[KnowledgeDocument]) -> list[KnowledgeDocument]:
-    return [document for document in documents if not str(document.metadata.get("owner", "")).strip()]
+    return [
+        document for document in documents if not str(document.metadata.get("owner", "")).strip()
+    ]
 
 
-def documents_missing_list_field(documents: list[KnowledgeDocument], field_name: str) -> list[KnowledgeDocument]:
+def documents_missing_list_field(
+    documents: list[KnowledgeDocument], field_name: str
+) -> list[KnowledgeDocument]:
     return [document for document in documents if not document.metadata.get(field_name)]
 
 
@@ -206,7 +227,9 @@ def mark_object_suspect_due_to_change(
     authority: PolicyAuthority | None = None,
     database_path=DB_PATH,
 ) -> AuditEvent:
-    from papyrus.application.review_flow import mark_object_suspect_due_to_change as review_flow_mark_suspect
+    from papyrus.application.review_flow import (
+        mark_object_suspect_due_to_change as review_flow_mark_suspect,
+    )
 
     return review_flow_mark_suspect(
         database_path=database_path,
@@ -220,8 +243,14 @@ def mark_object_suspect_due_to_change(
     )
 
 
-def _event_summary(event_type: str, entity_type: str, entity_id: str, payload: dict[str, Any]) -> str:
-    return str(payload.get("summary") or payload.get("reason") or f"{event_type} on {entity_type} {entity_id}")
+def _event_summary(
+    event_type: str, entity_type: str, entity_id: str, payload: dict[str, Any]
+) -> str:
+    return str(
+        payload.get("summary")
+        or payload.get("reason")
+        or f"{event_type} on {entity_type} {entity_id}"
+    )
 
 
 def _json_dict(value: object) -> dict[str, Any]:
@@ -379,16 +408,26 @@ def _relationship_adjacency(connection: sqlite3.Connection) -> dict[str, list[di
         direction = str(row["relationship_direction"])
         if direction in {"forward", "bidirectional"}:
             adjacency.setdefault(source_id, []).append(
-                {"next_object_id": target_id, "relationship_type": relationship_type, "strength": strength}
+                {
+                    "next_object_id": target_id,
+                    "relationship_type": relationship_type,
+                    "strength": strength,
+                }
             )
         if direction in {"reverse", "bidirectional"}:
             adjacency.setdefault(target_id, []).append(
-                {"next_object_id": source_id, "relationship_type": relationship_type, "strength": strength}
+                {
+                    "next_object_id": source_id,
+                    "relationship_type": relationship_type,
+                    "strength": strength,
+                }
             )
     return adjacency
 
 
-def _citation_dependents(connection: sqlite3.Connection, source_ref: str, *, exclude_object_id: str) -> list[dict[str, Any]]:
+def _citation_dependents(
+    connection: sqlite3.Connection, source_ref: str, *, exclude_object_id: str
+) -> list[dict[str, Any]]:
     rows = connection.execute(
         """
         SELECT DISTINCT o.object_id
@@ -403,7 +442,11 @@ def _citation_dependents(connection: sqlite3.Connection, source_ref: str, *, exc
         (source_ref, exclude_object_id),
     ).fetchall()
     return [
-        {"next_object_id": str(row["object_id"]), "relationship_type": "citation_dependency", "strength": 0.8}
+        {
+            "next_object_id": str(row["object_id"]),
+            "relationship_type": "citation_dependency",
+            "strength": 0.8,
+        }
         for row in rows
     ]
 
@@ -445,7 +488,6 @@ def calculate_blast_radius(
         return []
 
     adjacency = _relationship_adjacency(connection)
-    object_ids = {item["object_id"] for item in seeds}
     best_scores: dict[str, float] = {}
     impacts: dict[str, dict[str, Any]] = {}
     queue = deque((item, 0) for item in seeds)
@@ -488,7 +530,9 @@ def calculate_blast_radius(
         object_row = get_knowledge_object(connection, object_id)
         if object_row is None:
             continue
-        for edge in _citation_dependents(connection, str(object_row["canonical_path"]), exclude_object_id=object_id):
+        for edge in _citation_dependents(
+            connection, str(object_row["canonical_path"]), exclude_object_id=object_id
+        ):
             next_object_id = str(edge["next_object_id"])
             next_score = round(score * float(edge["strength"]), 3)
             if next_score < min_score:
@@ -521,7 +565,9 @@ def calculate_blast_radius(
                 "title": str(row["title"]),
                 "path": str(row["canonical_path"]),
                 "trust_state": str(row["trust_state"]),
-                "current_revision_id": str(row["current_revision_id"]) if row["current_revision_id"] is not None else None,
+                "current_revision_id": str(row["current_revision_id"])
+                if row["current_revision_id"] is not None
+                else None,
                 "impact_score": float(impact["score"]),
                 "reason": str(impact["reason"]),
                 "propagation_path": list(impact["path"]),
@@ -592,8 +638,14 @@ def propagate_change_event(
         )
         refreshed = get_knowledge_object(connection, impact["object_id"])
         impact["trust_state_before"] = str(object_row["trust_state"])
-        impact["trust_state_after"] = str(refreshed["trust_state"]) if refreshed is not None else next_trust_state
-        revision_id = str(refreshed["current_revision_id"]) if refreshed and refreshed["current_revision_id"] is not None else None
+        impact["trust_state_after"] = (
+            str(refreshed["trust_state"]) if refreshed is not None else next_trust_state
+        )
+        revision_id = (
+            str(refreshed["current_revision_id"])
+            if refreshed and refreshed["current_revision_id"] is not None
+            else None
+        )
         insert_audit_event(
             connection,
             event_id=f"impact-{event.event_id}-{impact['object_id']}",

@@ -6,14 +6,18 @@ from papyrus.domain.ingestion import IngestionStatus
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import escape
 
-
 INGEST_STAGES = ("upload", "parse", "classify", "map", "review", "convert")
 
 
 def _completed_stages(detail: dict[str, object]) -> set[str]:
     status = IngestionStatus(str(detail.get("ingestion_state") or IngestionStatus.UPLOADED.value))
     completed: set[str] = {"upload"}
-    if status in {IngestionStatus.PARSED, IngestionStatus.CLASSIFIED, IngestionStatus.MAPPED, IngestionStatus.CONVERTED}:
+    if status in {
+        IngestionStatus.PARSED,
+        IngestionStatus.CLASSIFIED,
+        IngestionStatus.MAPPED,
+        IngestionStatus.CONVERTED,
+    }:
         completed.add("parse")
     if status in {IngestionStatus.CLASSIFIED, IngestionStatus.MAPPED, IngestionStatus.CONVERTED}:
         completed.add("classify")
@@ -39,7 +43,9 @@ def _current_stage(detail: dict[str, object]) -> str:
     return "upload"
 
 
-def render_ingest_progress(renderer: TemplateRenderer, *, detail: dict[str, object], surface: str) -> str:
+def render_ingest_progress(
+    renderer: TemplateRenderer, *, detail: dict[str, object], surface: str
+) -> str:
     items = []
     current_stage = _current_stage(detail)
     completed_stages = _completed_stages(detail)
@@ -47,7 +53,11 @@ def render_ingest_progress(renderer: TemplateRenderer, *, detail: dict[str, obje
         items.append(
             {
                 "label": stage.replace("_", " ").title(),
-                "state": "complete" if stage in completed_stages else "current" if stage == current_stage else "upcoming",
+                "state": "complete"
+                if stage in completed_stages
+                else "current"
+                if stage == current_stage
+                else "upcoming",
                 "required": True,
             }
         )
@@ -56,7 +66,9 @@ def render_ingest_progress(renderer: TemplateRenderer, *, detail: dict[str, obje
         "partials/progress_bar.html",
         {
             "percentage": escape(percentage),
-            "summary": escape(f"{len(completed_stages)} of {len(INGEST_STAGES)} ingestion stages complete"),
+            "summary": escape(
+                f"{len(completed_stages)} of {len(INGEST_STAGES)} ingestion stages complete"
+            ),
             "items_json": escape(json.dumps(items, ensure_ascii=True)),
         },
     )

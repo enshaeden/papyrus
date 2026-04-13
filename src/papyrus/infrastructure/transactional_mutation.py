@@ -5,9 +5,10 @@ import json
 import os
 import sqlite3
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from papyrus.application.policy_authority import PolicyAuthority
 
@@ -26,7 +27,7 @@ RECOVERABLE_MUTATION_STATUSES = {"prepared", "applying", "applied"}
 
 
 def _now_utc() -> dt.datetime:
-    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    return dt.datetime.now(dt.UTC).replace(microsecond=0)
 
 
 def _isoformat_utc(value: dt.datetime | None = None) -> str:
@@ -141,7 +142,7 @@ class TransactionalMutation:
             status="prepared",
         )
 
-    def start(self) -> "TransactionalMutation":
+    def start(self) -> TransactionalMutation:
         if self._started:
             return self
         self._acquire_lock()
@@ -157,7 +158,7 @@ class TransactionalMutation:
         self._release_lock()
         self._closed = True
 
-    def __enter__(self) -> "TransactionalMutation":
+    def __enter__(self) -> TransactionalMutation:
         return self.start()
 
     def __exit__(self, exc_type, exc, tb) -> None:
@@ -196,7 +197,7 @@ class TransactionalMutation:
         self,
         *,
         connection: sqlite3.Connection,
-        mutate: Callable[["TransactionalMutation"], Any],
+        mutate: Callable[[TransactionalMutation], Any],
         commit_connection: bool = True,
     ) -> Any:
         result = mutate(self)
@@ -468,11 +469,7 @@ class TransactionalMutation:
             raise MutationConflictError(
                 "another governed mutation is already in progress for "
                 f"{lock_name}"
-                + (
-                    f" (mutation_id={existing.mutation_id})"
-                    if existing.mutation_id
-                    else ""
-                )
+                + (f" (mutation_id={existing.mutation_id})" if existing.mutation_id else "")
             ) from exc
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             handle.write(
@@ -580,7 +577,7 @@ class TransactionalMutation:
     def _lock_age_seconds(lock_state: MutationLockState) -> float:
         timestamp = _parse_timestamp(lock_state.created_at)
         if timestamp is None:
-            timestamp = dt.datetime.fromtimestamp(lock_state.lock_path.stat().st_mtime, tz=dt.timezone.utc)
+            timestamp = dt.datetime.fromtimestamp(lock_state.lock_path.stat().st_mtime, tz=dt.UTC)
         return max(0.0, (_now_utc() - timestamp).total_seconds())
 
     @staticmethod

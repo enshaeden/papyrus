@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import io
 import json
 from dataclasses import dataclass, field
 from email.parser import BytesParser
 from email.policy import default
-from typing import Any
 from http.cookies import SimpleCookie
+from typing import Any
 from urllib.parse import parse_qs
 
 
@@ -56,7 +55,7 @@ class Request:
     def uploaded_file(self, name: str) -> UploadedFile | None:
         return self.files.get(name)
 
-    def with_route_params(self, route_params: dict[str, str]) -> "Request":
+    def with_route_params(self, route_params: dict[str, str]) -> Request:
         return Request(
             method=self.method,
             path=self.path,
@@ -103,7 +102,10 @@ def request_from_environ(environ: dict[str, Any]) -> Request:
                 json_body = loaded
         elif content_type == "multipart/form-data":
             message = BytesParser(policy=default).parsebytes(
-                b"Content-Type: " + str(environ.get("CONTENT_TYPE", "")).encode("utf-8") + b"\r\n\r\n" + raw_body
+                b"Content-Type: "
+                + str(environ.get("CONTENT_TYPE", "")).encode("utf-8")
+                + b"\r\n\r\n"
+                + raw_body
             )
             for part in message.iter_parts():
                 if part.get_content_disposition() != "form-data":
@@ -119,7 +121,9 @@ def request_from_environ(environ: dict[str, Any]) -> Request:
                         body=payload,
                     )
                 else:
-                    form.setdefault(field_name, []).append(payload.decode(part.get_content_charset() or "utf-8"))
+                    form.setdefault(field_name, []).append(
+                        payload.decode(part.get_content_charset() or "utf-8")
+                    )
         else:
             form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
 
@@ -138,7 +142,9 @@ def request_from_environ(environ: dict[str, Any]) -> Request:
     )
 
 
-def html_response(body: str, status: str = "200 OK", headers: list[tuple[str, str]] | None = None) -> Response:
+def html_response(
+    body: str, status: str = "200 OK", headers: list[tuple[str, str]] | None = None
+) -> Response:
     payload = body.encode("utf-8")
     return Response(
         status=status,
@@ -152,7 +158,9 @@ def html_response(body: str, status: str = "200 OK", headers: list[tuple[str, st
     )
 
 
-def json_response(payload: object, status: str = "200 OK", headers: list[tuple[str, str]] | None = None) -> Response:
+def json_response(
+    payload: object, status: str = "200 OK", headers: list[tuple[str, str]] | None = None
+) -> Response:
     body = json.dumps(payload, sort_keys=True, ensure_ascii=True).encode("utf-8")
     return Response(
         status=status,

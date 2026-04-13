@@ -17,7 +17,9 @@ from papyrus.interfaces.web import app as web_app
 from tests.web_assertions import SemanticHookAssertions
 
 
-def call_wsgi(application, path: str, *, method: str = "GET", form: dict[str, object] | None = None) -> tuple[str, dict[str, str], str]:
+def call_wsgi(
+    application, path: str, *, method: str = "GET", form: dict[str, object] | None = None
+) -> tuple[str, dict[str, str], str]:
     status_holder: dict[str, object] = {}
 
     def start_response(status: str, headers: list[tuple[str, str]]) -> None:
@@ -67,7 +69,9 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+            application = web_app(
+                database_path, source_root=source_root, allow_noncanonical_source_root=True
+            )
 
             status, _, body = call_wsgi(application, "/operator/write/new")
             self.assertEqual(status, "200 OK")
@@ -75,13 +79,17 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("Start draft", body)
             self.assertIn('class="sidebar"', body)
             self.assertIn('class="topbar-menu"', body)
-            self.assertIn('class="sidebar-link is-active" href="/operator/write/new">Write</a>', body)
+            self.assertIn(
+                'class="sidebar-link is-active" href="/operator/write/new">Write</a>', body
+            )
 
     def test_policy_revision_page_shows_guided_policy_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+            application = web_app(
+                database_path, source_root=source_root, allow_noncanonical_source_root=True
+            )
 
             status, headers, _ = call_wsgi(
                 application,
@@ -128,7 +136,9 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+            application = web_app(
+                database_path, source_root=source_root, allow_noncanonical_source_root=True
+            )
 
             status, headers, _ = call_wsgi(
                 application,
@@ -169,7 +179,9 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
             source_root = Path(temp_dir) / "repo"
-            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+            application = web_app(
+                database_path, source_root=source_root, allow_noncanonical_source_root=True
+            )
 
             status, _, body = call_wsgi(application, "/operator/read")
             self.assertEqual(status, "200 OK")
@@ -180,7 +192,9 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+            application = web_app(
+                database_path, source_root=source_root, allow_noncanonical_source_root=True
+            )
 
             status, headers, _ = call_wsgi(
                 application,
@@ -211,14 +225,18 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("Save and continue", guided_body)
             self.assertIn('class="sidebar"', guided_body)
             self.assertIn('class="topbar-menu"', guided_body)
-            self.assertIn('class="sidebar-link is-active" href="/operator/write/new">Write</a>', guided_body)
+            self.assertIn(
+                'class="sidebar-link is-active" href="/operator/write/new">Write</a>', guided_body
+            )
             self.assertNotIn("shell-columns-focus", guided_body)
             self.assertIn("/static/js/citation_picker.js", guided_body)
             self.assertIn("/static/js/multi_value_picker.js", guided_body)
             self.assertNotIn("/revisions/fallback", guided_body)
             self.assertNotIn("Advanced draft editor", guided_body)
 
-            status, _, stewardship_body = call_wsgi(application, guided_path + "&section=stewardship")
+            status, _, stewardship_body = call_wsgi(
+                application, guided_path + "&section=stewardship"
+            )
             self.assertEqual(status, "200 OK")
             self.assertIn("data-multi-value-picker", stewardship_body)
             self.assertIn('data-search-url="/operator/write/objects/search"', stewardship_body)
@@ -234,7 +252,9 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+            application = web_app(
+                database_path, source_root=source_root, allow_noncanonical_source_root=True
+            )
 
             status, headers, _ = call_wsgi(
                 application,
@@ -273,7 +293,11 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(first_status, "200 OK")
             self.assertEqual(second_status, "200 OK")
             self.assertEqual(
-                read_count(database_path, "SELECT COUNT(*) FROM knowledge_revisions WHERE object_id = ?", ("kb-ui-get-reload",)),
+                read_count(
+                    database_path,
+                    "SELECT COUNT(*) FROM knowledge_revisions WHERE object_id = ?",
+                    ("kb-ui-get-reload",),
+                ),
                 revision_count_before,
             )
             self.assertEqual(
@@ -300,7 +324,9 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
                 canonical_path="knowledge/runbooks/empty-shell.md",
                 actor="tests",
             )
-            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+            application = web_app(
+                database_path, source_root=source_root, allow_noncanonical_source_root=True
+            )
 
             status, _, body = call_wsgi(application, "/operator/write/object/kb-ui-empty-shell")
 

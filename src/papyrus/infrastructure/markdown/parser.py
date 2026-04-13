@@ -1,33 +1,31 @@
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import yaml
 
 from papyrus.domain.entities import BrokenLink, KnowledgeDocument, ParsedKnowledgeObjectSource
 from papyrus.domain.policies import (
     citation_health_rank_for_statuses,
+    freshness_rank,
     normalize_citation_validity_status,
     ownership_rank,
     primary_object_type,
     trust_state,
-    freshness_rank,
 )
+from papyrus.infrastructure.markdown.serializer import normalize_whitespace, parse_iso_date
 from papyrus.infrastructure.paths import (
+    BARE_PLACEHOLDER_PATTERN,
     FRONT_MATTER_PATTERN,
     HTML_HREF_PATTERN,
     MARKDOWN_LINK_PATTERN,
     PLACEHOLDER_PATTERN,
-    BARE_PLACEHOLDER_PATTERN,
     ROOT,
     SITE_DIR,
     relative_path,
 )
-from papyrus.infrastructure.markdown.serializer import normalize_whitespace, parse_iso_date
-
 
 LEGACY_FIELD_NOTE_PREFIX = "Legacy source does not declare structured"
 
@@ -118,7 +116,9 @@ def collect_broken_markdown_links(paths: Iterable[Path]) -> list[BrokenLink]:
     return issues
 
 
-def resolve_rendered_site_link(base_path: Path, target: str, site_root: Path) -> tuple[Path | None, str | None]:
+def resolve_rendered_site_link(
+    base_path: Path, target: str, site_root: Path
+) -> tuple[Path | None, str | None]:
     clean_target = target.split("#", 1)[0].split("?", 1)[0].strip()
     if not clean_target or is_external_target(clean_target):
         return None, None
@@ -146,7 +146,9 @@ def collect_broken_rendered_site_links(site_dir: Path = SITE_DIR) -> list[Broken
     for path in html_paths:
         text = path.read_text(encoding="utf-8")
         for target in HTML_HREF_PATTERN.findall(text):
-            resolved, resolution_issue = resolve_rendered_site_link(path.resolve(), target, site_root)
+            resolved, resolution_issue = resolve_rendered_site_link(
+                path.resolve(), target, site_root
+            )
             if resolution_issue:
                 issues.append(
                     BrokenLink(
@@ -190,24 +192,34 @@ def _normalize_citations(metadata: dict[str, object]) -> list[dict[str, object]]
         for item in existing:
             if not isinstance(item, dict):
                 continue
-            source_ref = str(item.get("source_ref") or item.get("path") or item.get("url") or "").strip()
+            source_ref = str(
+                item.get("source_ref") or item.get("path") or item.get("url") or ""
+            ).strip()
             source_title = str(item.get("source_title") or item.get("title") or source_ref).strip()
             if not source_ref or not source_title:
                 continue
             citations.append(
                 {
                     "article_id": item.get("article_id"),
-                    "claim_anchor": str(item.get("claim_anchor")).strip() if item.get("claim_anchor") else None,
+                    "claim_anchor": str(item.get("claim_anchor")).strip()
+                    if item.get("claim_anchor")
+                    else None,
                     "source_title": source_title,
                     "source_type": str(item.get("source_type") or "document").strip() or "document",
                     "source_ref": source_ref,
                     "note": str(item.get("note")).strip() if item.get("note") else None,
                     "excerpt": str(item.get("excerpt")).strip() if item.get("excerpt") else None,
-                    "captured_at": str(item.get("captured_at")).strip() if item.get("captured_at") else None,
+                    "captured_at": str(item.get("captured_at")).strip()
+                    if item.get("captured_at")
+                    else None,
                     "validity_status": normalize_citation_validity_status(
-                        str(item.get("validity_status")) if item.get("validity_status") is not None else None
+                        str(item.get("validity_status"))
+                        if item.get("validity_status") is not None
+                        else None
                     ),
-                    "integrity_hash": str(item.get("integrity_hash")).strip() if item.get("integrity_hash") else None,
+                    "integrity_hash": str(item.get("integrity_hash")).strip()
+                    if item.get("integrity_hash")
+                    else None,
                     "evidence_snapshot_path": (
                         str(item.get("evidence_snapshot_path")).strip()
                         if item.get("evidence_snapshot_path")
@@ -231,16 +243,18 @@ def _normalize_citations(metadata: dict[str, object]) -> list[dict[str, object]]
     if not isinstance(legacy, list):
         return []
 
-    citations: list[dict[str, object]] = []
+    legacy_citations: list[dict[str, object]] = []
     for item in legacy:
         if not isinstance(item, dict):
             continue
-        source_ref = str(item.get("path") or item.get("url") or item.get("article_id") or item.get("title") or "").strip()
+        source_ref = str(
+            item.get("path") or item.get("url") or item.get("article_id") or item.get("title") or ""
+        ).strip()
         if not source_ref:
             continue
         source_title = str(item.get("title") or source_ref).strip()
         note = str(item.get("note") or "").strip() or None
-        citations.append(
+        legacy_citations.append(
             {
                 "article_id": item.get("article_id"),
                 "claim_anchor": None,
@@ -257,7 +271,7 @@ def _normalize_citations(metadata: dict[str, object]) -> list[dict[str, object]]
                 "evidence_last_validated_at": None,
             }
         )
-    return citations
+    return legacy_citations
 
 
 def _legacy_note(field: str, context: str | None = None) -> str:
@@ -315,7 +329,6 @@ def normalize_object_metadata(
     if not isinstance(legacy_type_value, str) or not legacy_type_value.strip():
         legacy_type_value = None
 
-    paragraph = extract_first_paragraph(document.body)
     citations = _normalize_citations(metadata)
     related_services = _related_services(metadata)
     related_object_ids = _related_object_ids(metadata)
@@ -372,7 +385,9 @@ def normalize_object_metadata(
         metadata.setdefault("citations", citations)
         metadata.setdefault("related_object_ids", related_object_ids)
         metadata.setdefault("policy_scope", _legacy_scope_note(metadata.get("summary")))
-        metadata.setdefault("controls", _string_list(metadata.get("steps")) or [_legacy_note("controls")])
+        metadata.setdefault(
+            "controls", _string_list(metadata.get("steps")) or [_legacy_note("controls")]
+        )
         metadata.setdefault("exceptions", "")
         metadata.setdefault("superseded_by", metadata.get("replaced_by"))
         metadata.setdefault("replaced_by", metadata.get("superseded_by"))
@@ -380,17 +395,25 @@ def normalize_object_metadata(
         metadata.setdefault("citations", citations)
         metadata.setdefault("related_object_ids", related_object_ids)
         metadata.setdefault("dependencies", _string_list(metadata.get("systems")))
-        metadata.setdefault("interfaces", _string_list(metadata.get("support_entrypoints")) or [_legacy_note("interfaces")])
+        metadata.setdefault(
+            "interfaces",
+            _string_list(metadata.get("support_entrypoints")) or [_legacy_note("interfaces")],
+        )
         metadata.setdefault(
             "common_failure_modes",
-            _string_list(metadata.get("common_failure_modes")) or [_legacy_note("common failure modes")],
+            _string_list(metadata.get("common_failure_modes"))
+            or [_legacy_note("common failure modes")],
         )
-        metadata.setdefault("support_entrypoints", _string_list(metadata.get("support_entrypoints")))
+        metadata.setdefault(
+            "support_entrypoints", _string_list(metadata.get("support_entrypoints"))
+        )
         metadata.setdefault("architecture", _legacy_note("architecture"))
         metadata.setdefault("superseded_by", metadata.get("replaced_by"))
         metadata.setdefault("replaced_by", metadata.get("superseded_by"))
     else:  # pragma: no cover
-        raise ValueError(f"{document.relative_path}: unsupported knowledge object type {object_type}")
+        raise ValueError(
+            f"{document.relative_path}: unsupported knowledge object type {object_type}"
+        )
 
     citation_rank = citation_health_rank_for_statuses(
         [str(citation.get("validity_status", "unverified")) for citation in citations]

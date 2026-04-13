@@ -5,10 +5,24 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from papyrus.application import evidence_flow, event_flow, impact_flow, review_flow, sync_flow, validation_flow, writeback_flow
+from papyrus.application import (
+    event_flow,
+    evidence_flow,
+    impact_flow,
+    review_flow,
+    sync_flow,
+    validation_flow,
+    writeback_flow,
+)
 from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.domain.actor import require_actor_id
-from papyrus.domain.entities import AuditEvent, KnowledgeObject, KnowledgeRevision, ReviewAssignment, ValidationIssue
+from papyrus.domain.entities import (
+    AuditEvent,
+    KnowledgeObject,
+    KnowledgeRevision,
+    ReviewAssignment,
+    ValidationIssue,
+)
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.infrastructure.repositories.knowledge_repo import load_knowledge_documents
 
@@ -159,14 +173,18 @@ def create_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> Knowl
     source_root = Path(kwargs.pop("source_root", ROOT))
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return governance_workflow(database_path, source_root=source_root, authority=authority).create_object(**kwargs)
+    return governance_workflow(
+        database_path, source_root=source_root, authority=authority
+    ).create_object(**kwargs)
 
 
 def create_revision_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeRevision:
     source_root = Path(kwargs.pop("source_root", ROOT))
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return governance_workflow(database_path, source_root=source_root, authority=authority).create_revision(**kwargs)
+    return governance_workflow(
+        database_path, source_root=source_root, authority=authority
+    ).create_revision(**kwargs)
 
 
 def submit_for_review_command(database_path: Path = DB_PATH, **kwargs: Any) -> WorkflowAuditResult:
@@ -174,7 +192,9 @@ def submit_for_review_command(database_path: Path = DB_PATH, **kwargs: Any) -> W
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
     return WorkflowAuditResult(
-        governance_workflow(database_path, source_root=source_root, authority=authority).submit_for_review(**kwargs)
+        governance_workflow(
+            database_path, source_root=source_root, authority=authority
+        ).submit_for_review(**kwargs)
     )
 
 
@@ -182,35 +202,47 @@ def assign_reviewer_command(database_path: Path = DB_PATH, **kwargs: Any) -> Rev
     source_root = Path(kwargs.pop("source_root", ROOT))
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return governance_workflow(database_path, source_root=source_root, authority=authority).assign_reviewer(**kwargs)
+    return governance_workflow(
+        database_path, source_root=source_root, authority=authority
+    ).assign_reviewer(**kwargs)
 
 
 def approve_revision_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeRevision:
     source_root = Path(kwargs.pop("source_root", ROOT))
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return governance_workflow(database_path, source_root=source_root, authority=authority).approve_revision(**kwargs)
+    return governance_workflow(
+        database_path, source_root=source_root, authority=authority
+    ).approve_revision(**kwargs)
 
 
 def reject_revision_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeRevision:
     source_root = Path(kwargs.pop("source_root", ROOT))
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return governance_workflow(database_path, source_root=source_root, authority=authority).reject_revision(**kwargs)
+    return governance_workflow(
+        database_path, source_root=source_root, authority=authority
+    ).reject_revision(**kwargs)
 
 
 def supersede_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeObject:
     source_root = Path(kwargs.pop("source_root", ROOT))
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    return governance_workflow(database_path, source_root=source_root, authority=authority).supersede_object(**kwargs)
+    return governance_workflow(
+        database_path, source_root=source_root, authority=authority
+    ).supersede_object(**kwargs)
 
 
-def archive_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> ArchiveObjectCommandResult:
+def archive_object_command(
+    database_path: Path = DB_PATH, **kwargs: Any
+) -> ArchiveObjectCommandResult:
     source_root = Path(kwargs.pop("source_root", ROOT))
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
-    result = governance_workflow(database_path, source_root=source_root, authority=authority).archive_object(**kwargs)
+    result = governance_workflow(
+        database_path, source_root=source_root, authority=authority
+    ).archive_object(**kwargs)
     return ArchiveObjectCommandResult(
         object_id=str(result["object_id"]),
         revision_id=str(result["revision_id"]),

@@ -9,7 +9,12 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.application.validation_flow import validate_knowledge_documents
 from papyrus.domain.entities import KnowledgeDocument
-from papyrus.infrastructure.repositories.knowledge_repo import load_object_schemas, load_policy, load_schema, load_taxonomies
+from papyrus.infrastructure.repositories.knowledge_repo import (
+    load_object_schemas,
+    load_policy,
+    load_schema,
+    load_taxonomies,
+)
 
 
 def _citation() -> list[dict[str, object]]:
@@ -71,8 +76,16 @@ class BlueprintValidationTests(unittest.TestCase):
                 "retirement_reason": None,
                 "services": ["Remote Access"],
                 "related_articles": [],
-                "references": [{"title": "Write playbook", "path": "docs/playbooks/write.md", "note": "Local governed reference."}],
-                "change_log": [{"date": "2026-04-08", "summary": "Imported legacy runbook.", "author": "tests"}],
+                "references": [
+                    {
+                        "title": "Write playbook",
+                        "path": "docs/playbooks/write.md",
+                        "note": "Local governed reference.",
+                    }
+                ],
+                "change_log": [
+                    {"date": "2026-04-08", "summary": "Imported legacy runbook.", "author": "tests"}
+                ],
             },
             body=(
                 "## Overview\n\n"
@@ -91,7 +104,9 @@ class BlueprintValidationTests(unittest.TestCase):
             self.policy,
         )
 
-        blueprint_issues = [issue for issue in issues if "required blueprint section is incomplete" in issue.message]
+        blueprint_issues = [
+            issue for issue in issues if "required blueprint section is incomplete" in issue.message
+        ]
         self.assertEqual(blueprint_issues, [])
 
     def test_native_runbook_without_required_blueprint_sections_still_fails(self) -> None:
@@ -130,8 +145,16 @@ class BlueprintValidationTests(unittest.TestCase):
                 "retirement_reason": None,
                 "services": ["Remote Access"],
                 "related_articles": [],
-                "references": [{"title": "Write playbook", "path": "docs/playbooks/write.md", "note": "Local governed reference."}],
-                "change_log": [{"date": "2026-04-08", "summary": "Created native runbook.", "author": "tests"}],
+                "references": [
+                    {
+                        "title": "Write playbook",
+                        "path": "docs/playbooks/write.md",
+                        "note": "Local governed reference.",
+                    }
+                ],
+                "change_log": [
+                    {"date": "2026-04-08", "summary": "Created native runbook.", "author": "tests"}
+                ],
             },
             body="## Procedure\n\nPerform the procedure exactly as written.",
         )
@@ -183,8 +206,16 @@ class BlueprintValidationTests(unittest.TestCase):
                 "retirement_reason": None,
                 "services": [],
                 "related_articles": [],
-                "references": [{"title": "Write playbook", "path": "docs/playbooks/write.md", "note": "Local governed reference."}],
-                "change_log": [{"date": "2026-04-08", "summary": "Created native policy.", "author": "tests"}],
+                "references": [
+                    {
+                        "title": "Write playbook",
+                        "path": "docs/playbooks/write.md",
+                        "note": "Local governed reference.",
+                    }
+                ],
+                "change_log": [
+                    {"date": "2026-04-08", "summary": "Created native policy.", "author": "tests"}
+                ],
             },
             body="## Policy Scope\n\n",
         )
@@ -237,8 +268,20 @@ class BlueprintValidationTests(unittest.TestCase):
                 "retirement_reason": None,
                 "services": [],
                 "related_articles": [],
-                "references": [{"title": "Write playbook", "path": "docs/playbooks/write.md", "note": "Local governed reference."}],
-                "change_log": [{"date": "2026-04-08", "summary": "Created native system design.", "author": "tests"}],
+                "references": [
+                    {
+                        "title": "Write playbook",
+                        "path": "docs/playbooks/write.md",
+                        "note": "Local governed reference.",
+                    }
+                ],
+                "change_log": [
+                    {
+                        "date": "2026-04-08",
+                        "summary": "Created native system design.",
+                        "author": "tests",
+                    }
+                ],
             },
             body="## Architecture\n\n",
         )

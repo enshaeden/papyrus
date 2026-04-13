@@ -17,14 +17,18 @@ def main() -> int:
         description="Inspect, apply, or restore governed source writeback for canonical Markdown."
     )
     parser.add_argument("--db", default=str(DB_PATH), help="Path to the runtime SQLite database.")
-    parser.add_argument("--actor", default="papyrus-source-sync", help="Actor to record in the audit trail.")
+    parser.add_argument(
+        "--actor", default="papyrus-source-sync", help="Actor to record in the audit trail."
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     preview_parser = subparsers.add_parser(
         "preview",
         help="Preview the canonical Markdown that a revision would write.",
     )
-    preview_parser.add_argument("--object", dest="object_id", required=True, help="Knowledge object ID.")
+    preview_parser.add_argument(
+        "--object", dest="object_id", required=True, help="Knowledge object ID."
+    )
     preview_parser.add_argument(
         "--revision",
         dest="revision_id",
@@ -32,8 +36,12 @@ def main() -> int:
         help="Revision ID to preview. Defaults to the object's current revision.",
     )
 
-    writeback_parser = subparsers.add_parser("writeback", help="Write the current approved revision for one object.")
-    writeback_parser.add_argument("--object", dest="object_id", required=True, help="Knowledge object ID.")
+    writeback_parser = subparsers.add_parser(
+        "writeback", help="Write the current approved revision for one object."
+    )
+    writeback_parser.add_argument(
+        "--object", dest="object_id", required=True, help="Knowledge object ID."
+    )
 
     subparsers.add_parser("writeback-all", help="Write all current approved revisions.")
 
@@ -41,7 +49,9 @@ def main() -> int:
         "restore-last",
         help="Restore the previous canonical source state from the most recent writeback backup.",
     )
-    restore_parser.add_argument("--object", dest="object_id", required=True, help="Knowledge object ID.")
+    restore_parser.add_argument(
+        "--object", dest="object_id", required=True, help="Knowledge object ID."
+    )
     restore_parser.add_argument(
         "--revision",
         dest="revision_id",
@@ -66,12 +76,20 @@ def main() -> int:
         )
         print(f"{result.object_id} | {result.revision_id} | {result.file_path}")
         print(f"conflict_detected={str(result.conflict_detected).lower()}")
-        print("changed_fields=" + (", ".join(result.changed_fields) if result.changed_fields else "none"))
-        print("changed_sections=" + (", ".join(result.changed_sections) if result.changed_sections else "none"))
+        print(
+            "changed_fields="
+            + (", ".join(result.changed_fields) if result.changed_fields else "none")
+        )
+        print(
+            "changed_sections="
+            + (", ".join(result.changed_sections) if result.changed_sections else "none")
+        )
         return 0
 
     if args.command == "writeback":
-        result = writeback_object_command(database_path=args.db, object_id=args.object_id, actor=args.actor)
+        result = writeback_object_command(
+            database_path=args.db, object_id=args.object_id, actor=args.actor
+        )
         print(f"{result.object_id} | {result.revision_id} | {result.file_path}")
         return 0
 
@@ -82,7 +100,9 @@ def main() -> int:
             revision_id=args.revision_id,
             actor=args.actor,
         )
-        print(f"{result.object_id} | {result.revision_id or 'unknown-revision'} | {result.file_path}")
+        print(
+            f"{result.object_id} | {result.revision_id or 'unknown-revision'} | {result.file_path}"
+        )
         print(f"restored_event_id={result.restored_event_id}")
         print(f"restored_to_missing={str(result.restored_to_missing).lower()}")
         if result.backup_path is not None:

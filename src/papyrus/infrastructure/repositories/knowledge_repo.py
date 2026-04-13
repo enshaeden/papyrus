@@ -179,7 +179,9 @@ def get_knowledge_object(connection: sqlite3.Connection, object_id: str) -> sqli
     ).fetchone()
 
 
-def get_knowledge_object_by_canonical_path(connection: sqlite3.Connection, canonical_path: str) -> sqlite3.Row | None:
+def get_knowledge_object_by_canonical_path(
+    connection: sqlite3.Connection, canonical_path: str
+) -> sqlite3.Row | None:
     return connection.execute(
         "SELECT * FROM knowledge_objects WHERE canonical_path = ?",
         (canonical_path,),
@@ -193,7 +195,9 @@ def get_knowledge_revision(connection: sqlite3.Connection, revision_id: str) -> 
     ).fetchone()
 
 
-def latest_revision_for_object(connection: sqlite3.Connection, object_id: str) -> sqlite3.Row | None:
+def latest_revision_for_object(
+    connection: sqlite3.Connection, object_id: str
+) -> sqlite3.Row | None:
     return connection.execute(
         """
         SELECT *

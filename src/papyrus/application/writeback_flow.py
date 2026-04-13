@@ -12,8 +12,8 @@ from typing import Any
 import yaml
 
 from papyrus.application.policy_authority import PolicyAuthority, policy_decision_payload
-from papyrus.domain.lifecycle import RevisionReviewState, SourceSyncState
 from papyrus.domain.actor import require_actor_id
+from papyrus.domain.lifecycle import RevisionReviewState, SourceSyncState
 from papyrus.infrastructure.markdown.serializer import slugify
 from papyrus.infrastructure.markdown.writer import MarkdownWriter, SourceWriteConflictError
 from papyrus.infrastructure.paths import DB_PATH, ROOT
@@ -24,14 +24,18 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     load_object_schemas,
     update_knowledge_object_runtime_state,
 )
-from papyrus.infrastructure.transactional_mutation import MutationRecoveryError, TransactionalMutation
+from papyrus.infrastructure.transactional_mutation import (
+    MutationRecoveryError,
+    TransactionalMutation,
+)
 
-
-SECTION_PATTERN = re.compile(r"^## (?P<title>.+?)\n\n(?P<body>.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL)
+SECTION_PATTERN = re.compile(
+    r"^## (?P<title>.+?)\n\n(?P<body>.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL
+)
 
 
 def _now_utc() -> dt.datetime:
-    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    return dt.datetime.now(dt.UTC).replace(microsecond=0)
 
 
 def _event_id(prefix: str) -> str:
@@ -169,7 +173,9 @@ def _ordered_metadata(metadata: dict[str, Any], object_type: str) -> dict[str, A
     return ordered
 
 
-def render_revision_markdown(*, object_type: str, metadata: dict[str, Any], body_markdown: str) -> str:
+def render_revision_markdown(
+    *, object_type: str, metadata: dict[str, Any], body_markdown: str
+) -> str:
     ordered_metadata = _ordered_metadata(metadata, object_type)
     front_matter = yaml.safe_dump(
         ordered_metadata,
@@ -225,7 +231,9 @@ def _has_prior_writeback(connection: sqlite3.Connection, *, object_id: str) -> b
     return row is not None
 
 
-def _changed_fields(previous_metadata: dict[str, Any], current_metadata: dict[str, Any]) -> list[str]:
+def _changed_fields(
+    previous_metadata: dict[str, Any], current_metadata: dict[str, Any]
+) -> list[str]:
     fields: list[str] = []
     for key in sorted(set(previous_metadata) | set(current_metadata)):
         if previous_metadata.get(key) != current_metadata.get(key):
@@ -311,9 +319,7 @@ def _writeback_preview_from_connection(
     )
     conflict_reason = None
     if conflict_detected:
-        conflict_reason = (
-            "Canonical source changed unexpectedly relative to the last approved revision or expected empty state."
-        )
+        conflict_reason = "Canonical source changed unexpectedly relative to the last approved revision or expected empty state."
     current_source_sync_state = _source_sync_state(object_row)
     decision = current_authority.require_source_sync_transition(
         current_source_sync_state,
@@ -451,7 +457,9 @@ def prepare_revision_writeback(
             source_sync_content_hash=str(revision_row["content_hash"]),
             source_sync_mutation_id=mutation_id,
         )
-        raise SourceWriteConflictError(preview.conflict_reason or f"canonical source changed unexpectedly for {object_id}")
+        raise SourceWriteConflictError(
+            preview.conflict_reason or f"canonical source changed unexpectedly for {object_id}"
+        )
 
     metadata = json.loads(revision_row["normalized_payload_json"])
     current_text = preview.current_source_text
@@ -510,7 +518,9 @@ def prepare_revision_writeback(
                 revision_id=revision_id,
                 details_json=json.dumps(
                     {
-                        "file_path": str(metadata.get("canonical_path") or object_row["canonical_path"]),
+                        "file_path": str(
+                            metadata.get("canonical_path") or object_row["canonical_path"]
+                        ),
                         "backup_path": (
                             backup_path.relative_to(root_path).as_posix()
                             if backup_path is not None
@@ -572,7 +582,7 @@ def prepare_revision_writeback(
             state_change=preview.state_change,
             invalidated_assumptions=preview.invalidated_assumptions,
             operator_message=preview.operator_message,
-        )
+        ),
     )
 
 
@@ -709,7 +719,9 @@ def restore_last_writeback(
         if not bool(details.get("changed", True)):
             raise ValueError(f"latest writeback for {object_id} did not change canonical source")
 
-        file_path = (root_path / str(details.get("file_path") or object_row["canonical_path"])).resolve()
+        file_path = (
+            root_path / str(details.get("file_path") or object_row["canonical_path"])
+        ).resolve()
         backup_path: Path | None = None
         previous_text: str | None = None
         backup_rel = str(details.get("backup_path") or "").strip()
@@ -755,14 +767,18 @@ def restore_last_writeback(
             if previous_text is None:
                 mutation.stage_delete(target_path=file_path, previous_text=current_text)
             else:
-                mutation.stage_write(target_path=file_path, previous_text=current_text, new_text=previous_text)
+                mutation.stage_write(
+                    target_path=file_path, previous_text=current_text, new_text=previous_text
+                )
             mutation.execute(
                 connection=connection,
                 mutate=lambda _: update_knowledge_object_runtime_state(
                     connection,
                     object_id=object_id,
                     source_sync_state=SourceSyncState.RESTORED.value,
-                    source_sync_revision_id=str(row["revision_id"]) if row["revision_id"] is not None else None,
+                    source_sync_revision_id=str(row["revision_id"])
+                    if row["revision_id"] is not None
+                    else None,
                     source_sync_mutation_id=mutation_id,
                 ),
             )

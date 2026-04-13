@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from papyrus.application.role_visibility import ADMIN_ROLE, OPERATOR_ROLE, READER_ROLE
 from papyrus.interfaces.web.urls import (
@@ -13,8 +14,7 @@ from papyrus.interfaces.web.urls import (
     service_url,
     write_new_url,
 )
-from papyrus.interfaces.web.view_helpers import escape, join_html, link, quoted_path
-
+from papyrus.interfaces.web.view_helpers import escape, join_html, link
 
 _HOME_LAUNCH_ACTION_LABELS = {
     "do_now": "Open",
@@ -67,24 +67,24 @@ def _render_block_item(
         + link(
             action_label,
             href,
-            css_class=f'button button-ghost home-launch-block__link tone-{escape(tone)}',
+            css_class=f"button button-ghost home-launch-block__link tone-{escape(tone)}",
             attrs={"data-action-id": action_id},
         )
         + "</div></li>"
     )
 
 
-def _render_block_shell(*, block_id: str, title: str, summary: str, tone: str, items_html: list[str]) -> str:
+def _render_block_shell(
+    *, block_id: str, title: str, summary: str, tone: str, items_html: list[str]
+) -> str:
     return (
         f'<section class="home-launch-block tone-{escape(tone)}" data-component="home-launch-block" data-surface="home" data-home-block="{escape(block_id)}">'
         '<div class="home-launch-block__head">'
         f'<p class="home-launch-block__kicker">{escape(block_id.replace("_", " "))}</p>'
-        f'<h2>{escape(title)}</h2>'
+        f"<h2>{escape(title)}</h2>"
         f'<p class="home-launch-block__summary">{escape(summary)}</p>'
         "</div>"
-        '<ul class="home-launch-block__list">'
-        + join_html(items_html)
-        + "</ul></section>"
+        '<ul class="home-launch-block__list">' + join_html(items_html) + "</ul></section>"
     )
 
 
@@ -492,13 +492,24 @@ def _render_portfolio_trends_block(dashboard: dict[str, Any]) -> str:
 _PRIMARY_RENDERERS: dict[str, list[Callable[[dict[str, Any]], str]]] = {
     READER_ROLE: [_render_do_now_block],
     OPERATOR_ROLE: [_render_do_now_block, _render_continue_block, _render_watch_block],
-    ADMIN_ROLE: [_render_queue_status_block, _render_pending_decisions_block, _render_blocked_reviews_block, _render_risk_pressure_block, _render_review_pressure_block, _render_service_pressure_block],
+    ADMIN_ROLE: [
+        _render_queue_status_block,
+        _render_pending_decisions_block,
+        _render_blocked_reviews_block,
+        _render_risk_pressure_block,
+        _render_review_pressure_block,
+        _render_service_pressure_block,
+    ],
 }
 
 _SECONDARY_RENDERERS: dict[str, list[Callable[[dict[str, Any]], str]]] = {
     READER_ROLE: [],
     OPERATOR_ROLE: [],
-    ADMIN_ROLE: [_render_governance_consequences_block, _render_cleanup_pressure_block, _render_portfolio_trends_block],
+    ADMIN_ROLE: [
+        _render_governance_consequences_block,
+        _render_cleanup_pressure_block,
+        _render_portfolio_trends_block,
+    ],
 }
 
 

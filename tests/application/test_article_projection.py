@@ -54,22 +54,53 @@ class ArticleProjectionTests(unittest.TestCase):
                 "rollback": {"rollback": ["Undo the first step."]},
                 "boundaries": {"boundaries_and_escalation": "Escalate if the gateway is degraded."},
             },
-            related_services=[{"service_id": "remote-access", "service_name": "Remote Access", "service_criticality": "high", "status": "active"}],
+            related_services=[
+                {
+                    "service_id": "remote-access",
+                    "service_name": "Remote Access",
+                    "service_criticality": "high",
+                    "status": "active",
+                }
+            ],
             citations=[{"source_title": "Gateway SOP", "validity_status": "verified"}],
-            evidence_status={"summary": "1 citation", "total_citations": 1, "snapshot_count": 1, "revalidation_count": 0, "stale_count": 0},
+            evidence_status={
+                "summary": "1 citation",
+                "total_citations": 1,
+                "snapshot_count": 1,
+                "revalidation_count": 0,
+                "stale_count": 0,
+            },
             audit_events=[],
             ui_projection={
-                "state": {"trust_state": "trusted", "revision_review_state": "approved", "object_lifecycle_state": "active"},
-                "use_guidance": {"summary": "Safe to use now", "detail": "Current guidance is approved and trusted."},
+                "state": {
+                    "trust_state": "trusted",
+                    "revision_review_state": "approved",
+                    "object_lifecycle_state": "active",
+                },
+                "use_guidance": {
+                    "summary": "Safe to use now",
+                    "detail": "Current guidance is approved and trusted.",
+                },
             },
             experience=experience_for_role("operator"),
         )
 
         self.assertEqual(
             [section["section_id"] for section in projection["sections"][:7]],
-            ["when_to_use", "scope", "guidance", "verification", "rollback", "escalation", "service_context"],
+            [
+                "when_to_use",
+                "scope",
+                "guidance",
+                "verification",
+                "rollback",
+                "escalation",
+                "service_context",
+            ],
         )
-        self.assertEqual([section["section_id"] for section in projection["secondary_sections"]], ["governance", "evidence", "source"])
+        self.assertEqual(
+            [section["section_id"] for section in projection["secondary_sections"]],
+            ["governance", "evidence", "source"],
+        )
         self.assertFalse(projection["show_context_rail"])
 
     def test_admin_projection_keeps_audit_context_in_secondary_rail(self) -> None:
@@ -103,16 +134,32 @@ class ArticleProjectionTests(unittest.TestCase):
             related_services=[],
             citations=[],
             evidence_status={},
-            audit_events=[{"event_type": "revision_submitted_for_review", "occurred_at": "2026-04-11T01:00:00+00:00", "actor": "tests"}],
+            audit_events=[
+                {
+                    "event_type": "revision_submitted_for_review",
+                    "occurred_at": "2026-04-11T01:00:00+00:00",
+                    "actor": "tests",
+                }
+            ],
             ui_projection={
-                "state": {"trust_state": "suspect", "revision_review_state": "in_review", "object_lifecycle_state": "active"},
-                "use_guidance": {"summary": "Review before use", "detail": "Admin inspection context is required."},
+                "state": {
+                    "trust_state": "suspect",
+                    "revision_review_state": "in_review",
+                    "object_lifecycle_state": "active",
+                },
+                "use_guidance": {
+                    "summary": "Review before use",
+                    "detail": "Admin inspection context is required.",
+                },
             },
             experience=experience_for_role("admin"),
         )
 
         self.assertTrue(projection["show_context_rail"])
-        self.assertEqual([section["section_id"] for section in projection["secondary_sections"]], ["governance", "evidence", "audit", "source"])
+        self.assertEqual(
+            [section["section_id"] for section in projection["secondary_sections"]],
+            ["governance", "evidence", "audit", "source"],
+        )
 
 
 if __name__ == "__main__":

@@ -43,7 +43,9 @@ class WebSemanticHookContractTests(unittest.TestCase):
                 for token in FORBIDDEN_HOOK_TOKENS:
                     if token in line:
                         relative_path = path.relative_to(ROOT)
-                        violations.append(f"{relative_path}:{line_number} contains raw semantic hook token {token!r}")
+                        violations.append(
+                            f"{relative_path}:{line_number} contains raw semantic hook token {token!r}"
+                        )
 
         self.assertFalse(
             violations,

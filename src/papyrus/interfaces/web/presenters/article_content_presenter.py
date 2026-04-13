@@ -20,7 +20,12 @@ def render_article_block(block: dict[str, Any]) -> str:
     if kind == "facts":
         return (
             f'<div class="article-block article-block-facts">{title_html}<dl class="article-facts">'
-            + join_html([f"<div><dt>{escape(label)}</dt><dd>{escape(value)}</dd></div>" for label, value in block["rows"]])
+            + join_html(
+                [
+                    f"<div><dt>{escape(label)}</dt><dd>{escape(value)}</dd></div>"
+                    for label, value in block["rows"]
+                ]
+            )
             + "</dl></div>"
         )
     return ""

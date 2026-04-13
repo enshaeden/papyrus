@@ -1,0 +1,491 @@
+{
+  "routes": [
+    {
+      "handler_module": "papyrus.interfaces.web.routes.home",
+      "handler_name": "root_landing",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/",
+      "role_group": "shared"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.home",
+      "handler_name": "admin_landing",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "audit_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin/audit",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.dashboard",
+      "handler_name": "trust_dashboard_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin/governance",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.impact",
+      "handler_name": "object_impact_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin/impact/object/{object_id}",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.impact",
+      "handler_name": "service_impact_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin/impact/service/{service_id}",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.queue",
+      "handler_name": "queue_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin/inspect",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.objects",
+      "handler_name": "object_detail_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin/inspect/object/{object_id}",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.objects",
+      "handler_name": "object_revision_history_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin/inspect/object/{object_id}/revisions",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.home",
+      "handler_name": "home_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin/overview",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "manage_queue_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin/review",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "object_archive_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/admin/review/object/{object_id}/archive",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "evidence_revalidation_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/admin/review/object/{object_id}/evidence/revalidate",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "object_supersede_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/admin/review/object/{object_id}/supersede",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "object_suspect_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/admin/review/object/{object_id}/suspect",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "review_decision_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/admin/review/object/{object_id}/{revision_id}",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "review_assignment_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/admin/review/object/{object_id}/{revision_id}/assign",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.services",
+      "handler_name": "service_catalog_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin/services",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.services",
+      "handler_name": "service_detail_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin/services/{service_id}",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "validation_runs_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/admin/validation-runs",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "validation_run_new_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/admin/validation-runs/new",
+      "role_group": "admin"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.home",
+      "handler_name": "home_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.ingest",
+      "handler_name": "ingest_list_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/import",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.ingest",
+      "handler_name": "ingest_detail_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/import/{ingestion_id}",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.ingest",
+      "handler_name": "ingest_review_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/import/{ingestion_id}/review",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.queue",
+      "handler_name": "queue_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/read",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.objects",
+      "handler_name": "object_detail_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/read/object/{object_id}",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.objects",
+      "handler_name": "object_revision_history_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/read/object/{object_id}/revisions",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.services",
+      "handler_name": "service_catalog_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/read/services",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.services",
+      "handler_name": "service_detail_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/read/services/{service_id}",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "manage_queue_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/review",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "audit_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/review/activity",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.dashboard",
+      "handler_name": "trust_dashboard_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/review/governance",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.impact",
+      "handler_name": "object_impact_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/review/impact/object/{object_id}",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.impact",
+      "handler_name": "service_impact_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/review/impact/service/{service_id}",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "object_archive_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/review/object/{object_id}/archive",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "evidence_revalidation_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/review/object/{object_id}/evidence/revalidate",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "object_supersede_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/review/object/{object_id}/supersede",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "object_suspect_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/review/object/{object_id}/suspect",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "review_decision_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/review/object/{object_id}/{revision_id}",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "review_assignment_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/review/object/{object_id}/{revision_id}/assign",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "validation_runs_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/review/validation-runs",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.manage",
+      "handler_name": "validation_run_new_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/review/validation-runs/new",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.write_search",
+      "handler_name": "citation_search_endpoint",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/write/citations/search",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.write_object",
+      "handler_name": "create_object_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/write/new",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.write_guided",
+      "handler_name": "create_revision_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/write/object/{object_id}",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.write_guided",
+      "handler_name": "start_revision",
+      "methods": [
+        "POST"
+      ],
+      "pattern": "/operator/write/object/{object_id}/start",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.write_submit",
+      "handler_name": "submit_revision_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/write/object/{object_id}/submit",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.write_search",
+      "handler_name": "related_object_search_endpoint",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/operator/write/objects/search",
+      "role_group": "operator"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.home",
+      "handler_name": "reader_landing",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/reader",
+      "role_group": "reader"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.queue",
+      "handler_name": "queue_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/reader/browse",
+      "role_group": "reader"
+    },
+    {
+      "handler_module": "papyrus.interfaces.web.routes.objects",
+      "handler_name": "object_detail_page",
+      "methods": [
+        "GET"
+      ],
+      "pattern": "/reader/object/{object_id}",
+      "role_group": "reader"
+    }
+  ]
+}

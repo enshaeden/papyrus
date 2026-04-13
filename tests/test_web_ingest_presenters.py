@@ -35,7 +35,11 @@ DETAIL = {
         "links": [],
         "parser_warnings": ["Weak heading"],
         "degradation_notes": [],
-        "extraction_quality": {"state": "degraded", "score": 0.8, "summary": "Some structure was weak."},
+        "extraction_quality": {
+            "state": "degraded",
+            "score": 0.8,
+            "summary": "Some structure was weak.",
+        },
     },
     "classification": {"blueprint_id": "runbook", "confidence": 0.95},
     "mapping_result": {
@@ -55,7 +59,13 @@ DETAIL = {
     "workflow_projection": {
         "summary": "Review the mapping",
         "detail": "Mapping has gaps to close.",
-        "actions": [{"action_id": "review_ingestion_mapping", "label": "Review mapping", "availability": "allowed"}],
+        "actions": [
+            {
+                "action_id": "review_ingestion_mapping",
+                "label": "Review mapping",
+                "availability": "allowed",
+            }
+        ],
     },
 }
 
@@ -87,17 +97,26 @@ class IngestPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component(page["page_context"]["upload_html"], "ingest-upload")
         self.assert_component(page["page_context"]["ingestions_html"], "ingest-list")
 
-    def test_ingestion_detail_presenter_assembles_progress_stage_and_parsed_content_components(self) -> None:
+    def test_ingestion_detail_presenter_assembles_progress_stage_and_parsed_content_components(
+        self,
+    ) -> None:
         page = present_ingestion_detail_page(TEMPLATE_RENDERER, detail=DETAIL)
 
-        page_html = page["page_context"]["progress_html"] + page["page_context"]["stage_html"] + page["page_context"]["detail_html"] + page["aside_html"]
+        page_html = (
+            page["page_context"]["progress_html"]
+            + page["page_context"]["stage_html"]
+            + page["page_context"]["detail_html"]
+            + page["aside_html"]
+        )
         self.assert_component(page_html, "ingest-progress")
         self.assert_component(page_html, "ingest-stage-board")
         self.assert_component(page_html, "ingest-stage-card")
         self.assert_component(page_html, "ingest-parsed-content")
         self.assert_component(page_html, "ingest-parser-assessment")
 
-    def test_mapping_review_presenter_assembles_local_mapping_and_conversion_components(self) -> None:
+    def test_mapping_review_presenter_assembles_local_mapping_and_conversion_components(
+        self,
+    ) -> None:
         page = present_mapping_review_page(
             TEMPLATE_RENDERER,
             detail=DETAIL,
@@ -106,7 +125,11 @@ class IngestPresenterTests(SemanticHookAssertions, unittest.TestCase):
             taxonomies=TAXONOMIES,
         )
 
-        page_html = page["page_context"]["mapping_html"] + page["page_context"]["gaps_html"] + page["page_context"]["convert_html"]
+        page_html = (
+            page["page_context"]["mapping_html"]
+            + page["page_context"]["gaps_html"]
+            + page["page_context"]["convert_html"]
+        )
         self.assert_component(page_html, "ingest-mapping-table")
         self.assert_component(page_html, "ingest-mapping-gaps")
         self.assert_component(page_html, "ingest-mapping-gap")

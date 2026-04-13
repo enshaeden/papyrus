@@ -5,7 +5,11 @@ from pathlib import Path
 
 from papyrus.domain.entities import KnowledgeDocument
 from papyrus.infrastructure.markdown.serializer import normalize_whitespace
-from papyrus.infrastructure.paths import GENERATED_SITE_DOCS_DIR, KNOWLEDGE_DIR, SYSTEM_DESIGN_DOCS_SITE_ROOT
+from papyrus.infrastructure.paths import (
+    GENERATED_SITE_DOCS_DIR,
+    KNOWLEDGE_DIR,
+    SYSTEM_DESIGN_DOCS_SITE_ROOT,
+)
 
 
 def summarize_for_search(document: KnowledgeDocument) -> str:

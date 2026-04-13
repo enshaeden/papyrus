@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = ROOT / "scripts"
 INVENTORY_DOC = ROOT / "docs" / "getting-started.md"
 WRAPPER_IMPORTS = {
+    "build_route_map.py": "from papyrus.jobs.route_map_build import main",
     "build_site_docs.py": "from papyrus.jobs.site_docs_build import main",
     "demo_runtime.py": "from papyrus.jobs.demo_runtime_build import main",
     "ingest_event.py": "from papyrus.interfaces.ingest_event_cli import main",
@@ -21,20 +22,28 @@ WRAPPER_IMPORTS = {
 class ScriptInventoryTests(unittest.TestCase):
     def test_every_top_level_script_is_recorded_in_inventory(self) -> None:
         inventory_text = INVENTORY_DOC.read_text(encoding="utf-8")
-        script_names = sorted(
-            path.name
-            for path in SCRIPTS_DIR.iterdir()
-            if path.is_file()
-        )
+        script_names = sorted(path.name for path in SCRIPTS_DIR.iterdir() if path.is_file())
         self.assertTrue(script_names, msg="expected at least one top-level script")
         for script_name in script_names:
-            self.assertIn(f"`{script_name}`", inventory_text, msg=f"{script_name} is missing from docs/getting-started.md")
+            self.assertIn(
+                f"`{script_name}`",
+                inventory_text,
+                msg=f"{script_name} is missing from docs/getting-started.md",
+            )
 
     def test_curated_entrypoints_remain_wrappers(self) -> None:
         for script_name, expected_import in WRAPPER_IMPORTS.items():
             script_text = (SCRIPTS_DIR / script_name).read_text(encoding="utf-8")
-            self.assertIn(expected_import, script_text, msg=f"{script_name} should delegate to a packaged module")
-            self.assertIn("ensure_src_path()", script_text, msg=f"{script_name} should bootstrap src/ before import")
+            self.assertIn(
+                expected_import,
+                script_text,
+                msg=f"{script_name} should delegate to a packaged module",
+            )
+            self.assertIn(
+                "ensure_src_path()",
+                script_text,
+                msg=f"{script_name} should bootstrap src/ before import",
+            )
 
     def test_retired_import_shim_points_to_decision_and_migration_record(self) -> None:
         script_text = (SCRIPTS_DIR / "import_knowledge_portal.py").read_text(encoding="utf-8")

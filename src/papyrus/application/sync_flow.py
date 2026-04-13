@@ -4,14 +4,18 @@ import datetime as dt
 import hashlib
 import json
 import logging
-from pathlib import Path
 import uuid
+from pathlib import Path
 
 from papyrus.application.authoring_flow import compute_completion_state, derive_section_content
 from papyrus.application.blueprint_registry import get_blueprint
+from papyrus.application.runtime_projection import (
+    persist_revision_artifacts,
+    refresh_current_object_projection,
+    service_id,
+)
 from papyrus.application.validation_flow import validate_knowledge_documents
-from papyrus.application.runtime_projection import persist_revision_artifacts, refresh_current_object_projection, service_id
-from papyrus.domain.lifecycle import DraftProgressState, RevisionReviewState, SourceSyncState
+from papyrus.domain.lifecycle import DraftProgressState, SourceSyncState
 from papyrus.domain.policies import bootstrap_revision_review_state, runtime_trust_state
 from papyrus.domain.value_objects import RevisionReviewStatus
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
@@ -44,7 +48,9 @@ LOGGER = get_logger(__name__)
 
 
 def _content_hash(normalized_metadata_json: str, body: str) -> str:
-    return hashlib.sha256(f"{normalized_metadata_json}\n{body}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{normalized_metadata_json}\n{body}".encode()).hexdigest()
+
+
 def _event_id(prefix: str, object_id: str | None, revision_id: str | None, now_iso: str) -> str:
     del object_id, revision_id, now_iso
     return f"{prefix}-{uuid.uuid4().hex[:12]}"
@@ -82,6 +88,7 @@ def _sync_trust_state(
         preserve_existing_warning=preserve_existing_warning,
     )
 
+
 def _seed_services(connection, taxonomies: dict[str, dict[str, object]]) -> dict[str, str]:
     seeded_services: dict[str, str] = {}
     for service_name in taxonomies.get("services", {}).get("allowed_values", []):
@@ -105,13 +112,17 @@ def _seed_services(connection, taxonomies: dict[str, dict[str, object]]) -> dict
 
 
 def build_search_projection(database_path: Path) -> tuple[int, str]:
-    log_event(LOGGER, logging.INFO, "build_search_projection_started", database_path=str(database_path))
+    log_event(
+        LOGGER, logging.INFO, "build_search_projection_started", database_path=str(database_path)
+    )
     policy = load_policy()
     documents = load_knowledge_documents(policy)
     object_schemas = load_object_schemas()
     legacy_schema = load_schema()
     taxonomies = load_taxonomies()
-    issues = validate_knowledge_documents(documents, object_schemas, legacy_schema, taxonomies, policy)
+    issues = validate_knowledge_documents(
+        documents, object_schemas, legacy_schema, taxonomies, policy
+    )
     if issues:
         log_event(
             LOGGER,
@@ -125,7 +136,7 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
         raise ValueError("index build aborted because validation failed")
 
     connection = open_runtime_database(database_path, minimum_schema_version=RUNTIME_SCHEMA_VERSION)
-    now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    now = dt.datetime.now(dt.UTC).replace(microsecond=0)
     now_iso = now.isoformat()
     try:
         has_fts5 = fts5_available(connection)
@@ -150,7 +161,9 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
         )
 
         for document in documents:
-            review_cadence_days = cadence_to_days(str(document.metadata["review_cadence"]), taxonomies)
+            review_cadence_days = cadence_to_days(
+                str(document.metadata["review_cadence"]), taxonomies
+            )
             parsed = normalize_object_metadata(
                 document,
                 review_cadence_days=review_cadence_days,
@@ -236,7 +249,9 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                     content_hash=revision_hash,
                     body_markdown=document.body,
                     normalized_payload_json=normalized_metadata_json,
-                    section_content_json=json.dumps(section_content, sort_keys=True, ensure_ascii=True),
+                    section_content_json=json.dumps(
+                        section_content, sort_keys=True, ensure_ascii=True
+                    ),
                     section_completion_json=json.dumps(
                         section_completion["section_completion_map"],
                         sort_keys=True,
@@ -294,7 +309,9 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
             if existing_object is None:
                 insert_audit_event(
                     connection,
-                    event_id=_event_id("source-object-ingested", document.knowledge_object_id, revision_id, now_iso),
+                    event_id=_event_id(
+                        "source-object-ingested", document.knowledge_object_id, revision_id, now_iso
+                    ),
                     event_type="source_object_ingested",
                     occurred_at=now_iso,
                     actor="sync_flow",
@@ -311,7 +328,12 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
             elif existing_object["current_revision_id"] != revision_id:
                 insert_audit_event(
                     connection,
-                    event_id=_event_id("source-revision-detected", document.knowledge_object_id, revision_id, now_iso),
+                    event_id=_event_id(
+                        "source-revision-detected",
+                        document.knowledge_object_id,
+                        revision_id,
+                        now_iso,
+                    ),
                     event_type="source_revision_detected",
                     occurred_at=now_iso,
                     actor="sync_flow",
@@ -326,7 +348,9 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
                     ),
                 )
 
-        citation_scan = scan_citations(connection, taxonomies=taxonomies, as_of=dt.date.today(), persist=True)
+        citation_scan = scan_citations(
+            connection, taxonomies=taxonomies, as_of=dt.date.today(), persist=True
+        )
         citation_run_id = _event_id("validation-citation-scan", None, None, now_iso)
         insert_validation_run(
             connection,
@@ -351,7 +375,9 @@ def build_search_projection(database_path: Path) -> tuple[int, str]:
             actor="sync_flow",
             object_id=None,
             revision_id=None,
-            details_json=json_dump({"run_id": citation_run_id, "finding_count": len(citation_scan.findings)}),
+            details_json=json_dump(
+                {"run_id": citation_run_id, "finding_count": len(citation_scan.findings)}
+            ),
         )
 
         for document in documents:

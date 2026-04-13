@@ -172,10 +172,12 @@ This web surface ships through the Python application and WSGI entrypoints in `s
 Use `docs/guides/experience-conformance-checklist.md` as a review checklist when reviewing route, shell, role-visibility, and workflow-surface changes. The authoritative constraints live under `decisions/`.
 
 - dev: `python3 scripts/serve_web.py --db build/knowledge.db --source-root .`
-- lint: `not separately configured; do not claim lint coverage until a dedicated lint command exists`
-- typecheck: `not separately configured; do not claim typecheck coverage until a dedicated typecheck command exists`
+- format: `./scripts/format.sh`
+- lint: `./scripts/lint.sh`
+- typecheck: `./scripts/typecheck.sh`
 - test: `python3 -m unittest tests.test_web_presenters tests.test_web_operator_ui tests.test_web_semantic_hook_contract tests.interfaces.test_web_routing tests.interfaces.test_web_import_smoke tests.test_interface_surfaces tests.test_surface_conformance tests.test_operator_readiness`
 - build: `./scripts/build_static_export.sh`
+- route map: `python3 scripts/build_route_map.py`
 
 For UI work, completion requires all applicable checks plus direct verification of the affected routes and states.
 

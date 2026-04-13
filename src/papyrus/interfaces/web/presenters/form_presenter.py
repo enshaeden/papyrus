@@ -57,7 +57,9 @@ class FormPresenter:
             f'data-component="form-control" data-control-type="{escape(input_type)}" />'
         )
 
-    def textarea(self, *, field_id: str, name: str, value: str, rows: int = 4, placeholder: str = "") -> str:
+    def textarea(
+        self, *, field_id: str, name: str, value: str, rows: int = 4, placeholder: str = ""
+    ) -> str:
         return (
             f'<textarea id="{escape(field_id)}" name="{escape(name)}" rows="{rows}" '
             f'placeholder="{escape(placeholder)}" data-component="form-control" data-control-type="textarea">{escape(value)}</textarea>'
@@ -78,7 +80,7 @@ class FormPresenter:
             ' data-component="form-control" data-control-type="checkbox"'
             + (" checked" if checked else "")
             + " />"
-            f'<span>{escape(label)}</span>'
+            f"<span>{escape(label)}</span>"
             "</label>"
         )
 
@@ -113,7 +115,9 @@ class FormPresenter:
             f' data-component="button"{data_action}>{escape(label)}</button>'
         )
 
-    def link_button(self, *, label: str, href: str, variant: str = "secondary", action_id: str = "") -> str:
+    def link_button(
+        self, *, label: str, href: str, variant: str = "secondary", action_id: str = ""
+    ) -> str:
         attrs = {"data-component": "button"}
         if action_id:
             attrs["data-action-id"] = action_id

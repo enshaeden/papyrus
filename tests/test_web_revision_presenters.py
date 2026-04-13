@@ -8,7 +8,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.interfaces.web.presenters.revision_history_table_presenter import render_revision_history_table
+from papyrus.interfaces.web.presenters.revision_history_table_presenter import (
+    render_revision_history_table,
+)
 from papyrus.interfaces.web.presenters.revision_presenter import present_revision_history
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.rendering import TemplateRenderer
@@ -47,7 +49,9 @@ HISTORY = {
 
 class RevisionPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_revision_history_owner_renders_traceable_table_component(self) -> None:
-        html = render_revision_history_table(components=ComponentPresenter(TEMPLATE_RENDERER), history=HISTORY, role="operator")
+        html = render_revision_history_table(
+            components=ComponentPresenter(TEMPLATE_RENDERER), history=HISTORY, role="operator"
+        )
 
         self.assert_component(html, "revision-history-table")
         self.assertIn("Evidence and assignments", html)
@@ -87,7 +91,11 @@ class RevisionPresenterTests(SemanticHookAssertions, unittest.TestCase):
             },
         )
 
-        page_html = page["page_context"]["history_table_html"] + page["page_context"]["timeline_html"] + page["aside_html"]
+        page_html = (
+            page["page_context"]["history_table_html"]
+            + page["page_context"]["timeline_html"]
+            + page["aside_html"]
+        )
         self.assert_component(page_html, "revision-history-table")
         self.assert_component(page_html, "revision-audit-sequence")
         self.assert_component(page_html, "revision-comparison-cues")

@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from urllib.parse import urlencode
 
-from papyrus.application.role_visibility import ADMIN_ROLE, OPERATOR_ROLE, READER_ROLE, normalize_role
+from papyrus.application.role_visibility import (
+    ADMIN_ROLE,
+    READER_ROLE,
+    normalize_role,
+)
 from papyrus.interfaces.web.view_helpers import quoted_path
 
 
@@ -50,7 +54,9 @@ def write_object_start_url(object_id: str) -> str:
     return f"/operator/write/object/{quoted_path(object_id)}/start"
 
 
-def write_object_url(object_id: str, *, revision_id: str | None = None, section_id: str | None = None) -> str:
+def write_object_url(
+    object_id: str, *, revision_id: str | None = None, section_id: str | None = None
+) -> str:
     location = f"/operator/write/object/{quoted_path(object_id)}"
     params = {
         key: value
@@ -88,7 +94,9 @@ def review_queue_url(role: str | None = None) -> str:
 
 
 def review_decision_url(role: str | None, object_id: str, revision_id: str) -> str:
-    prefix = "/admin/review/object" if normalize_role(role) == ADMIN_ROLE else "/operator/review/object"
+    prefix = (
+        "/admin/review/object" if normalize_role(role) == ADMIN_ROLE else "/operator/review/object"
+    )
     return f"{prefix}/{quoted_path(object_id)}/{quoted_path(revision_id)}"
 
 
@@ -97,22 +105,30 @@ def review_assignment_url(role: str | None, object_id: str, revision_id: str) ->
 
 
 def supersede_url(role: str | None, object_id: str) -> str:
-    prefix = "/admin/review/object" if normalize_role(role) == ADMIN_ROLE else "/operator/review/object"
+    prefix = (
+        "/admin/review/object" if normalize_role(role) == ADMIN_ROLE else "/operator/review/object"
+    )
     return f"{prefix}/{quoted_path(object_id)}/supersede"
 
 
 def archive_url(role: str | None, object_id: str) -> str:
-    prefix = "/admin/review/object" if normalize_role(role) == ADMIN_ROLE else "/operator/review/object"
+    prefix = (
+        "/admin/review/object" if normalize_role(role) == ADMIN_ROLE else "/operator/review/object"
+    )
     return f"{prefix}/{quoted_path(object_id)}/archive"
 
 
 def suspect_url(role: str | None, object_id: str) -> str:
-    prefix = "/admin/review/object" if normalize_role(role) == ADMIN_ROLE else "/operator/review/object"
+    prefix = (
+        "/admin/review/object" if normalize_role(role) == ADMIN_ROLE else "/operator/review/object"
+    )
     return f"{prefix}/{quoted_path(object_id)}/suspect"
 
 
 def evidence_revalidation_url(role: str | None, object_id: str) -> str:
-    prefix = "/admin/review/object" if normalize_role(role) == ADMIN_ROLE else "/operator/review/object"
+    prefix = (
+        "/admin/review/object" if normalize_role(role) == ADMIN_ROLE else "/operator/review/object"
+    )
     return f"{prefix}/{quoted_path(object_id)}/evidence/revalidate"
 
 
@@ -149,10 +165,18 @@ def service_url(role: str | None, service_id: str) -> str:
 
 
 def impact_object_url(role: str | None, object_id: str) -> str:
-    prefix = "/admin/impact/object" if normalize_role(role) == ADMIN_ROLE else "/operator/review/impact/object"
+    prefix = (
+        "/admin/impact/object"
+        if normalize_role(role) == ADMIN_ROLE
+        else "/operator/review/impact/object"
+    )
     return f"{prefix}/{quoted_path(object_id)}"
 
 
 def impact_service_url(role: str | None, service_id: str) -> str:
-    prefix = "/admin/impact/service" if normalize_role(role) == ADMIN_ROLE else "/operator/review/impact/service"
+    prefix = (
+        "/admin/impact/service"
+        if normalize_role(role) == ADMIN_ROLE
+        else "/operator/review/impact/service"
+    )
     return f"{prefix}/{quoted_path(service_id)}"

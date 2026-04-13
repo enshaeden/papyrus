@@ -36,7 +36,11 @@ def render_ingest_convert_form(
                 value=str(detail["normalized_content"].get("title") or detail["filename"]),
             ),
         )
-        + forms.field(field_id="owner", label="Owner", control_html=forms.input(field_id="owner", name="owner", value=""))
+        + forms.field(
+            field_id="owner",
+            label="Owner",
+            control_html=forms.input(field_id="owner", name="owner", value=""),
+        )
         + forms.field(
             field_id="team",
             label="Team",

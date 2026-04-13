@@ -3,7 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from papyrus.application.role_visibility import normalize_role, queue_ranking_for_role, role_from_actor_id
+from papyrus.application.role_visibility import (
+    normalize_role,
+    queue_ranking_for_role,
+    role_from_actor_id,
+)
 from papyrus.infrastructure.paths import DB_PATH
 
 from .impact_activity import event_history
@@ -12,12 +16,20 @@ from .review_manage import manage_queue
 from .services_dashboard import service_catalog
 
 
-def _counts(*, read_queue: list[dict[str, Any]], manage: dict[str, Any], services: list[dict[str, Any]], events: list[dict[str, Any]]) -> dict[str, int]:
+def _counts(
+    *,
+    read_queue: list[dict[str, Any]],
+    manage: dict[str, Any],
+    services: list[dict[str, Any]],
+    events: list[dict[str, Any]],
+) -> dict[str, int]:
     return {
         "read_ready": sum(
             1
             for item in read_queue
-            if bool(dict((item.get("ui_projection") or {}).get("use_guidance") or {}).get("safe_to_use"))
+            if bool(
+                dict((item.get("ui_projection") or {}).get("use_guidance") or {}).get("safe_to_use")
+            )
         ),
         "drafts": len(manage["draft_items"]),
         "review_required": len(manage["review_required"]),
@@ -31,6 +43,7 @@ def _counts(*, read_queue: list[dict[str, Any]], manage: dict[str, Any], service
         "recent_activity": len(events),
     }
 
+
 def home_dashboard(
     *,
     role: str | None = None,
@@ -38,7 +51,12 @@ def home_dashboard(
     database_path: str | Path = DB_PATH,
 ) -> dict[str, Any]:
     resolved_role = normalize_role(role or role_from_actor_id(actor_id))
-    read_queue = knowledge_queue(limit=16, database_path=database_path, ranking=queue_ranking_for_role(resolved_role), role=resolved_role)
+    read_queue = knowledge_queue(
+        limit=16,
+        database_path=database_path,
+        ranking=queue_ranking_for_role(resolved_role),
+        role=resolved_role,
+    )
     manage = manage_queue(database_path=database_path)
     services = service_catalog(database_path=database_path)
     events = event_history(limit=8, database_path=database_path)

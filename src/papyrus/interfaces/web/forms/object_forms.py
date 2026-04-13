@@ -77,7 +77,9 @@ def validate_object_form(
     if not canonical_path:
         add_error("canonical_path", "Publishing location is required.")
     elif not canonical_path.startswith("knowledge/") or not canonical_path.endswith(".md"):
-        add_error("canonical_path", "Publishing location must stay under knowledge/ and end in .md.")
+        add_error(
+            "canonical_path", "Publishing location must stay under knowledge/ and end in .md."
+        )
 
     cleaned_data = {
         "object_id": object_id,

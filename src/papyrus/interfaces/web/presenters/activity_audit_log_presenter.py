@@ -12,8 +12,8 @@ def render_activity_audit_log(*, events: list[dict[str, object]]) -> str:
             [
                 (
                     '<article class="activity-audit-log__item">'
-                    f'<p>{escape(event["event_type"])} · {escape(format_timestamp(event["occurred_at"]))} · {escape(event["actor"])}</p>'
-                    f'<p>{escape(event["object_id"] or "No object")} · {escape(event["revision_id"] or "No revision")}</p>'
+                    f"<p>{escape(event['event_type'])} · {escape(format_timestamp(event['occurred_at']))} · {escape(event['actor'])}</p>"
+                    f"<p>{escape(event['object_id'] or 'No object')} · {escape(event['revision_id'] or 'No revision')}</p>"
                     "</article>"
                 )
                 for event in events[:20]

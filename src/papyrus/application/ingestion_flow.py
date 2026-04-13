@@ -8,9 +8,12 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from papyrus.application.blueprint_registry import list_blueprints
 from papyrus.application.policy_authority import PolicyAuthority
-from papyrus.application.blueprint_registry import get_blueprint, list_blueprints
-from papyrus.application.ui_projection import build_ingestion_projection, workflow_projection_payload
+from papyrus.application.ui_projection import (
+    build_ingestion_projection,
+    workflow_projection_payload,
+)
 from papyrus.domain.ingestion import IngestionStatus, has_mapping_result, truthful_ingestion_status
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.serializer import json_dump
@@ -29,7 +32,7 @@ from papyrus.infrastructure.search.indexer import fts5_available
 
 
 def _now_utc() -> dt.datetime:
-    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    return dt.datetime.now(dt.UTC).replace(microsecond=0)
 
 
 def _connection(database_path: Path) -> sqlite3.Connection:
@@ -54,7 +57,9 @@ def _truthful_status_from_row(row: sqlite3.Row) -> IngestionStatus:
     return truthful_ingestion_status(
         stored_status=str(row["ingestion_state"] or row["status"]),
         mapping_result=json.loads(str(row["mapping_result_json"])),
-        converted_revision_id=str(row["converted_revision_id"]) if row["converted_revision_id"] is not None else None,
+        converted_revision_id=str(row["converted_revision_id"])
+        if row["converted_revision_id"] is not None
+        else None,
     )
 
 
@@ -115,7 +120,9 @@ def parse_file(*, file_path: Path, payload: bytes | None = None) -> tuple[str, s
 
 
 def _table_text(rows: list[list[str]]) -> str:
-    return "\n".join(" | ".join(cell for cell in row if cell) for row in rows if any(cell for cell in row))
+    return "\n".join(
+        " | ".join(cell for cell in row if cell) for row in rows if any(cell for cell in row)
+    )
 
 
 def _sanitize_elements(parsed_content: dict[str, Any]) -> list[dict[str, Any]]:
@@ -188,22 +195,40 @@ def _synthesized_elements(
 
 
 def normalize_content(parsed_content: dict[str, Any]) -> dict[str, Any]:
-    headings = parsed_content.get("headings") if isinstance(parsed_content.get("headings"), list) else []
-    paragraphs = parsed_content.get("paragraphs") if isinstance(parsed_content.get("paragraphs"), list) else []
+    headings = (
+        parsed_content.get("headings") if isinstance(parsed_content.get("headings"), list) else []
+    )
+    paragraphs = (
+        parsed_content.get("paragraphs")
+        if isinstance(parsed_content.get("paragraphs"), list)
+        else []
+    )
     lists = parsed_content.get("lists") if isinstance(parsed_content.get("lists"), list) else []
     tables = parsed_content.get("tables") if isinstance(parsed_content.get("tables"), list) else []
     links = parsed_content.get("links") if isinstance(parsed_content.get("links"), list) else []
     parser_warnings = (
-        [str(item).strip() for item in parsed_content.get("parser_warnings", []) if str(item).strip()]
+        [
+            str(item).strip()
+            for item in parsed_content.get("parser_warnings", [])
+            if str(item).strip()
+        ]
         if isinstance(parsed_content.get("parser_warnings"), list)
         else []
     )
     degradation_notes = (
-        [str(item).strip() for item in parsed_content.get("degradation_notes", []) if str(item).strip()]
+        [
+            str(item).strip()
+            for item in parsed_content.get("degradation_notes", [])
+            if str(item).strip()
+        ]
         if isinstance(parsed_content.get("degradation_notes"), list)
         else []
     )
-    extraction_quality = parsed_content.get("extraction_quality") if isinstance(parsed_content.get("extraction_quality"), dict) else {}
+    extraction_quality = (
+        parsed_content.get("extraction_quality")
+        if isinstance(parsed_content.get("extraction_quality"), dict)
+        else {}
+    )
     title = str(parsed_content.get("title") or "").strip()
     if not title and headings:
         title = str(headings[0].get("text") or "").strip()
@@ -216,7 +241,11 @@ def normalize_content(parsed_content: dict[str, Any]) -> dict[str, Any]:
             tables=tables,
         )
     raw_text_parts = [title] if title else []
-    raw_text_parts.extend(str(element.get("text") or "").strip() for element in sanitized_elements if str(element.get("text") or "").strip())
+    raw_text_parts.extend(
+        str(element.get("text") or "").strip()
+        for element in sanitized_elements
+        if str(element.get("text") or "").strip()
+    )
     return {
         "title": title,
         "headings": headings,
@@ -229,11 +258,17 @@ def normalize_content(parsed_content: dict[str, Any]) -> dict[str, Any]:
         "parser_warnings": parser_warnings,
         "degradation_notes": degradation_notes,
         "extraction_quality": {
-            "state": str(extraction_quality.get("state") or ("degraded" if parser_warnings else "clean")),
+            "state": str(
+                extraction_quality.get("state") or ("degraded" if parser_warnings else "clean")
+            ),
             "score": float(extraction_quality.get("score") or (0.5 if parser_warnings else 1.0)),
             "summary": str(
                 extraction_quality.get("summary")
-                or ("Extraction quality is degraded." if parser_warnings else "Extraction quality is clean.")
+                or (
+                    "Extraction quality is degraded."
+                    if parser_warnings
+                    else "Extraction quality is clean."
+                )
             ),
         },
     }
@@ -241,7 +276,9 @@ def normalize_content(parsed_content: dict[str, Any]) -> dict[str, Any]:
 
 def classify_document(normalized_content: dict[str, Any]) -> dict[str, Any]:
     title = str(normalized_content.get("title") or "").lower()
-    headings = [str(item.get("text") or "").lower() for item in normalized_content.get("headings", [])]
+    headings = [
+        str(item.get("text") or "").lower() for item in normalized_content.get("headings", [])
+    ]
     raw_text = str(normalized_content.get("raw_text") or "").lower()
     candidates: list[dict[str, Any]] = []
     heuristics = {
@@ -273,8 +310,16 @@ def classify_document(normalized_content: dict[str, Any]) -> dict[str, Any]:
             }
         )
     candidates.sort(key=lambda item: (-int(item["score"]), str(item["blueprint_id"])))
-    selected = candidates[0] if candidates else {"blueprint_id": "runbook", "score": 0, "matched_terms": []}
-    confidence = 0.2 if not candidates or int(selected["score"]) <= 1 else min(0.95, 0.25 + (int(selected["score"]) * 0.1))
+    selected = (
+        candidates[0]
+        if candidates
+        else {"blueprint_id": "runbook", "score": 0, "matched_terms": []}
+    )
+    confidence = (
+        0.2
+        if not candidates or int(selected["score"]) <= 1
+        else min(0.95, 0.25 + (int(selected["score"]) * 0.1))
+    )
     return {
         "blueprint_id": selected["blueprint_id"],
         "confidence": round(confidence, 2),
@@ -284,10 +329,20 @@ def classify_document(normalized_content: dict[str, Any]) -> dict[str, Any]:
 
 
 def extract_sections(normalized_content: dict[str, Any]) -> list[dict[str, Any]]:
-    elements = normalized_content.get("elements") if isinstance(normalized_content.get("elements"), list) else []
-    has_heading_elements = any(str(element.get("kind") or "") == "heading" for element in elements if isinstance(element, dict))
+    elements = (
+        normalized_content.get("elements")
+        if isinstance(normalized_content.get("elements"), list)
+        else []
+    )
+    has_heading_elements = any(
+        str(element.get("kind") or "") == "heading"
+        for element in elements
+        if isinstance(element, dict)
+    )
     title = str(normalized_content.get("title") or "").strip()
-    heading_stack: list[dict[str, object]] = [{"level": 1, "text": title}] if title and not has_heading_elements else []
+    heading_stack: list[dict[str, object]] = (
+        [{"level": 1, "text": title}] if title and not has_heading_elements else []
+    )
     extracted: list[dict[str, Any]] = []
     for element_index, element in enumerate(elements):
         if not isinstance(element, dict):
@@ -493,8 +548,12 @@ def ingestion_detail(*, ingestion_id: str, database_path: Path = DB_PATH) -> dic
             "mapping_result": json.loads(str(row["mapping_result_json"])),
             "error": json.loads(str(row["error_json"])),
             "blueprint_id": str(row["blueprint_id"]) if row["blueprint_id"] is not None else None,
-            "converted_object_id": str(row["converted_object_id"]) if row["converted_object_id"] is not None else None,
-            "converted_revision_id": str(row["converted_revision_id"]) if row["converted_revision_id"] is not None else None,
+            "converted_object_id": str(row["converted_object_id"])
+            if row["converted_object_id"] is not None
+            else None,
+            "converted_revision_id": str(row["converted_revision_id"])
+            if row["converted_revision_id"] is not None
+            else None,
             "created_at": str(row["created_at"]),
             "updated_at": str(row["updated_at"]),
             "artifacts": artifacts,
@@ -515,10 +574,14 @@ def list_ingestions(*, database_path: Path = DB_PATH) -> list[dict[str, Any]]:
                 "ingestion_id": str(row["ingestion_id"]),
                 "filename": str(row["filename"]),
                 "ingestion_state": _truthful_status_from_row(row).value,
-                "blueprint_id": str(row["blueprint_id"]) if row["blueprint_id"] is not None else None,
+                "blueprint_id": str(row["blueprint_id"])
+                if row["blueprint_id"] is not None
+                else None,
                 "created_at": str(row["created_at"]),
                 "updated_at": str(row["updated_at"]),
-                "converted_object_id": str(row["converted_object_id"]) if row["converted_object_id"] is not None else None,
+                "converted_object_id": str(row["converted_object_id"])
+                if row["converted_object_id"] is not None
+                else None,
             }
             for row in list_ingestion_jobs(connection)
         ]
@@ -549,8 +612,12 @@ def update_ingestion_mapping(
             raise ValueError(f"ingestion job not found: {ingestion_id}")
         current_status = _truthful_status_from_row(row)
         if current_status not in {IngestionStatus.CLASSIFIED, IngestionStatus.MAPPED}:
-            raise ValueError("ingestion mapping can only be recorded after classification and before review")
-        current_authority.require_ingestion_transition(current_status.value, IngestionStatus.MAPPED.value)
+            raise ValueError(
+                "ingestion mapping can only be recorded after classification and before review"
+            )
+        current_authority.require_ingestion_transition(
+            current_status.value, IngestionStatus.MAPPED.value
+        )
         created_at = _now_utc().isoformat()
         update_ingestion_job(
             connection,
@@ -602,9 +669,15 @@ def mark_ingestion_converted(
         if row is None:
             raise ValueError(f"ingestion job not found: {ingestion_id}")
         mapping_result = json.loads(str(row["mapping_result_json"]))
-        if _truthful_status_from_row(row) != IngestionStatus.MAPPED or not has_mapping_result(mapping_result):
-            raise ValueError("ingestion must have a real mapping result before it can be reviewed and converted")
-        current_authority.require_ingestion_transition(IngestionStatus.MAPPED.value, IngestionStatus.CONVERTED.value)
+        if _truthful_status_from_row(row) != IngestionStatus.MAPPED or not has_mapping_result(
+            mapping_result
+        ):
+            raise ValueError(
+                "ingestion must have a real mapping result before it can be reviewed and converted"
+            )
+        current_authority.require_ingestion_transition(
+            IngestionStatus.MAPPED.value, IngestionStatus.CONVERTED.value
+        )
         created_at = _now_utc().isoformat()
         update_ingestion_job(
             connection,

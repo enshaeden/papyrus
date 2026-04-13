@@ -4,8 +4,7 @@ import datetime as dt
 from typing import Any
 
 from papyrus.domain.lifecycle import ObjectLifecycleState, RevisionReviewState
-from papyrus.domain.value_objects import KnowledgeObjectType, RevisionReviewStatus, TrustState
-
+from papyrus.domain.value_objects import KnowledgeObjectType, TrustState
 
 SUPPORTED_KNOWLEDGE_OBJECT_TYPES = (
     KnowledgeObjectType.RUNBOOK.value,

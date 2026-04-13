@@ -10,7 +10,7 @@ def render_impact_selected_item(*, item: dict[str, Any], role: str, surface: str
     return (
         f'<section class="impact-selected-item" data-component="impact-selected-item" data-surface="{escape(surface)}">'
         '<p class="impact-selected-item__kicker">Selected item</p>'
-        f'<h2>{escape(str(item["title"]))}</h2>'
+        f"<h2>{escape(str(item['title']))}</h2>"
         + join_html(
             [
                 f"<p><strong>{escape(item['reason'])}</strong></p>",

@@ -150,7 +150,9 @@ def insert_ingestion_artifact(
     )
 
 
-def list_ingestion_artifacts(connection: sqlite3.Connection, ingestion_id: str) -> list[sqlite3.Row]:
+def list_ingestion_artifacts(
+    connection: sqlite3.Connection, ingestion_id: str
+) -> list[sqlite3.Row]:
     return connection.execute(
         """
         SELECT *

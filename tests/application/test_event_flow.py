@@ -32,7 +32,10 @@ class EventFlowTests(unittest.TestCase):
 
             self.assertEqual(result.event.event_type, "service_change")
             self.assertGreater(len(result.impacted_objects), 0)
-            self.assertIn("kb-troubleshooting-vpn-connectivity", {item["object_id"] for item in result.impacted_objects})
+            self.assertIn(
+                "kb-troubleshooting-vpn-connectivity",
+                {item["object_id"] for item in result.impacted_objects},
+            )
 
             connection = sqlite3.connect(database_path)
             connection.row_factory = sqlite3.Row

@@ -34,8 +34,8 @@ Disposition:
 ## Search: GET-based guided draft creation links
 
 Pattern:
-- `/operator/write/object/...` without a `revision_id`
-- `/operator/write/object/...#revision-form`
+- `/operator/write/object/{object_id}` without a `revision_id`
+- `/operator/write/object/{object_id}#revision-form`
 
 Matches and disposition:
 - [docs/reference/operator-web-ui.md](operator-web-ui.md): intentional.

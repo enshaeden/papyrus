@@ -4,17 +4,28 @@ from typing import Any
 
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.urls import object_url
-from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html, link, quoted_path, tone_for_revision
+from papyrus.interfaces.web.view_helpers import (
+    escape,
+    format_timestamp,
+    join_html,
+    link,
+    tone_for_revision,
+)
 
 
 def revision_assignments_text(revision: dict[str, Any]) -> str:
-    return "; ".join(
-        f"{assignment['reviewer']} ({assignment['state']})"
-        for assignment in revision["review_assignments"]
-    ) or "No assignments"
+    return (
+        "; ".join(
+            f"{assignment['reviewer']} ({assignment['state']})"
+            for assignment in revision["review_assignments"]
+        )
+        or "No assignments"
+    )
 
 
-def render_revision_history_table(*, components: ComponentPresenter, history: dict[str, Any], role: str) -> str:
+def render_revision_history_table(
+    *, components: ComponentPresenter, history: dict[str, Any], role: str
+) -> str:
     object_info = history["object"]
     rows = []
     for revision in history["revisions"]:
@@ -55,9 +66,7 @@ def render_revision_history_table(*, components: ComponentPresenter, history: di
     body_html = (
         '<table class="workbench-table" id="revision-history" data-component="table" data-surface="revision-history">'
         "<thead><tr><th>Revision</th><th>Status</th><th>What changed</th></tr></thead>"
-        "<tbody>"
-        + join_html(rows)
-        + "</tbody></table>"
+        "<tbody>" + join_html(rows) + "</tbody></table>"
     )
     return (
         '<section class="revision-history-table" data-component="revision-history-table" data-surface="revision-history">'

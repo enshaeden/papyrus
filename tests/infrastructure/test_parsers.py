@@ -51,7 +51,7 @@ def _docx_payload_with_hyperlink() -> bytes:
 
 
 def _compressed_pdf_payload(text: str) -> bytes:
-    stream = zlib.compress(f"BT /F1 12 Tf 72 720 Td ({text}) Tj ET".encode("utf-8"))
+    stream = zlib.compress(f"BT /F1 12 Tf 72 720 Td ({text}) Tj ET".encode())
     return (
         b"%PDF-1.4\n"
         b"1 0 obj\n"
@@ -67,9 +67,13 @@ class ParserTests(unittest.TestCase):
         parsed = parse_docx_bytes(_docx_payload_with_hyperlink())
 
         self.assertEqual(parsed["title"], "DOCX Import Title")
-        self.assertEqual(parsed["links"], [{"label": "Example Link", "target": "https://example.com/reference"}])
+        self.assertEqual(
+            parsed["links"], [{"label": "Example Link", "target": "https://example.com/reference"}]
+        )
         self.assertEqual(parsed["tables"][0][0], ["Owner", "IT Operations"])
-        self.assertEqual([element["kind"] for element in parsed["elements"]], ["heading", "paragraph", "table"])
+        self.assertEqual(
+            [element["kind"] for element in parsed["elements"]], ["heading", "paragraph", "table"]
+        )
         self.assertEqual(parsed["extraction_quality"]["state"], "clean")
 
     def test_pdf_parser_extracts_text_from_compressed_streams(self) -> None:
@@ -77,7 +81,9 @@ class ParserTests(unittest.TestCase):
             _compressed_pdf_payload("Hello PDF extraction test with enough text for confidence.")
         )
 
-        self.assertIn("Hello PDF extraction test with enough text for confidence.", parsed["paragraphs"])
+        self.assertIn(
+            "Hello PDF extraction test with enough text for confidence.", parsed["paragraphs"]
+        )
         self.assertEqual(parsed["elements"][0]["kind"], "paragraph")
         self.assertEqual(parsed["extraction_quality"]["state"], "clean")
         self.assertEqual(parsed["parser_warnings"], [])

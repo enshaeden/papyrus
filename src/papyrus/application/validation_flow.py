@@ -2,15 +2,24 @@ from __future__ import annotations
 
 import datetime as dt
 import re
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
-from papyrus.application.export_flow import ExportRuntimeUnavailableError, filter_approved_export_documents
-from papyrus.application.impact_flow import find_possible_duplicate_documents
 from papyrus.application.authoring_flow import compute_completion_state, derive_section_content
 from papyrus.application.blueprint_registry import get_blueprint
+from papyrus.application.export_flow import (
+    ExportRuntimeUnavailableError,
+    filter_approved_export_documents,
+)
+from papyrus.application.impact_flow import find_possible_duplicate_documents
+from papyrus.application.substrate_checks import (
+    validate_documented_repository_paths,
+    validate_documented_web_routes,
+    validate_static_asset_references,
+)
 from papyrus.domain.actor import require_actor_id
-from papyrus.domain.policies import ownership_rank
 from papyrus.domain.entities import KnowledgeDocument, ValidationIssue
+from papyrus.domain.policies import ownership_rank
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.parser import (
     LEGACY_FIELD_NOTE_PREFIX,
@@ -19,8 +28,14 @@ from papyrus.infrastructure.markdown.parser import (
     extract_markdown_title,
     normalize_object_metadata,
 )
-from papyrus.infrastructure.markdown.serializer import ensure_iso_date, json_dump, parse_iso_date, similarity_ratio
-from papyrus.infrastructure.markdown.serializer import ensure_iso_date_or_datetime
+from papyrus.infrastructure.markdown.serializer import (
+    ensure_iso_date,
+    ensure_iso_date_or_datetime,
+    json_dump,
+    parse_iso_date,
+    parse_iso_date_or_datetime,
+    similarity_ratio,
+)
 from papyrus.infrastructure.migrations import apply_runtime_schema
 from papyrus.infrastructure.paths import (
     ADDRESS_PATTERN,
@@ -30,6 +45,7 @@ from papyrus.infrastructure.paths import (
     DOMAIN_PATTERN,
     EMAIL_PATTERN,
     GENERATED_DIR,
+    GENERATED_ROUTE_MAP_PATHS,
     GENERATED_SITE_ASSET_PATHS,
     GENERATED_SITE_DOCS_DIR,
     GENERIC_BRAND_ALLOWLIST,
@@ -37,12 +53,9 @@ from papyrus.infrastructure.paths import (
     LEGACY_GENERATED_DOCS_DIR,
     LIKELY_BRANDED_PRODUCT_PATTERN,
     PHONE_PATTERN,
-    REPORTS_DIR,
     ROOT,
     SECRET_PATTERNS,
     SITE_DIR,
-    TAXONOMY_DIR,
-    TEMPLATE_DIR,
     relative_path,
 )
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
@@ -59,9 +72,15 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     load_taxonomies,
 )
 from papyrus.infrastructure.repositories.validation_repo import insert_validation_run
-from papyrus.infrastructure.search.indexer import fts5_available, site_knowledge_output_path, site_relative_path_for_repo_path
+from papyrus.infrastructure.search.indexer import (
+    fts5_available,
+    site_knowledge_output_path,
+    site_relative_path_for_repo_path,
+)
 
-MARKDOWN_SECTION_PATTERN = re.compile(r"^## (?P<title>.+?)\n+(?P<body>.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL)
+MARKDOWN_SECTION_PATTERN = re.compile(
+    r"^## (?P<title>.+?)\n+(?P<body>.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL
+)
 BLUEPRINT_SECTION_KEYWORDS: dict[str, tuple[str, ...]] = {
     "purpose": ("purpose", "overview", "summary", "use when"),
     "prerequisites": ("prerequisite", "before", "access"),
@@ -109,9 +128,13 @@ def validate_field(
             issues.append(ValidationIssue(path, "must be null or a non-empty string", field_name))
     elif kind == "date":
         if not ensure_iso_date(value):
-            issues.append(ValidationIssue(path, "must be an ISO 8601 date (YYYY-MM-DD)", field_name))
+            issues.append(
+                ValidationIssue(path, "must be an ISO 8601 date (YYYY-MM-DD)", field_name)
+            )
     elif kind == "list[string]":
-        if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
+        if not isinstance(value, list) or any(
+            not isinstance(item, str) or not item.strip() for item in value
+        ):
             issues.append(ValidationIssue(path, "must be a list of non-empty strings", field_name))
     elif kind == "list[object]":
         if not isinstance(value, list) or any(not isinstance(item, dict) for item in value):
@@ -157,7 +180,9 @@ def validate_field(
                             )
                         )
                     evidence_expiry_at = item.get("evidence_expiry_at")
-                    if evidence_expiry_at is not None and not ensure_iso_date_or_datetime(evidence_expiry_at):
+                    if evidence_expiry_at is not None and not ensure_iso_date_or_datetime(
+                        evidence_expiry_at
+                    ):
                         issues.append(
                             ValidationIssue(
                                 path,
@@ -166,7 +191,9 @@ def validate_field(
                             )
                         )
                     evidence_last_validated_at = item.get("evidence_last_validated_at")
-                    if evidence_last_validated_at is not None and not ensure_iso_date_or_datetime(evidence_last_validated_at):
+                    if evidence_last_validated_at is not None and not ensure_iso_date_or_datetime(
+                        evidence_last_validated_at
+                    ):
                         issues.append(
                             ValidationIssue(
                                 path,
@@ -190,7 +217,8 @@ def validate_field(
                         )
                     evidence_snapshot_path = item.get("evidence_snapshot_path")
                     if evidence_snapshot_path is not None and (
-                        not isinstance(evidence_snapshot_path, str) or not evidence_snapshot_path.strip()
+                        not isinstance(evidence_snapshot_path, str)
+                        or not evidence_snapshot_path.strip()
                     ):
                         issues.append(
                             ValidationIssue(
@@ -200,7 +228,9 @@ def validate_field(
                             )
                         )
                     claim_anchor = item.get("claim_anchor")
-                    if claim_anchor is not None and (not isinstance(claim_anchor, str) or not claim_anchor.strip()):
+                    if claim_anchor is not None and (
+                        not isinstance(claim_anchor, str) or not claim_anchor.strip()
+                    ):
                         issues.append(
                             ValidationIssue(
                                 path,
@@ -258,7 +288,10 @@ def _meaningful_value(kind: str, value: Any) -> bool:
     if kind == "references":
         return isinstance(value, list) and any(
             isinstance(item, dict)
-            and (_meaningful_text(item.get("source_title")) or _meaningful_text(item.get("source_ref")))
+            and (
+                _meaningful_text(item.get("source_title"))
+                or _meaningful_text(item.get("source_ref"))
+            )
             for item in value
         )
     if kind == "list":
@@ -364,7 +397,11 @@ def validate_sanitization(paths: Iterable) -> list[ValidationIssue]:
         rel_path = relative_path(path)
 
         if re.search(r"https?://|mailto:", text):
-            issues.append(ValidationIssue(rel_path, "contains a raw URL or mailto link; use placeholders or local links"))
+            issues.append(
+                ValidationIssue(
+                    rel_path, "contains a raw URL or mailto link; use placeholders or local links"
+                )
+            )
         if EMAIL_PATTERN.search(text):
             issues.append(ValidationIssue(rel_path, "contains an email address"))
         if PHONE_PATTERN.search(text):
@@ -444,10 +481,15 @@ def validate_directory_contract(policy: dict[str, Any]) -> list[ValidationIssue]
             issues.append(ValidationIssue(item, "unexpected build artifact"))
 
     if GENERATED_DIR.exists():
-        allowed_generated_roots = {relative_path(GENERATED_SITE_DOCS_DIR)}
+        allowed_generated_roots = {
+            relative_path(GENERATED_SITE_DOCS_DIR),
+            *GENERATED_ROUTE_MAP_PATHS,
+        }
         for path in GENERATED_DIR.iterdir():
             if relative_path(path) not in allowed_generated_roots:
-                issues.append(ValidationIssue(relative_path(path), "unexpected generated artifact root"))
+                issues.append(
+                    ValidationIssue(relative_path(path), "unexpected generated artifact root")
+                )
 
     return issues
 
@@ -469,8 +511,12 @@ def expected_site_doc_paths(
 
     from papyrus.infrastructure.paths import GENERATED_SITE_INDEX_PATHS
 
-    expected.update(relative_path(GENERATED_SITE_DOCS_DIR / path) for path in GENERATED_SITE_INDEX_PATHS)
-    expected.update(relative_path(GENERATED_SITE_DOCS_DIR / path) for path in GENERATED_SITE_ASSET_PATHS)
+    expected.update(
+        relative_path(GENERATED_SITE_DOCS_DIR / path) for path in GENERATED_SITE_INDEX_PATHS
+    )
+    expected.update(
+        relative_path(GENERATED_SITE_DOCS_DIR / path) for path in GENERATED_SITE_ASSET_PATHS
+    )
 
     for document in filter_approved_export_documents(documents, database_path):
         expected.add(relative_path(site_knowledge_output_path(document)))
@@ -489,11 +535,7 @@ def validate_generated_site_docs(
         expected = expected_site_doc_paths(documents, database_path)
     except ExportRuntimeUnavailableError as exc:
         return [ValidationIssue(relative_path(GENERATED_SITE_DOCS_DIR), str(exc))]
-    actual = {
-        relative_path(path)
-        for path in GENERATED_SITE_DOCS_DIR.rglob("*")
-        if path.is_file()
-    }
+    actual = {relative_path(path) for path in GENERATED_SITE_DOCS_DIR.rglob("*") if path.is_file()}
     for path in sorted(actual.difference(expected)):
         issues.append(ValidationIssue(path, "unexpected generated site source file"))
     for path in sorted(expected.difference(actual)):
@@ -534,7 +576,9 @@ def validate_knowledge_documents(
 ) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     seen_ids: dict[str, str] = {}
-    known_ids = {document.knowledge_object_id for document in documents if document.knowledge_object_id}
+    known_ids = {
+        document.knowledge_object_id for document in documents if document.knowledge_object_id
+    }
 
     for document in documents:
         path = document.relative_path
@@ -597,14 +641,27 @@ def validate_knowledge_documents(
             updated_date = parse_iso_date(updated)
             reviewed_date = parse_iso_date(last_reviewed)
             if updated_date < created_date:
-                issues.append(ValidationIssue(path, "updated cannot be earlier than created", "updated"))
+                issues.append(
+                    ValidationIssue(path, "updated cannot be earlier than created", "updated")
+                )
             if reviewed_date < created_date:
-                issues.append(ValidationIssue(path, "last_reviewed cannot be earlier than created", "last_reviewed"))
+                issues.append(
+                    ValidationIssue(
+                        path, "last_reviewed cannot be earlier than created", "last_reviewed"
+                    )
+                )
 
         if metadata.get("canonical_path") != path:
-            issues.append(ValidationIssue(path, "canonical_path must match the source file path", "canonical_path"))
+            issues.append(
+                ValidationIssue(
+                    path, "canonical_path must match the source file path", "canonical_path"
+                )
+            )
 
-        if path.startswith("archive/knowledge/") and metadata.get("object_lifecycle_state") != "archived":
+        if (
+            path.startswith("archive/knowledge/")
+            and metadata.get("object_lifecycle_state") != "archived"
+        ):
             issues.append(
                 ValidationIssue(
                     path,
@@ -653,11 +710,21 @@ def validate_knowledge_documents(
             )
         if replaced_by:
             if replaced_by == object_id:
-                issues.append(ValidationIssue(path, "replaced_by cannot reference itself", "replaced_by"))
+                issues.append(
+                    ValidationIssue(path, "replaced_by cannot reference itself", "replaced_by")
+                )
             elif replaced_by not in known_ids:
-                issues.append(ValidationIssue(path, f"replacement knowledge object not found: {replaced_by}", "replaced_by"))
+                issues.append(
+                    ValidationIssue(
+                        path,
+                        f"replacement knowledge object not found: {replaced_by}",
+                        "replaced_by",
+                    )
+                )
 
-        related_object_ids = metadata.get("related_object_ids") or metadata.get("related_articles", [])
+        related_object_ids = metadata.get("related_object_ids") or metadata.get(
+            "related_articles", []
+        )
         for related in related_object_ids:
             if related not in known_ids:
                 issues.append(
@@ -694,7 +761,9 @@ def validate_knowledge_documents(
                         )
                     )
             source_ref = citation.get("source_ref")
-            if source_ref and str(source_ref).startswith(("knowledge/", "archive/knowledge/", "docs/", "decisions/")):
+            if source_ref and str(source_ref).startswith(
+                ("knowledge/", "archive/knowledge/", "docs/", "decisions/")
+            ):
                 repo_target = ROOT / str(source_ref)
                 if not repo_target.exists():
                     issues.append(
@@ -716,7 +785,10 @@ def validate_knowledge_documents(
                         )
                     )
             evidence_expiry_at = citation.get("evidence_expiry_at")
-            if evidence_expiry_at and parse_iso_date_or_datetime(evidence_expiry_at) < dt.date.today():
+            if (
+                evidence_expiry_at
+                and parse_iso_date_or_datetime(evidence_expiry_at) < dt.date.today()
+            ):
                 issues.append(
                     ValidationIssue(
                         path,
@@ -787,7 +859,9 @@ def validate_repository(include_rendered_site: bool = False) -> list[ValidationI
     documents = load_knowledge_documents(policy)
     issues: list[ValidationIssue] = []
     issues.extend(validate_directory_contract(policy))
-    issues.extend(validate_knowledge_documents(documents, object_schemas, legacy_schema, taxonomies, policy))
+    issues.extend(
+        validate_knowledge_documents(documents, object_schemas, legacy_schema, taxonomies, policy)
+    )
     issues.extend(validate_docs_duplication(documents, policy))
     issues.extend(validate_generated_site_docs(documents))
 
@@ -796,6 +870,9 @@ def validate_repository(include_rendered_site: bool = False) -> list[ValidationI
         + collect_docs_source_paths()
         + collect_decision_paths()
         + collect_article_paths(policy)
+    )
+    documentation_paths = (
+        collect_root_markdown_paths() + collect_docs_source_paths() + collect_decision_paths()
     )
     for broken_link in collect_broken_markdown_links(markdown_paths):
         issues.append(
@@ -822,6 +899,9 @@ def validate_repository(include_rendered_site: bool = False) -> list[ValidationI
                     )
                 )
 
+    issues.extend(validate_documented_repository_paths(documentation_paths))
+    issues.extend(validate_documented_web_routes(documentation_paths))
+    issues.extend(validate_static_asset_references())
     issues.extend(validate_sanitization(collect_sanitization_paths(policy)))
     return issues
 
@@ -839,7 +919,7 @@ def record_validation_run(
     completed_at: dt.datetime | None = None,
 ) -> str:
     actor = require_actor_id(actor)
-    started = started_at or dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    started = started_at or dt.datetime.now(dt.UTC).replace(microsecond=0)
     completed = completed_at or started
     connection = open_runtime_database(database_path, minimum_schema_version=RUNTIME_SCHEMA_VERSION)
     try:
@@ -902,9 +982,7 @@ def orphaned_files(policy: dict[str, Any], documents: list[KnowledgeDocument]) -
         except ExportRuntimeUnavailableError:
             expected = set()
         actual = {
-            relative_path(path)
-            for path in GENERATED_SITE_DOCS_DIR.rglob("*")
-            if path.is_file()
+            relative_path(path) for path in GENERATED_SITE_DOCS_DIR.rglob("*") if path.is_file()
         }
         findings.extend(sorted(actual.difference(expected)))
 

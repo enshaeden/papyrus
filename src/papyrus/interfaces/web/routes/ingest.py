@@ -78,7 +78,9 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page)
 
     def ingest_detail_page(request: Request):
-        detail = ingestion_detail(ingestion_id=request.route_value("ingestion_id"), database_path=runtime.database_path)
+        detail = ingestion_detail(
+            ingestion_id=request.route_value("ingestion_id"), database_path=runtime.database_path
+        )
         page = present_ingestion_detail_page(runtime.template_renderer, detail=detail)
         return _render_page(runtime, request, page)
 
@@ -86,17 +88,32 @@ def register(router, runtime) -> None:
         experience = require_experience(request, "operator")
         ingestion_id = request.route_value("ingestion_id")
         detail = ingestion_detail(ingestion_id=ingestion_id, database_path=runtime.database_path)
-        existing_mapping = detail.get("mapping_result") if has_mapping_result(detail.get("mapping_result")) else None
+        existing_mapping = (
+            detail.get("mapping_result")
+            if has_mapping_result(detail.get("mapping_result"))
+            else None
+        )
         mapping = existing_mapping or map_to_blueprint(
             ingestion_id=ingestion_id,
             blueprint_id=detail.get("blueprint_id") or detail["classification"]["blueprint_id"],
             database_path=runtime.database_path,
         )
         if existing_mapping is None:
-            detail = ingestion_detail(ingestion_id=ingestion_id, database_path=runtime.database_path)
+            detail = ingestion_detail(
+                ingestion_id=ingestion_id, database_path=runtime.database_path
+            )
         errors: list[str] = []
         if request.method == "POST":
-            required_fields = ["object_id", "title", "canonical_path", "owner", "team", "review_cadence", "status", "audience"]
+            required_fields = [
+                "object_id",
+                "title",
+                "canonical_path",
+                "owner",
+                "team",
+                "review_cadence",
+                "status",
+                "audience",
+            ]
             missing = [field for field in required_fields if not request.form_value(field).strip()]
             if missing:
                 field_labels = {
@@ -119,14 +136,16 @@ def register(router, runtime) -> None:
                     owner=request.form_value("owner").strip(),
                     team=request.form_value("team").strip(),
                     review_cadence=request.form_value("review_cadence").strip(),
-                    status=request.form_value("status").strip(),
+                    object_lifecycle_state=request.form_value("status").strip(),
                     audience=request.form_value("audience").strip(),
                     actor=str(experience.audit_actor_id),
                     database_path=runtime.database_path,
                     source_root=runtime.source_root,
                 )
                 return redirect_response(
-                    write_object_url(str(converted["object_id"]), revision_id=str(converted["revision_id"]))
+                    write_object_url(
+                        str(converted["object_id"]), revision_id=str(converted["revision_id"])
+                    )
                     + f"&notice={quote_plus('Draft created from the imported document.')}"
                 )
 

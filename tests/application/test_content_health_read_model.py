@@ -42,21 +42,24 @@ class ContentHealthReadModelTests(unittest.TestCase):
 
         self.assertTrue(
             any(
-                "kb-applications-access-and-license-management-add-productivity-platform-licenses" in line
+                "kb-applications-access-and-license-management-add-productivity-platform-licenses"
+                in line
                 and "<PRODUCTIVITY_PLATFORM>" in line
                 for line in placeholder_lines
             )
         )
         self.assertTrue(
             any(
-                "kb-applications-access-and-license-management-add-productivity-platform-licenses" in line
+                "kb-applications-access-and-license-management-add-productivity-platform-licenses"
+                in line
                 and "legacy_article_type" in line
                 for line in fallback_lines
             )
         )
         self.assertTrue(
             any(
-                "kb-applications-access-and-license-management-add-productivity-platform-licenses" in line
+                "kb-applications-access-and-license-management-add-productivity-platform-licenses"
+                in line
                 and "placeholder-heavy(" in line
                 and "legacy-blueprint-fallback" in line
                 for line in migration_lines

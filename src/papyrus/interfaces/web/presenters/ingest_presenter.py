@@ -9,12 +9,22 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
     render_workflow_projection_panel,
     workflow_actions,
 )
-from papyrus.interfaces.web.presenters.ingest_convert_form_presenter import render_ingest_convert_form
+from papyrus.interfaces.web.presenters.ingest_convert_form_presenter import (
+    render_ingest_convert_form,
+)
 from papyrus.interfaces.web.presenters.ingest_list_presenter import render_ingest_list
-from papyrus.interfaces.web.presenters.ingest_mapping_gaps_presenter import render_ingest_mapping_gaps
-from papyrus.interfaces.web.presenters.ingest_mapping_table_presenter import render_ingest_mapping_table
-from papyrus.interfaces.web.presenters.ingest_parsed_content_presenter import render_ingest_parsed_content
-from papyrus.interfaces.web.presenters.ingest_parser_assessment_presenter import render_ingest_parser_assessment
+from papyrus.interfaces.web.presenters.ingest_mapping_gaps_presenter import (
+    render_ingest_mapping_gaps,
+)
+from papyrus.interfaces.web.presenters.ingest_mapping_table_presenter import (
+    render_ingest_mapping_table,
+)
+from papyrus.interfaces.web.presenters.ingest_parsed_content_presenter import (
+    render_ingest_parsed_content,
+)
+from papyrus.interfaces.web.presenters.ingest_parser_assessment_presenter import (
+    render_ingest_parser_assessment,
+)
 from papyrus.interfaces.web.presenters.ingest_progress_presenter import render_ingest_progress
 from papyrus.interfaces.web.presenters.ingest_stage_board_presenter import render_ingest_stage_board
 from papyrus.interfaces.web.presenters.ingest_upload_presenter import render_ingest_upload
@@ -29,7 +39,11 @@ def _ingestion_action_href(*, detail: dict[str, object], action: dict[str, objec
         return import_review_url(str(detail["ingestion_id"]))
     if action_id == "convert_ingestion_to_draft":
         return import_review_url(str(detail["ingestion_id"])) + "#convert-to-draft-form"
-    if action_id == "open_converted_draft" and detail.get("converted_object_id") and detail.get("converted_revision_id"):
+    if (
+        action_id == "open_converted_draft"
+        and detail.get("converted_object_id")
+        and detail.get("converted_revision_id")
+    ):
         return write_object_url(
             str(detail["converted_object_id"]),
             revision_id=str(detail["converted_revision_id"]),
@@ -37,7 +51,9 @@ def _ingestion_action_href(*, detail: dict[str, object], action: dict[str, objec
     return None
 
 
-def _ingest_aside_html(components: ComponentPresenter, *, detail: dict[str, object], surface: str) -> str:
+def _ingest_aside_html(
+    components: ComponentPresenter, *, detail: dict[str, object], surface: str
+) -> str:
     return join_html(
         [
             render_workflow_projection_panel(
@@ -91,7 +107,9 @@ def present_ingest_list_page(
     }
 
 
-def present_ingestion_detail_page(renderer: TemplateRenderer, *, detail: dict[str, object]) -> dict[str, Any]:
+def present_ingestion_detail_page(
+    renderer: TemplateRenderer, *, detail: dict[str, object]
+) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     return {
         "page_template": "pages/ingest_detail.html",
@@ -103,9 +121,13 @@ def present_ingestion_detail_page(renderer: TemplateRenderer, *, detail: dict[st
         "active_nav": "import",
         "aside_html": _ingest_aside_html(components, detail=detail, surface="ingest-detail"),
         "page_context": {
-            "progress_html": render_ingest_progress(renderer, detail=detail, surface="ingest-detail"),
+            "progress_html": render_ingest_progress(
+                renderer, detail=detail, surface="ingest-detail"
+            ),
             "stage_html": render_ingest_stage_board(detail=detail),
-            "detail_html": render_ingest_parsed_content(normalized=detail["normalized_content"], surface="ingest-detail"),
+            "detail_html": render_ingest_parsed_content(
+                normalized=detail["normalized_content"], surface="ingest-detail"
+            ),
         },
         "page_surface": "ingest-detail",
     }
@@ -131,7 +153,9 @@ def present_mapping_review_page(
         "active_nav": "import",
         "aside_html": _ingest_aside_html(components, detail=detail, surface="ingest-review"),
         "page_context": {
-            "progress_html": render_ingest_progress(renderer, detail=detail, surface="ingest-review"),
+            "progress_html": render_ingest_progress(
+                renderer, detail=detail, surface="ingest-review"
+            ),
             "mapping_html": render_ingest_mapping_table(components=components, mapping=mapping),
             "gaps_html": render_ingest_mapping_gaps(mapping=mapping),
             "convert_html": render_ingest_convert_form(

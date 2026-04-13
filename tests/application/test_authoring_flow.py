@@ -10,7 +10,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.application.authoring_flow import create_draft_from_blueprint, ensure_draft_revision, load_draft_context
+from papyrus.application.authoring_flow import (
+    create_draft_from_blueprint,
+    ensure_draft_revision,
+    load_draft_context,
+)
 from papyrus.application.review_flow import GovernanceWorkflow
 
 
@@ -66,7 +70,11 @@ class AuthoringFlowTests(unittest.TestCase):
 
             self.assertEqual(loaded["revision_id"], draft["revision_id"])
             self.assertEqual(
-                read_count(database_path, "SELECT COUNT(*) FROM knowledge_revisions WHERE object_id = ?", (created.object_id,)),
+                read_count(
+                    database_path,
+                    "SELECT COUNT(*) FROM knowledge_revisions WHERE object_id = ?",
+                    (created.object_id,),
+                ),
                 revision_count_before,
             )
             self.assertEqual(

@@ -53,8 +53,12 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "retirement_reason": None,
         "services": ["Remote Access"],
         "related_articles": [],
-        "references": [{"title": "Seed import manifest", "path": "docs/migration/seed-migration-rationale.md"}],
-        "change_log": [{"date": "2026-04-09", "summary": "Contract projection draft.", "author": "tests"}],
+        "references": [
+            {"title": "Seed import manifest", "path": "docs/migration/seed-migration-rationale.md"}
+        ],
+        "change_log": [
+            {"date": "2026-04-09", "summary": "Contract projection draft.", "author": "tests"}
+        ],
     }
 
 
@@ -77,7 +81,9 @@ class QueryContractTests(unittest.TestCase):
             )
             revision = workflow.create_revision(
                 object_id=created.object_id,
-                normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+                normalized_payload=runbook_payload(
+                    created.object_id, created.canonical_path, created.title
+                ),
                 body_markdown="## Use When\n\nExercise query contract coverage.\n",
                 actor="tests",
                 change_summary="Initial contract revision.",
@@ -85,8 +91,7 @@ class QueryContractTests(unittest.TestCase):
 
             detail = knowledge_object_detail(created.object_id, database_path=database_path)
             detail_actions = {
-                action["action_id"]: action
-                for action in detail["ui_projection"]["actions"]
+                action["action_id"]: action for action in detail["ui_projection"]["actions"]
             }
             self.assertEqual(detail["ui_projection"]["use_guidance"]["code"], "not_ready")
             self.assertEqual(detail_actions["submit_for_review"]["availability"], "allowed")
@@ -96,7 +101,9 @@ class QueryContractTests(unittest.TestCase):
                 "allowed_transition",
             )
 
-            workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=created.object_id, revision_id=revision.revision_id, actor="tests"
+            )
             workflow.assign_reviewer(
                 object_id=created.object_id,
                 revision_id=revision.revision_id,
@@ -104,15 +111,19 @@ class QueryContractTests(unittest.TestCase):
                 actor="tests",
             )
 
-            review = review_detail(created.object_id, revision.revision_id, database_path=database_path)
+            review = review_detail(
+                created.object_id, revision.revision_id, database_path=database_path
+            )
             review_actions = {
-                action["action_id"]: action
-                for action in review["ui_projection"]["actions"]
+                action["action_id"]: action for action in review["ui_projection"]["actions"]
             }
             self.assertEqual(review["ui_projection"]["use_guidance"]["code"], "review_pending")
             self.assertEqual(review_actions["assign_reviewer"]["availability"], "allowed")
             self.assertEqual(review_actions["approve_revision"]["availability"], "allowed")
-            self.assertEqual(review_actions["approve_revision"]["policy"]["transition"]["semantics"], "allowed_transition")
+            self.assertEqual(
+                review_actions["approve_revision"]["policy"]["transition"]["semantics"],
+                "allowed_transition",
+            )
             self.assertEqual(review_actions["reject_revision"]["availability"], "allowed")
 
     def test_detail_query_surfaces_source_sync_and_reference_contracts(self) -> None:
@@ -133,12 +144,16 @@ class QueryContractTests(unittest.TestCase):
             )
             revision = workflow.create_revision(
                 object_id=created.object_id,
-                normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+                normalized_payload=runbook_payload(
+                    created.object_id, created.canonical_path, created.title
+                ),
                 body_markdown="## Use When\n\nExercise source sync contract coverage.\n",
                 actor="tests",
                 change_summary="Source sync contract revision.",
             )
-            workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=created.object_id, revision_id=revision.revision_id, actor="tests"
+            )
             workflow.assign_reviewer(
                 object_id=created.object_id,
                 revision_id=revision.revision_id,
@@ -164,7 +179,9 @@ class QueryContractTests(unittest.TestCase):
                 connection.close()
 
             pending = knowledge_object_detail(created.object_id, database_path=database_path)
-            self.assertEqual(pending["ui_projection"]["use_guidance"]["code"], "source_sync_pending")
+            self.assertEqual(
+                pending["ui_projection"]["use_guidance"]["code"], "source_sync_pending"
+            )
             self.assertTrue(pending["ui_projection"]["use_guidance"]["safe_to_use"])
             self.assertTrue(pending["reference_projection"]["eligible"])
 
@@ -179,7 +196,9 @@ class QueryContractTests(unittest.TestCase):
                 connection.close()
 
             conflicted = knowledge_object_detail(created.object_id, database_path=database_path)
-            self.assertEqual(conflicted["ui_projection"]["use_guidance"]["code"], "source_sync_conflicted")
+            self.assertEqual(
+                conflicted["ui_projection"]["use_guidance"]["code"], "source_sync_conflicted"
+            )
             self.assertFalse(conflicted["ui_projection"]["use_guidance"]["safe_to_use"])
 
             connection = sqlite3.connect(database_path)
@@ -193,7 +212,9 @@ class QueryContractTests(unittest.TestCase):
                 connection.close()
 
             restored = knowledge_object_detail(created.object_id, database_path=database_path)
-            self.assertEqual(restored["ui_projection"]["use_guidance"]["code"], "source_sync_restored")
+            self.assertEqual(
+                restored["ui_projection"]["use_guidance"]["code"], "source_sync_restored"
+            )
             self.assertFalse(restored["ui_projection"]["use_guidance"]["safe_to_use"])
 
             shell = workflow.create_object(

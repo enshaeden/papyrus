@@ -12,8 +12,8 @@ def render_activity_validation_log(*, validation_runs: list[dict[str, object]]) 
             [
                 (
                     '<article class="activity-validation-log__item">'
-                    f'<p>{escape(run["run_type"])} · {escape(run["status"])} · findings {escape(run["finding_count"])}</p>'
-                    f'<p>{escape(format_timestamp(run["completed_at"]))}</p>'
+                    f"<p>{escape(run['run_type'])} · {escape(run['status'])} · findings {escape(run['finding_count'])}</p>"
+                    f"<p>{escape(format_timestamp(run['completed_at']))}</p>"
                     "</article>"
                 )
                 for run in validation_runs[:20]

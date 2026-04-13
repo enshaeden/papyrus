@@ -27,7 +27,11 @@ def main() -> int:
 
     database_path = Path(args.db)
     source_root = Path(args.source_root)
-    for sibling in (database_path, database_path.with_name(database_path.name + "-shm"), database_path.with_name(database_path.name + "-wal")):
+    for sibling in (
+        database_path,
+        database_path.with_name(database_path.name + "-shm"),
+        database_path.with_name(database_path.name + "-wal"),
+    ):
         if sibling.exists():
             sibling.unlink()
     if source_root.exists():

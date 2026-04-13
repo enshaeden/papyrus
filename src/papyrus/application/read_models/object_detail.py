@@ -29,6 +29,7 @@ from .support import (
     require_runtime_connection,
 )
 
+
 def knowledge_object_detail(
     object_id: str,
     *,
@@ -77,20 +78,30 @@ def knowledge_object_detail(
             citations = [
                 {
                     "citation_id": str(row["citation_id"]),
-                    "claim_anchor": str(row["claim_anchor"]) if row["claim_anchor"] is not None else None,
+                    "claim_anchor": str(row["claim_anchor"])
+                    if row["claim_anchor"] is not None
+                    else None,
                     "source_type": str(row["source_type"]),
                     "source_ref": str(row["source_ref"]),
                     "source_title": str(row["source_title"]),
                     "note": str(row["note"]) if row["note"] is not None else None,
                     "excerpt": str(row["excerpt"]) if row["excerpt"] is not None else None,
-                    "captured_at": str(row["captured_at"]) if row["captured_at"] is not None else None,
+                    "captured_at": str(row["captured_at"])
+                    if row["captured_at"] is not None
+                    else None,
                     "validity_status": str(row["validity_status"]),
-                    "integrity_hash": str(row["integrity_hash"]) if row["integrity_hash"] is not None else None,
+                    "integrity_hash": str(row["integrity_hash"])
+                    if row["integrity_hash"] is not None
+                    else None,
                     "evidence_snapshot_path": (
-                        str(row["evidence_snapshot_path"]) if row["evidence_snapshot_path"] is not None else None
+                        str(row["evidence_snapshot_path"])
+                        if row["evidence_snapshot_path"] is not None
+                        else None
                     ),
                     "evidence_expiry_at": (
-                        str(row["evidence_expiry_at"]) if row["evidence_expiry_at"] is not None else None
+                        str(row["evidence_expiry_at"])
+                        if row["evidence_expiry_at"] is not None
+                        else None
                     ),
                     "evidence_last_validated_at": (
                         str(row["evidence_last_validated_at"])
@@ -111,10 +122,16 @@ def knowledge_object_detail(
         evidence_status = {
             "total_citations": len(citations),
             "snapshot_count": sum(1 for item in citations if item["evidence_snapshot_path"]),
-            "missing_snapshot_count": sum(1 for item in citations if not item["evidence_snapshot_path"]),
-            "stale_count": sum(1 for item in citations if item["validity_status"] in {"stale", "broken"}),
+            "missing_snapshot_count": sum(
+                1 for item in citations if not item["evidence_snapshot_path"]
+            ),
+            "stale_count": sum(
+                1 for item in citations if item["validity_status"] in {"stale", "broken"}
+            ),
             "revalidation_count": sum(
-                1 for item in citations if item["validity_status"] != "verified" or not item["evidence_last_validated_at"]
+                1
+                for item in citations
+                if item["validity_status"] != "verified" or not item["evidence_last_validated_at"]
             ),
         }
         evidence_status["summary"] = (
@@ -249,9 +266,15 @@ def knowledge_object_detail(
             citation_health_rank=int(object_row["citation_health_rank"] or 0),
             ownership_rank=int(object_row["ownership_rank"] or 0),
             owner=str(object_row["owner"]),
-            current_revision_id=str(object_row["current_revision_id"]) if object_row["current_revision_id"] is not None else None,
+            current_revision_id=str(object_row["current_revision_id"])
+            if object_row["current_revision_id"] is not None
+            else None,
             latest_suspect_event=next(
-                (event for event in audit_events if event["event_type"] == "object_marked_suspect_due_to_change"),
+                (
+                    event
+                    for event in audit_events
+                    if event["event_type"] == "object_marked_suspect_due_to_change"
+                ),
                 None,
             ),
         )
@@ -277,7 +300,9 @@ def knowledge_object_detail(
                     authority=current_authority,
                     state=state_snapshot,
                     current_revision_id=(
-                        str(object_row["current_revision_id"]) if object_row["current_revision_id"] is not None else None
+                        str(object_row["current_revision_id"])
+                        if object_row["current_revision_id"] is not None
+                        else None
                     ),
                     evidence_status=evidence_status,
                 ),
@@ -286,7 +311,8 @@ def knowledge_object_detail(
 
         section_content = (
             _json_dict(current_revision["section_content_json"])
-            if current_revision is not None and str(current_revision["section_content_json"] or "").strip() not in {"", "{}"}
+            if current_revision is not None
+            and str(current_revision["section_content_json"] or "").strip() not in {"", "{}"}
             else (
                 derive_section_content(
                     blueprint_id=str(current_revision["blueprint_id"] or object_row["object_type"]),
@@ -302,7 +328,9 @@ def knowledge_object_detail(
             "object": {
                 "object_id": str(object_row["object_id"]),
                 "object_type": str(object_row["object_type"]),
-                "legacy_type": str(object_row["legacy_type"]) if object_row["legacy_type"] is not None else None,
+                "legacy_type": str(object_row["legacy_type"])
+                if object_row["legacy_type"] is not None
+                else None,
                 "title": str(object_row["title"]),
                 "summary": str(object_row["summary"]),
                 "object_lifecycle_state": _object_lifecycle_value(object_row),
@@ -319,7 +347,9 @@ def knowledge_object_detail(
                 "trust_state": str(object_row["trust_state"]),
                 "revision_review_state": revision_review_state,
                 "draft_progress_state": (
-                    str(object_row["draft_progress_state"]) if object_row["draft_progress_state"] is not None else None
+                    str(object_row["draft_progress_state"])
+                    if object_row["draft_progress_state"] is not None
+                    else None
                 ),
                 "source_sync_state": _source_sync_value(object_row),
                 "freshness_rank": int(object_row["freshness_rank"] or 0),
@@ -327,7 +357,9 @@ def knowledge_object_detail(
                 "ownership_rank": int(object_row["ownership_rank"] or 0),
                 "tags": [str(item) for item in _json_list(object_row["tags_json"])],
                 "systems": [str(item) for item in _json_list(object_row["systems_json"])],
-                "path": str(object_row["path"]) if object_row["path"] is not None else str(object_row["canonical_path"]),
+                "path": str(object_row["path"])
+                if object_row["path"] is not None
+                else str(object_row["canonical_path"]),
             },
             "posture": posture,
             "current_revision": (
@@ -335,13 +367,19 @@ def knowledge_object_detail(
                     "revision_id": str(current_revision["revision_id"]),
                     "revision_number": int(current_revision["revision_number"]),
                     "revision_review_state": _revision_review_value(current_revision),
-                    "blueprint_id": str(current_revision["blueprint_id"] or object_row["object_type"]),
+                    "blueprint_id": str(
+                        current_revision["blueprint_id"] or object_row["object_type"]
+                    ),
                     "draft_progress_state": _draft_progress_value(current_revision),
                     "imported_at": str(current_revision["imported_at"]),
-                    "change_summary": str(current_revision["change_summary"]) if current_revision["change_summary"] is not None else None,
+                    "change_summary": str(current_revision["change_summary"])
+                    if current_revision["change_summary"] is not None
+                    else None,
                     "body_markdown": str(current_revision["body_markdown"]),
                     "section_content": section_content,
-                    "section_completion_map": _json_dict(current_revision["section_completion_json"]),
+                    "section_completion_map": _json_dict(
+                        current_revision["section_completion_json"]
+                    ),
                 }
                 if current_revision is not None
                 else None
@@ -373,6 +411,7 @@ def knowledge_object_detail(
         }
     finally:
         connection.close()
+
 
 def revision_history(
     object_id: str,
@@ -461,7 +500,9 @@ def revision_history(
                 "object_id": str(object_row["object_id"]),
                 "title": str(object_row["title"]),
                 "canonical_path": str(object_row["canonical_path"]),
-                "current_revision_id": str(object_row["current_revision_id"]) if object_row["current_revision_id"] is not None else None,
+                "current_revision_id": str(object_row["current_revision_id"])
+                if object_row["current_revision_id"] is not None
+                else None,
             },
             "revisions": [
                 {
@@ -471,7 +512,9 @@ def revision_history(
                     "blueprint_id": str(row["blueprint_id"] or ""),
                     "draft_progress_state": _draft_progress_value(row),
                     "imported_at": str(row["imported_at"]),
-                    "change_summary": str(row["change_summary"]) if row["change_summary"] is not None else None,
+                    "change_summary": str(row["change_summary"])
+                    if row["change_summary"] is not None
+                    else None,
                     "source_path": str(row["source_path"]),
                     "is_current": str(row["revision_id"]) == str(object_row["current_revision_id"]),
                     "citations": citation_map.get(

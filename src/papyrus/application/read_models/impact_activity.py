@@ -10,6 +10,7 @@ from papyrus.infrastructure.paths import DB_PATH
 from .services_dashboard import service_detail
 from .support import KnowledgeObjectNotFoundError, _json_dict, require_runtime_connection
 
+
 def _event_group(event_type: str, payload: dict[str, Any]) -> str:
     if event_type == "service_change":
         return "service_changes"
@@ -17,7 +18,11 @@ def _event_group(event_type: str, payload: dict[str, Any]) -> str:
         return "evidence_degradation"
     if event_type.startswith("validation_") or event_type == "validation_run_recorded":
         status = str(payload.get("status") or "").strip()
-        return "validation_failures" if status in {"failed", "error"} or event_type == "validation_failure" else "validation_activity"
+        return (
+            "validation_failures"
+            if status in {"failed", "error"} or event_type == "validation_failure"
+            else "validation_activity"
+        )
     if event_type == "object_marked_suspect_due_to_change":
         return "manual_suspect_marks"
     if event_type.startswith("revision_") or event_type == "reviewer_assigned":
@@ -26,7 +31,10 @@ def _event_group(event_type: str, payload: dict[str, Any]) -> str:
         return "writeback_activity"
     return "other"
 
-def _event_summary(event_type: str, *, entity_type: str, entity_id: str, payload: dict[str, Any]) -> str:
+
+def _event_summary(
+    event_type: str, *, entity_type: str, entity_id: str, payload: dict[str, Any]
+) -> str:
     summary = str(payload.get("summary") or "").strip()
     if summary:
         return summary
@@ -51,6 +59,7 @@ def _event_summary(event_type: str, *, entity_type: str, entity_id: str, payload
         return reason
     return f"{event_type.replace('_', ' ')} for {entity_type}:{entity_id}."
 
+
 def _event_next_action(group: str, *, entity_type: str, entity_id: str) -> str:
     if group == "service_changes":
         return f"Review the service path for {entity_id} and revalidate linked guidance."
@@ -67,6 +76,7 @@ def _event_next_action(group: str, *, entity_type: str, entity_id: str) -> str:
     if group == "writeback_activity":
         return f"Inspect canonical source state for {entity_type}:{entity_id} and confirm the live guidance is the intended version."
     return f"Inspect the latest activity for {entity_type}:{entity_id}."
+
 
 def event_history(
     *,
@@ -131,6 +141,7 @@ def event_history(
     finally:
         connection.close()
 
+
 def _recent_events(
     connection: sqlite3.Connection,
     *,
@@ -179,6 +190,7 @@ def _recent_events(
         for payload in [_json_dict(row["payload_json"])]
         for group in [_event_group(str(row["event_type"]), payload)]
     ]
+
 
 def impact_view_for_object(
     object_id: str,
@@ -264,7 +276,9 @@ def impact_view_for_object(
             )
             if item["object_id"] != object_id
         ]
-        recent_events = _recent_events(connection, entity_type="knowledge_object", entity_ids=[object_id])
+        recent_events = _recent_events(
+            connection, entity_type="knowledge_object", entity_ids=[object_id]
+        )
         current_impact = {
             "what_changed": (
                 recent_events[0]["payload"].get("summary")
@@ -300,6 +314,7 @@ def impact_view_for_object(
         }
     finally:
         connection.close()
+
 
 def impact_view_for_service(
     service_id_or_name: str,
@@ -340,4 +355,3 @@ def impact_view_for_service(
         }
     finally:
         connection.close()
-

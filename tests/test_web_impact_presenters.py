@@ -8,7 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.interfaces.web.presenters.impact_presenter import present_object_impact, present_service_impact
+from papyrus.interfaces.web.presenters.impact_presenter import (
+    present_object_impact,
+    present_service_impact,
+)
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions
 
@@ -44,15 +47,24 @@ OBJECT_IMPACT = {
             "payload": {"summary": "Approved"},
         }
     ],
-    "inbound_relationships": [{"relationship_type": "uses", "object_id": "kb-parent", "title": "Parent object"}],
-    "citation_dependents": [{"object_id": "kb-citation", "title": "Citation child", "citation_status": "verified"}],
+    "inbound_relationships": [
+        {"relationship_type": "uses", "object_id": "kb-parent", "title": "Parent object"}
+    ],
+    "citation_dependents": [
+        {"object_id": "kb-citation", "title": "Citation child", "citation_status": "verified"}
+    ],
     "related_services": [{"service_id": "remote-access", "service_name": "Remote Access"}],
 }
 
 
 class ImpactPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_object_impact_presenter_assembles_local_impact_components(self) -> None:
-        page = present_object_impact(TEMPLATE_RENDERER, role="operator", impact=OBJECT_IMPACT, selected_object_id="kb-dependent")
+        page = present_object_impact(
+            TEMPLATE_RENDERER,
+            role="operator",
+            impact=OBJECT_IMPACT,
+            selected_object_id="kb-dependent",
+        )
 
         self.assert_component(page["page_context"]["summary_html"], "impact-summary")
         self.assert_component(page["page_context"]["impacts_html"], "impact-trace")

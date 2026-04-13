@@ -5,12 +5,21 @@ from typing import Any
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.impact_event_log_presenter import render_impact_event_log
 from papyrus.interfaces.web.presenters.impact_profile_presenter import render_impact_profile
-from papyrus.interfaces.web.presenters.impact_relationship_list_presenter import render_impact_relationship_list
-from papyrus.interfaces.web.presenters.impact_selected_item_presenter import render_impact_selected_item
+from papyrus.interfaces.web.presenters.impact_relationship_list_presenter import (
+    render_impact_relationship_list,
+)
+from papyrus.interfaces.web.presenters.impact_selected_item_presenter import (
+    render_impact_selected_item,
+)
 from papyrus.interfaces.web.presenters.impact_summary_presenter import render_impact_summary
 from papyrus.interfaces.web.presenters.impact_trace_presenter import render_impact_trace
 from papyrus.interfaces.web.rendering import TemplateRenderer
-from papyrus.interfaces.web.urls import activity_url, impact_object_url, impact_service_url, object_url, service_url
+from papyrus.interfaces.web.urls import (
+    impact_object_url,
+    impact_service_url,
+    object_url,
+    service_url,
+)
 from papyrus.interfaces.web.view_helpers import escape, join_html, link
 
 
@@ -25,7 +34,9 @@ def _selected_item(
     for item in items:
         object_id = str(item.get("object_id") or "")
         revision_id = str(item.get("revision_id") or "")
-        if object_id == selected_object_id and (not selected_revision_id or revision_id == selected_revision_id):
+        if object_id == selected_object_id and (
+            not selected_revision_id or revision_id == selected_revision_id
+        ):
             return item
     return items[0]
 
@@ -75,10 +86,16 @@ def present_object_impact(
                     ("Why impacted", str(current_impact["why_impacted"])),
                     ("Revalidate", " | ".join(current_impact["revalidate"])),
                 ],
-                footer_html=link("Return to guidance", object_url(role, str(entity["object_id"])), css_class="button button-primary"),
+                footer_html=link(
+                    "Return to guidance",
+                    object_url(role, str(entity["object_id"])),
+                    css_class="button button-primary",
+                ),
                 surface="impact-object",
             ),
-            render_impact_selected_item(item=selected_item, role=role, surface="impact-object") if selected_item is not None else "",
+            render_impact_selected_item(item=selected_item, role=role, surface="impact-object")
+            if selected_item is not None
+            else "",
             render_impact_event_log(
                 title="Recent change events",
                 events=impact["recent_events"],
@@ -99,7 +116,7 @@ def present_object_impact(
                 title="Citation dependents",
                 eyebrow="Evidence",
                 items_html=[
-                    f"{link(item['title'], object_url(role, str(item['object_id'])))}<span class=\"list-meta\">{escape(item['citation_status'])}</span>"
+                    f'{link(item["title"], object_url(role, str(item["object_id"])))}<span class="list-meta">{escape(item["citation_status"])}</span>'
                     for item in impact["citation_dependents"]
                 ],
                 empty_label="No citation dependents were found.",
@@ -175,10 +192,16 @@ def present_service_impact(
                     ("Why impacted", str(current_impact["why_impacted"])),
                     ("Revalidate", " | ".join(current_impact["revalidate"])),
                 ],
-                footer_html=link("Return to service", service_url(role, str(entity["service_id"])), css_class="button button-primary"),
+                footer_html=link(
+                    "Return to service",
+                    service_url(role, str(entity["service_id"])),
+                    css_class="button button-primary",
+                ),
                 surface="impact-service",
             ),
-            render_impact_selected_item(item=selected_item, role=role, surface="impact-service") if selected_item is not None else "",
+            render_impact_selected_item(item=selected_item, role=role, surface="impact-service")
+            if selected_item is not None
+            else "",
             render_impact_event_log(
                 title="Recent change events",
                 events=impact["recent_events"],

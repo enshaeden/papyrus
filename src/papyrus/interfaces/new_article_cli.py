@@ -7,7 +7,13 @@ from pathlib import Path
 
 import yaml
 
-from papyrus.compat.kb_common import FRONT_MATTER_PATTERN, load_policy, load_taxonomies, similarity_ratio, slugify
+from papyrus.compat.kb_common import (
+    FRONT_MATTER_PATTERN,
+    load_policy,
+    load_taxonomies,
+    similarity_ratio,
+    slugify,
+)
 from papyrus.infrastructure.paths import ROOT
 
 TYPE_TO_DIRECTORY = {
@@ -104,12 +110,16 @@ def related_article_suggestions(
 
         reasons = []
         score = 0
-        shared_services = sorted(set(draft_metadata["services"]).intersection(services_for(metadata)))
+        shared_services = sorted(
+            set(draft_metadata["services"]).intersection(services_for(metadata))
+        )
         if shared_services:
             score += len(shared_services) * 4
             reasons.append(f"shared service: {', '.join(shared_services)}")
 
-        shared_systems = sorted(set(draft_metadata["systems"]).intersection(metadata.get("systems", [])))
+        shared_systems = sorted(
+            set(draft_metadata["systems"]).intersection(metadata.get("systems", []))
+        )
         if shared_systems:
             score += len(shared_systems) * 3
             reasons.append(f"shared system: {', '.join(shared_systems)}")
@@ -135,7 +145,9 @@ def related_article_suggestions(
             score += 2
             reasons.append("same knowledge-tree section")
 
-        title_similarity = similarity_ratio(str(draft_metadata["title"]), str(metadata.get("title", "")))
+        title_similarity = similarity_ratio(
+            str(draft_metadata["title"]), str(metadata.get("title", ""))
+        )
         if title_similarity >= 0.62:
             score += 3
             reasons.append(f"similar title ({title_similarity:.2f})")
@@ -191,7 +203,10 @@ def emit_authoring_feedback(
         )
         return
 
-    print("[Inference] Candidate related knowledge objects based on title and metadata overlap:", file=sys.stderr)
+    print(
+        "[Inference] Candidate related knowledge objects based on title and metadata overlap:",
+        file=sys.stderr,
+    )
     for score, record, reasons in suggestions[:5]:
         metadata = record["metadata"]
         print(
@@ -202,18 +217,28 @@ def emit_authoring_feedback(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Create a new Papyrus knowledge object from an approved template")
+    parser = argparse.ArgumentParser(
+        description="Create a new Papyrus knowledge object from an approved template"
+    )
     parser.add_argument("--root", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--title", help="Object title")
-    parser.add_argument("--type", help="Knowledge object type from taxonomies/knowledge_object_types.yml")
+    parser.add_argument(
+        "--type", help="Knowledge object type from taxonomies/knowledge_object_types.yml"
+    )
     parser.add_argument("--slug", help="Optional explicit slug. Derived from title when omitted.")
     parser.add_argument("--owner", default="TBD", help="Object owner")
     parser.add_argument("--team", default="Service Desk", help="Responsible team")
     parser.add_argument("--object-lifecycle-state", default="draft", help="Lifecycle state")
     parser.add_argument("--audience", default="service_desk", help="Primary audience")
-    parser.add_argument("--service", action="append", default=[], help="Service taxonomy value. Repeatable.")
-    parser.add_argument("--system", action="append", default=[], help="System taxonomy value. Repeatable.")
-    parser.add_argument("--tag", action="append", default=[], help="Tag taxonomy value. Repeatable.")
+    parser.add_argument(
+        "--service", action="append", default=[], help="Service taxonomy value. Repeatable."
+    )
+    parser.add_argument(
+        "--system", action="append", default=[], help="System taxonomy value. Repeatable."
+    )
+    parser.add_argument(
+        "--tag", action="append", default=[], help="Tag taxonomy value. Repeatable."
+    )
     parser.add_argument(
         "--related-object",
         action="append",
@@ -274,7 +299,9 @@ def main() -> int:
     family_mapping = policy["templates"]["family_by_knowledge_object_type"]
     family = family_mapping.get(args.type)
     if not family:
-        print(f"no approved template family for knowledge object type: {args.type}", file=sys.stderr)
+        print(
+            f"no approved template family for knowledge object type: {args.type}", file=sys.stderr
+        )
         return 1
 
     slug = args.slug or slugify(args.title)
@@ -287,7 +314,9 @@ def main() -> int:
         return 1
 
     existing_records = load_existing_article_records(root, policy)
-    known_ids = {record["metadata"].get("id") for record in existing_records if record["metadata"].get("id")}
+    known_ids = {
+        record["metadata"].get("id") for record in existing_records if record["metadata"].get("id")
+    }
     for related_id in args.related_object:
         if related_id not in known_ids:
             print(f"related knowledge object not found: {related_id}", file=sys.stderr)

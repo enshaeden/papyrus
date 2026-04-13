@@ -62,7 +62,7 @@ class PolicyAuthority:
         self.policy = policy or load_policy()
 
     @classmethod
-    def from_repository_policy(cls) -> "PolicyAuthority":
+    def from_repository_policy(cls) -> PolicyAuthority:
         return cls(load_policy())
 
     def canonical_write_roots(self, *, source_root: Path) -> tuple[Path, ...]:
@@ -78,11 +78,15 @@ class PolicyAuthority:
         return self._resolve_policy_path(source_root, configured).resolve()
 
     def backup_root(self, *, source_root: Path) -> Path:
-        configured = str(self.policy.get("path_policy", {}).get("backup_root", "build/writeback-backups"))
+        configured = str(
+            self.policy.get("path_policy", {}).get("backup_root", "build/writeback-backups")
+        )
         return self._resolve_policy_path(source_root, configured).resolve()
 
     def archive_root(self, *, source_root: Path) -> Path:
-        configured = str(self.policy.get("path_policy", {}).get("archive_root", "archive/knowledge"))
+        configured = str(
+            self.policy.get("path_policy", {}).get("archive_root", "archive/knowledge")
+        )
         return self._resolve_policy_path(source_root, configured).resolve()
 
     def validate_canonical_repo_relative_path(
@@ -100,11 +104,15 @@ class PolicyAuthority:
         ]
         if not allow_archive:
             allowed_roots = [root for root in allowed_roots if root != "archive/knowledge"]
-        if not any(normalized == root or normalized.startswith(f"{root}/") for root in allowed_roots):
+        if not any(
+            normalized == root or normalized.startswith(f"{root}/") for root in allowed_roots
+        ):
             raise ValueError("Canonical path must stay under an approved canonical write root.")
         parts = Path(normalized).parts
         if any(part in {"", ".", ".."} for part in parts):
-            raise ValueError("Canonical path must not contain empty, current-directory, or parent-directory segments.")
+            raise ValueError(
+                "Canonical path must not contain empty, current-directory, or parent-directory segments."
+            )
         return normalized
 
     def resolve_canonical_target_path(
@@ -115,7 +123,9 @@ class PolicyAuthority:
     ) -> Path:
         normalized = self.validate_canonical_repo_relative_path(canonical_path)
         candidate = (Path(source_root) / normalized).absolute()
-        self._assert_within_roots(candidate, self.canonical_write_roots(source_root=Path(source_root)))
+        self._assert_within_roots(
+            candidate, self.canonical_write_roots(source_root=Path(source_root))
+        )
         self._assert_no_symlink_traversal(candidate, require_leaf=False)
         return candidate
 
@@ -127,13 +137,17 @@ class PolicyAuthority:
     ) -> Path:
         candidate = Path(candidate_path).expanduser()
         if not candidate.is_absolute():
-            raise ValueError("Local file path ingestion requires an absolute path on the machine running Papyrus.")
+            raise ValueError(
+                "Local file path ingestion requires an absolute path on the machine running Papyrus."
+            )
         if not candidate.exists():
             raise ValueError("Local source path not found.")
         if not candidate.is_file():
             raise ValueError("Local source path must point to a file.")
         resolved = candidate.resolve(strict=True)
-        self._assert_within_roots(resolved, self.local_ingest_read_roots(source_root=Path(source_root)))
+        self._assert_within_roots(
+            resolved, self.local_ingest_read_roots(source_root=Path(source_root))
+        )
         self._assert_no_symlink_traversal(resolved, require_leaf=True)
         return resolved
 
@@ -144,7 +158,9 @@ class PolicyAuthority:
     ) -> PolicyDecision:
         decision = self.evaluate_object_lifecycle_transition(current_state, target_state)
         if not decision.allowed:
-            raise ValueError(illegal_transition_message("object_lifecycle_state", current_state, target_state))
+            raise ValueError(
+                illegal_transition_message("object_lifecycle_state", current_state, target_state)
+            )
         return decision
 
     def evaluate_object_lifecycle_transition(
@@ -163,7 +179,9 @@ class PolicyAuthority:
     ) -> PolicyDecision:
         decision = self.evaluate_revision_review_transition(current_state, target_state)
         if not decision.allowed:
-            raise ValueError(illegal_transition_message("revision_review_state", current_state, target_state))
+            raise ValueError(
+                illegal_transition_message("revision_review_state", current_state, target_state)
+            )
         return decision
 
     def evaluate_revision_review_transition(
@@ -182,7 +200,9 @@ class PolicyAuthority:
     ) -> PolicyDecision:
         decision = self.evaluate_draft_progress_transition(current_state, target_state)
         if not decision.allowed:
-            raise ValueError(illegal_transition_message("draft_progress_state", current_state, target_state))
+            raise ValueError(
+                illegal_transition_message("draft_progress_state", current_state, target_state)
+            )
         return decision
 
     def evaluate_draft_progress_transition(
@@ -201,7 +221,9 @@ class PolicyAuthority:
     ) -> PolicyDecision:
         decision = self.evaluate_ingestion_transition(current_state, target_state)
         if not decision.allowed:
-            raise ValueError(illegal_transition_message("ingestion_state", current_state, target_state))
+            raise ValueError(
+                illegal_transition_message("ingestion_state", current_state, target_state)
+            )
         return decision
 
     def evaluate_ingestion_transition(
@@ -220,7 +242,9 @@ class PolicyAuthority:
     ) -> PolicyDecision:
         decision = self.evaluate_source_sync_transition(current_state, target_state)
         if not decision.allowed:
-            raise ValueError(illegal_transition_message("source_sync_state", current_state, target_state))
+            raise ValueError(
+                illegal_transition_message("source_sync_state", current_state, target_state)
+            )
         return decision
 
     def evaluate_source_sync_transition(
@@ -320,9 +344,7 @@ class PolicyAuthority:
         ):
             required_acknowledgements = ("previous_revision_will_stop_being_current",)
             invalidated_assumptions = ("current_revision_remains_primary",)
-            operator_message = (
-                "Revision review state will move to superseded. Operators must stop assuming the current revision remains the primary governed version."
-            )
+            operator_message = "Revision review state will move to superseded. Operators must stop assuming the current revision remains the primary governed version."
         return PolicyDecision(
             allowed=True,
             required_acknowledgements=required_acknowledgements,

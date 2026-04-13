@@ -4,8 +4,11 @@ import logging
 from pathlib import Path
 
 from papyrus.infrastructure.observability import get_logger, log_event
-from papyrus.infrastructure.transactional_mutation import MutationRecoveryError, TransactionalMutation
 from papyrus.infrastructure.paths import ROOT
+from papyrus.infrastructure.transactional_mutation import (
+    MutationRecoveryError,
+    TransactionalMutation,
+)
 
 LOGGER = get_logger(__name__)
 

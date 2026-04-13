@@ -77,17 +77,26 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
             api_payload = json.loads(call_wsgi(api_app(database_path), "/queue")[2])
-            cli_result = run_script("scripts/operator_view.py", "queue", "--db", str(database_path), "--format", "json")
+            cli_result = run_script(
+                "scripts/operator_view.py", "queue", "--db", str(database_path), "--format", "json"
+            )
             self.assertEqual(cli_result.returncode, 0, msg=cli_result.stderr)
             cli_payload = json.loads(cli_result.stdout)
-            self.assertEqual(api_payload["queue"][0]["object_id"], cli_payload["queue"][0]["object_id"])
-            self.assertEqual(api_payload["queue"][0]["posture"]["trust_summary"], cli_payload["queue"][0]["posture"]["trust_summary"])
+            self.assertEqual(
+                api_payload["queue"][0]["object_id"], cli_payload["queue"][0]["object_id"]
+            )
+            self.assertEqual(
+                api_payload["queue"][0]["posture"]["trust_summary"],
+                cli_payload["queue"][0]["posture"]["trust_summary"],
+            )
 
     def test_demo_runtime_builds_meaningful_operational_tension(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "demo.db"
             source_root = Path(temp_dir) / "repo"
-            result = build_operator_demo_runtime(database_path=database_path, source_root=source_root)
+            result = build_operator_demo_runtime(
+                database_path=database_path, source_root=source_root
+            )
             self.assertEqual(len(result["demo_objects"]), 7)
             connection = sqlite3.connect(database_path)
             connection.row_factory = sqlite3.Row
@@ -138,14 +147,22 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
             build_operator_demo_runtime(database_path=database_path, source_root=source_root)
 
             results = search_knowledge_objects("identity", limit=200, database_path=database_path)
-            seeded_identity_results = [item for item in results if item["object_id"].startswith("kb-identity")]
+            seeded_identity_results = [
+                item for item in results if item["object_id"].startswith("kb-identity")
+            ]
 
             self.assertGreaterEqual(len(seeded_identity_results), 3)
             self.assertEqual(seeded_identity_results[0]["object_id"], "kb-identity-service-record")
             self.assertEqual(seeded_identity_results[0]["revision_review_state"], "approved")
             self.assertEqual(seeded_identity_results[0]["trust_state"], "weak_evidence")
-            self.assertIn("kb-identity-token-refresh-failure", [item["object_id"] for item in seeded_identity_results[1:]])
-            self.assertIn("kb-identity-fallback-sign-in", [item["object_id"] for item in seeded_identity_results[1:]])
+            self.assertIn(
+                "kb-identity-token-refresh-failure",
+                [item["object_id"] for item in seeded_identity_results[1:]],
+            )
+            self.assertIn(
+                "kb-identity-fallback-sign-in",
+                [item["object_id"] for item in seeded_identity_results[1:]],
+            )
 
     def test_governance_api_endpoints_require_actor_and_record_outcomes(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -227,7 +244,9 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
             payload = json.loads(body)
             self.assertEqual(payload["run_id"], "api-validation-run")
 
-    def test_event_history_cli_matches_api_and_operator_run_rejects_noncanonical_source_root(self) -> None:
+    def test_event_history_cli_matches_api_and_operator_run_rejects_noncanonical_source_root(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
@@ -248,7 +267,9 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(status, "201 Created")
             created_payload = json.loads(body)
 
-            status, _, body = call_wsgi(application, "/events?entity_type=service&entity_id=Remote%20Access")
+            status, _, body = call_wsgi(
+                application, "/events?entity_type=service&entity_id=Remote%20Access"
+            )
             self.assertEqual(status, "200 OK")
             api_payload = json.loads(body)
 
@@ -266,7 +287,9 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
             )
             self.assertEqual(cli_result.returncode, 0, msg=cli_result.stderr)
             cli_payload = json.loads(cli_result.stdout)
-            self.assertEqual(api_payload["events"][0]["event_id"], cli_payload["events"][0]["event_id"])
+            self.assertEqual(
+                api_payload["events"][0]["event_id"], cli_payload["events"][0]["event_id"]
+            )
             self.assertEqual(api_payload["events"][0]["event_id"], created_payload["event_id"])
 
             invalid_root = Path(temp_dir) / "other-root"
@@ -324,17 +347,23 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
             cli_payload = json.loads(cli_opt_in_result.stdout)
             self.assertIn("queue", cli_payload)
 
-    def test_programmatic_surfaces_reject_noncanonical_source_root_without_explicit_opt_in(self) -> None:
+    def test_programmatic_surfaces_reject_noncanonical_source_root_without_explicit_opt_in(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
             sandbox_root = Path(temp_dir) / "sandbox-root"
             sandbox_root.mkdir()
 
-            with self.assertRaisesRegex(ValueError, "operator mode requires the canonical source root"):
+            with self.assertRaisesRegex(
+                ValueError, "operator mode requires the canonical source root"
+            ):
                 api_app(database_path, source_root=sandbox_root)
 
-            with self.assertRaisesRegex(ValueError, "operator mode requires the canonical source root"):
+            with self.assertRaisesRegex(
+                ValueError, "operator mode requires the canonical source root"
+            ):
                 web_app(database_path, source_root=sandbox_root)
 
             api_application = api_app(

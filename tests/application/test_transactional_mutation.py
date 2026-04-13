@@ -49,7 +49,11 @@ class TransactionalMutationTests(unittest.TestCase):
             )
             self.assertEqual(recovered, ["mutation-recover-test"])
             self.assertEqual(target_path.read_text(encoding="utf-8"), "before\n")
-            journal_path = authority.mutation_root(source_root=source_root) / "mutation-recover-test" / "journal.json"
+            journal_path = (
+                authority.mutation_root(source_root=source_root)
+                / "mutation-recover-test"
+                / "journal.json"
+            )
             journal = json.loads(journal_path.read_text(encoding="utf-8"))
             self.assertEqual(journal["status"], "rolled_back")
 
@@ -80,7 +84,11 @@ class TransactionalMutationTests(unittest.TestCase):
             )
             self.assertEqual(recovered, ["mutation-prepared-test"])
             self.assertEqual(target_path.read_text(encoding="utf-8"), "before\n")
-            journal_path = authority.mutation_root(source_root=source_root) / "mutation-prepared-test" / "journal.json"
+            journal_path = (
+                authority.mutation_root(source_root=source_root)
+                / "mutation-prepared-test"
+                / "journal.json"
+            )
             journal = json.loads(journal_path.read_text(encoding="utf-8"))
             self.assertEqual(journal["status"], "rolled_back")
             self.assertEqual(journal["applied_change_count"], 0)
@@ -157,7 +165,13 @@ class TransactionalMutationTests(unittest.TestCase):
             )
             self.assertEqual(recovered, ["mutation-stale-lock"])
             self.assertEqual(target_path.read_text(encoding="utf-8"), "before\n")
-            self.assertFalse((authority.mutation_root(source_root=source_root) / "locks" / "kb-stale-lock.lock").exists())
+            self.assertFalse(
+                (
+                    authority.mutation_root(source_root=source_root)
+                    / "locks"
+                    / "kb-stale-lock.lock"
+                ).exists()
+            )
 
     def test_recovery_fails_safely_when_live_lock_exists(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -199,7 +213,7 @@ class TransactionalMutationTests(unittest.TestCase):
                     {
                         "mutation_id": "mutation-orphan",
                         "object_id": "kb-orphan",
-                        "created_at": (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=1)).isoformat(),
+                        "created_at": (dt.datetime.now(dt.UTC) - dt.timedelta(hours=1)).isoformat(),
                     },
                     sort_keys=True,
                     ensure_ascii=True,

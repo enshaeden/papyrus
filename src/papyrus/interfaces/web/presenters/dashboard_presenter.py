@@ -3,8 +3,12 @@ from __future__ import annotations
 from typing import Any
 
 from papyrus.interfaces.web.presenters.health_board_presenter import render_health_board
-from papyrus.interfaces.web.presenters.health_cleanup_board_presenter import render_health_cleanup_board
-from papyrus.interfaces.web.presenters.health_validation_board_presenter import render_health_validation_board
+from papyrus.interfaces.web.presenters.health_cleanup_board_presenter import (
+    render_health_cleanup_board,
+)
+from papyrus.interfaces.web.presenters.health_validation_board_presenter import (
+    render_health_validation_board,
+)
 from papyrus.interfaces.web.rendering import TemplateRenderer
 
 

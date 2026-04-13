@@ -29,7 +29,9 @@ class ImpactPropagationTests(unittest.TestCase):
                 actor="tests",
             )
 
-            impact = impact_view_for_object("kb-troubleshooting-vpn-connectivity", database_path=database_path)
+            impact = impact_view_for_object(
+                "kb-troubleshooting-vpn-connectivity", database_path=database_path
+            )
 
             self.assertEqual(impact["entity"]["object_id"], "kb-troubleshooting-vpn-connectivity")
             self.assertIn("what_changed", impact["current_impact"])

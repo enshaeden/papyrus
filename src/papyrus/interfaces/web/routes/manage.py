@@ -3,13 +3,13 @@ from __future__ import annotations
 from urllib.parse import quote_plus
 
 from papyrus.application.commands import (
-    archive_object_command,
     approve_revision_command,
+    archive_object_command,
     assign_reviewer_command,
     mark_object_suspect_due_to_change_command,
-    request_evidence_revalidation_command,
     record_validation_run_command,
     reject_revision_command,
+    request_evidence_revalidation_command,
     supersede_object_command,
 )
 from papyrus.application.queries import (
@@ -22,15 +22,16 @@ from papyrus.application.queries import (
     validation_run_history,
 )
 from papyrus.application.writeback_flow import preview_revision_writeback
-from papyrus.interfaces.web.forms.revision_forms import build_submission_findings
+from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.forms.review_forms import (
     validate_archive_form,
     validate_assignment_form,
     validate_decision_form,
-    validate_suspect_form,
     validate_supersede_form,
+    validate_suspect_form,
     validate_validation_run_form,
 )
+from papyrus.interfaces.web.forms.revision_forms import build_submission_findings
 from papyrus.interfaces.web.http import Request, html_response, redirect_response
 from papyrus.interfaces.web.presenters.governed_presenter import action_descriptor
 from papyrus.interfaces.web.presenters.manage_presenter import (
@@ -38,36 +39,31 @@ from papyrus.interfaces.web.presenters.manage_presenter import (
     present_evidence_revalidation_page,
     present_manage_queue_page,
     present_object_archive_page,
-    present_object_suspect_page,
     present_object_supersede_page,
+    present_object_suspect_page,
     present_review_assignment_page,
     present_review_decision_page,
     present_validation_run_new_page,
     present_validation_runs_page,
     present_warning_flash,
 )
-from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.route_utils import flash_html_for_request
 from papyrus.interfaces.web.urls import (
-    activity_url,
-    archive_url,
-    evidence_revalidation_url,
     object_url,
-    review_assignment_url,
     review_decision_url,
-    review_queue_url,
-    supersede_url,
-    suspect_url,
     validation_runs_url,
 )
-from papyrus.interfaces.web.view_helpers import quoted_path
 
 
-def _render_page(runtime, request: Request, *, page: dict[str, object], flash_html: str | None = None):
+def _render_page(
+    runtime, request: Request, *, page: dict[str, object], flash_html: str | None = None
+):
     experience = require_experience(request, "operator", "admin")
     return html_response(
         runtime.page_renderer.render_page(
-            flash_html=flash_html if flash_html is not None else flash_html_for_request(runtime, request),
+            flash_html=flash_html
+            if flash_html is not None
+            else flash_html_for_request(runtime, request),
             role_id=experience.role,
             current_path=request.path,
             **page,
@@ -91,7 +87,9 @@ def register(router, runtime) -> None:
     def object_supersede_page(request: Request):
         experience = require_experience(request, "operator", "admin")
         object_id = request.route_value("object_id")
-        detail = knowledge_object_detail(object_id, database_path=runtime.database_path, visibility_role=experience.role)
+        detail = knowledge_object_detail(
+            object_id, database_path=runtime.database_path, visibility_role=experience.role
+        )
         values = {
             "replacement_object_id": request.form_value("replacement_object_id"),
             "notes": request.form_value("notes"),
@@ -109,7 +107,8 @@ def register(router, runtime) -> None:
                     notes=str(result.cleaned_data["notes"]),
                 )
                 return redirect_response(
-                    object_url(experience.role, object_id) + f"?notice={quote_plus('Object superseded and audit trail recorded')}"
+                    object_url(experience.role, object_id)
+                    + f"?notice={quote_plus('Object superseded and audit trail recorded')}"
                 )
             errors = result.errors
         page = present_object_supersede_page(
@@ -124,7 +123,9 @@ def register(router, runtime) -> None:
     def object_suspect_page(request: Request):
         experience = require_experience(request, "operator", "admin")
         object_id = request.route_value("object_id")
-        detail = knowledge_object_detail(object_id, database_path=runtime.database_path, visibility_role=experience.role)
+        detail = knowledge_object_detail(
+            object_id, database_path=runtime.database_path, visibility_role=experience.role
+        )
         values = {
             "reason": request.form_value("reason"),
             "changed_entity_type": request.form_value("changed_entity_type"),
@@ -143,7 +144,8 @@ def register(router, runtime) -> None:
                     changed_entity_id=result.cleaned_data["changed_entity_id"],
                 )
                 return redirect_response(
-                    object_url(experience.role, object_id) + f"?notice={quote_plus('Object marked suspect with explicit rationale')}"
+                    object_url(experience.role, object_id)
+                    + f"?notice={quote_plus('Object marked suspect with explicit rationale')}"
                 )
             errors = result.errors
         page = present_object_suspect_page(
@@ -158,7 +160,9 @@ def register(router, runtime) -> None:
     def object_archive_page(request: Request):
         experience = require_experience(request, "operator", "admin")
         object_id = request.route_value("object_id")
-        detail = knowledge_object_detail(object_id, database_path=runtime.database_path, visibility_role=experience.role)
+        detail = knowledge_object_detail(
+            object_id, database_path=runtime.database_path, visibility_role=experience.role
+        )
         values = {
             "retirement_reason": request.form_value("retirement_reason"),
             "notes": request.form_value("notes"),
@@ -167,7 +171,9 @@ def register(router, runtime) -> None:
         archive_action = action_descriptor(detail.get("ui_projection"), "archive_object") or {}
         required_acknowledgements = [
             str(item)
-            for item in ((archive_action.get("policy") or {}).get("required_acknowledgements") or [])
+            for item in (
+                (archive_action.get("policy") or {}).get("required_acknowledgements") or []
+            )
         ]
         errors: dict[str, list[str]] = {}
         if request.method == "POST":
@@ -187,7 +193,8 @@ def register(router, runtime) -> None:
                     acknowledgements=result.cleaned_data["acknowledgements"],
                 )
                 return redirect_response(
-                    object_url(experience.role, object_id) + f"?notice={quote_plus('Object archived and canonical path moved under archive/knowledge/')}"
+                    object_url(experience.role, object_id)
+                    + f"?notice={quote_plus('Object archived and canonical path moved under archive/knowledge/')}"
                 )
             errors = result.errors
         page = present_object_archive_page(
@@ -203,7 +210,9 @@ def register(router, runtime) -> None:
     def evidence_revalidation_page(request: Request):
         experience = require_experience(request, "operator", "admin")
         object_id = request.route_value("object_id")
-        detail = knowledge_object_detail(object_id, database_path=runtime.database_path, visibility_role=experience.role)
+        detail = knowledge_object_detail(
+            object_id, database_path=runtime.database_path, visibility_role=experience.role
+        )
         values = {"notes": request.form_value("notes")}
         if request.method == "POST":
             request_evidence_revalidation_command(
@@ -213,7 +222,8 @@ def register(router, runtime) -> None:
                 notes=values["notes"] or None,
             )
             return redirect_response(
-                object_url(experience.role, object_id) + f"?notice={quote_plus('Evidence revalidation requested')}"
+                object_url(experience.role, object_id)
+                + f"?notice={quote_plus('Evidence revalidation requested')}"
             )
         page = present_evidence_revalidation_page(
             runtime.template_renderer,
@@ -248,7 +258,8 @@ def register(router, runtime) -> None:
                     notes=result.cleaned_data["notes"],
                 )
                 return redirect_response(
-                    review_decision_url(experience.role, object_id, revision_id) + f"?notice={quote_plus('Reviewer assigned')}"
+                    review_decision_url(experience.role, object_id, revision_id)
+                    + f"?notice={quote_plus('Reviewer assigned')}"
                 )
             errors = result.errors
         page = present_review_assignment_page(
@@ -281,7 +292,9 @@ def register(router, runtime) -> None:
             "notes": request.form_value("notes"),
         }
         errors: dict[str, list[str]] = {}
-        page_flash_html = flash_html_for_request(runtime, request) if request.method != "POST" else ""
+        page_flash_html = (
+            flash_html_for_request(runtime, request) if request.method != "POST" else ""
+        )
         if request.method == "POST":
             action = request.form_value("decision")
             result = validate_decision_form(values, require_notes=action == "reject")
@@ -299,7 +312,8 @@ def register(router, runtime) -> None:
                             notes=result.cleaned_data["notes"],
                         )
                         return redirect_response(
-                            object_url(experience.role, object_id) + f"?notice={quote_plus('Revision approved')}"
+                            object_url(experience.role, object_id)
+                            + f"?notice={quote_plus('Revision approved')}"
                         )
                     reject_revision_command(
                         database_path=runtime.database_path,
@@ -311,7 +325,8 @@ def register(router, runtime) -> None:
                         notes=str(result.cleaned_data["notes"]),
                     )
                     return redirect_response(
-                        review_decision_url(experience.role, object_id, revision_id) + f"?notice={quote_plus('Revision rejected')}"
+                        review_decision_url(experience.role, object_id, revision_id)
+                        + f"?notice={quote_plus('Revision rejected')}"
                     )
                 except ValueError as exc:
                     errors.setdefault("notes", []).append(str(exc))
@@ -343,7 +358,9 @@ def register(router, runtime) -> None:
             database_path=runtime.database_path,
         )
         if selected_group:
-            structured_events = [event for event in structured_events if event["group"] == selected_group]
+            structured_events = [
+                event for event in structured_events if event["group"] == selected_group
+            ]
         validation_runs = validation_run_history(database_path=runtime.database_path)
         page = present_audit_page(
             runtime.template_renderer,
@@ -404,18 +421,40 @@ def register(router, runtime) -> None:
 
     router.add(["GET"], "/operator/review", manage_queue_page)
     router.add(["GET"], "/admin/review", manage_queue_page)
-    router.add(["GET", "POST"], "/operator/review/object/{object_id}/supersede", object_supersede_page)
+    router.add(
+        ["GET", "POST"], "/operator/review/object/{object_id}/supersede", object_supersede_page
+    )
     router.add(["GET", "POST"], "/admin/review/object/{object_id}/supersede", object_supersede_page)
     router.add(["GET", "POST"], "/operator/review/object/{object_id}/archive", object_archive_page)
     router.add(["GET", "POST"], "/admin/review/object/{object_id}/archive", object_archive_page)
     router.add(["GET", "POST"], "/operator/review/object/{object_id}/suspect", object_suspect_page)
     router.add(["GET", "POST"], "/admin/review/object/{object_id}/suspect", object_suspect_page)
-    router.add(["GET", "POST"], "/operator/review/object/{object_id}/evidence/revalidate", evidence_revalidation_page)
-    router.add(["GET", "POST"], "/admin/review/object/{object_id}/evidence/revalidate", evidence_revalidation_page)
-    router.add(["GET", "POST"], "/operator/review/object/{object_id}/{revision_id}/assign", review_assignment_page)
-    router.add(["GET", "POST"], "/admin/review/object/{object_id}/{revision_id}/assign", review_assignment_page)
-    router.add(["GET", "POST"], "/operator/review/object/{object_id}/{revision_id}", review_decision_page)
-    router.add(["GET", "POST"], "/admin/review/object/{object_id}/{revision_id}", review_decision_page)
+    router.add(
+        ["GET", "POST"],
+        "/operator/review/object/{object_id}/evidence/revalidate",
+        evidence_revalidation_page,
+    )
+    router.add(
+        ["GET", "POST"],
+        "/admin/review/object/{object_id}/evidence/revalidate",
+        evidence_revalidation_page,
+    )
+    router.add(
+        ["GET", "POST"],
+        "/operator/review/object/{object_id}/{revision_id}/assign",
+        review_assignment_page,
+    )
+    router.add(
+        ["GET", "POST"],
+        "/admin/review/object/{object_id}/{revision_id}/assign",
+        review_assignment_page,
+    )
+    router.add(
+        ["GET", "POST"], "/operator/review/object/{object_id}/{revision_id}", review_decision_page
+    )
+    router.add(
+        ["GET", "POST"], "/admin/review/object/{object_id}/{revision_id}", review_decision_page
+    )
     router.add(["GET"], "/operator/review/activity", audit_page)
     router.add(["GET"], "/admin/audit", audit_page)
     router.add(["GET"], "/operator/review/validation-runs", validation_runs_page)

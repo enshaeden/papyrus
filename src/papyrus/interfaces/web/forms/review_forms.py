@@ -15,7 +15,9 @@ class ReviewActionResult:
         return not self.errors
 
 
-def _result(values: dict[str, str], errors: dict[str, list[str]], cleaned_data: dict[str, object]) -> ReviewActionResult:
+def _result(
+    values: dict[str, str], errors: dict[str, list[str]], cleaned_data: dict[str, object]
+) -> ReviewActionResult:
     return ReviewActionResult(values=values, errors=errors, cleaned_data=cleaned_data)
 
 
@@ -84,7 +86,9 @@ def validate_archive_form(
     errors: dict[str, list[str]] = {}
     retirement_reason = values.get("retirement_reason", "").strip()
     notes = values.get("notes", "").strip()
-    acknowledgements = [str(item).strip() for item in selected_acknowledgements if str(item).strip()]
+    acknowledgements = [
+        str(item).strip() for item in selected_acknowledgements if str(item).strip()
+    ]
     required = [str(item).strip() for item in required_acknowledgements if str(item).strip()]
     if not retirement_reason:
         errors.setdefault("retirement_reason", []).append("A retirement rationale is required.")

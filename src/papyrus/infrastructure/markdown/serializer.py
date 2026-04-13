@@ -19,7 +19,9 @@ def normalize_for_similarity(value: str) -> str:
 
 
 def similarity_ratio(left: str, right: str) -> float:
-    return difflib.SequenceMatcher(None, normalize_for_similarity(left), normalize_for_similarity(right)).ratio()
+    return difflib.SequenceMatcher(
+        None, normalize_for_similarity(left), normalize_for_similarity(right)
+    ).ratio()
 
 
 def slugify(value: str) -> str:

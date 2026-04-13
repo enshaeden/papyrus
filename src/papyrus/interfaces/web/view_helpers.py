@@ -3,9 +3,8 @@ from __future__ import annotations
 import datetime as dt
 import html
 import re
-from typing import Iterable
+from collections.abc import Iterable
 from urllib.parse import quote
-
 
 OBJECT_ID_PATTERN = re.compile(r"^kb-[a-z0-9]+(?:-[a-z0-9]+)*$")
 DISPLAY_PLACEHOLDER_PATTERN = re.compile(r"<([A-Z0-9]+(?:_[A-Z0-9]+)*)>")
@@ -79,12 +78,14 @@ def _html_attrs(attrs: dict[str, object] | None = None) -> str:
     return (" " + " ".join(rendered)) if rendered else ""
 
 
-def link(label: str, href: str, *, css_class: str = "", attrs: dict[str, object] | None = None) -> str:
+def link(
+    label: str, href: str, *, css_class: str = "", attrs: dict[str, object] | None = None
+) -> str:
     rendered_attrs = dict(attrs or {})
     if css_class:
         rendered_attrs["class"] = css_class
     rendered_attrs["href"] = href
-    return f'<a{_html_attrs(rendered_attrs)}>{escape(label)}</a>'
+    return f"<a{_html_attrs(rendered_attrs)}>{escape(label)}</a>"
 
 
 def button_form(
@@ -112,9 +113,9 @@ def button_form(
         for name, value in (hidden_inputs or {}).items()
     )
     return (
-        f'<form{_html_attrs(rendered_form_attrs)}>'
+        f"<form{_html_attrs(rendered_form_attrs)}>"
         f"{inputs_html}"
-        f'<button{_html_attrs(rendered_button_attrs)}>{escape(label)}</button>'
+        f"<button{_html_attrs(rendered_button_attrs)}>{escape(label)}</button>"
         "</form>"
     )
 
@@ -126,7 +127,11 @@ def join_html(items: Iterable[str], separator: str = "") -> str:
 def render_list(items: list[str], *, css_class: str = "stack-list") -> str:
     if not items:
         return ""
-    return f'<ul class="{escape(css_class)}">' + "".join(f"<li>{item}</li>" for item in items) + "</ul>"
+    return (
+        f'<ul class="{escape(css_class)}">'
+        + "".join(f"<li>{item}</li>" for item in items)
+        + "</ul>"
+    )
 
 
 def render_table(

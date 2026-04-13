@@ -58,7 +58,9 @@ class ReviewPresenterTests(SemanticHookAssertions, unittest.TestCase):
             "recently_changed": [],
             "superseded_items": [],
         }
-        page = present_manage_queue_page(TEMPLATE_RENDERER, role="operator", queue=queue, selected_object_id="kb-review")
+        page = present_manage_queue_page(
+            TEMPLATE_RENDERER, role="operator", queue=queue, selected_object_id="kb-review"
+        )
 
         tables_html = page["page_context"]["tables_html"]
         self.assertNotIn("overview_html", page["page_context"])

@@ -28,6 +28,7 @@ from .support import (
     require_runtime_connection,
 )
 
+
 def manage_queue(
     *,
     limit: int = 200,
@@ -117,7 +118,7 @@ def manage_queue(
 
         items: list[dict[str, Any]] = []
         for row in rows:
-            item = {
+            item: dict[str, Any] = {
                 "object_id": str(row["object_id"]),
                 "object_type": str(row["object_type"]),
                 "title": str(row["title"]),
@@ -135,7 +136,9 @@ def manage_queue(
                 "freshness_rank": int(row["freshness_rank"]),
                 "citation_health_rank": int(row["citation_health_rank"]),
                 "ownership_rank": int(row["ownership_rank"]),
-                "current_revision_id": str(row["current_revision_id"]) if row["current_revision_id"] is not None else None,
+                "current_revision_id": str(row["current_revision_id"])
+                if row["current_revision_id"] is not None
+                else None,
                 "revision_id": str(row["revision_id"]) or None,
                 "revision_number": int(row["revision_number"] or 0),
                 "change_summary": str(row["change_summary"]) if row["change_summary"] else None,
@@ -152,7 +155,9 @@ def manage_queue(
             if item["freshness_rank"] > 0:
                 item["reasons"].append("review_due")
             if item["citation_health_rank"] > 0:
-                item["reasons"].append(f"citation:{citation_health_label(item['citation_health_rank'])}")
+                item["reasons"].append(
+                    f"citation:{citation_health_label(item['citation_health_rank'])}"
+                )
             if item["ownership_rank"] > 0 or not item["owner"].strip():
                 item["reasons"].append("ownership_unclear")
             if item["trust_state"] != "trusted":
@@ -197,15 +202,24 @@ def manage_queue(
         needs_decision = [item for item in review_required if item["assignment"] is not None]
         stale_items = [item for item in items if item["freshness_rank"] > 0]
         weak_evidence_items = [item for item in items if item["citation_health_rank"] > 0]
-        ownership_items = [item for item in items if item["ownership_rank"] > 0 or not item["owner"].strip()]
+        ownership_items = [
+            item for item in items if item["ownership_rank"] > 0 or not item["owner"].strip()
+        ]
         draft_items = [
             item
             for item in items
-            if item["current_revision_id"] is None or item["revision_review_state"] in {"draft", "rejected"}
+            if item["current_revision_id"] is None
+            or item["revision_review_state"] in {"draft", "rejected"}
         ]
-        suspect_items = [item for item in items if item["trust_state"] != "trusted" or item["revision_review_state"] != "approved"]
+        suspect_items = [
+            item
+            for item in items
+            if item["trust_state"] != "trusted" or item["revision_review_state"] != "approved"
+        ]
         needs_revalidation = unique_by_object_id(
-            stale_items + weak_evidence_items + [item for item in items if item["trust_state"] in {"suspect", "stale"}]
+            stale_items
+            + weak_evidence_items
+            + [item for item in items if item["trust_state"] in {"suspect", "stale"}]
         )
         recently_changed = sorted(
             [item for item in items if item["imported_at"]],
@@ -218,8 +232,12 @@ def manage_queue(
             if item["object_lifecycle_state"] == "deprecated"
             or item["revision_review_state"] == "superseded"
         ]
-        needs_attention = unique_by_object_id(review_required + needs_revalidation + ownership_items)
-        cleanup_outputs = collect_content_health_sections(cleanup_sections, database_path=database_path)
+        needs_attention = unique_by_object_id(
+            review_required + needs_revalidation + ownership_items
+        )
+        cleanup_outputs = collect_content_health_sections(
+            cleanup_sections, database_path=database_path
+        )
 
         return {
             "items": items,
@@ -235,10 +253,13 @@ def manage_queue(
             "recently_changed": recently_changed,
             "superseded_items": superseded_items,
             "needs_attention": needs_attention,
-            "cleanup_counts": {section: len(cleanup_outputs.get(section, [])) for section in cleanup_sections},
+            "cleanup_counts": {
+                section: len(cleanup_outputs.get(section, [])) for section in cleanup_sections
+            },
         }
     finally:
         connection.close()
+
 
 def review_detail(
     object_id: str,
@@ -250,9 +271,13 @@ def review_detail(
     current_authority = _policy_authority(authority)
     connection = require_runtime_connection(database_path)
     try:
-        detail = knowledge_object_detail(object_id, database_path=database_path, authority=current_authority)
+        detail = knowledge_object_detail(
+            object_id, database_path=database_path, authority=current_authority
+        )
         history = revision_history(object_id, database_path=database_path)
-        revision = next((item for item in history["revisions"] if item["revision_id"] == revision_id), None)
+        revision = next(
+            (item for item in history["revisions"] if item["revision_id"] == revision_id), None
+        )
         if revision is None:
             raise KnowledgeObjectNotFoundError(f"revision not found for {object_id}: {revision_id}")
         revision_row = connection.execute(
@@ -329,7 +354,9 @@ def review_detail(
                 **revision,
                 "body_markdown": str(revision_row["body_markdown"]),
                 "metadata": _json_dict(revision_row["normalized_payload_json"]),
-                "blueprint_id": str(revision_row["blueprint_id"] or detail["object"]["object_type"]),
+                "blueprint_id": str(
+                    revision_row["blueprint_id"] or detail["object"]["object_type"]
+                ),
                 "revision_review_state": _revision_review_value(revision_row),
                 "draft_progress_state": _draft_progress_value(revision_row),
                 "section_content": _json_dict(revision_row["section_content_json"]),
@@ -342,6 +369,7 @@ def review_detail(
         }
     finally:
         connection.close()
+
 
 def audit_view(
     *,
@@ -386,6 +414,7 @@ def audit_view(
         ]
     finally:
         connection.close()
+
 
 def validation_run_history(
     *,

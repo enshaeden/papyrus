@@ -1,0 +1,4 @@
+-r requirements.txt
+ruff>=0.11,<0.12
+mypy>=1.15,<2.0
+types-PyYAML>=6.0,<7.0

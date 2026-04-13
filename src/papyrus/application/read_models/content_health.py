@@ -14,7 +14,10 @@ from papyrus.application.impact_flow import (
 )
 from papyrus.application.validation_flow import _uses_legacy_blueprint_fallback, orphaned_files
 from papyrus.domain.policies import ownership_rank, primary_object_type
-from papyrus.infrastructure.markdown.parser import LEGACY_FIELD_NOTE_PREFIX, collect_broken_markdown_links
+from papyrus.infrastructure.markdown.parser import (
+    LEGACY_FIELD_NOTE_PREFIX,
+    collect_broken_markdown_links,
+)
 from papyrus.infrastructure.paths import DB_PATH
 from papyrus.infrastructure.repositories.knowledge_repo import (
     collect_decision_paths,
@@ -111,6 +114,7 @@ def _migration_gap_reasons(document) -> list[str]:
         reasons.append("missing-systems")
     return reasons
 
+
 def stale_projection(
     *,
     as_of,
@@ -128,8 +132,16 @@ def stale_projection(
         from papyrus.jobs.stale_scan import stale_documents
 
         return [
-            (days_overdue, document.metadata["id"], document.metadata["title"], document.relative_path, due_date)
-            for days_overdue, document, due_date in stale_documents(documents, taxonomies, as_of, statuses)
+            (
+                days_overdue,
+                document.metadata["id"],
+                document.metadata["title"],
+                document.relative_path,
+                due_date,
+            )
+            for days_overdue, document, due_date in stale_documents(
+                documents, taxonomies, as_of, statuses
+            )
         ]
 
     try:
@@ -140,6 +152,7 @@ def stale_projection(
     finally:
         connection.close()
 
+
 def collect_content_health_sections(
     selected: list[str] | None = None,
     database_path: str | Path = DB_PATH,
@@ -149,7 +162,9 @@ def collect_content_health_sections(
     selected_sections = selected or list(CONTENT_HEALTH_SECTIONS)
     outputs: dict[str, list[str]] = {}
     connection = runtime_connection(database_path)
-    runtime_documents = load_current_runtime_documents(connection) if connection is not None else source_documents
+    runtime_documents = (
+        load_current_runtime_documents(connection) if connection is not None else source_documents
+    )
 
     try:
         if "duplicates" in selected_sections:

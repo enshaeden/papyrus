@@ -51,7 +51,9 @@ def object_visible_to_role(
     )
 
 
-def filter_queue_items_for_role(items: list[dict[str, object]], role: str | None) -> list[dict[str, object]]:
+def filter_queue_items_for_role(
+    items: list[dict[str, object]], role: str | None
+) -> list[dict[str, object]]:
     normalized_role = normalize_role(role)
     if normalized_role != READER_ROLE:
         return items

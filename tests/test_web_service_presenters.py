@@ -9,7 +9,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.interfaces.web.presenters.service_map_presenter import render_service_map
-from papyrus.interfaces.web.presenters.service_presenter import present_service_catalog, present_service_detail
+from papyrus.interfaces.web.presenters.service_presenter import (
+    present_service_catalog,
+    present_service_detail,
+)
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions
 
@@ -40,7 +43,9 @@ class ServicePresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("Open service path", html)
 
     def test_service_presenters_stay_thin_and_traceable(self) -> None:
-        catalog_page = present_service_catalog(TEMPLATE_RENDERER, services=[SERVICE], role="operator")
+        catalog_page = present_service_catalog(
+            TEMPLATE_RENDERER, services=[SERVICE], role="operator"
+        )
         detail_page = present_service_detail(
             TEMPLATE_RENDERER,
             role="operator",

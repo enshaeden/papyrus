@@ -19,7 +19,9 @@ def render_impact_summary(
         components.badge(label="Recent events", value=recent_events_count, tone="brand"),
     ]
     if related_services_count is not None:
-        badges.append(components.badge(label="Related services", value=related_services_count, tone="context"))
+        badges.append(
+            components.badge(label="Related services", value=related_services_count, tone="context")
+        )
     return (
         f'<section class="impact-summary" data-component="impact-summary" data-surface="{escape(surface)}">'
         '<div class="impact-summary__header">'

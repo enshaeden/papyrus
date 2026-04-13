@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from papyrus.interfaces.web.rendering import TemplateRenderer
-from papyrus.interfaces.web.view_helpers import escape, join_html, render_definition_rows, render_list, render_table
+from papyrus.interfaces.web.view_helpers import (
+    escape,
+    join_html,
+    render_definition_rows,
+    render_list,
+    render_table,
+)
 
 
 def _data_token(value: object, *, fallback: str = "default") -> str:
@@ -42,7 +48,10 @@ class ComponentPresenter:
         empty_label: str,
         css_class: str = "panel-list",
     ) -> str:
-        return render_list(items, css_class=css_class) or f'<p class="empty-state-copy">{escape(empty_label)}</p>'
+        return (
+            render_list(items, css_class=css_class)
+            or f'<p class="empty-state-copy">{escape(empty_label)}</p>'
+        )
 
     def surface_panel(
         self,
@@ -185,9 +194,7 @@ class ComponentPresenter:
             '<div class="decision-cell" data-component="decision-cell">'
             + f'<div class="decision-primary">{title_html}</div>'
             + (
-                '<div class="decision-badges">'
-                + join_html(badge_items, " ")
-                + "</div>"
+                '<div class="decision-badges">' + join_html(badge_items, " ") + "</div>"
                 if badge_items
                 else ""
             )
@@ -231,11 +238,7 @@ class ComponentPresenter:
             f"<h3>{title_html}</h3>"
             + (f'<p class="decision-card-summary">{escape(summary)}</p>' if summary else "")
             + "</div>"
-            + (
-                f'<div class="badge-row">{join_html(badge_items, " ")}</div>'
-                if badge_items
-                else ""
-            )
+            + (f'<div class="badge-row">{join_html(badge_items, " ")}</div>' if badge_items else "")
             + "</div>"
             + (f'<p class="decision-card-detail">{escape(detail)}</p>' if detail else "")
             + (
@@ -250,11 +253,7 @@ class ComponentPresenter:
                 if next_action
                 else ""
             )
-            + (
-                f'<div class="decision-card-actions">{actions_html}</div>'
-                if actions_html
-                else ""
-            )
+            + (f'<div class="decision-card-actions">{actions_html}</div>' if actions_html else "")
             + "</article>"
         )
 

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from papyrus.application.queries import home_dashboard
-from papyrus.interfaces.web.http import Request, html_response
 from papyrus.interfaces.web.experience import require_experience
+from papyrus.interfaces.web.http import Request, html_response, redirect_response
 from papyrus.interfaces.web.presenters.home_presenter import present_home_page
 from papyrus.interfaces.web.route_utils import flash_html_for_request
-from papyrus.interfaces.web.http import redirect_response
 
 
 def register(router, runtime) -> None:

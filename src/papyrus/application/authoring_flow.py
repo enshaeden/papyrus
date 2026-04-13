@@ -16,15 +16,14 @@ from papyrus.application.revision_runtime import RevisionRuntimeServices
 from papyrus.application.runtime_projection import persist_revision_artifacts
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.blueprints import Blueprint, BlueprintSection, SectionType
-from papyrus.domain.lifecycle import (
-    DraftProgressState,
-    ObjectLifecycleState,
-    RevisionReviewState,
-    SourceSyncState,
-)
 from papyrus.domain.evidence import (
     default_citation_validity_status,
     summarize_evidence_posture,
+)
+from papyrus.domain.lifecycle import (
+    DraftProgressState,
+    RevisionReviewState,
+    SourceSyncState,
 )
 from papyrus.domain.value_objects import RevisionReviewStatus, TrustState
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
@@ -43,11 +42,13 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
 )
 from papyrus.infrastructure.search.indexer import fts5_available
 
-
-SECTION_PATTERN = re.compile(r"^## (?P<title>.+?)\n\n(?P<body>.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL)
+SECTION_PATTERN = re.compile(
+    r"^## (?P<title>.+?)\n\n(?P<body>.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL
+)
 
 FIELD_PROVENANCE_KEY = "_field_provenance"
 CONVERSION_GAPS_KEY = "_conversion_gaps"
+
 
 @dataclass(frozen=True)
 class DraftRevisionArtifacts:
@@ -59,7 +60,7 @@ class DraftRevisionArtifacts:
 
 
 def _now_utc() -> dt.datetime:
-    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    return dt.datetime.now(dt.UTC).replace(microsecond=0)
 
 
 def _event_id(prefix: str) -> str:
@@ -67,7 +68,7 @@ def _event_id(prefix: str) -> str:
 
 
 def _content_hash(normalized_payload_json: str, body_markdown: str) -> str:
-    return hashlib.sha256(f"{normalized_payload_json}\n{body_markdown}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{normalized_payload_json}\n{body_markdown}".encode()).hexdigest()
 
 
 def _policy_authority(authority: PolicyAuthority | None) -> PolicyAuthority:
@@ -109,7 +110,9 @@ def _citation_list(value: object) -> list[dict[str, Any]]:
                 "claim_anchor": None,
                 "excerpt": None,
                 "captured_at": entry.get("captured_at"),
-                "validity_status": str(entry.get("validity_status") or default_citation_validity_status(source_ref)),
+                "validity_status": str(
+                    entry.get("validity_status") or default_citation_validity_status(source_ref)
+                ),
                 "integrity_hash": entry.get("integrity_hash"),
                 "evidence_snapshot_path": entry.get("evidence_snapshot_path"),
                 "evidence_expiry_at": entry.get("evidence_expiry_at"),
@@ -133,7 +136,9 @@ def _revision_metadata_value(metadata: dict[str, Any], field_name: str) -> Any:
     return ""
 
 
-def _section_field_values(section_values: dict[str, Any], section: BlueprintSection) -> dict[str, Any]:
+def _section_field_values(
+    section_values: dict[str, Any], section: BlueprintSection
+) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for field in section.fields:
         name = str(field["name"])
@@ -153,9 +158,7 @@ def _field_provenance(section_values: dict[str, Any]) -> dict[str, dict[str, Any
     if not isinstance(raw, dict):
         return {}
     return {
-        str(field_name): dict(value)
-        for field_name, value in raw.items()
-        if isinstance(value, dict)
+        str(field_name): dict(value) for field_name, value in raw.items() if isinstance(value, dict)
     }
 
 
@@ -177,7 +180,9 @@ def _build_section_content_from_revision(
 
     for section in blueprint.sections:
         section_values: dict[str, Any] = {}
-        long_text_fields = [field for field in section.fields if str(field.get("kind")) == "long_text"]
+        long_text_fields = [
+            field for field in section.fields if str(field.get("kind")) == "long_text"
+        ]
         long_text_by_heading = {
             heading: long_text_fields[index]["name"]
             for index, heading in enumerate(section.body_headings)
@@ -188,15 +193,28 @@ def _build_section_content_from_revision(
             kind = str(field.get("kind") or "text")
             source_value = _revision_metadata_value(metadata, name)
             if kind == "references":
-                section_values[name] = source_value if isinstance(source_value, list) else metadata.get(name, [])
+                section_values[name] = (
+                    source_value if isinstance(source_value, list) else metadata.get(name, [])
+                )
             elif kind == "list":
-                section_values[name] = source_value if isinstance(source_value, list) else metadata.get(name, [])
+                section_values[name] = (
+                    source_value if isinstance(source_value, list) else metadata.get(name, [])
+                )
             elif kind == "select":
                 section_values[name] = str(source_value or "")
             elif kind == "long_text":
-                matched_heading = next((heading for heading, field_name in long_text_by_heading.items() if field_name == name), None)
+                matched_heading = next(
+                    (
+                        heading
+                        for heading, field_name in long_text_by_heading.items()
+                        if field_name == name
+                    ),
+                    None,
+                )
                 if matched_heading:
-                    section_values[name] = body_sections.get(matched_heading, str(source_value or ""))
+                    section_values[name] = body_sections.get(
+                        matched_heading, str(source_value or "")
+                    )
                 else:
                     section_values[name] = str(source_value or "")
             else:
@@ -205,7 +223,9 @@ def _build_section_content_from_revision(
     return content
 
 
-def derive_section_content(*, blueprint_id: str, metadata: dict[str, Any], body_markdown: str) -> dict[str, dict[str, Any]]:
+def derive_section_content(
+    *, blueprint_id: str, metadata: dict[str, Any], body_markdown: str
+) -> dict[str, dict[str, Any]]:
     blueprint = get_blueprint(blueprint_id)
     return _build_section_content_from_revision(
         blueprint=blueprint,
@@ -225,7 +245,11 @@ def _build_initial_section_content(
         if raw_section_content and raw_section_content != "{}":
             parsed = json.loads(raw_section_content)
             if isinstance(parsed, dict):
-                return {str(key): dict(value) for key, value in parsed.items() if isinstance(value, dict)}
+                return {
+                    str(key): dict(value)
+                    for key, value in parsed.items()
+                    if isinstance(value, dict)
+                }
         metadata = json.loads(revision_row["normalized_payload_json"])
         return _build_section_content_from_revision(
             blueprint=blueprint,
@@ -269,7 +293,11 @@ def _build_initial_section_content(
 
 def _references_for_payload(citations: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
-        {"title": citation["source_title"], "path": citation["source_ref"], "note": citation.get("note")}
+        {
+            "title": citation["source_title"],
+            "path": citation["source_ref"],
+            "note": citation.get("note"),
+        }
         for citation in citations
         if citation.get("source_title") or citation.get("source_ref")
     ]
@@ -280,11 +308,15 @@ def _change_log_entry(actor: str, summary: str) -> dict[str, str]:
     return {"date": today, "summary": summary or "Structured draft update.", "author": actor}
 
 
-def _body_from_section_content(blueprint: Blueprint, section_content: dict[str, dict[str, Any]]) -> str:
+def _body_from_section_content(
+    blueprint: Blueprint, section_content: dict[str, dict[str, Any]]
+) -> str:
     parts: list[str] = []
     for section in blueprint.sections:
         values = _section_field_values(section_content.get(section.section_id, {}), section)
-        long_text_fields = [field for field in section.fields if str(field.get("kind")) == "long_text"]
+        long_text_fields = [
+            field for field in section.fields if str(field.get("kind")) == "long_text"
+        ]
         for index, heading in enumerate(section.body_headings):
             if index >= len(long_text_fields):
                 continue
@@ -306,8 +338,12 @@ def _base_payload(
 ) -> dict[str, Any]:
     today = dt.date.today().isoformat()
     metadata = existing_metadata or {}
-    identity = _section_field_values(section_content.get("identity", {}), blueprint.section("identity"))
-    stewardship = _section_field_values(section_content.get("stewardship", {}), blueprint.section("stewardship"))
+    identity = _section_field_values(
+        section_content.get("identity", {}), blueprint.section("identity")
+    )
+    stewardship = _section_field_values(
+        section_content.get("stewardship", {}), blueprint.section("stewardship")
+    )
     citations = _citation_list(section_content.get("evidence", {}).get("citations", []))
     related_object_ids = _list_value(stewardship.get("related_object_ids", []))
     payload: dict[str, Any] = {
@@ -322,8 +358,11 @@ def _base_payload(
         ),
         "owner": stewardship.get("owner") or str(object_row["owner"]),
         "source_type": str(metadata.get("source_type") or object_row["source_type"] or "native"),
-        "source_system": str(metadata.get("source_system") or object_row["source_system"] or "repository"),
-        "source_title": identity.get("title") or str(metadata.get("source_title") or object_row["title"]),
+        "source_system": str(
+            metadata.get("source_system") or object_row["source_system"] or "repository"
+        ),
+        "source_title": identity.get("title")
+        or str(metadata.get("source_title") or object_row["title"]),
         "team": stewardship.get("team") or str(object_row["team"]),
         "systems": _list_value(stewardship.get("systems", [])),
         "tags": _list_value(stewardship.get("tags", [])),
@@ -365,13 +404,18 @@ def _payload_from_sections(
     )
     if blueprint.blueprint_id == "runbook":
         purpose = section_content.get("purpose", {})
-        boundaries = section_content.get("boundaries", {})
         payload.update(
             {
-                "related_services": _list_value(section_content.get("stewardship", {}).get("related_services", [])),
-                "prerequisites": _list_value(section_content.get("prerequisites", {}).get("prerequisites", [])),
+                "related_services": _list_value(
+                    section_content.get("stewardship", {}).get("related_services", [])
+                ),
+                "prerequisites": _list_value(
+                    section_content.get("prerequisites", {}).get("prerequisites", [])
+                ),
                 "steps": _list_value(section_content.get("procedure", {}).get("steps", [])),
-                "verification": _list_value(section_content.get("verification", {}).get("verification", [])),
+                "verification": _list_value(
+                    section_content.get("verification", {}).get("verification", [])
+                ),
                 "rollback": _list_value(section_content.get("rollback", {}).get("rollback", [])),
             }
         )
@@ -384,13 +428,19 @@ def _payload_from_sections(
         mitigations = section_content.get("mitigations", {})
         payload.update(
             {
-                "related_services": _list_value(section_content.get("stewardship", {}).get("related_services", [])),
+                "related_services": _list_value(
+                    section_content.get("stewardship", {}).get("related_services", [])
+                ),
                 "symptoms": _list_value(diagnosis.get("symptoms", [])),
                 "scope": str(diagnosis.get("scope") or "").strip(),
                 "cause": str(diagnosis.get("cause") or "").strip(),
-                "diagnostic_checks": _list_value(section_content.get("diagnostic_checks", {}).get("diagnostic_checks", [])),
+                "diagnostic_checks": _list_value(
+                    section_content.get("diagnostic_checks", {}).get("diagnostic_checks", [])
+                ),
                 "mitigations": _list_value(mitigations.get("mitigations", [])),
-                "permanent_fix_status": str(mitigations.get("permanent_fix_status") or "unknown").strip(),
+                "permanent_fix_status": str(
+                    mitigations.get("permanent_fix_status") or "unknown"
+                ).strip(),
             }
         )
         return payload, _body_from_section_content(blueprint, section_content)
@@ -400,12 +450,18 @@ def _payload_from_sections(
         payload.update(
             {
                 "service_name": str(profile.get("service_name") or payload["title"]).strip(),
-                "service_criticality": str(profile.get("service_criticality") or "not_classified").strip(),
-                "dependencies": _list_value(section_content.get("dependencies", {}).get("dependencies", [])),
+                "service_criticality": str(
+                    profile.get("service_criticality") or "not_classified"
+                ).strip(),
+                "dependencies": _list_value(
+                    section_content.get("dependencies", {}).get("dependencies", [])
+                ),
                 "support_entrypoints": _list_value(
                     section_content.get("support_entrypoints", {}).get("support_entrypoints", [])
                 ),
-                "common_failure_modes": _list_value(section_content.get("failure_modes", {}).get("common_failure_modes", [])),
+                "common_failure_modes": _list_value(
+                    section_content.get("failure_modes", {}).get("common_failure_modes", [])
+                ),
                 "related_runbooks": _list_value(operations.get("related_runbooks", [])),
                 "related_known_errors": _list_value(operations.get("related_known_errors", [])),
             }
@@ -414,9 +470,13 @@ def _payload_from_sections(
     if blueprint.blueprint_id == "policy":
         payload.update(
             {
-                "policy_scope": str(section_content.get("policy_scope", {}).get("policy_scope", "")).strip(),
+                "policy_scope": str(
+                    section_content.get("policy_scope", {}).get("policy_scope", "")
+                ).strip(),
                 "controls": _list_value(section_content.get("controls", {}).get("controls", [])),
-                "exceptions": str(section_content.get("exceptions", {}).get("exceptions", "")).strip(),
+                "exceptions": str(
+                    section_content.get("exceptions", {}).get("exceptions", "")
+                ).strip(),
             }
         )
         return payload, _body_from_section_content(blueprint, section_content)
@@ -424,10 +484,18 @@ def _payload_from_sections(
         operations = section_content.get("operations", {})
         payload.update(
             {
-                "architecture": str(section_content.get("architecture", {}).get("architecture", "")).strip(),
-                "dependencies": _list_value(section_content.get("dependencies", {}).get("dependencies", [])),
-                "interfaces": _list_value(section_content.get("interfaces", {}).get("interfaces", [])),
-                "common_failure_modes": _list_value(section_content.get("failure_modes", {}).get("common_failure_modes", [])),
+                "architecture": str(
+                    section_content.get("architecture", {}).get("architecture", "")
+                ).strip(),
+                "dependencies": _list_value(
+                    section_content.get("dependencies", {}).get("dependencies", [])
+                ),
+                "interfaces": _list_value(
+                    section_content.get("interfaces", {}).get("interfaces", [])
+                ),
+                "common_failure_modes": _list_value(
+                    section_content.get("failure_modes", {}).get("common_failure_modes", [])
+                ),
                 "support_entrypoints": _list_value(operations.get("support_entrypoints", [])),
             }
         )
@@ -541,7 +609,11 @@ def compute_completion_state(
             if field_complete:
                 completed_fields += 1
             provenance = provenance_map.get(field_name)
-            if provenance and str(provenance.get("status") or "") in {"manual_required", "unresolved", "low_confidence"}:
+            if provenance and str(provenance.get("status") or "") in {
+                "manual_required",
+                "unresolved",
+                "low_confidence",
+            }:
                 warnings.append(
                     f"{section.display_name}: {str(field.get('label') or field_name)} remains {str(provenance.get('status'))} after import."
                 )
@@ -589,10 +661,14 @@ def compute_completion_state(
             "populated_field_count": populated_fields,
             "fields": field_statuses,
             "conversion_gaps": conversion_gaps,
-            "evidence_posture": evidence_posture if section.section_type == SectionType.REFERENCES else None,
+            "evidence_posture": evidence_posture
+            if section.section_type == SectionType.REFERENCES
+            else None,
         }
 
-    completion_percentage = int((completed_required / total_required) * 100) if total_required else 100
+    completion_percentage = (
+        int((completed_required / total_required) * 100) if total_required else 100
+    )
     draft_state = DraftProgressState.READY_FOR_REVIEW.value
     if blockers:
         draft_state = DraftProgressState.BLOCKED.value
@@ -670,10 +746,13 @@ def _sync_object_from_parsed_revision(
     current_authority = _policy_authority(authority)
     current_object_lifecycle = str(object_row["object_lifecycle_state"])
     next_object_lifecycle = str(parsed.metadata["object_lifecycle_state"])
-    current_authority.require_object_lifecycle_transition(current_object_lifecycle, next_object_lifecycle)
+    current_authority.require_object_lifecycle_transition(
+        current_object_lifecycle, next_object_lifecycle
+    )
     source_sync_state = (
         SourceSyncState.APPLIED.value
-        if str(parsed.metadata.get("source_type") or object_row["source_type"] or "native") != "native"
+        if str(parsed.metadata.get("source_type") or object_row["source_type"] or "native")
+        != "native"
         else SourceSyncState.NOT_REQUIRED.value
     )
     upsert_knowledge_object(
@@ -766,7 +845,10 @@ def _compatible_current_draft_revision(
     revision_blueprint_id = str(current_revision_row["blueprint_id"] or blueprint.blueprint_id)
     if revision_blueprint_id != blueprint.blueprint_id:
         return None
-    if revision_review_state not in {RevisionReviewStatus.DRAFT.value, RevisionReviewStatus.REJECTED.value}:
+    if revision_review_state not in {
+        RevisionReviewStatus.DRAFT.value,
+        RevisionReviewStatus.REJECTED.value,
+    }:
         return None
     return current_revision_row
 
@@ -843,7 +925,8 @@ def ensure_draft_revision(
             section_completion_json=json_dump(artifacts.completion["section_completion_map"]),
             legacy_metadata_json=json_dump(existing_metadata or {}),
             imported_at=now.isoformat(),
-            change_summary=str(section_content.get("stewardship", {}).get("change_summary") or "") or None,
+            change_summary=str(section_content.get("stewardship", {}).get("change_summary") or "")
+            or None,
         )
         _sync_object_from_parsed_revision(
             connection,
@@ -908,16 +991,23 @@ def load_draft_context(
                 blueprint=blueprint,
             )
             if revision_row is None:
-                raise ValueError("Guided drafting needs an existing draft revision. Start a draft before loading this page.")
+                raise ValueError(
+                    "Guided drafting needs an existing draft revision. Start a draft before loading this page."
+                )
         else:
             revision_row = get_knowledge_revision(connection, revision_id)
             if revision_row is None or str(revision_row["object_id"]) != object_id:
                 raise ValueError(f"revision not found for {object_id}: {revision_id}")
             revision_blueprint_id = str(revision_row["blueprint_id"] or blueprint.blueprint_id)
             if revision_blueprint_id != blueprint.blueprint_id:
-                raise ValueError(f"revision {revision_id} does not match blueprint {blueprint.blueprint_id}")
+                raise ValueError(
+                    f"revision {revision_id} does not match blueprint {blueprint.blueprint_id}"
+                )
             revision_review_state = str(revision_row["revision_review_state"] or "").strip()
-            if revision_review_state not in {RevisionReviewStatus.DRAFT.value, RevisionReviewStatus.REJECTED.value}:
+            if revision_review_state not in {
+                RevisionReviewStatus.DRAFT.value,
+                RevisionReviewStatus.REJECTED.value,
+            }:
                 raise ValueError(
                     f"guided drafting can only load draft or rejected revisions; revision {revision_id} is {revision_review_state or 'unknown'}"
                 )
@@ -978,7 +1068,11 @@ def update_section(
             revision_row=revision_row,
         )
         section = blueprint.section(section_id)
-        existing_section = section_content.get(section_id, {}) if isinstance(section_content.get(section_id, {}), dict) else {}
+        existing_section = (
+            section_content.get(section_id, {})
+            if isinstance(section_content.get(section_id, {}), dict)
+            else {}
+        )
         next_section_values = _section_field_values(values, section)
         for key, value in existing_section.items():
             if str(key).startswith("_") and str(key) not in next_section_values:
@@ -1008,7 +1102,8 @@ def update_section(
             draft_progress_state=artifacts.completion["draft_progress_state"],
             section_content_json=json_dump(section_content),
             section_completion_json=json_dump(artifacts.completion["section_completion_map"]),
-            change_summary=str(section_content.get("stewardship", {}).get("change_summary") or "") or None,
+            change_summary=str(section_content.get("stewardship", {}).get("change_summary") or "")
+            or None,
         )
         _sync_object_from_parsed_revision(
             connection,

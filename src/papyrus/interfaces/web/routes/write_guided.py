@@ -2,14 +2,19 @@ from __future__ import annotations
 
 from urllib.parse import quote_plus
 
-from papyrus.application.authoring_flow import compute_completion_state, ensure_draft_revision, load_draft_context, update_section
+from papyrus.application.authoring_flow import (
+    compute_completion_state,
+    ensure_draft_revision,
+    load_draft_context,
+    update_section,
+)
 from papyrus.application.queries import knowledge_object_detail
 from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.http import Request, html_response, redirect_response
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.presenters.write_presenter import present_guided_revision_page
 from papyrus.interfaces.web.route_utils import flash_html_for_request
-from papyrus.interfaces.web.urls import write_object_start_url, write_object_url, write_submit_url
+from papyrus.interfaces.web.urls import write_object_url, write_submit_url
 from papyrus.interfaces.web.view_helpers import parse_multiline
 
 
@@ -20,13 +25,25 @@ def _section_form_values(section, stored_values: dict[str, object]) -> dict[str,
         kind = str(field.get("kind") or "text")
         current = stored_values.get(name, [] if kind in {"list", "references"} else "")
         if kind == "list":
-            values[name] = "\n".join(str(item) for item in current if str(item).strip()) if isinstance(current, list) else str(current or "")
+            values[name] = (
+                "\n".join(str(item) for item in current if str(item).strip())
+                if isinstance(current, list)
+                else str(current or "")
+            )
         else:
             values[name] = str(current or "")
     if section.section_type.name == "REFERENCES":
-        citations = stored_values.get("citations", []) if isinstance(stored_values.get("citations", []), list) else []
+        citations = (
+            stored_values.get("citations", [])
+            if isinstance(stored_values.get("citations", []), list)
+            else []
+        )
         for index in range(1, 4):
-            citation = citations[index - 1] if index - 1 < len(citations) and isinstance(citations[index - 1], dict) else {}
+            citation = (
+                citations[index - 1]
+                if index - 1 < len(citations) and isinstance(citations[index - 1], dict)
+                else {}
+            )
             values[f"citation_{index}_source_title"] = str(citation.get("source_title") or "")
             values[f"citation_{index}_source_type"] = str(citation.get("source_type") or "document")
             values[f"citation_{index}_source_ref"] = str(citation.get("source_ref") or "")
@@ -40,7 +57,10 @@ def _parse_section_submission(section, request: Request) -> dict[str, object]:
         citations: list[dict[str, str | None]] = []
         for index in range(1, 4):
             source_title = request.form_value(f"citation_{index}_source_title").strip()
-            source_type = request.form_value(f"citation_{index}_source_type", "document").strip() or "document"
+            source_type = (
+                request.form_value(f"citation_{index}_source_type", "document").strip()
+                or "document"
+            )
             source_ref = request.form_value(f"citation_{index}_source_ref").strip()
             note = request.form_value(f"citation_{index}_note").strip() or None
             if not any([source_title, source_ref, note]):
@@ -76,7 +96,9 @@ def _section_errors(
 ) -> dict[str, list[str]]:
     merged = {key: dict(value) for key, value in section_content.items()}
     merged[section_id] = dict(candidate_values)
-    completion = compute_completion_state(blueprint=blueprint, section_content=merged, taxonomies=taxonomies)
+    completion = compute_completion_state(
+        blueprint=blueprint, section_content=merged, taxonomies=taxonomies
+    )
     section_progress = completion["section_completion_map"].get(section_id, {})
     errors: dict[str, list[str]] = {}
     messages = list(section_progress.get("errors", []))
@@ -105,6 +127,7 @@ def _section_errors(
     if not errors and messages:
         errors["_section"] = messages
     return errors
+
 
 def register(router, runtime) -> None:
     def start_revision(request: Request):
@@ -135,9 +158,13 @@ def register(router, runtime) -> None:
         )
         detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
         revision_id = str(draft_status["revision_id"])
-        section_id = request.query_value("section") or str(draft_status["completion"]["next_section_id"])
+        section_id = request.query_value("section") or str(
+            draft_status["completion"]["next_section_id"]
+        )
         blueprint = draft_status["blueprint"]
-        page_flash_html = flash_html_for_request(runtime, request) if request.method != "POST" else ""
+        page_flash_html = (
+            flash_html_for_request(runtime, request) if request.method != "POST" else ""
+        )
 
         if request.method == "POST" and request.form_value("section_id"):
             section_id = request.form_value("section_id").strip() or section_id
@@ -180,7 +207,10 @@ def register(router, runtime) -> None:
                         role_id=experience.role,
                         current_path=request.path,
                         aside_html="",
-                        scripts=["/static/js/citation_picker.js", "/static/js/multi_value_picker.js"],
+                        scripts=[
+                            "/static/js/citation_picker.js",
+                            "/static/js/multi_value_picker.js",
+                        ],
                         shell_variant="normal",
                         page_context=page_context,
                     )
@@ -197,8 +227,11 @@ def register(router, runtime) -> None:
             next_section_id = str(updated["completion"]["next_section_id"])
             redirect_target = (
                 write_submit_url(object_id, revision_id)
-                if updated["completion"]["draft_progress_state"] == "ready_for_review" and next_section_id == section_id
-                else write_object_url(object_id, revision_id=revision_id, section_id=next_section_id)
+                if updated["completion"]["draft_progress_state"] == "ready_for_review"
+                and next_section_id == section_id
+                else write_object_url(
+                    object_id, revision_id=revision_id, section_id=next_section_id
+                )
             )
             notice = f"Section saved. Next: {blueprint.section(next_section_id).display_name}."
             separator = "&" if "?" in redirect_target else "?"
@@ -212,7 +245,9 @@ def register(router, runtime) -> None:
             revision_id=revision_id,
             section_id=section_id,
             is_first_revision=bool(draft_status["is_first_revision"]),
-            form_values=_section_form_values(blueprint.section(section_id), draft_status["section_content"].get(section_id, {})),
+            form_values=_section_form_values(
+                blueprint.section(section_id), draft_status["section_content"].get(section_id, {})
+            ),
             form_errors={},
         )
         return html_response(

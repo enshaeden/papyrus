@@ -29,9 +29,8 @@ class SemanticHookAssertions:
         self.assertEqual(html.count(self._hook_fragment("data-action-id", action_id)), expected)
 
     def assert_primary_surface(self, html: str, surface: str) -> None:
-        pattern = (
-            r'<main[^>]*class="[^"]*\bmain-column\b[^"]*"[^>]*'
-            + re.escape(self._hook_fragment("data-surface", surface))
+        pattern = r'<main[^>]*class="[^"]*\bmain-column\b[^"]*"[^>]*' + re.escape(
+            self._hook_fragment("data-surface", surface)
         )
         self.assertRegex(html, pattern)
 

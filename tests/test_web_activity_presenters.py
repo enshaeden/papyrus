@@ -8,7 +8,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.interfaces.web.presenters.activity_event_list_presenter import render_activity_event_list
+from papyrus.interfaces.web.presenters.activity_event_list_presenter import (
+    render_activity_event_list,
+)
 from papyrus.interfaces.web.presenters.manage_presenter import present_audit_page
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions
@@ -17,7 +19,7 @@ from tests.web_assertions import SemanticHookAssertions
 TEMPLATE_RENDERER = TemplateRenderer(ROOT / "src" / "papyrus" / "interfaces" / "web" / "templates")
 
 
-STRUCTURED_EVENT = {
+STRUCTURED_EVENT: dict[str, object] = {
     "group": "service_changes",
     "occurred_at": "2026-04-09",
     "what_happened": "Remote Access changed",
@@ -39,9 +41,24 @@ class ActivityPresenterTests(SemanticHookAssertions, unittest.TestCase):
         page = present_audit_page(
             TEMPLATE_RENDERER,
             role="operator",
-            events=[{"event_type": "revision_approved", "occurred_at": "2026-04-09T00:00:00+00:00", "actor": "reviewer", "object_id": "kb-test", "revision_id": "kb-test-r1"}],
+            events=[
+                {
+                    "event_type": "revision_approved",
+                    "occurred_at": "2026-04-09T00:00:00+00:00",
+                    "actor": "reviewer",
+                    "object_id": "kb-test",
+                    "revision_id": "kb-test-r1",
+                }
+            ],
             structured_events=[STRUCTURED_EVENT],
-            validation_runs=[{"run_type": "import", "status": "passed", "finding_count": 0, "completed_at": "2026-04-09T01:00:00+00:00"}],
+            validation_runs=[
+                {
+                    "run_type": "import",
+                    "status": "passed",
+                    "finding_count": 0,
+                    "completed_at": "2026-04-09T01:00:00+00:00",
+                }
+            ],
             object_id=None,
             selected_group="all",
         )

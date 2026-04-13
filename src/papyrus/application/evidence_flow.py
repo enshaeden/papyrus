@@ -22,7 +22,7 @@ from papyrus.infrastructure.storage.evidence_store import EvidenceStore
 
 
 def _now_utc() -> dt.datetime:
-    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    return dt.datetime.now(dt.UTC).replace(microsecond=0)
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,9 @@ class EvidenceFlowResult:
 
 
 def _open_connection(database_path: Path) -> sqlite3.Connection:
-    connection = open_runtime_database(Path(database_path), minimum_schema_version=RUNTIME_SCHEMA_VERSION)
+    connection = open_runtime_database(
+        Path(database_path), minimum_schema_version=RUNTIME_SCHEMA_VERSION
+    )
     apply_runtime_schema(connection, has_fts5=fts5_available(connection))
     connection.execute(
         "INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (?, ?)",
@@ -42,7 +44,9 @@ def _open_connection(database_path: Path) -> sqlite3.Connection:
     return connection
 
 
-def _current_citations_for_object(connection: sqlite3.Connection, object_id: str) -> list[sqlite3.Row]:
+def _current_citations_for_object(
+    connection: sqlite3.Connection, object_id: str
+) -> list[sqlite3.Row]:
     return connection.execute(
         """
         SELECT c.*, o.object_id
@@ -88,7 +92,11 @@ def mark_evidence_stale(
         raise ValueError("citation_id or object_id is required")
     connection = _open_connection(Path(database_path))
     try:
-        rows = [_citation_for_id(connection, citation_id)] if citation_id else _current_citations_for_object(connection, object_id or "")
+        rows = (
+            [_citation_for_id(connection, citation_id)]
+            if citation_id
+            else _current_citations_for_object(connection, object_id or "")
+        )
         citations = [row for row in rows if row is not None]
         if not citations:
             raise ValueError("no current citations matched the requested evidence target")

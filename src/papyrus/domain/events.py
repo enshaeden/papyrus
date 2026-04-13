@@ -13,7 +13,9 @@ class EventBase:
     entity_type: str
     entity_id: str
     payload: dict[str, Any] = field(default_factory=dict)
-    occurred_at: dt.datetime = field(default_factory=lambda: dt.datetime.now(dt.timezone.utc).replace(microsecond=0))
+    occurred_at: dt.datetime = field(
+        default_factory=lambda: dt.datetime.now(dt.UTC).replace(microsecond=0)
+    )
     actor: str = "local.operator"
 
     def __post_init__(self) -> None:

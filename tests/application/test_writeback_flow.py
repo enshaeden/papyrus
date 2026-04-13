@@ -71,7 +71,9 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "retirement_reason": None,
         "services": ["Remote Access"],
         "related_articles": ["kb-troubleshooting-vpn-connectivity"],
-        "references": [{"title": "Seed manifest", "path": "docs/migration/seed-migration-rationale.md"}],
+        "references": [
+            {"title": "Seed manifest", "path": "docs/migration/seed-migration-rationale.md"}
+        ],
         "change_log": [{"date": "2026-04-08", "summary": "Initial draft.", "author": "tests"}],
     }
 
@@ -96,14 +98,21 @@ class WritebackFlowTests(unittest.TestCase):
             )
             workflow.create_revision(
                 object_id=created.object_id,
-                normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+                normalized_payload=runbook_payload(
+                    created.object_id, created.canonical_path, created.title
+                ),
                 body_markdown="## Use When\n\nUse draft-only coverage.",
                 actor="tests",
                 change_summary="Draft writeback should fail.",
             )
 
             with self.assertRaisesRegex(ValueError, "approved revision"):
-                write_object_to_source(database_path=database_path, object_id=created.object_id, actor="tests", root_path=source_root)
+                write_object_to_source(
+                    database_path=database_path,
+                    object_id=created.object_id,
+                    actor="tests",
+                    root_path=source_root,
+                )
 
     def test_approval_writes_deterministic_markdown_and_records_audit(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -132,7 +141,9 @@ class WritebackFlowTests(unittest.TestCase):
                 actor="tests",
                 change_summary="Approved writeback coverage.",
             )
-            workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=created.object_id, revision_id=revision.revision_id, actor="tests"
+            )
             workflow.assign_reviewer(
                 object_id=created.object_id,
                 revision_id=revision.revision_id,
@@ -164,7 +175,12 @@ class WritebackFlowTests(unittest.TestCase):
             self.assertEqual(metadata["canonical_path"], created.canonical_path)
             self.assertEqual(body, "## Use When\n\nWriteback is approved.")
 
-            write_object_to_source(database_path=database_path, object_id=created.object_id, actor="tests", root_path=source_root)
+            write_object_to_source(
+                database_path=database_path,
+                object_id=created.object_id,
+                actor="tests",
+                root_path=source_root,
+            )
             self.assertEqual(target_path.read_text(encoding="utf-8"), expected_text)
 
             connection = sqlite3.connect(database_path)
@@ -187,13 +203,19 @@ class WritebackFlowTests(unittest.TestCase):
             self.assertEqual(audit_rows[0]["actor"], "local.reviewer")
             self.assertEqual(audit_rows[1]["actor"], "tests")
             first_audit = json.loads(str(audit_rows[0]["details_json"]))
-            self.assertIn("knowledge/runbooks/writeback-approved.md", str(audit_rows[0]["details_json"]))
+            self.assertIn(
+                "knowledge/runbooks/writeback-approved.md", str(audit_rows[0]["details_json"])
+            )
             self.assertEqual(first_audit["transition"]["to_state"], "applied")
-            self.assertEqual(first_audit["required_acknowledgements"], ["canonical_source_will_change"])
+            self.assertEqual(
+                first_audit["required_acknowledgements"], ["canonical_source_will_change"]
+            )
             self.assertEqual(first_audit["acknowledgements"], [])
             self.assertIn("policy_decision", first_audit)
 
-    def test_manual_writeback_requires_acknowledgement_when_transition_changes_source_state(self) -> None:
+    def test_manual_writeback_requires_acknowledgement_when_transition_changes_source_state(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             source_root = Path(temp_dir) / "repo"
             target_path = source_root / "knowledge" / "runbooks" / "writeback-manual-ack.md"
@@ -219,7 +241,9 @@ class WritebackFlowTests(unittest.TestCase):
                 actor="tests",
                 change_summary="Approved revision for manual acknowledgement coverage.",
             )
-            workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=created.object_id, revision_id=revision.revision_id, actor="tests"
+            )
             workflow.assign_reviewer(
                 object_id=created.object_id,
                 revision_id=revision.revision_id,
@@ -269,7 +293,9 @@ class WritebackFlowTests(unittest.TestCase):
     def test_manual_writeback_recovers_pending_mutation_before_applying(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             source_root = Path(temp_dir) / "repo"
-            pending_target = source_root / "knowledge" / "runbooks" / "pending-writeback-recovery.md"
+            pending_target = (
+                source_root / "knowledge" / "runbooks" / "pending-writeback-recovery.md"
+            )
             pending_target.parent.mkdir(parents=True)
             pending_target.write_text("original pending content\n", encoding="utf-8")
 
@@ -287,7 +313,9 @@ class WritebackFlowTests(unittest.TestCase):
             pending_mutation.apply_files()
             pending_mutation.close()
 
-            self.assertEqual(pending_target.read_text(encoding="utf-8"), "interrupted pending content\n")
+            self.assertEqual(
+                pending_target.read_text(encoding="utf-8"), "interrupted pending content\n"
+            )
 
             target_path = source_root / "knowledge" / "runbooks" / "writeback-recovery-target.md"
             database_path = Path(temp_dir) / "runtime.db"
@@ -311,7 +339,9 @@ class WritebackFlowTests(unittest.TestCase):
                 actor="tests",
                 change_summary="Manual writeback recovery coverage.",
             )
-            workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=created.object_id, revision_id=revision.revision_id, actor="tests"
+            )
             workflow.assign_reviewer(
                 object_id=created.object_id,
                 revision_id=revision.revision_id,
@@ -335,7 +365,9 @@ class WritebackFlowTests(unittest.TestCase):
             )
 
             self.assertEqual(result.acknowledgements, ("canonical_source_will_change",))
-            self.assertEqual(pending_target.read_text(encoding="utf-8"), "original pending content\n")
+            self.assertEqual(
+                pending_target.read_text(encoding="utf-8"), "original pending content\n"
+            )
             self.assertTrue(target_path.exists())
 
     def test_preview_reports_changed_sections_and_detects_conflict(self) -> None:
@@ -356,7 +388,9 @@ class WritebackFlowTests(unittest.TestCase):
                 canonical_path="knowledge/runbooks/writeback-preview.md",
                 actor="local.operator",
             )
-            initial_payload = runbook_payload(created.object_id, created.canonical_path, created.title)
+            initial_payload = runbook_payload(
+                created.object_id, created.canonical_path, created.title
+            )
             initial_revision = workflow.create_revision(
                 object_id=created.object_id,
                 normalized_payload=initial_payload,
@@ -364,7 +398,11 @@ class WritebackFlowTests(unittest.TestCase):
                 actor="local.operator",
                 change_summary="Seed approved revision.",
             )
-            workflow.submit_for_review(object_id=created.object_id, revision_id=initial_revision.revision_id, actor="local.operator")
+            workflow.submit_for_review(
+                object_id=created.object_id,
+                revision_id=initial_revision.revision_id,
+                actor="local.operator",
+            )
             workflow.assign_reviewer(
                 object_id=created.object_id,
                 revision_id=initial_revision.revision_id,
@@ -379,7 +417,9 @@ class WritebackFlowTests(unittest.TestCase):
                 notes="Approved seed revision.",
             )
 
-            updated_payload = runbook_payload(created.object_id, created.canonical_path, created.title)
+            updated_payload = runbook_payload(
+                created.object_id, created.canonical_path, created.title
+            )
             updated_payload["summary"] = "Preview the changed guidance before approval."
             preview_revision = workflow.create_revision(
                 object_id=created.object_id,
@@ -407,12 +447,16 @@ class WritebackFlowTests(unittest.TestCase):
                 root_path=source_root,
             )
             self.assertTrue(conflicted_preview.conflict_detected)
-            self.assertIn("Canonical source changed unexpectedly", str(conflicted_preview.conflict_reason))
+            self.assertIn(
+                "Canonical source changed unexpectedly", str(conflicted_preview.conflict_reason)
+            )
 
     def test_restore_last_writeback_recovers_previous_canonical_text(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             source_root = Path(temp_dir) / "repo"
-            target_path = (source_root / "knowledge" / "runbooks" / "writeback-restore.md").resolve()
+            target_path = (
+                source_root / "knowledge" / "runbooks" / "writeback-restore.md"
+            ).resolve()
             target_path.parent.mkdir(parents=True)
             database_path = Path(temp_dir) / "runtime.db"
             workflow = GovernanceWorkflow(database_path, source_root=source_root)
@@ -427,7 +471,9 @@ class WritebackFlowTests(unittest.TestCase):
                 canonical_path="knowledge/runbooks/writeback-restore.md",
                 actor="local.operator",
             )
-            first_payload = runbook_payload(created.object_id, created.canonical_path, created.title)
+            first_payload = runbook_payload(
+                created.object_id, created.canonical_path, created.title
+            )
             first_body = "## Use When\n\nUse revision one.\n"
             first_revision = workflow.create_revision(
                 object_id=created.object_id,
@@ -436,7 +482,11 @@ class WritebackFlowTests(unittest.TestCase):
                 actor="local.operator",
                 change_summary="Approved revision one.",
             )
-            workflow.submit_for_review(object_id=created.object_id, revision_id=first_revision.revision_id, actor="local.operator")
+            workflow.submit_for_review(
+                object_id=created.object_id,
+                revision_id=first_revision.revision_id,
+                actor="local.operator",
+            )
             workflow.assign_reviewer(
                 object_id=created.object_id,
                 revision_id=first_revision.revision_id,
@@ -452,7 +502,9 @@ class WritebackFlowTests(unittest.TestCase):
             )
             first_text = target_path.read_text(encoding="utf-8")
 
-            second_payload = runbook_payload(created.object_id, created.canonical_path, created.title)
+            second_payload = runbook_payload(
+                created.object_id, created.canonical_path, created.title
+            )
             second_payload["summary"] = "Second approved guidance."
             second_body = "## Use When\n\nUse revision two.\n"
             second_revision = workflow.create_revision(
@@ -462,7 +514,11 @@ class WritebackFlowTests(unittest.TestCase):
                 actor="local.operator",
                 change_summary="Approved revision two.",
             )
-            workflow.submit_for_review(object_id=created.object_id, revision_id=second_revision.revision_id, actor="local.operator")
+            workflow.submit_for_review(
+                object_id=created.object_id,
+                revision_id=second_revision.revision_id,
+                actor="local.operator",
+            )
             workflow.assign_reviewer(
                 object_id=created.object_id,
                 revision_id=second_revision.revision_id,
@@ -513,7 +569,9 @@ class WritebackFlowTests(unittest.TestCase):
             self.assertEqual(restored_row["event_type"], "source_writeback_restored")
             self.assertEqual(restored_row["actor"], "local.manager")
             restored_details = json.loads(str(restored_row["details_json"]))
-            self.assertIn("knowledge/runbooks/writeback-restore.md", str(restored_row["details_json"]))
+            self.assertIn(
+                "knowledge/runbooks/writeback-restore.md", str(restored_row["details_json"])
+            )
             self.assertEqual(restored_details["transition"]["to_state"], "restored")
             self.assertEqual(
                 restored_details["required_acknowledgements"],

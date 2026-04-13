@@ -32,7 +32,12 @@ COMMON_IDENTITY_SECTION = BlueprintSection(
     description="Name the guidance and set the publishing details.",
     section_type=SectionType.METADATA,
     fields=(
-        _field("object_id", "Reference code", kind="text", placeholder="Use lowercase words separated by hyphens"),
+        _field(
+            "object_id",
+            "Reference code",
+            kind="text",
+            placeholder="Use lowercase words separated by hyphens",
+        ),
         _field("title", "Title", kind="text", placeholder="Name the guidance clearly"),
         _field(
             "canonical_path",
@@ -50,13 +55,24 @@ COMMON_STEWARDSHIP_SECTION = BlueprintSection(
     description="Set ownership, review timing, and linked context.",
     section_type=SectionType.METADATA,
     fields=(
-        _field("summary", "Summary", kind="long_text", placeholder="Summarize the outcome and when to use it."),
+        _field(
+            "summary",
+            "Summary",
+            kind="long_text",
+            placeholder="Summarize the outcome and when to use it.",
+        ),
         _field("owner", "Owner", kind="text", placeholder="Team or person responsible"),
         _field("team", "Team", kind="select", taxonomy="teams"),
         _field("object_lifecycle_state", "Lifecycle state", kind="select", taxonomy="statuses"),
         _field("review_cadence", "Review cadence", kind="select", taxonomy="review_cadences"),
         _field("audience", "Audience", kind="select", taxonomy="audiences"),
-        _field("systems", "Related systems", kind="list", required=False, placeholder="Add one related system per line."),
+        _field(
+            "systems",
+            "Related systems",
+            kind="list",
+            required=False,
+            placeholder="Add one related system per line.",
+        ),
         _field(
             "tags",
             "Tags",
@@ -135,9 +151,7 @@ COMMON_RELATIONSHIP_SECTION = BlueprintSection(
     description="Link related guidance and downstream dependencies.",
     section_type=SectionType.RELATIONSHIPS,
     required=False,
-    fields=(
-        _field("related_object_ids", "Related guidance", kind="list", required=False),
-    ),
+    fields=(_field("related_object_ids", "Related guidance", kind="list", required=False),),
     help_text="These links make impact and follow-on work easier to review.",
 )
 
@@ -155,7 +169,12 @@ RUNBOOK_BLUEPRINT = Blueprint(
             description="When to use the runbook and what outcome it targets.",
             section_type=SectionType.LONG_TEXT,
             fields=(
-                _field("use_when", "Use when", kind="long_text", placeholder="Explain the trigger and expected operator outcome."),
+                _field(
+                    "use_when",
+                    "Use when",
+                    kind="long_text",
+                    placeholder="Explain the trigger and expected operator outcome.",
+                ),
             ),
             body_headings=("Use When",),
         ),
@@ -165,7 +184,12 @@ RUNBOOK_BLUEPRINT = Blueprint(
             description="Access, approvals, or setup required before running the procedure.",
             section_type=SectionType.CHECKLIST,
             fields=(
-                _field("prerequisites", "Prerequisites", kind="list", placeholder="One prerequisite per line."),
+                _field(
+                    "prerequisites",
+                    "Prerequisites",
+                    kind="list",
+                    placeholder="One prerequisite per line.",
+                ),
             ),
         ),
         BlueprintSection(
@@ -173,9 +197,7 @@ RUNBOOK_BLUEPRINT = Blueprint(
             display_name="Procedure",
             description="The ordered operational steps.",
             section_type=SectionType.STEPS,
-            fields=(
-                _field("steps", "Steps", kind="list", placeholder="One step per line."),
-            ),
+            fields=(_field("steps", "Steps", kind="list", placeholder="One step per line."),),
         ),
         BlueprintSection(
             section_id="verification",
@@ -183,7 +205,12 @@ RUNBOOK_BLUEPRINT = Blueprint(
             description="Checks that confirm the expected outcome.",
             section_type=SectionType.CHECKLIST,
             fields=(
-                _field("verification", "Verification", kind="list", placeholder="One verification check per line."),
+                _field(
+                    "verification",
+                    "Verification",
+                    kind="list",
+                    placeholder="One verification check per line.",
+                ),
             ),
         ),
         BlueprintSection(
@@ -192,7 +219,9 @@ RUNBOOK_BLUEPRINT = Blueprint(
             description="Recovery actions when execution fails.",
             section_type=SectionType.STEPS,
             fields=(
-                _field("rollback", "Rollback", kind="list", placeholder="One rollback action per line."),
+                _field(
+                    "rollback", "Rollback", kind="list", placeholder="One rollback action per line."
+                ),
             ),
         ),
         BlueprintSection(
@@ -261,9 +290,18 @@ KNOWN_ERROR_BLUEPRINT = Blueprint(
             description="Symptoms, scope, and cause.",
             section_type=SectionType.LONG_TEXT,
             fields=(
-                _field("symptoms", "Symptoms", kind="list", placeholder="One observable symptom per line."),
-                _field("scope", "Scope", kind="long_text", placeholder="Define the affected boundary."),
-                _field("cause", "Cause", kind="long_text", placeholder="Describe the diagnosed cause."),
+                _field(
+                    "symptoms",
+                    "Symptoms",
+                    kind="list",
+                    placeholder="One observable symptom per line.",
+                ),
+                _field(
+                    "scope", "Scope", kind="long_text", placeholder="Define the affected boundary."
+                ),
+                _field(
+                    "cause", "Cause", kind="long_text", placeholder="Describe the diagnosed cause."
+                ),
             ),
         ),
         BlueprintSection(
@@ -272,7 +310,12 @@ KNOWN_ERROR_BLUEPRINT = Blueprint(
             description="Checks used to confirm the pattern.",
             section_type=SectionType.CHECKLIST,
             fields=(
-                _field("diagnostic_checks", "Diagnostic checks", kind="list", placeholder="One check per line."),
+                _field(
+                    "diagnostic_checks",
+                    "Diagnostic checks",
+                    kind="list",
+                    placeholder="One check per line.",
+                ),
             ),
         ),
         BlueprintSection(
@@ -281,7 +324,12 @@ KNOWN_ERROR_BLUEPRINT = Blueprint(
             description="Containment or workaround steps.",
             section_type=SectionType.STEPS,
             fields=(
-                _field("mitigations", "Mitigations", kind="list", placeholder="One mitigation per line."),
+                _field(
+                    "mitigations",
+                    "Mitigations",
+                    kind="list",
+                    placeholder="One mitigation per line.",
+                ),
                 _field(
                     "permanent_fix_status",
                     "Permanent fix status",
@@ -343,7 +391,12 @@ SERVICE_RECORD_BLUEPRINT = Blueprint(
             section_type=SectionType.METADATA,
             fields=(
                 _field("service_name", "Service name", kind="text"),
-                _field("service_criticality", "Service criticality", kind="select", taxonomy="service_criticality"),
+                _field(
+                    "service_criticality",
+                    "Service criticality",
+                    kind="select",
+                    taxonomy="service_criticality",
+                ),
                 _field("scope_notes", "Scope", kind="long_text"),
             ),
             body_headings=("Scope",),
@@ -354,7 +407,12 @@ SERVICE_RECORD_BLUEPRINT = Blueprint(
             description="Systems and service dependencies.",
             section_type=SectionType.CHECKLIST,
             fields=(
-                _field("dependencies", "Dependencies", kind="list", placeholder="One dependency per line."),
+                _field(
+                    "dependencies",
+                    "Dependencies",
+                    kind="list",
+                    placeholder="One dependency per line.",
+                ),
             ),
         ),
         BlueprintSection(
@@ -363,7 +421,12 @@ SERVICE_RECORD_BLUEPRINT = Blueprint(
             description="How operators and support flows reach the service team.",
             section_type=SectionType.CHECKLIST,
             fields=(
-                _field("support_entrypoints", "Support entrypoints", kind="list", placeholder="One entrypoint per line."),
+                _field(
+                    "support_entrypoints",
+                    "Support entrypoints",
+                    kind="list",
+                    placeholder="One entrypoint per line.",
+                ),
             ),
         ),
         BlueprintSection(
@@ -372,7 +435,12 @@ SERVICE_RECORD_BLUEPRINT = Blueprint(
             description="Common operational failure patterns.",
             section_type=SectionType.CHECKLIST,
             fields=(
-                _field("common_failure_modes", "Common failure modes", kind="list", placeholder="One failure mode per line."),
+                _field(
+                    "common_failure_modes",
+                    "Common failure modes",
+                    kind="list",
+                    placeholder="One failure mode per line.",
+                ),
             ),
         ),
         BlueprintSection(
@@ -429,9 +497,7 @@ POLICY_BLUEPRINT = Blueprint(
             display_name="Scope",
             description="Purpose and scope of the policy.",
             section_type=SectionType.LONG_TEXT,
-            fields=(
-                _field("policy_scope", "Policy scope", kind="long_text"),
-            ),
+            fields=(_field("policy_scope", "Policy scope", kind="long_text"),),
             body_headings=("Policy Scope",),
         ),
         BlueprintSection(
@@ -449,16 +515,22 @@ POLICY_BLUEPRINT = Blueprint(
             description="Exceptions, waivers, or boundary conditions.",
             section_type=SectionType.LONG_TEXT,
             required=False,
-            fields=(
-                _field("exceptions", "Exceptions", kind="long_text"),
-            ),
+            fields=(_field("exceptions", "Exceptions", kind="long_text"),),
             body_headings=("Exceptions",),
         ),
         COMMON_EVIDENCE_SECTION,
         COMMON_RELATIONSHIP_SECTION,
     ),
     required_sections=("identity", "stewardship", "policy_scope", "controls", "evidence"),
-    ordering=("identity", "stewardship", "policy_scope", "controls", "exceptions", "evidence", "relationships"),
+    ordering=(
+        "identity",
+        "stewardship",
+        "policy_scope",
+        "controls",
+        "exceptions",
+        "evidence",
+        "relationships",
+    ),
     evidence_requirements={"minimum_citations": 1},
     lifecycle_defaults={"object_lifecycle_state": "draft", "review_cadence": "annual"},
 )
@@ -475,9 +547,7 @@ SYSTEM_DESIGN_BLUEPRINT = Blueprint(
             display_name="Architecture",
             description="High-level architecture and design intent.",
             section_type=SectionType.LONG_TEXT,
-            fields=(
-                _field("architecture", "Architecture", kind="long_text"),
-            ),
+            fields=(_field("architecture", "Architecture", kind="long_text"),),
             body_headings=("Architecture",),
         ),
         BlueprintSection(
@@ -485,27 +555,21 @@ SYSTEM_DESIGN_BLUEPRINT = Blueprint(
             display_name="Dependencies",
             description="Internal and external dependencies.",
             section_type=SectionType.CHECKLIST,
-            fields=(
-                _field("dependencies", "Dependencies", kind="list"),
-            ),
+            fields=(_field("dependencies", "Dependencies", kind="list"),),
         ),
         BlueprintSection(
             section_id="interfaces",
             display_name="Interfaces",
             description="Key interfaces, integrations, and entrypoints.",
             section_type=SectionType.CHECKLIST,
-            fields=(
-                _field("interfaces", "Interfaces", kind="list"),
-            ),
+            fields=(_field("interfaces", "Interfaces", kind="list"),),
         ),
         BlueprintSection(
             section_id="failure_modes",
             display_name="Failure Modes",
             description="Known failure or degradation modes.",
             section_type=SectionType.CHECKLIST,
-            fields=(
-                _field("common_failure_modes", "Failure modes", kind="list"),
-            ),
+            fields=(_field("common_failure_modes", "Failure modes", kind="list"),),
         ),
         BlueprintSection(
             section_id="operations",

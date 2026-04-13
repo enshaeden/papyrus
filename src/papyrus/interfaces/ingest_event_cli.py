@@ -30,15 +30,36 @@ def load_payload(path: str | None) -> dict[str, object]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Ingest a structured change, validation, or evidence event into Papyrus.")
+    parser = argparse.ArgumentParser(
+        description="Ingest a structured change, validation, or evidence event into Papyrus."
+    )
     parser.add_argument("--db", default=str(DB_PATH), help="Path to the runtime SQLite database.")
-    parser.add_argument("--type", dest="event_type", required=True, help="Event type, for example service_change or validation_failure.")
-    parser.add_argument("--entity", required=True, help="Changed service, object, or evidence identifier.")
-    parser.add_argument("--entity-type", help="Optional entity type override. Defaults are inferred from the event type and entity value.")
+    parser.add_argument(
+        "--type",
+        dest="event_type",
+        required=True,
+        help="Event type, for example service_change or validation_failure.",
+    )
+    parser.add_argument(
+        "--entity", required=True, help="Changed service, object, or evidence identifier."
+    )
+    parser.add_argument(
+        "--entity-type",
+        help="Optional entity type override. Defaults are inferred from the event type and entity value.",
+    )
     parser.add_argument("--payload", help="Path to a JSON object payload file.")
-    parser.add_argument("--source", default="local", choices=("local", "external", "connector"), help="Event source.")
-    parser.add_argument("--actor", default="local.operator", help="Actor to record in the event and audit trail.")
-    parser.add_argument("--occurred-at", help="Optional ISO-8601 timestamp. Defaults to now in UTC.")
+    parser.add_argument(
+        "--source",
+        default="local",
+        choices=("local", "external", "connector"),
+        help="Event source.",
+    )
+    parser.add_argument(
+        "--actor", default="local.operator", help="Actor to record in the event and audit trail."
+    )
+    parser.add_argument(
+        "--occurred-at", help="Optional ISO-8601 timestamp. Defaults to now in UTC."
+    )
     args = parser.parse_args()
 
     payload = load_payload(args.payload)

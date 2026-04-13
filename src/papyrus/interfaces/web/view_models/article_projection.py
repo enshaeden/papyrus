@@ -37,7 +37,9 @@ def _facts_block(rows: list[tuple[str, object]], *, title: str = "") -> dict[str
     return {"kind": "facts", "title": title, "rows": normalized_rows}
 
 
-def _section(section_id: str, title: str, *, eyebrow: str, blocks: list[dict[str, Any] | None], empty: str) -> dict[str, Any]:
+def _section(
+    section_id: str, title: str, *, eyebrow: str, blocks: list[dict[str, Any] | None], empty: str
+) -> dict[str, Any]:
     return {
         "section_id": section_id,
         "title": title,
@@ -47,7 +49,9 @@ def _section(section_id: str, title: str, *, eyebrow: str, blocks: list[dict[str
     }
 
 
-def _service_context(related_services: list[dict[str, Any]], item: dict[str, Any]) -> dict[str, Any]:
+def _service_context(
+    related_services: list[dict[str, Any]], item: dict[str, Any]
+) -> dict[str, Any]:
     return {
         "section_id": "service_context",
         "title": "Linked service context",
@@ -88,7 +92,11 @@ def _governance_context(
                 _paragraph_block(use_guidance.get("summary")),
                 _facts_block(
                     [
-                        ("Lifecycle", state.get("object_lifecycle_state") or item.get("object_lifecycle_state")),
+                        (
+                            "Lifecycle",
+                            state.get("object_lifecycle_state")
+                            or item.get("object_lifecycle_state"),
+                        ),
                         ("Owner", item.get("owner")),
                         ("Team", item.get("team")),
                         ("Last reviewed", item.get("last_reviewed")),
@@ -107,8 +115,14 @@ def _governance_context(
             _facts_block(
                 [
                     ("Trust", state.get("trust_state") or item.get("trust_state")),
-                    ("Review", state.get("revision_review_state") or item.get("revision_review_state")),
-                    ("Lifecycle", state.get("object_lifecycle_state") or item.get("object_lifecycle_state")),
+                    (
+                        "Review",
+                        state.get("revision_review_state") or item.get("revision_review_state"),
+                    ),
+                    (
+                        "Lifecycle",
+                        state.get("object_lifecycle_state") or item.get("object_lifecycle_state"),
+                    ),
                     ("Owner", item.get("owner")),
                     ("Team", item.get("team")),
                     ("Last reviewed", item.get("last_reviewed")),
@@ -120,7 +134,9 @@ def _governance_context(
     }
 
 
-def _evidence_context(citations: list[dict[str, Any]], evidence_status: dict[str, Any]) -> dict[str, Any]:
+def _evidence_context(
+    citations: list[dict[str, Any]], evidence_status: dict[str, Any]
+) -> dict[str, Any]:
     return {
         "section_id": "evidence",
         "title": "Evidence",
@@ -146,7 +162,9 @@ def _evidence_context(citations: list[dict[str, Any]], evidence_status: dict[str
     }
 
 
-def _change_context(revision: dict[str, Any] | None, audit_events: list[dict[str, Any]]) -> dict[str, Any]:
+def _change_context(
+    revision: dict[str, Any] | None, audit_events: list[dict[str, Any]]
+) -> dict[str, Any]:
     latest_audit = audit_events[0] if audit_events else None
     latest_audit_text = ""
     if latest_audit is not None:
@@ -180,7 +198,9 @@ def _source_context(revision: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
-def _runbook_sections(section_content: dict[str, dict[str, Any]], metadata: dict[str, Any], item: dict[str, Any]) -> list[dict[str, Any]]:
+def _runbook_sections(
+    section_content: dict[str, dict[str, Any]], metadata: dict[str, Any], item: dict[str, Any]
+) -> list[dict[str, Any]]:
     purpose = section_content.get("purpose", {})
     boundaries = section_content.get("boundaries", {})
     return [
@@ -196,8 +216,13 @@ def _runbook_sections(section_content: dict[str, dict[str, Any]], metadata: dict
             "Prerequisites and scope",
             eyebrow="Scope",
             blocks=[
-                _list_block(section_content.get("prerequisites", {}).get("prerequisites") or metadata.get("prerequisites")),
-                _facts_block([("Audience", metadata.get("audience")), ("Owner", item.get("owner"))]),
+                _list_block(
+                    section_content.get("prerequisites", {}).get("prerequisites")
+                    or metadata.get("prerequisites")
+                ),
+                _facts_block(
+                    [("Audience", metadata.get("audience")), ("Owner", item.get("owner"))]
+                ),
             ],
             empty="No prerequisites or scope notes are recorded.",
         ),
@@ -205,21 +230,35 @@ def _runbook_sections(section_content: dict[str, dict[str, Any]], metadata: dict
             "guidance",
             "Steps and guidance",
             eyebrow="Guide",
-            blocks=[_list_block(section_content.get("procedure", {}).get("steps") or metadata.get("steps"), title="Steps")],
+            blocks=[
+                _list_block(
+                    section_content.get("procedure", {}).get("steps") or metadata.get("steps"),
+                    title="Steps",
+                )
+            ],
             empty="No guided steps are recorded.",
         ),
         _section(
             "verification",
             "Verification",
             eyebrow="Verify",
-            blocks=[_list_block(section_content.get("verification", {}).get("verification") or metadata.get("verification"))],
+            blocks=[
+                _list_block(
+                    section_content.get("verification", {}).get("verification")
+                    or metadata.get("verification")
+                )
+            ],
             empty="No verification checks are recorded.",
         ),
         _section(
             "rollback",
             "Rollback and recovery",
             eyebrow="Recover",
-            blocks=[_list_block(section_content.get("rollback", {}).get("rollback") or metadata.get("rollback"))],
+            blocks=[
+                _list_block(
+                    section_content.get("rollback", {}).get("rollback") or metadata.get("rollback")
+                )
+            ],
             empty="No rollback or recovery steps are recorded.",
         ),
         _section(
@@ -227,15 +266,22 @@ def _runbook_sections(section_content: dict[str, dict[str, Any]], metadata: dict
             "Escalation and boundaries",
             eyebrow="Escalate",
             blocks=[
-                _paragraph_block(boundaries.get("boundaries_and_escalation") or metadata.get("boundaries_and_escalation")),
-                _paragraph_block(boundaries.get("related_knowledge_notes"), title="Related knowledge"),
+                _paragraph_block(
+                    boundaries.get("boundaries_and_escalation")
+                    or metadata.get("boundaries_and_escalation")
+                ),
+                _paragraph_block(
+                    boundaries.get("related_knowledge_notes"), title="Related knowledge"
+                ),
             ],
             empty="No escalation boundary is recorded.",
         ),
     ]
 
 
-def _known_error_sections(section_content: dict[str, dict[str, Any]], metadata: dict[str, Any], item: dict[str, Any]) -> list[dict[str, Any]]:
+def _known_error_sections(
+    section_content: dict[str, dict[str, Any]], metadata: dict[str, Any], item: dict[str, Any]
+) -> list[dict[str, Any]]:
     diagnosis = section_content.get("diagnosis", {})
     escalation = section_content.get("escalation", {})
     return [
@@ -244,7 +290,9 @@ def _known_error_sections(section_content: dict[str, dict[str, Any]], metadata: 
             "When to use",
             eyebrow="Read",
             blocks=[
-                _list_block(diagnosis.get("symptoms") or metadata.get("symptoms"), title="Symptoms"),
+                _list_block(
+                    diagnosis.get("symptoms") or metadata.get("symptoms"), title="Symptoms"
+                ),
                 _paragraph_block(diagnosis.get("scope") or metadata.get("scope"), title="Scope"),
             ],
             empty="No trigger pattern is recorded.",
@@ -255,7 +303,9 @@ def _known_error_sections(section_content: dict[str, dict[str, Any]], metadata: 
             eyebrow="Scope",
             blocks=[
                 _paragraph_block(diagnosis.get("cause") or metadata.get("cause"), title="Cause"),
-                _facts_block([("Owner", item.get("owner")), ("Audience", metadata.get("audience"))]),
+                _facts_block(
+                    [("Owner", item.get("owner")), ("Audience", metadata.get("audience"))]
+                ),
             ],
             empty="No scope notes are recorded.",
         ),
@@ -265,10 +315,15 @@ def _known_error_sections(section_content: dict[str, dict[str, Any]], metadata: 
             eyebrow="Guide",
             blocks=[
                 _list_block(
-                    section_content.get("diagnostic_checks", {}).get("diagnostic_checks") or metadata.get("diagnostic_checks"),
+                    section_content.get("diagnostic_checks", {}).get("diagnostic_checks")
+                    or metadata.get("diagnostic_checks"),
                     title="Diagnostic checks",
                 ),
-                _list_block(section_content.get("mitigations", {}).get("mitigations") or metadata.get("mitigations"), title="Mitigations"),
+                _list_block(
+                    section_content.get("mitigations", {}).get("mitigations")
+                    or metadata.get("mitigations"),
+                    title="Mitigations",
+                ),
             ],
             empty="No diagnostic or mitigation guidance is recorded.",
         ),
@@ -283,7 +338,13 @@ def _known_error_sections(section_content: dict[str, dict[str, Any]], metadata: 
             "rollback",
             "Rollback and recovery",
             eyebrow="Recover",
-            blocks=[_paragraph_block(section_content.get("mitigations", {}).get("permanent_fix_status") or metadata.get("permanent_fix_status"), title="Permanent fix status")],
+            blocks=[
+                _paragraph_block(
+                    section_content.get("mitigations", {}).get("permanent_fix_status")
+                    or metadata.get("permanent_fix_status"),
+                    title="Permanent fix status",
+                )
+            ],
             empty="No recovery guidance is recorded.",
         ),
         _section(
@@ -291,7 +352,9 @@ def _known_error_sections(section_content: dict[str, dict[str, Any]], metadata: 
             "Escalation and boundaries",
             eyebrow="Escalate",
             blocks=[
-                _paragraph_block(escalation.get("escalation_threshold"), title="Escalation threshold"),
+                _paragraph_block(
+                    escalation.get("escalation_threshold"), title="Escalation threshold"
+                ),
                 _paragraph_block(escalation.get("evidence_notes"), title="Evidence notes"),
             ],
             empty="No escalation guidance is recorded.",
@@ -299,7 +362,9 @@ def _known_error_sections(section_content: dict[str, dict[str, Any]], metadata: 
     ]
 
 
-def _service_record_sections(section_content: dict[str, dict[str, Any]], metadata: dict[str, Any], item: dict[str, Any]) -> list[dict[str, Any]]:
+def _service_record_sections(
+    section_content: dict[str, dict[str, Any]], metadata: dict[str, Any], item: dict[str, Any]
+) -> list[dict[str, Any]]:
     profile = section_content.get("service_profile", {})
     operations = section_content.get("operations", {})
     return [
@@ -317,8 +382,17 @@ def _service_record_sections(section_content: dict[str, dict[str, Any]], metadat
             blocks=[
                 _facts_block(
                     [
-                        ("Service name", profile.get("service_name") or metadata.get("service_name") or item.get("title")),
-                        ("Criticality", profile.get("service_criticality") or metadata.get("service_criticality")),
+                        (
+                            "Service name",
+                            profile.get("service_name")
+                            or metadata.get("service_name")
+                            or item.get("title"),
+                        ),
+                        (
+                            "Criticality",
+                            profile.get("service_criticality")
+                            or metadata.get("service_criticality"),
+                        ),
                         ("Owner", item.get("owner")),
                     ]
                 ),
@@ -330,9 +404,21 @@ def _service_record_sections(section_content: dict[str, dict[str, Any]], metadat
             "Steps and guidance",
             eyebrow="Guide",
             blocks=[
-                _list_block(section_content.get("support_entrypoints", {}).get("support_entrypoints") or metadata.get("support_entrypoints"), title="Support entrypoints"),
-                _list_block(section_content.get("dependencies", {}).get("dependencies") or metadata.get("dependencies"), title="Dependencies"),
-                _list_block(section_content.get("failure_modes", {}).get("common_failure_modes") or metadata.get("common_failure_modes"), title="Failure modes"),
+                _list_block(
+                    section_content.get("support_entrypoints", {}).get("support_entrypoints")
+                    or metadata.get("support_entrypoints"),
+                    title="Support entrypoints",
+                ),
+                _list_block(
+                    section_content.get("dependencies", {}).get("dependencies")
+                    or metadata.get("dependencies"),
+                    title="Dependencies",
+                ),
+                _list_block(
+                    section_content.get("failure_modes", {}).get("common_failure_modes")
+                    or metadata.get("common_failure_modes"),
+                    title="Failure modes",
+                ),
                 _paragraph_block(operations.get("operational_notes"), title="Operational notes"),
             ],
             empty="No operational guidance is recorded.",
@@ -355,40 +441,62 @@ def _service_record_sections(section_content: dict[str, dict[str, Any]], metadat
             "escalation",
             "Escalation and boundaries",
             eyebrow="Escalate",
-            blocks=[_list_block(operations.get("related_known_errors"), title="Related known errors")],
+            blocks=[
+                _list_block(operations.get("related_known_errors"), title="Related known errors")
+            ],
             empty="No escalation path is recorded.",
         ),
     ]
 
 
-def _policy_sections(section_content: dict[str, dict[str, Any]], metadata: dict[str, Any], item: dict[str, Any]) -> list[dict[str, Any]]:
+def _policy_sections(
+    section_content: dict[str, dict[str, Any]], metadata: dict[str, Any], item: dict[str, Any]
+) -> list[dict[str, Any]]:
     return [
         _section(
             "when_to_use",
             "When to use",
             eyebrow="Read",
-            blocks=[_paragraph_block(section_content.get("policy_scope", {}).get("policy_scope") or metadata.get("policy_scope"))],
+            blocks=[
+                _paragraph_block(
+                    section_content.get("policy_scope", {}).get("policy_scope")
+                    or metadata.get("policy_scope")
+                )
+            ],
             empty="No policy scope is recorded.",
         ),
         _section(
             "scope",
             "Prerequisites and scope",
             eyebrow="Scope",
-            blocks=[_facts_block([("Owner", item.get("owner")), ("Review cadence", item.get("review_cadence"))])],
+            blocks=[
+                _facts_block(
+                    [("Owner", item.get("owner")), ("Review cadence", item.get("review_cadence"))]
+                )
+            ],
             empty="No scope details are recorded.",
         ),
         _section(
             "guidance",
             "Steps and guidance",
             eyebrow="Guide",
-            blocks=[_list_block(section_content.get("controls", {}).get("controls") or metadata.get("controls"), title="Controls")],
+            blocks=[
+                _list_block(
+                    section_content.get("controls", {}).get("controls") or metadata.get("controls"),
+                    title="Controls",
+                )
+            ],
             empty="No controls are recorded.",
         ),
         _section(
             "verification",
             "Verification",
             eyebrow="Verify",
-            blocks=[_paragraph_block("Confirm operators can point to the specific control they applied.")],
+            blocks=[
+                _paragraph_block(
+                    "Confirm operators can point to the specific control they applied."
+                )
+            ],
             empty="No verification notes are recorded.",
         ),
         _section(
@@ -402,20 +510,34 @@ def _policy_sections(section_content: dict[str, dict[str, Any]], metadata: dict[
             "escalation",
             "Escalation and boundaries",
             eyebrow="Escalate",
-            blocks=[_paragraph_block(section_content.get("exceptions", {}).get("exceptions") or metadata.get("exceptions"), title="Exceptions")],
+            blocks=[
+                _paragraph_block(
+                    section_content.get("exceptions", {}).get("exceptions")
+                    or metadata.get("exceptions"),
+                    title="Exceptions",
+                )
+            ],
             empty="No exception handling is recorded.",
         ),
     ]
 
 
-def _system_design_sections(section_content: dict[str, dict[str, Any]], metadata: dict[str, Any]) -> list[dict[str, Any]]:
+def _system_design_sections(
+    section_content: dict[str, dict[str, Any]], metadata: dict[str, Any]
+) -> list[dict[str, Any]]:
     operations = section_content.get("operations", {})
     return [
         _section(
             "when_to_use",
             "When to use",
             eyebrow="Read",
-            blocks=[_paragraph_block(section_content.get("architecture", {}).get("architecture") or metadata.get("architecture"), title="Architecture")],
+            blocks=[
+                _paragraph_block(
+                    section_content.get("architecture", {}).get("architecture")
+                    or metadata.get("architecture"),
+                    title="Architecture",
+                )
+            ],
             empty="No architecture overview is recorded.",
         ),
         _section(
@@ -423,8 +545,16 @@ def _system_design_sections(section_content: dict[str, dict[str, Any]], metadata
             "Prerequisites and scope",
             eyebrow="Scope",
             blocks=[
-                _list_block(section_content.get("dependencies", {}).get("dependencies") or metadata.get("dependencies"), title="Dependencies"),
-                _list_block(section_content.get("interfaces", {}).get("interfaces") or metadata.get("interfaces"), title="Interfaces"),
+                _list_block(
+                    section_content.get("dependencies", {}).get("dependencies")
+                    or metadata.get("dependencies"),
+                    title="Dependencies",
+                ),
+                _list_block(
+                    section_content.get("interfaces", {}).get("interfaces")
+                    or metadata.get("interfaces"),
+                    title="Interfaces",
+                ),
             ],
             empty="No dependency or interface scope is recorded.",
         ),
@@ -432,21 +562,34 @@ def _system_design_sections(section_content: dict[str, dict[str, Any]], metadata
             "guidance",
             "Steps and guidance",
             eyebrow="Guide",
-            blocks=[_paragraph_block(operations.get("operational_notes"), title="Operational notes")],
+            blocks=[
+                _paragraph_block(operations.get("operational_notes"), title="Operational notes")
+            ],
             empty="No operational guidance is recorded.",
         ),
         _section(
             "verification",
             "Verification",
             eyebrow="Verify",
-            blocks=[_list_block(section_content.get("failure_modes", {}).get("common_failure_modes") or metadata.get("common_failure_modes"), title="Failure modes")],
+            blocks=[
+                _list_block(
+                    section_content.get("failure_modes", {}).get("common_failure_modes")
+                    or metadata.get("common_failure_modes"),
+                    title="Failure modes",
+                )
+            ],
             empty="No failure-mode verification notes are recorded.",
         ),
         _section(
             "rollback",
             "Rollback and recovery",
             eyebrow="Recover",
-            blocks=[_list_block(operations.get("support_entrypoints") or metadata.get("support_entrypoints"), title="Support entrypoints")],
+            blocks=[
+                _list_block(
+                    operations.get("support_entrypoints") or metadata.get("support_entrypoints"),
+                    title="Support entrypoints",
+                )
+            ],
             empty="No recovery routing is recorded.",
         ),
         _section(
@@ -491,7 +634,11 @@ def build_article_projection(
     experience: ExperienceContext,
 ) -> dict[str, Any]:
     surface_behavior = experience.page_behavior("object-detail")
-    blueprint_id = _clean_text((revision or {}).get("blueprint_id")) or _clean_text(item.get("object_type")) or "runbook"
+    blueprint_id = (
+        _clean_text((revision or {}).get("blueprint_id"))
+        or _clean_text(item.get("object_type"))
+        or "runbook"
+    )
     primary_sections = _article_sections(
         blueprint_id,
         section_content=section_content,
@@ -510,7 +657,9 @@ def build_article_projection(
         _change_context(revision, audit_events),
         _source_context(revision),
     ]
-    allowed_secondary = set(surface_behavior.allowed_secondary_sections if surface_behavior is not None else ())
+    allowed_secondary = set(
+        surface_behavior.allowed_secondary_sections if surface_behavior is not None else ()
+    )
     secondary_sections = [
         section
         for section in all_secondary
@@ -526,5 +675,7 @@ def build_article_projection(
         },
         "sections": primary_sections,
         "secondary_sections": secondary_sections,
-        "show_context_rail": bool(surface_behavior.show_context_rail) if surface_behavior is not None else False,
+        "show_context_rail": bool(surface_behavior.show_context_rail)
+        if surface_behavior is not None
+        else False,
     }

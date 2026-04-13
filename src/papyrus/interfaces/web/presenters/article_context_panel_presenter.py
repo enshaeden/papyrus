@@ -10,7 +10,9 @@ from .article_content_presenter import render_article_block
 def render_article_context_panel(*, section: dict[str, Any]) -> str:
     blocks = [block for block in section.get("blocks") or [] if block]
     raw_markdown = str(section.get("raw_markdown") or "").strip()
-    section_surface = "posture" if str(section.get("section_id") or "") == "governance" else "object-detail"
+    section_surface = (
+        "posture" if str(section.get("section_id") or "") == "governance" else "object-detail"
+    )
     body_html = join_html([render_article_block(block) for block in blocks]) if blocks else ""
     if raw_markdown:
         body_html += (
@@ -24,6 +26,6 @@ def render_article_context_panel(*, section: dict[str, Any]) -> str:
     return (
         f'<section class="article-context-panel" data-component="article-context-panel" data-surface="{section_surface}">'
         f'<p class="article-context-panel__kicker">{escape(section["eyebrow"])}</p>'
-        f'<h3>{escape(section["title"])}</h3>'
+        f"<h3>{escape(section['title'])}</h3>"
         f"{body_html}</section>"
     )

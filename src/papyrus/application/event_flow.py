@@ -8,7 +8,7 @@ from typing import Any
 
 from papyrus.application.impact_flow import propagate_change_event
 from papyrus.domain.actor import require_actor_id
-from papyrus.domain.events import ChangeEvent, EvidenceEvent, EventBase, ValidationEvent
+from papyrus.domain.events import ChangeEvent, EventBase, EvidenceEvent, ValidationEvent
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.serializer import json_dump
 from papyrus.infrastructure.migrations import apply_runtime_schema
@@ -19,7 +19,7 @@ from papyrus.infrastructure.search.indexer import fts5_available
 
 
 def _now_utc() -> dt.datetime:
-    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    return dt.datetime.now(dt.UTC).replace(microsecond=0)
 
 
 def _event_id() -> str:
@@ -36,8 +36,12 @@ def _coerce_occurred_at(value: str | dt.datetime | None) -> dt.datetime:
     if value is None:
         return _now_utc()
     if isinstance(value, dt.datetime):
-        return value.astimezone(dt.timezone.utc).replace(microsecond=0)
-    return dt.datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(dt.timezone.utc).replace(microsecond=0)
+        return value.astimezone(dt.UTC).replace(microsecond=0)
+    return (
+        dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        .astimezone(dt.UTC)
+        .replace(microsecond=0)
+    )
 
 
 def _event_class(event_type: str) -> type[EventBase]:
@@ -96,7 +100,9 @@ def ingest_event(
         event_id=event_id,
     )
 
-    connection = open_runtime_database(Path(database_path), minimum_schema_version=RUNTIME_SCHEMA_VERSION)
+    connection = open_runtime_database(
+        Path(database_path), minimum_schema_version=RUNTIME_SCHEMA_VERSION
+    )
     try:
         apply_runtime_schema(connection, has_fts5=fts5_available(connection))
         connection.execute(

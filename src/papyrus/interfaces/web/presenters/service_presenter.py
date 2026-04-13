@@ -10,7 +10,9 @@ from papyrus.interfaces.web.urls import impact_service_url, object_url
 from papyrus.interfaces.web.view_helpers import escape, join_html, link, render_definition_rows
 
 
-def present_service_catalog(renderer: TemplateRenderer, *, services: list[dict[str, Any]], role: str) -> dict[str, Any]:
+def present_service_catalog(
+    renderer: TemplateRenderer, *, services: list[dict[str, Any]], role: str
+) -> dict[str, Any]:
     del renderer
     return {
         "page_template": "pages/services.html",
@@ -26,11 +28,17 @@ def present_service_catalog(renderer: TemplateRenderer, *, services: list[dict[s
     }
 
 
-def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any], role: str) -> dict[str, Any]:
+def present_service_detail(
+    renderer: TemplateRenderer, *, detail: dict[str, Any], role: str
+) -> dict[str, Any]:
     del renderer
     service = detail["service"]
     actions = [
-        link("Review service impact", impact_service_url(role, str(service["service_id"])), css_class="button button-primary"),
+        link(
+            "Review service impact",
+            impact_service_url(role, str(service["service_id"])),
+            css_class="button button-primary",
+        ),
     ]
     if detail["canonical_object"] is not None:
         actions.append(
@@ -45,15 +53,24 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
         "page_title": service["service_name"],
         "page_header": {
             "headline": service["service_name"],
-            "kicker": f'{service["service_criticality"]} · {service["status"]}',
-            "intro": f'{service["owner"] or "Unassigned"} · {service["team"] or "No team"}',
+            "kicker": f"{service['service_criticality']} · {service['status']}",
+            "intro": f"{service['owner'] or 'Unassigned'} · {service['team'] or 'No team'}",
             "detail_html": (
                 '<dl class="metadata-list">'
                 + render_definition_rows(
                     [
-                        ("Support entrypoints", escape(", ".join(service["support_entrypoints"]) or "None recorded")),
-                        ("Dependencies", escape(", ".join(service["dependencies"]) or "None recorded")),
-                        ("Failure modes", escape(", ".join(service["common_failure_modes"]) or "None recorded")),
+                        (
+                            "Support entrypoints",
+                            escape(", ".join(service["support_entrypoints"]) or "None recorded"),
+                        ),
+                        (
+                            "Dependencies",
+                            escape(", ".join(service["dependencies"]) or "None recorded"),
+                        ),
+                        (
+                            "Failure modes",
+                            escape(", ".join(service["common_failure_modes"]) or "None recorded"),
+                        ),
                     ]
                 )
                 + "</dl>"
@@ -64,7 +81,9 @@ def present_service_detail(renderer: TemplateRenderer, *, detail: dict[str, Any]
         "aside_html": "",
         "page_context": {
             "overview_html": render_service_pressure(posture=detail["service_posture"]),
-            "linked_objects_html": render_service_path(role=role, linked_objects=detail["linked_objects"]),
+            "linked_objects_html": render_service_path(
+                role=role, linked_objects=detail["linked_objects"]
+            ),
         },
         "page_surface": "services",
     }

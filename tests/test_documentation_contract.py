@@ -11,7 +11,9 @@ sys.path.insert(0, str(ROOT / "src"))
 
 class DocumentationContractTests(unittest.TestCase):
     def test_reference_docs_describe_ui_boundary_and_semantic_hooks(self) -> None:
-        operator_web_ui = (ROOT / "docs" / "reference" / "operator-web-ui.md").read_text(encoding="utf-8").lower()
+        operator_web_ui = (
+            (ROOT / "docs" / "reference" / "operator-web-ui.md").read_text(encoding="utf-8").lower()
+        )
         self.assertIn("routes should not emit html fragments", operator_web_ui)
         self.assertIn("data-surface", operator_web_ui)
         self.assertIn("data-component", operator_web_ui)
@@ -36,7 +38,11 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("neutral surfaces must dominate", operator_web_ui)
 
     def test_operator_readiness_records_recovery_and_cleanup_boundary(self) -> None:
-        operator_readiness = (ROOT / "docs" / "reference" / "operator-readiness.md").read_text(encoding="utf-8").lower()
+        operator_readiness = (
+            (ROOT / "docs" / "reference" / "operator-readiness.md")
+            .read_text(encoding="utf-8")
+            .lower()
+        )
         self.assertIn("pending mutation recovery", operator_readiness)
         self.assertIn("stale journals and stale locks", operator_readiness)
         self.assertIn("fails closed", operator_readiness)
@@ -56,14 +62,23 @@ class DocumentationContractTests(unittest.TestCase):
 
     def test_canonical_decision_docs_lock_experience_architecture(self) -> None:
         experience_architecture = (
-            ROOT / "decisions" / "role-scoped-experience-architecture.md"
-        ).read_text(encoding="utf-8").lower()
-        layout_contracts = (ROOT / "decisions" / "layout-contracts-by-role.md").read_text(encoding="utf-8").lower()
-        component_contracts = (ROOT / "decisions" / "web-ui-component-contracts.md").read_text(
-            encoding="utf-8"
-        ).lower()
+            (ROOT / "decisions" / "role-scoped-experience-architecture.md")
+            .read_text(encoding="utf-8")
+            .lower()
+        )
+        layout_contracts = (
+            (ROOT / "decisions" / "layout-contracts-by-role.md").read_text(encoding="utf-8").lower()
+        )
+        component_contracts = (
+            (ROOT / "decisions" / "web-ui-component-contracts.md")
+            .read_text(encoding="utf-8")
+            .lower()
+        )
 
-        self.assertIn("global search is shell-owned and remains centered in the top bar", experience_architecture)
+        self.assertIn(
+            "global search is shell-owned and remains centered in the top bar",
+            experience_architecture,
+        )
         self.assertIn("pantone 7659 c", experience_architecture)
         self.assertIn("one dominant purple-family tone per component", experience_architecture)
         self.assertIn("redirecting to `/operator`", experience_architecture)
@@ -82,17 +97,26 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("knowledge workflows and lifecycle", mkdocs)
         self.assertIn("web ui component contracts", mkdocs)
         self.assertNotIn("experience principles: decisions/experience-principles.md", mkdocs)
-        self.assertNotIn("role and visibility matrix: decisions/role-experience-visibility-matrix.md", mkdocs)
+        self.assertNotIn(
+            "role and visibility matrix: decisions/role-experience-visibility-matrix.md", mkdocs
+        )
         self.assertNotIn(
             "route separation and experience boundaries: decisions/route-separation-and-experience-boundaries.md",
             mkdocs,
         )
-        self.assertNotIn("actor model to role model mapping: decisions/actor-model-to-role-model-mapping.md", mkdocs)
+        self.assertNotIn(
+            "actor model to role model mapping: decisions/actor-model-to-role-model-mapping.md",
+            mkdocs,
+        )
 
     def test_docs_describe_operator_only_api_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()
-        system_model = (ROOT / "docs" / "reference" / "system-model.md").read_text(encoding="utf-8").lower()
-        read_playbook = (ROOT / "docs" / "playbooks" / "read.md").read_text(encoding="utf-8").lower()
+        system_model = (
+            (ROOT / "docs" / "reference" / "system-model.md").read_text(encoding="utf-8").lower()
+        )
+        read_playbook = (
+            (ROOT / "docs" / "playbooks" / "read.md").read_text(encoding="utf-8").lower()
+        )
 
         self.assertIn("operator-oriented local api surface", readme)
         self.assertIn("separate decision and migration", readme)
@@ -102,7 +126,11 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("json api remains operator-oriented", read_playbook)
 
     def test_lifecycle_decision_uses_explicit_state_machines(self) -> None:
-        lifecycle = (ROOT / "decisions" / "knowledge-workflows-and-lifecycle.md").read_text(encoding="utf-8").lower()
+        lifecycle = (
+            (ROOT / "decisions" / "knowledge-workflows-and-lifecycle.md")
+            .read_text(encoding="utf-8")
+            .lower()
+        )
         self.assertIn("object_lifecycle_state", lifecycle)
         self.assertIn("revision_review_state", lifecycle)
         self.assertIn("draft_progress_state", lifecycle)
@@ -137,7 +165,9 @@ class DocumentationContractTests(unittest.TestCase):
             ROOT / "src" / "papyrus" / "interfaces" / "web" / "AGENTS.md",
         ]:
             text = path.read_text(encoding="utf-8")
-            self.assertNotIn("docs/decisions/", text, msg=f"{path} still references docs/decisions/")
+            self.assertNotIn(
+                "docs/decisions/", text, msg=f"{path} still references docs/decisions/"
+            )
 
     def test_readme_is_current_state_entrypoint(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()

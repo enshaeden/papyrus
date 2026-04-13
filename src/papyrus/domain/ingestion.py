@@ -6,7 +6,6 @@ from typing import Any
 
 from papyrus.domain.lifecycle import IngestionLifecycleState
 
-
 IngestionStatus = IngestionLifecycleState
 
 

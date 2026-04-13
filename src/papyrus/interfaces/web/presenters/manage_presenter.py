@@ -3,6 +3,16 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import urlencode
 
+from papyrus.interfaces.web.presenters.activity_audit_log_presenter import render_activity_audit_log
+from papyrus.interfaces.web.presenters.activity_event_list_presenter import (
+    render_activity_event_list,
+)
+from papyrus.interfaces.web.presenters.activity_filter_bar_presenter import (
+    render_activity_filter_bar,
+)
+from papyrus.interfaces.web.presenters.activity_validation_log_presenter import (
+    render_activity_validation_log,
+)
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import (
@@ -18,11 +28,9 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
     render_projection_overview_panel,
     render_projection_status_panel,
 )
-from papyrus.interfaces.web.presenters.activity_audit_log_presenter import render_activity_audit_log
-from papyrus.interfaces.web.presenters.activity_event_list_presenter import render_activity_event_list
-from papyrus.interfaces.web.presenters.activity_filter_bar_presenter import render_activity_filter_bar
-from papyrus.interfaces.web.presenters.activity_validation_log_presenter import render_activity_validation_log
-from papyrus.interfaces.web.presenters.review_cleanup_strip_presenter import render_review_cleanup_strip
+from papyrus.interfaces.web.presenters.review_cleanup_strip_presenter import (
+    render_review_cleanup_strip,
+)
 from papyrus.interfaces.web.presenters.review_lane_presenter import render_review_lane
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.urls import review_queue_url, validation_run_new_url
@@ -31,7 +39,6 @@ from papyrus.interfaces.web.view_helpers import (
     format_timestamp,
     join_html,
     link,
-    quoted_path,
     render_definition_rows,
     render_list,
     tone_for_review_state,
@@ -82,19 +89,23 @@ def _manage_item_detail_href(item: dict[str, object], *, role: str) -> str:
     return primary_surface_href(
         role=role,
         object_id=str(item["object_id"]),
-        revision_id=str(item.get("revision_id") or item.get("current_revision_id") or "").strip() or None,
+        revision_id=str(item.get("revision_id") or item.get("current_revision_id") or "").strip()
+        or None,
         current_revision_id=str(item.get("current_revision_id") or "").strip() or None,
         ui_projection=item.get("ui_projection"),
     )
 
 
-def _manage_item_actions(components: ComponentPresenter, item: dict[str, object], *, role: str) -> str:
+def _manage_item_actions(
+    components: ComponentPresenter, item: dict[str, object], *, role: str
+) -> str:
     return compact_action_menu_html(
         components,
         role=role,
         ui_projection=item.get("ui_projection"),
         object_id=str(item["object_id"]),
-        revision_id=str(item.get("revision_id") or item.get("current_revision_id") or "").strip() or None,
+        revision_id=str(item.get("revision_id") or item.get("current_revision_id") or "").strip()
+        or None,
         current_revision_id=str(item.get("current_revision_id") or "").strip() or None,
     )
 
@@ -110,7 +121,7 @@ def _governed_context_html(
     show_actions: bool = False,
 ) -> str:
     object_id = str(detail["object"]["object_id"])
-    revision_record = (detail.get("revision") or detail.get("current_revision") or {})
+    revision_record = detail.get("revision") or detail.get("current_revision") or {}
     revision_id = str(revision_record.get("revision_id") or "").strip() or None
     panels = [
         (
@@ -172,12 +183,20 @@ def _manage_table(
         rows.append(
             [
                 components.decision_cell(
-                    title_html=link(str(item["title"]), selection_href, css_class="selected-row-link"),
-                    supporting_html=escape(item.get("change_summary") or item.get("summary") or "No recent summary recorded."),
+                    title_html=link(
+                        str(item["title"]), selection_href, css_class="selected-row-link"
+                    ),
+                    supporting_html=escape(
+                        item.get("change_summary")
+                        or item.get("summary")
+                        or "No recent summary recorded."
+                    ),
                     meta=[escape(str(item.get("object_id") or ""))],
                 ),
                 components.decision_cell(
-                    title_html=escape(use_guidance.get("summary") or "Backend guidance unavailable"),
+                    title_html=escape(
+                        use_guidance.get("summary") or "Backend guidance unavailable"
+                    ),
                     badges=[
                         components.badge(
                             label="Trust",
@@ -187,18 +206,28 @@ def _manage_table(
                         components.badge(
                             label="Review",
                             value=str(state.get("revision_review_state") or "unknown"),
-                            tone=tone_for_review_state(str(state.get("revision_review_state") or "unknown")),
+                            tone=tone_for_review_state(
+                                str(state.get("revision_review_state") or "unknown")
+                            ),
                         ),
                     ],
-                    supporting_html=escape(use_guidance.get("detail") or "Papyrus did not return governed detail for this queue item."),
+                    supporting_html=escape(
+                        use_guidance.get("detail")
+                        or "Papyrus did not return governed detail for this queue item."
+                    ),
                 ),
                 components.decision_cell(
                     title_html=escape(use_guidance.get("next_action") or "Review this item"),
-                    supporting_html=escape(", ".join(reasons) or "Papyrus did not attach explicit reasons to this queue item."),
+                    supporting_html=escape(
+                        ", ".join(reasons)
+                        or "Papyrus did not attach explicit reasons to this queue item."
+                    ),
                     extra_html=(
                         components.inline_disclosure(
                             label="Why this item is here",
-                            body_html=render_list([escape(reason) for reason in reasons], css_class="panel-list")
+                            body_html=render_list(
+                                [escape(reason) for reason in reasons], css_class="panel-list"
+                            )
                             or '<p class="empty-state-copy">No explicit reasons were attached to this queue item.</p>',
                         )
                         if reasons
@@ -211,7 +240,8 @@ def _manage_table(
         )
         row_attrs.append(
             {"aria-selected": "true", "class": "is-selected"}
-            if object_id == selected_object_id and (not selected_revision_id or revision_id == selected_revision_id)
+            if object_id == selected_object_id
+            and (not selected_revision_id or revision_id == selected_revision_id)
             else {}
         )
     return components.context_panel(
@@ -231,7 +261,9 @@ def _manage_table(
     )
 
 
-def _selected_manage_item(queue: dict[str, Any], *, selected_object_id: str, selected_revision_id: str) -> dict[str, object] | None:
+def _selected_manage_item(
+    queue: dict[str, Any], *, selected_object_id: str, selected_revision_id: str
+) -> dict[str, object] | None:
     ordered_groups = (
         queue["ready_for_review"],
         queue["needs_decision"],
@@ -246,12 +278,16 @@ def _selected_manage_item(queue: dict[str, Any], *, selected_object_id: str, sel
     for item in all_items:
         object_id = str(item.get("object_id") or "")
         revision_id = str(item.get("revision_id") or item.get("current_revision_id") or "")
-        if object_id == selected_object_id and (not selected_revision_id or revision_id == selected_revision_id):
+        if object_id == selected_object_id and (
+            not selected_revision_id or revision_id == selected_revision_id
+        ):
             return item
     return all_items[0]
 
 
-def _manage_context_panel(components: ComponentPresenter, item: dict[str, object], *, role: str) -> str:
+def _manage_context_panel(
+    components: ComponentPresenter, item: dict[str, object], *, role: str
+) -> str:
     state = projection_state(item.get("ui_projection"))
     use_guidance = projection_use_guidance(item.get("ui_projection"))
     reasons = projection_reasons(item.get("ui_projection"))
@@ -266,7 +302,10 @@ def _manage_context_panel(components: ComponentPresenter, item: dict[str, object
                 or '<p class="empty-state-copy">No explicit reasons were attached to this queue item.</p>',
                 render_definition_rows(
                     [
-                        ("Next action", escape(use_guidance.get("next_action") or "Review this item")),
+                        (
+                            "Next action",
+                            escape(use_guidance.get("next_action") or "Review this item"),
+                        ),
                         ("Trust", escape(state.get("trust_state") or "unknown")),
                         ("Review", escape(state.get("revision_review_state") or "unknown")),
                         ("Owner", escape(str(item.get("owner") or "Unowned"))),
@@ -276,7 +315,11 @@ def _manage_context_panel(components: ComponentPresenter, item: dict[str, object
         ),
         footer_html=join_html(
             [
-                link("Open guidance", _manage_item_detail_href(item, role=role), css_class="button button-secondary"),
+                link(
+                    "Open guidance",
+                    _manage_item_detail_href(item, role=role),
+                    css_class="button button-secondary",
+                ),
                 _manage_item_actions(components, item, role=role),
             ],
             " ",
@@ -338,7 +381,11 @@ def present_manage_queue_page(
         selected_revision_id=selected_revision_id,
     )
     active_object_id = str((selected_item or {}).get("object_id") or "")
-    active_revision_id = str((selected_item or {}).get("revision_id") or (selected_item or {}).get("current_revision_id") or "")
+    active_revision_id = str(
+        (selected_item or {}).get("revision_id")
+        or (selected_item or {}).get("current_revision_id")
+        or ""
+    )
     cleanup_counts = queue.get("cleanup_counts") or {}
 
     def table_html(title: str, items: list[dict[str, Any]]) -> str:
@@ -368,7 +415,9 @@ def present_manage_queue_page(
         headline="Review queue",
         active_nav="review",
         show_actor_links=False,
-        aside_html=_manage_context_panel(components, selected_item, role=role) if selected_item is not None else "",
+        aside_html=_manage_context_panel(components, selected_item, role=role)
+        if selected_item is not None
+        else "",
         page_context={"tables_html": tables_html},
     )
 
@@ -387,14 +436,20 @@ def present_object_supersede_page(
         + forms.field(
             field_id="replacement_object_id",
             label="Replacement object ID",
-            control_html=forms.input(field_id="replacement_object_id", name="replacement_object_id", value=values["replacement_object_id"]),
+            control_html=forms.input(
+                field_id="replacement_object_id",
+                name="replacement_object_id",
+                value=values["replacement_object_id"],
+            ),
             hint="Use the governed object ID that replaces this content.",
             errors=errors.get("replacement_object_id"),
         )
         + forms.field(
             field_id="notes",
             label="Supersession rationale",
-            control_html=forms.textarea(field_id="notes", name="notes", value=values["notes"], rows=4),
+            control_html=forms.textarea(
+                field_id="notes", name="notes", value=values["notes"], rows=4
+            ),
             hint="Required. Explain why operators should stop relying on this object.",
             errors=errors.get("notes"),
         )
@@ -441,14 +496,20 @@ def present_object_suspect_page(
         + forms.field(
             field_id="changed_entity_id",
             label="Changed entity ID",
-            control_html=forms.input(field_id="changed_entity_id", name="changed_entity_id", value=values["changed_entity_id"]),
+            control_html=forms.input(
+                field_id="changed_entity_id",
+                name="changed_entity_id",
+                value=values["changed_entity_id"],
+            ),
             hint="Optional identifier for the specific changed dependency.",
             errors=errors.get("changed_entity_id"),
         )
         + forms.field(
             field_id="reason",
             label="Suspect rationale",
-            control_html=forms.textarea(field_id="reason", name="reason", value=values["reason"], rows=4),
+            control_html=forms.textarea(
+                field_id="reason", name="reason", value=values["reason"], rows=4
+            ),
             hint="Required. Make the degradation legible to future operators and reviewers.",
             errors=errors.get("reason"),
         )
@@ -490,14 +551,21 @@ def present_object_archive_page(
         + forms.field(
             field_id="retirement_reason",
             label="Retirement rationale",
-            control_html=forms.textarea(field_id="retirement_reason", name="retirement_reason", value=values["retirement_reason"], rows=4),
+            control_html=forms.textarea(
+                field_id="retirement_reason",
+                name="retirement_reason",
+                value=values["retirement_reason"],
+                rows=4,
+            ),
             hint="Required. State why operators should no longer treat this as active guidance.",
             errors=errors.get("retirement_reason"),
         )
         + forms.field(
             field_id="notes",
             label="Operator notes",
-            control_html=forms.textarea(field_id="notes", name="notes", value=values["notes"], rows=3),
+            control_html=forms.textarea(
+                field_id="notes", name="notes", value=values["notes"], rows=3
+            ),
             hint="Optional notes stored with the archive audit event.",
         )
         + render_acknowledgement_panel(
@@ -506,7 +574,10 @@ def present_object_archive_page(
             title="Required acknowledgements",
             required_acknowledgements=required_acknowledgements,
             selected_acknowledgements=selected_acknowledgements,
-            operator_message=str(archive_action.get("detail") or "Review the required acknowledgements before continuing."),
+            operator_message=str(
+                archive_action.get("detail")
+                or "Review the required acknowledgements before continuing."
+            ),
             errors=errors.get("acknowledgements"),
         )
         + forms.button(label="Archive guidance")
@@ -539,7 +610,9 @@ def present_evidence_revalidation_page(
         + forms.field(
             field_id="notes",
             label="Revalidation notes",
-            control_html=forms.textarea(field_id="notes", name="notes", value=values["notes"], rows=4),
+            control_html=forms.textarea(
+                field_id="notes", name="notes", value=values["notes"], rows=4
+            ),
             hint="Optional notes for the next reviewer or operator.",
         )
         + forms.button(label="Request evidence revalidation")
@@ -597,9 +670,29 @@ def present_review_assignment_page(
         eyebrow="Manage",
         body_html=(
             '<form class="governed-form" method="post">'
-            + forms.field(field_id="reviewer", label="Reviewer", control_html=forms.input(field_id="reviewer", name="reviewer", value=values["reviewer"]), errors=errors.get("reviewer"))
-            + forms.field(field_id="due_at", label="Due date", control_html=forms.input(field_id="due_at", name="due_at", value=values["due_at"], input_type="date"), errors=errors.get("due_at"))
-            + forms.field(field_id="notes", label="Assignment notes", control_html=forms.textarea(field_id="notes", name="notes", value=values["notes"], rows=3))
+            + forms.field(
+                field_id="reviewer",
+                label="Reviewer",
+                control_html=forms.input(
+                    field_id="reviewer", name="reviewer", value=values["reviewer"]
+                ),
+                errors=errors.get("reviewer"),
+            )
+            + forms.field(
+                field_id="due_at",
+                label="Due date",
+                control_html=forms.input(
+                    field_id="due_at", name="due_at", value=values["due_at"], input_type="date"
+                ),
+                errors=errors.get("due_at"),
+            )
+            + forms.field(
+                field_id="notes",
+                label="Assignment notes",
+                control_html=forms.textarea(
+                    field_id="notes", name="notes", value=values["notes"], rows=3
+                ),
+            )
             + forms.button(label="Assign reviewer", action_id="assign_reviewer")
             + "</form>"
         ),
@@ -612,7 +705,11 @@ def present_review_assignment_page(
         headline="Assign reviewer",
         active_nav="review",
         shell_variant="minimal",
-        page_context={"summary_html": summary_html, "assignment_html": assignment_html, "form_html": form_html},
+        page_context={
+            "summary_html": summary_html,
+            "assignment_html": assignment_html,
+            "form_html": form_html,
+        },
     )
 
 
@@ -656,7 +753,9 @@ def present_review_decision_page(
                 body_html=(
                     f"<p><strong>Supporting citations:</strong> {escape(len(detail['citations']))}</p>"
                     + (
-                        render_list([escape(item) for item in findings], css_class="validation-findings")
+                        render_list(
+                            [escape(item) for item in findings], css_class="validation-findings"
+                        )
                         if findings
                         else "<p>No unresolved validation warnings are currently recorded.</p>"
                     )
@@ -712,8 +811,23 @@ def present_review_decision_page(
                 eyebrow="Review",
                 body_html=(
                     '<form class="governed-form" method="post">'
-                    + forms.field(field_id="reviewer", label="Reviewer", control_html=forms.input(field_id="reviewer", name="reviewer", value=values["reviewer"]), errors=errors.get("reviewer"))
-                    + forms.field(field_id="notes", label="Decision notes", control_html=forms.textarea(field_id="notes", name="notes", value=values["notes"], rows=4), hint="Required for rejection; optional for approval. Use notes to explain the decision or the reason for a block.", errors=errors.get("notes"))
+                    + forms.field(
+                        field_id="reviewer",
+                        label="Reviewer",
+                        control_html=forms.input(
+                            field_id="reviewer", name="reviewer", value=values["reviewer"]
+                        ),
+                        errors=errors.get("reviewer"),
+                    )
+                    + forms.field(
+                        field_id="notes",
+                        label="Decision notes",
+                        control_html=forms.textarea(
+                            field_id="notes", name="notes", value=values["notes"], rows=4
+                        ),
+                        hint="Required for rejection; optional for approval. Use notes to explain the decision or the reason for a block.",
+                        errors=errors.get("notes"),
+                    )
                     + '<div class="button-row">'
                     + '<button class="button button-primary" type="submit" name="decision" value="approve" data-component="button" data-action-id="approve_revision">Approve revision</button>'
                     + '<button class="button button-danger" type="submit" name="decision" value="reject" data-component="button" data-action-id="reject_revision">Reject revision</button>'
@@ -750,7 +864,9 @@ def present_audit_page(
         active_nav="activity",
         show_actor_links=False,
         page_context={
-            "filter_bar_html": render_activity_filter_bar(role=role, object_id=object_id, selected_group=selected_group),
+            "filter_bar_html": render_activity_filter_bar(
+                role=role, object_id=object_id, selected_group=selected_group
+            ),
             "audit_html": render_activity_audit_log(events=events),
             "event_html": render_activity_event_list(structured_events=structured_events),
             "validation_html": render_activity_validation_log(validation_runs=validation_runs),
@@ -766,7 +882,13 @@ def present_validation_runs_page(
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     add_run_html = components.action_bar(
-        items=[link("Record validation run", validation_run_new_url(role), css_class="button button-primary")]
+        items=[
+            link(
+                "Record validation run",
+                validation_run_new_url(role),
+                css_class="button button-primary",
+            )
+        ]
     )
     validation_table_html = components.section_card(
         title="Validation runs",
@@ -812,11 +934,50 @@ def present_validation_run_new_page(
         eyebrow="Validation",
         body_html=(
             '<form class="governed-form" method="post">'
-            + forms.field(field_id="run_id", label="Run ID", control_html=forms.input(field_id="run_id", name="run_id", value=values["run_id"]), errors=errors.get("run_id"))
-            + forms.field(field_id="run_type", label="Run type", control_html=forms.input(field_id="run_type", name="run_type", value=values["run_type"], placeholder="manual_operator_check"), errors=errors.get("run_type"))
-            + forms.field(field_id="status", label="Status", control_html=forms.input(field_id="status", name="status", value=values["status"], placeholder="passed"), errors=errors.get("status"))
-            + forms.field(field_id="finding_count", label="Finding count", control_html=forms.input(field_id="finding_count", name="finding_count", value=values["finding_count"], input_type="number"), errors=errors.get("finding_count"))
-            + forms.field(field_id="details", label="Details", control_html=forms.textarea(field_id="details", name="details", value=values["details"], rows=4), hint="Optional operator-readable summary stored with the run.")
+            + forms.field(
+                field_id="run_id",
+                label="Run ID",
+                control_html=forms.input(field_id="run_id", name="run_id", value=values["run_id"]),
+                errors=errors.get("run_id"),
+            )
+            + forms.field(
+                field_id="run_type",
+                label="Run type",
+                control_html=forms.input(
+                    field_id="run_type",
+                    name="run_type",
+                    value=values["run_type"],
+                    placeholder="manual_operator_check",
+                ),
+                errors=errors.get("run_type"),
+            )
+            + forms.field(
+                field_id="status",
+                label="Status",
+                control_html=forms.input(
+                    field_id="status", name="status", value=values["status"], placeholder="passed"
+                ),
+                errors=errors.get("status"),
+            )
+            + forms.field(
+                field_id="finding_count",
+                label="Finding count",
+                control_html=forms.input(
+                    field_id="finding_count",
+                    name="finding_count",
+                    value=values["finding_count"],
+                    input_type="number",
+                ),
+                errors=errors.get("finding_count"),
+            )
+            + forms.field(
+                field_id="details",
+                label="Details",
+                control_html=forms.textarea(
+                    field_id="details", name="details", value=values["details"], rows=4
+                ),
+                hint="Optional operator-readable summary stored with the run.",
+            )
             + forms.button(label="Record validation run")
             + "</form>"
         ),

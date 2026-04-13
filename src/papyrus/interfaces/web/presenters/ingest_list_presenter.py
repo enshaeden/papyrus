@@ -5,7 +5,12 @@ from papyrus.interfaces.web.urls import import_detail_url
 from papyrus.interfaces.web.view_helpers import escape, link
 
 
-def render_ingest_list(*, components: ComponentPresenter, ingestions: list[dict[str, object]], allow_web_ingest_local_paths: bool) -> str:
+def render_ingest_list(
+    *,
+    components: ComponentPresenter,
+    ingestions: list[dict[str, object]],
+    allow_web_ingest_local_paths: bool,
+) -> str:
     if not ingestions:
         description = (
             "Upload a Markdown, DOCX, or PDF file to start import review."

@@ -5,15 +5,15 @@ import base64
 import datetime as dt
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 from urllib.parse import parse_qs, unquote
 from wsgiref.simple_server import make_server
 
 from papyrus.application.authoring_flow import create_draft_from_blueprint, update_section
 from papyrus.application.commands import (
-    archive_object_command,
     approve_revision_command,
+    archive_object_command,
     assign_reviewer_command,
     create_object_command,
     create_revision_command,
@@ -48,7 +48,6 @@ from papyrus.application.queries import (
 )
 from papyrus.domain.actor import require_actor_id
 from papyrus.infrastructure.paths import DB_PATH, ROOT
-from papyrus.infrastructure.repositories.knowledge_repo import get_knowledge_revision
 from papyrus.interfaces.startup_guard import prepare_operator_source_root
 
 
@@ -63,7 +62,9 @@ def _json_response(start_response, status: str, payload: object) -> list[bytes]:
     return [body]
 
 
-def _error_payload(*, error: str, title: str, detail: str, action: str, category: str) -> dict[str, str]:
+def _error_payload(
+    *, error: str, title: str, detail: str, action: str, category: str
+) -> dict[str, str]:
     return {
         "error": error,
         "title": title,
@@ -210,14 +211,23 @@ def app(
                 return _json_response(
                     start_response,
                     "200 OK",
-                    {"events": audit_view(object_id=query.get("object_id", [None])[0], database_path=resolved_database_path)},
+                    {
+                        "events": audit_view(
+                            object_id=query.get("object_id", [None])[0],
+                            database_path=resolved_database_path,
+                        )
+                    },
                 )
 
             if method == "GET" and path == "/manage/validation-runs":
                 return _json_response(
                     start_response,
                     "200 OK",
-                    {"validation_runs": validation_run_history(database_path=resolved_database_path)},
+                    {
+                        "validation_runs": validation_run_history(
+                            database_path=resolved_database_path
+                        )
+                    },
                 )
 
             if method == "GET" and path == "/events":
@@ -250,7 +260,9 @@ def app(
                     payload=request_payload.get("payload") or {},
                     actor=actor,
                     occurred_at=request_payload.get("occurred_at"),
-                    event_id=str(request_payload["event_id"]) if request_payload.get("event_id") else None,
+                    event_id=str(request_payload["event_id"])
+                    if request_payload.get("event_id")
+                    else None,
                 )
                 return _json_response(
                     start_response,
@@ -341,13 +353,17 @@ def app(
                 )
 
             if method == "POST" and path == "/ingest":
-                actor = _actor_from_payload(request_payload, require_explicit=False) or "local.operator"
+                actor = (
+                    _actor_from_payload(request_payload, require_explicit=False) or "local.operator"
+                )
                 _ = actor  # actor is kept for parity with other governed endpoints.
                 source_path = str(request_payload.get("source_path") or "").strip()
                 content_base64 = str(request_payload.get("content_base64") or "").strip()
                 filename = str(request_payload.get("filename") or "").strip()
                 if not source_path and not (content_base64 and filename):
-                    raise ValueError("source_path or filename plus content_base64 is required for /ingest")
+                    raise ValueError(
+                        "source_path or filename plus content_base64 is required for /ingest"
+                    )
                 result = (
                     ingest_file(
                         file_path=source_path,
@@ -438,7 +454,9 @@ def app(
                         object_id=parts[1],
                         actor=actor,
                         retirement_reason=str(request_payload["retirement_reason"]),
-                        notes=str(request_payload["notes"]) if request_payload.get("notes") is not None else None,
+                        notes=str(request_payload["notes"])
+                        if request_payload.get("notes") is not None
+                        else None,
                         acknowledgements=request_payload.get("acknowledgements") or [],
                     )
                     payload = _object_result_payload(
@@ -451,7 +469,9 @@ def app(
                     payload["archive_result"] = {
                         "previous_canonical_path": result.previous_canonical_path,
                         "archived_canonical_path": result.archived_canonical_path,
-                        "backup_path": str(result.backup_path) if result.backup_path is not None else None,
+                        "backup_path": str(result.backup_path)
+                        if result.backup_path is not None
+                        else None,
                         "mutation_id": result.mutation_id,
                         "object_lifecycle_state": result.object_lifecycle_state,
                         "transition": result.transition,
@@ -471,7 +491,8 @@ def app(
                         actor=actor,
                         reason=str(request_payload["reason"]),
                         changed_entity_type=str(request_payload["changed_entity_type"]),
-                        changed_entity_id=str(request_payload.get("changed_entity_id") or "") or None,
+                        changed_entity_id=str(request_payload.get("changed_entity_id") or "")
+                        or None,
                     )
                     payload = _object_result_payload(
                         object_id=parts[1],
@@ -485,7 +506,12 @@ def app(
                         "details": result.event.details,
                     }
                     return _json_response(start_response, "200 OK", payload)
-                if method == "POST" and len(parts) == 4 and parts[2] == "source-sync" and parts[3] == "preview":
+                if (
+                    method == "POST"
+                    and len(parts) == 4
+                    and parts[2] == "source-sync"
+                    and parts[3] == "preview"
+                ):
                     preview = preview_writeback_command(
                         database_path=resolved_database_path,
                         object_id=parts[1],
@@ -511,7 +537,12 @@ def app(
                             "operator_message": preview.operator_message,
                         },
                     )
-                if method == "POST" and len(parts) == 4 and parts[2] == "source-sync" and parts[3] == "apply":
+                if (
+                    method == "POST"
+                    and len(parts) == 4
+                    and parts[2] == "source-sync"
+                    and parts[3] == "apply"
+                ):
                     actor = _actor_from_payload(request_payload, require_explicit=True)
                     result = writeback_object_command(
                         database_path=resolved_database_path,
@@ -541,7 +572,12 @@ def app(
                             "links": _links_for_object(parts[1], result.revision_id),
                         },
                     )
-                if method == "POST" and len(parts) == 4 and parts[2] == "source-sync" and parts[3] == "restore":
+                if (
+                    method == "POST"
+                    and len(parts) == 4
+                    and parts[2] == "source-sync"
+                    and parts[3] == "restore"
+                ):
                     actor = _actor_from_payload(request_payload, require_explicit=True)
                     result = restore_writeback_command(
                         database_path=resolved_database_path,
@@ -565,7 +601,9 @@ def app(
                             "revision_id": result.revision_id,
                             "file_path": str(result.file_path),
                             "restored_event_id": result.restored_event_id,
-                            "backup_path": str(result.backup_path) if result.backup_path is not None else None,
+                            "backup_path": str(result.backup_path)
+                            if result.backup_path is not None
+                            else None,
                             "restored_to_missing": result.restored_to_missing,
                             "mutation_id": result.mutation_id,
                             "source_sync_state": result.source_sync_state,
@@ -613,7 +651,9 @@ def app(
                     return _json_response(
                         start_response,
                         "200 OK",
-                        ingestion_detail(ingestion_id=parts[1], database_path=resolved_database_path),
+                        ingestion_detail(
+                            ingestion_id=parts[1], database_path=resolved_database_path
+                        ),
                     )
 
             if method == "GET" and path.startswith("/services/"):
@@ -856,7 +896,9 @@ def main() -> int:
     parser.add_argument("--host", default="127.0.0.1", help="Bind host. Defaults to 127.0.0.1.")
     parser.add_argument("--port", type=int, default=8081, help="Bind port. Defaults to 8081.")
     parser.add_argument("--db", default=str(DB_PATH), help="Runtime SQLite database path.")
-    parser.add_argument("--source-root", default=str(ROOT), help="Canonical source root for governed writeback.")
+    parser.add_argument(
+        "--source-root", default=str(ROOT), help="Canonical source root for governed writeback."
+    )
     parser.add_argument(
         "--allow-noncanonical-source-root",
         action="store_true",

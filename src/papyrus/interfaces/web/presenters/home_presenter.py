@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from papyrus.interfaces.web.presenters.home_activity_block_presenter import render_home_activity_block
+from papyrus.interfaces.web.presenters.home_activity_block_presenter import (
+    render_home_activity_block,
+)
 from papyrus.interfaces.web.presenters.home_launch_block_presenter import render_home_launch_blocks
 from papyrus.interfaces.web.rendering import TemplateRenderer
 

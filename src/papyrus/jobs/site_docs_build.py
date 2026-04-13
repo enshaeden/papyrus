@@ -12,6 +12,10 @@ from os import path as os_path
 from pathlib import Path
 from urllib.parse import urlencode
 
+from papyrus.application.export_flow import (
+    ExportRuntimeUnavailableError,
+    approved_export_object_ids,
+)
 from papyrus.compat.kb_common import (
     DB_PATH,
     DECISIONS_DIR,
@@ -32,9 +36,9 @@ from papyrus.compat.kb_common import (
     load_taxonomies,
     missing_owner_articles,
     navigation_statuses,
-    relative_path,
     reference_graph,
     relationless_articles,
+    relative_path,
     render_change_log,
     render_list,
     render_reference,
@@ -44,7 +48,6 @@ from papyrus.compat.kb_common import (
     site_relative_path_for_repo_path,
     stale_articles,
 )
-from papyrus.application.export_flow import ExportRuntimeUnavailableError, approved_export_object_ids
 
 WORKFLOW_STARTERS = (
     (
@@ -405,11 +408,7 @@ def render_site_home(
     current_relative = Path("index.md")
     doc_markdown_count = len([path for path in docs_paths if path.suffix == ".md"])
     decision_record_count = len(
-        [
-            path
-            for path in decision_paths
-            if path.suffix == ".md" and path.name != "index.md"
-        ]
+        [path for path in decision_paths if path.suffix == ".md" and path.name != "index.md"]
     )
     cards = [
         (
@@ -432,7 +431,10 @@ def render_site_home(
         (str(len(export_articles)), "approved knowledge exports"),
         (str(excluded_count), "source knowledge objects excluded from export"),
         (str(doc_markdown_count), "operator docs and references"),
-        (str(decision_record_count), "governance record" if decision_record_count == 1 else "governance records"),
+        (
+            str(decision_record_count),
+            "governance record" if decision_record_count == 1 else "governance records",
+        ),
     ]
     return (
         "<!-- Generated from source content. Do not edit here. -->\n\n"
@@ -459,7 +461,9 @@ def render_site_home(
     )
 
 
-def ordered_group_names(grouped: dict[str, list], group_order: list[str] | None = None) -> list[str]:
+def ordered_group_names(
+    grouped: dict[str, list], group_order: list[str] | None = None
+) -> list[str]:
     names = list(grouped)
     if not group_order:
         return sorted(names)
@@ -604,7 +608,9 @@ def render_reference_lines(
     return "\n".join(lines) + "\n"
 
 
-def render_referenced_by(article, by_id: dict[str, object], inbound_graph: dict[str, set[str]]) -> str:
+def render_referenced_by(
+    article, by_id: dict[str, object], inbound_graph: dict[str, set[str]]
+) -> str:
     current_relative = site_relative_path_for_article(article)
     lines = []
     for article_id in sorted(inbound_graph.get(article.metadata["id"], set())):
@@ -628,12 +634,16 @@ def related_inference_candidates(article, articles: list) -> list[tuple[int, obj
         reasons = []
         score = 0
 
-        shared_services = sorted(set(article.metadata["services"]).intersection(candidate.metadata["services"]))
+        shared_services = sorted(
+            set(article.metadata["services"]).intersection(candidate.metadata["services"])
+        )
         if shared_services:
             score += len(shared_services) * 4
             reasons.append(f"shared service: {', '.join(shared_services)}")
 
-        shared_systems = sorted(set(article.metadata["systems"]).intersection(candidate.metadata["systems"]))
+        shared_systems = sorted(
+            set(article.metadata["systems"]).intersection(candidate.metadata["systems"])
+        )
         if shared_systems:
             score += len(shared_systems) * 3
             reasons.append(f"shared system: {', '.join(shared_systems)}")
@@ -721,7 +731,9 @@ def render_lifecycle_links(article, articles: list, by_id: dict[str, object]) ->
         lines.append(f"- Replaced by: `{replaced_by}`")
 
     replaced_articles = [
-        candidate for candidate in articles if candidate.metadata.get("replaced_by") == article.metadata["id"]
+        candidate
+        for candidate in articles
+        if candidate.metadata.get("replaced_by") == article.metadata["id"]
     ]
     for candidate in sorted(replaced_articles, key=lambda item: item.metadata["title"]):
         lines.append(f"- Replaces: {article_link(candidate, current_relative)}")
@@ -747,10 +759,7 @@ def render_browse_more_links(article) -> str:
             f"({explorer_link(current_relative, service=service)})"
         )
     for tag in article.metadata["tags"][:2]:
-        lines.append(
-            f"- [Browse more `{tag}` content]"
-            f"({explorer_link(current_relative, tag=tag)})"
-        )
+        lines.append(f"- [Browse more `{tag}` content]({explorer_link(current_relative, tag=tag)})")
     return "\n".join(lines) + "\n"
 
 
@@ -872,7 +881,9 @@ def render_taxonomy_table(
         if usage:
             usage_value = f"[{usage}]({explorer_link(current_relative, **{field_name.rstrip('s'): value if field_name.endswith('s') else value})})"
             if field_name in {"services", "systems", "tags"}:
-                usage_value = f"[{usage}]({explorer_link(current_relative, **{field_name[:-1]: value})})"
+                usage_value = (
+                    f"[{usage}]({explorer_link(current_relative, **{field_name[:-1]: value})})"
+                )
         else:
             usage_value = "0"
         lines.append(
@@ -924,7 +935,9 @@ def render_explorer_page(
         "default_object_lifecycle_states": default_object_lifecycle_states,
     }
     data_json = json.dumps(article_records, sort_keys=True, ensure_ascii=True).replace("</", "<\\/")
-    taxonomy_json = json.dumps(explorer_taxonomies, sort_keys=True, ensure_ascii=True).replace("</", "<\\/")
+    taxonomy_json = json.dumps(explorer_taxonomies, sort_keys=True, ensure_ascii=True).replace(
+        "</", "<\\/"
+    )
 
     return (
         "<!-- Generated from canonical source content. Do not edit here. -->\n\n"
@@ -990,8 +1003,16 @@ def render_authors_page(
     current_relative = Path("knowledge/authors.md")
     cards = []
     for title, description, target in AUTHOR_SHORTCUTS:
-        href = target["page"] if target else repo_doc_href(current_relative, "docs/playbooks/write.md")
-        cards.append((title, description, href if target is None else page_href(current_relative, target["page"])))
+        href = (
+            target["page"] if target else repo_doc_href(current_relative, "docs/playbooks/write.md")
+        )
+        cards.append(
+            (
+                title,
+                description,
+                href if target is None else page_href(current_relative, target["page"]),
+            )
+        )
 
     missing_services = len(articles_missing_list_field(articles, "services"))
     missing_systems = len(articles_missing_list_field(articles, "systems"))
@@ -1043,10 +1064,23 @@ def render_authors_page(
         "",
         f"Discovery gaps: [content-health.md]({page_link(current_relative, 'content-health.md')})",
         "",
-        render_taxonomy_table("Knowledge Object Types", "knowledge_object_types", "type", taxonomies, articles, current_relative),
-        render_taxonomy_table("Audiences", "audiences", "audience", taxonomies, articles, current_relative),
-        render_taxonomy_table("Services", "services", "services", taxonomies, articles, current_relative),
-        render_taxonomy_table("Systems", "systems", "systems", taxonomies, articles, current_relative),
+        render_taxonomy_table(
+            "Knowledge Object Types",
+            "knowledge_object_types",
+            "type",
+            taxonomies,
+            articles,
+            current_relative,
+        ),
+        render_taxonomy_table(
+            "Audiences", "audiences", "audience", taxonomies, articles, current_relative
+        ),
+        render_taxonomy_table(
+            "Services", "services", "services", taxonomies, articles, current_relative
+        ),
+        render_taxonomy_table(
+            "Systems", "systems", "systems", taxonomies, articles, current_relative
+        ),
         render_taxonomy_table("Tags", "tags", "tags", taxonomies, articles, current_relative),
         render_taxonomy_table("Teams", "teams", "team", taxonomies, articles, current_relative),
         "## Workflow References",
@@ -1096,9 +1130,9 @@ def render_manager_page(
             ]
         ),
         "",
-            "## Lifecycle Summary",
-            "",
-            "| Lifecycle | Count | Explorer |",
+        "## Lifecycle Summary",
+        "",
+        "| Lifecycle | Count | Explorer |",
         "| --- | --- | --- |",
     ]
     for entry in taxonomies["statuses"]["values"]:
@@ -1239,9 +1273,9 @@ def render_content_health_page(
             ]
         ),
         "",
-            "## Lifecycle Visibility",
-            "",
-            "| Lifecycle | Count | Explorer |",
+        "## Lifecycle Visibility",
+        "",
+        "| Lifecycle | Count | Explorer |",
         "| --- | --- | --- |",
     ]
     for entry in taxonomies["statuses"]["values"]:
@@ -1262,8 +1296,12 @@ def render_content_health_page(
         lines.append("")
     else:
         for candidate in duplicate_candidates:
-            left_path = site_relative_path_for_repo_path(candidate.left_path) or Path(candidate.left_path)
-            right_path = site_relative_path_for_repo_path(candidate.right_path) or Path(candidate.right_path)
+            left_path = site_relative_path_for_repo_path(candidate.left_path) or Path(
+                candidate.left_path
+            )
+            right_path = site_relative_path_for_repo_path(candidate.right_path) or Path(
+                candidate.right_path
+            )
             left_href = relative_site_link(current_relative, left_path)
             right_href = relative_site_link(current_relative, right_path)
             lines.append(
@@ -1381,11 +1419,31 @@ def render_landing_page(
 ) -> str:
     current_relative = Path("knowledge/index.md")
     cards = [
-        ("Support", "Task-oriented entry points for support specialists.", page_href(current_relative, "support.md")),
-        ("Explorer", "Faceted browsing across canonical metadata.", page_href(current_relative, "explorer.md")),
-        ("Knowledge Tree", "Repository-path view for auditing the canonical structure.", page_href(current_relative, "tree.md")),
-        ("By Service", "Browse approved export content grouped by service area.", page_href(current_relative, "by-service.md")),
-        ("By Type", "Browse approved export content grouped by knowledge object type.", page_href(current_relative, "by-type.md")),
+        (
+            "Support",
+            "Task-oriented entry points for support specialists.",
+            page_href(current_relative, "support.md"),
+        ),
+        (
+            "Explorer",
+            "Faceted browsing across canonical metadata.",
+            page_href(current_relative, "explorer.md"),
+        ),
+        (
+            "Knowledge Tree",
+            "Repository-path view for auditing the canonical structure.",
+            page_href(current_relative, "tree.md"),
+        ),
+        (
+            "By Service",
+            "Browse approved export content grouped by service area.",
+            page_href(current_relative, "by-service.md"),
+        ),
+        (
+            "By Type",
+            "Browse approved export content grouped by knowledge object type.",
+            page_href(current_relative, "by-type.md"),
+        ),
     ]
     status_counts = Counter(article.metadata["object_lifecycle_state"] for article in articles)
     metrics = [
@@ -1425,7 +1483,9 @@ def render_landing_page(
     for title, article_ids in WORKFLOW_STARTERS:
         lines.append(f"### {title}")
         lines.append("")
-        lines.append(f"Explorer view: [Open related content]({explorer_link(current_relative, query=title.lower())})")
+        lines.append(
+            f"Explorer view: [Open related content]({explorer_link(current_relative, query=title.lower())})"
+        )
         lines.append("")
         for article_id in article_ids:
             article = next((item for item in articles if item.metadata["id"] == article_id), None)
@@ -1469,8 +1529,14 @@ def main() -> int:
     by_id = {article.metadata["id"]: article for article in articles}
     visible_status_list = navigation_statuses(policy)
     visible_statuses = set(visible_status_list)
-    visible_articles = [article for article in articles if article.metadata["object_lifecycle_state"] in visible_statuses]
-    archived_articles = [article for article in articles if article.metadata["object_lifecycle_state"] == "archived"]
+    visible_articles = [
+        article
+        for article in articles
+        if article.metadata["object_lifecycle_state"] in visible_statuses
+    ]
+    archived_articles = [
+        article for article in articles if article.metadata["object_lifecycle_state"] == "archived"
+    ]
     outbound_graph = reference_graph(articles)
     inbound_graph = inverse_reference_graph(outbound_graph)
     allowed_repo_paths = {
@@ -1626,7 +1692,9 @@ def main() -> int:
 
     archive_root = GENERATED_SITE_DOCS_DIR / "archive"
     archive_root.mkdir(parents=True, exist_ok=True)
-    (archive_root / "index.md").write_text(render_archive_index(archived_articles), encoding="utf-8")
+    (archive_root / "index.md").write_text(
+        render_archive_index(archived_articles), encoding="utf-8"
+    )
 
     expected_pages = {relative_path for relative_path in GENERATED_SITE_INDEX_PATHS}
     print(

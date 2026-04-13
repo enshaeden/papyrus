@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[3]
 KNOWLEDGE_DIR = ROOT / "knowledge"
 ARCHIVE_KNOWLEDGE_DIR = ROOT / "archive" / "knowledge"
@@ -12,6 +11,8 @@ DECISIONS_DIR = ROOT / "decisions"
 TEMPLATE_DIR = ROOT / "templates"
 GENERATED_DIR = ROOT / "generated"
 GENERATED_SITE_DOCS_DIR = GENERATED_DIR / "site_docs"
+GENERATED_ROUTE_MAP_JSON_PATH = GENERATED_DIR / "route-map.json"
+GENERATED_ROUTE_MAP_MARKDOWN_PATH = GENERATED_DIR / "route-map.md"
 LEGACY_GENERATED_DOCS_DIR = DOCS_DIR / "generated"
 REPORTS_DIR = ROOT / "reports"
 ARTICLE_SCHEMA_PATH = ROOT / "schemas" / "article.yml"
@@ -41,6 +42,10 @@ GENERATED_SITE_INDEX_PATHS = (
 GENERATED_SITE_ASSET_PATHS = (
     "system-design-docs/assets/site.css",
     "system-design-docs/assets/knowledge-explorer.js",
+)
+GENERATED_ROUTE_MAP_PATHS = (
+    "generated/route-map.json",
+    "generated/route-map.md",
 )
 FRONT_MATTER_PATTERN = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)$", re.DOTALL)
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -80,7 +85,10 @@ OPERATIONAL_HEADING_PATTERN = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 DOCS_OPERATOR_LANGUAGE_PATTERNS = (
-    ("standard operating procedure", re.compile(r"\b(?:standard operating procedure|SOP)\b", re.IGNORECASE)),
+    (
+        "standard operating procedure",
+        re.compile(r"\b(?:standard operating procedure|SOP)\b", re.IGNORECASE),
+    ),
     ("runbook", re.compile(r"\brunbook\b", re.IGNORECASE)),
     ("troubleshooting", re.compile(r"\btroubleshooting\b", re.IGNORECASE)),
     (

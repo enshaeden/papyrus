@@ -103,7 +103,9 @@ class ActorEnforcementTests(unittest.TestCase):
                             "note": "Seed evidence",
                         }
                     ],
-                    "change_log": [{"date": "2026-04-08", "summary": "Seed revision.", "author": "tests"}],
+                    "change_log": [
+                        {"date": "2026-04-08", "summary": "Seed revision.", "author": "tests"}
+                    ],
                     "related_services": ["Remote Access"],
                     "prerequisites": ["Open ticket."],
                     "steps": ["Run the procedure."],

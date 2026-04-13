@@ -176,7 +176,9 @@ def apply_guided_sections(
             cookies=cookies,
         )
         if status != "303 See Other":
-            raise AssertionError(f"guided section {form['section_id']!r} failed with {status}: {body[:800]}")
+            raise AssertionError(
+                f"guided section {form['section_id']!r} failed with {status}: {body[:800]}"
+            )
         current_path = request_path_without_fragment(headers["Location"])
     return current_path
 
@@ -326,16 +328,24 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, assign_body = call_wsgi(application, assign_path)
             self.assertEqual(status, "200 OK")
-            self.assert_page_contract(assign_body, primary_surface="review", action_ids=("assign_reviewer",))
+            self.assert_page_contract(
+                assign_body, primary_surface="review", action_ids=("assign_reviewer",)
+            )
 
             status, headers, _ = call_wsgi(
                 application,
                 assign_path,
                 method="POST",
-                form={"reviewer": "reviewer_a", "notes": "Review the draft.", "due_at": "2026-04-09"},
+                form={
+                    "reviewer": "reviewer_a",
+                    "notes": "Review the draft.",
+                    "due_at": "2026-04-09",
+                },
             )
             self.assertEqual(status, "303 See Other")
-            decision_path = headers["Location"].replace("/operator/review/object/", "/admin/review/object/")
+            decision_path = headers["Location"].replace(
+                "/operator/review/object/", "/admin/review/object/"
+            )
 
             status, _, decision_body = call_wsgi(application, decision_path)
             self.assertEqual(status, "200 OK")
@@ -351,7 +361,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 application,
                 decision_path,
                 method="POST",
-                form={"decision": "approve", "reviewer": "reviewer_a", "notes": "Approved in test."},
+                form={
+                    "decision": "approve",
+                    "reviewer": "reviewer_a",
+                    "notes": "Approved in test.",
+                },
             )
             self.assertEqual(status, "303 See Other")
             self.assertIn("/admin/inspect/object/kb-operator-ui-approve", headers["Location"])
@@ -467,7 +481,9 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             submit_path = apply_guided_sections(application, current_path, guided_forms[-2:])
             revision_id = urllib.parse.parse_qs(submit_path.split("?", 1)[1])["revision_id"][0]
-            status, headers, _ = call_wsgi(application, submit_path, method="POST", form={"notes": "Ready for review."})
+            status, headers, _ = call_wsgi(
+                application, submit_path, method="POST", form={"notes": "Ready for review."}
+            )
             assign_path = headers["Location"]
             status, headers, _ = call_wsgi(
                 application,
@@ -489,7 +505,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 application,
                 decision_path,
                 method="POST",
-                form={"decision": "reject", "reviewer": "reviewer_b", "notes": "Rejecting in test."},
+                form={
+                    "decision": "reject",
+                    "reviewer": "reviewer_b",
+                    "notes": "Rejecting in test.",
+                },
             )
             self.assertEqual(status, "303 See Other")
 
@@ -540,7 +560,9 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 summary="Manage-side workflow coverage.",
                 change_summary="Initial draft through web UI.",
             )
-            status, headers, _ = call_wsgi(application, submit_path, method="POST", form={"notes": "Ready for review."})
+            status, headers, _ = call_wsgi(
+                application, submit_path, method="POST", form={"notes": "Ready for review."}
+            )
             self.assertEqual(status, "303 See Other")
             object_id = "kb-operator-ui-manage"
 
@@ -571,7 +593,9 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(status, "303 See Other")
             self.assertIn("/operator/read/object/kb-operator-ui-manage", headers["Location"])
 
-            status, _, body = call_wsgi(application, f"/operator/review/object/{object_id}/supersede")
+            status, _, body = call_wsgi(
+                application, f"/operator/review/object/{object_id}/supersede"
+            )
             self.assertEqual(status, "200 OK")
             self.assertIn("Supersession contract", body)
             self.assertIn("Supersede object", body)
@@ -721,12 +745,16 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             )
             revision = workflow.create_revision(
                 object_id=archived.object_id,
-                normalized_payload=runbook_payload(archived.object_id, archived.canonical_path, archived.title),
+                normalized_payload=runbook_payload(
+                    archived.object_id, archived.canonical_path, archived.title
+                ),
                 body_markdown="## Use When\n\nExercise archive acknowledgement rendering.\n",
                 actor="tests",
                 change_summary="Archive acknowledgement rendering coverage.",
             )
-            workflow.submit_for_review(object_id=archived.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=archived.object_id, revision_id=revision.revision_id, actor="tests"
+            )
             workflow.assign_reviewer(
                 object_id=archived.object_id,
                 revision_id=revision.revision_id,
@@ -752,7 +780,9 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 source_root=source_root,
                 allow_noncanonical_source_root=True,
             )
-            status, _, body = call_wsgi(application, f"/admin/review/object/{archived.object_id}/archive")
+            status, _, body = call_wsgi(
+                application, f"/admin/review/object/{archived.object_id}/archive"
+            )
             self.assertEqual(status, "200 OK")
             self.assertIn("Archive contract", body)
             self.assertIn("canonical path will move to archive", body)
@@ -775,12 +805,16 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             )
             initial_revision = workflow.create_revision(
                 object_id=created.object_id,
-                normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+                normalized_payload=runbook_payload(
+                    created.object_id, created.canonical_path, created.title
+                ),
                 body_markdown="## Use When\n\nSeed approved revision for panel counting.\n",
                 actor="tests",
                 change_summary="Seed approved revision.",
             )
-            workflow.submit_for_review(object_id=created.object_id, revision_id=initial_revision.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=created.object_id, revision_id=initial_revision.revision_id, actor="tests"
+            )
             workflow.assign_reviewer(
                 object_id=created.object_id,
                 revision_id=initial_revision.revision_id,
@@ -797,12 +831,16 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             revision = workflow.create_revision(
                 object_id=created.object_id,
-                normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+                normalized_payload=runbook_payload(
+                    created.object_id, created.canonical_path, created.title
+                ),
                 body_markdown="## Use When\n\nPanel counting review revision.\n",
                 actor="tests",
                 change_summary="Review revision for panel counting.",
             )
-            workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=created.object_id, revision_id=revision.revision_id, actor="tests"
+            )
             workflow.assign_reviewer(
                 object_id=created.object_id,
                 revision_id=revision.revision_id,
@@ -816,12 +854,16 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 allow_noncanonical_source_root=True,
             )
 
-            status, _, object_body = call_wsgi(application, f"/operator/read/object/{created.object_id}")
+            status, _, object_body = call_wsgi(
+                application, f"/operator/read/object/{created.object_id}"
+            )
             self.assertEqual(status, "200 OK")
             self.assert_not_component(object_body, "article-hero")
             self.assert_component_count(object_body, "action-cluster", 1)
 
-            status, _, history_body = call_wsgi(application, f"/operator/read/object/{created.object_id}/revisions")
+            status, _, history_body = call_wsgi(
+                application, f"/operator/read/object/{created.object_id}/revisions"
+            )
             self.assertEqual(status, "200 OK")
             self.assert_surface_count(history_body, "posture", 1)
             self.assert_component_count(history_body, "action-cluster", 1)
@@ -836,7 +878,9 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assert_surface_count(review_body, "contract", 2)
             self.assert_surface_count(review_body, "acknowledgements", 1)
 
-    def test_role_scoped_routes_render_without_actor_switching_and_keep_visibility_boundaries(self) -> None:
+    def test_role_scoped_routes_render_without_actor_switching_and_keep_visibility_boundaries(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
@@ -884,15 +928,19 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertNotIn("/actor/select", operator_body)
             self.assertNotIn("papyrus_actor", operator_body)
             self.assertNotIn('<aside class="context-column">', operator_body)
-            self.assertIn('/static/js/shell.js', operator_body)
+            self.assertIn("/static/js/shell.js", operator_body)
 
             status, _, admin_body = call_wsgi(application, "/admin/inspect")
             self.assertEqual(status, "200 OK")
             self.assertIn("<title>Inspect Guidance | Papyrus</title>", admin_body)
             self.assertIn('data-role="admin"', admin_body)
             self.assertIn("Admin", admin_body)
-            self.assertIn('class="sidebar-link is-active" href="/admin/inspect">Inspect</a>', admin_body)
-            self.assertNotIn('class="sidebar-link is-active" href="/admin/overview">Overview</a>', admin_body)
+            self.assertIn(
+                'class="sidebar-link is-active" href="/admin/inspect">Inspect</a>', admin_body
+            )
+            self.assertNotIn(
+                'class="sidebar-link is-active" href="/admin/overview">Overview</a>', admin_body
+            )
             self.assertIn('href="/admin/review"', admin_body)
             self.assertIn('href="/admin/governance"', admin_body)
             self.assertIn('href="/admin/audit"', admin_body)
@@ -905,8 +953,14 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, governance_body = call_wsgi(application, "/admin/governance")
             self.assertEqual(status, "200 OK")
-            self.assertIn('class="sidebar-link is-active" href="/admin/governance">Governance</a>', governance_body)
-            self.assertNotIn('class="sidebar-link is-active" href="/admin/overview">Overview</a>', governance_body)
+            self.assertIn(
+                'class="sidebar-link is-active" href="/admin/governance">Governance</a>',
+                governance_body,
+            )
+            self.assertNotIn(
+                'class="sidebar-link is-active" href="/admin/overview">Overview</a>',
+                governance_body,
+            )
 
             status, headers, _ = call_wsgi(
                 application,
@@ -928,7 +982,9 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             )
             self.assertEqual(status, "303 See Other")
 
-            status, _, draft_reader_body = call_wsgi(application, "/reader/object/kb-role-boundary-draft")
+            status, _, draft_reader_body = call_wsgi(
+                application, "/reader/object/kb-role-boundary-draft"
+            )
             self.assertEqual(status, "404 Not Found")
             self.assertIn("kb-role-boundary-draft", draft_reader_body)
 
@@ -971,21 +1027,30 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("&notice=Draft+setup+saved.", revision_form_path)
             self.assertTrue(revision_form_path.endswith("#revision-form"))
 
-            status, _, body = call_wsgi(application, request_path_without_fragment(revision_form_path))
+            status, _, body = call_wsgi(
+                application, request_path_without_fragment(revision_form_path)
+            )
             self.assertEqual(status, "200 OK")
             self.assertIn('class="write-workspace"', body)
             self.assertIn("Draft Runbook", body)
             self.assertIn("Save and continue", body)
             self.assertIn("Check review handoff", body)
             self.assertIn('id="revision-form"', body)
-            self.assertIn('method="post" action="/operator/write/object/kb-operator-ui-shell-search?revision_id=', body)
+            self.assertIn(
+                'method="post" action="/operator/write/object/kb-operator-ui-shell-search?revision_id=',
+                body,
+            )
             self.assertIn("section=purpose", body)
             self.assertIn('class="sidebar"', body)
             self.assertIn('class="topbar-search"', body)
             self.assertIn('class="topbar-shell-controls"', body)
             self.assertIn('class="topbar-menu"', body)
-            self.assertIn('class="topbar-menu-chip is-active topbar-menu-role">Operator</span>', body)
-            self.assertIn('class="sidebar-link is-active" href="/operator/write/new">Write</a>', body)
+            self.assertIn(
+                'class="topbar-menu-chip is-active topbar-menu-role">Operator</span>', body
+            )
+            self.assertIn(
+                'class="sidebar-link is-active" href="/operator/write/new">Write</a>', body
+            )
             self.assert_component(body, "progress-strip")
             self.assertNotIn('class="write-stage-label"', body)
             self.assertNotIn("shell-columns-focus", body)
@@ -1064,8 +1129,10 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Submit for review", body)
             self.assertIn("/operator/write/object/kb-operator-ui-manage-shell?revision_id=", body)
-            self.assertIn("/operator/write/object/kb-operator-ui-manage-shell/submit?revision_id=", body)
-            self.assertIn('selected_object_id=kb-operator-ui-manage-shell', body)
+            self.assertIn(
+                "/operator/write/object/kb-operator-ui-manage-shell/submit?revision_id=", body
+            )
+            self.assertIn("selected_object_id=kb-operator-ui-manage-shell", body)
 
             status, _, selected_body = call_wsgi(
                 application,
@@ -1138,7 +1205,9 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 audit_count_before,
             )
 
-    def test_revision_citation_search_exposes_article_lookup_and_finds_existing_objects(self) -> None:
+    def test_revision_citation_search_exposes_article_lookup_and_finds_existing_objects(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             build_search_projection(database_path)
@@ -1228,8 +1297,12 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 )
                 self.assertEqual(status, "200 OK")
                 items = json.loads(payload)["items"]
-                matching = [item for item in items if item["object_id"] == "kb-operator-ui-citation-search"]
-                self.assertTrue(matching, msg=f"expected citation search result for query {query!r}")
+                matching = [
+                    item for item in items if item["object_id"] == "kb-operator-ui-citation-search"
+                ]
+                self.assertTrue(
+                    matching, msg=f"expected citation search result for query {query!r}"
+                )
                 self.assertIn("Current revision can be referenced", matching[0]["summary"])
                 self.assertIn("review", matching[0]["detail"])
                 self.assertIn("trust", matching[0]["detail"])
@@ -1269,7 +1342,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             status, _, body = call_wsgi(application, revision_form_path + "&section=stewardship")
             self.assertEqual(status, "200 OK")
             self.assertIn("/static/js/multi_value_picker.js", body)
-            self.assertIn('data-multi-value-picker', body)
+            self.assertIn("data-multi-value-picker", body)
             self.assertIn('data-static-options="', body)
             self.assertIn('data-search-url="/operator/write/objects/search"', body)
             self.assertIn("Manual tag entry", body)

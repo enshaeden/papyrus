@@ -98,7 +98,9 @@ class PolicyAuthorityTests(unittest.TestCase):
         self.assertEqual(illegal.transition.semantics, TransitionSemantics.ILLEGAL)
         self.assertIn("illegal object_lifecycle_state transition", illegal.operator_message)
 
-    def test_source_sync_policy_decisions_expose_acknowledgement_and_restore_contracts(self) -> None:
+    def test_source_sync_policy_decisions_expose_acknowledgement_and_restore_contracts(
+        self,
+    ) -> None:
         apply_decision = self.authority.evaluate_source_sync_transition(
             SourceSyncState.PENDING.value,
             SourceSyncState.APPLIED.value,
@@ -110,7 +112,9 @@ class PolicyAuthorityTests(unittest.TestCase):
             ("canonical_source_will_change",),
         )
         self.assertEqual(apply_decision.source_of_truth, "canonical_markdown")
-        self.assertIn("Canonical Markdown will win after this action", apply_decision.operator_message)
+        self.assertIn(
+            "Canonical Markdown will win after this action", apply_decision.operator_message
+        )
 
         restore_decision = self.authority.evaluate_source_sync_transition(
             SourceSyncState.APPLIED.value,

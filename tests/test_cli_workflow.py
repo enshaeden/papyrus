@@ -75,7 +75,9 @@ class CliWorkflowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"
             output_root = Path(temp_dir) / "site_docs"
-            generated_vpn_guide = output_root / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
+            generated_vpn_guide = (
+                output_root / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
+            )
             build_search_projection(database_path)
             workflow = GovernanceWorkflow(database_path)
 
@@ -86,7 +88,11 @@ class CliWorkflowTests(unittest.TestCase):
             payload["summary"] = "Draft export suppression test for VPN troubleshooting."
             payload["change_log"] = [
                 *payload["change_log"],
-                {"date": "2026-04-07", "summary": "Draft export suppression test.", "author": "tests"},
+                {
+                    "date": "2026-04-07",
+                    "summary": "Draft export suppression test.",
+                    "author": "tests",
+                },
             ]
             workflow.create_revision(
                 object_id=payload["id"],
@@ -106,6 +112,35 @@ class CliWorkflowTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             self.assertFalse(generated_vpn_guide.exists())
+
+    def test_build_route_map_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            json_output = Path(temp_dir) / "route-map.json"
+            markdown_output = Path(temp_dir) / "route-map.md"
+            result = run_command(
+                "scripts/build_route_map.py",
+                "--json-output",
+                str(json_output),
+                "--markdown-output",
+                str(markdown_output),
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertTrue(json_output.exists())
+            self.assertTrue(markdown_output.exists())
+            self.assertIn("/operator/read", json_output.read_text(encoding="utf-8"))
+            self.assertIn("Route Map", markdown_output.read_text(encoding="utf-8"))
+
+            check_result = run_command(
+                "scripts/build_route_map.py",
+                "--check",
+                "--json-output",
+                str(json_output),
+                "--markdown-output",
+                str(markdown_output),
+            )
+            self.assertEqual(
+                check_result.returncode, 0, msg=check_result.stdout + check_result.stderr
+            )
 
     def test_build_site_docs_temp_output_root_does_not_break_validation(self) -> None:
         validate_before = run_command("scripts/validate.py")

@@ -4,5 +4,7 @@
 __pycache__/
 *.pyc
 /build/
-/generated/
+/generated/*
+!/generated/route-map.json
+!/generated/route-map.md
 /site/

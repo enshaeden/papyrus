@@ -1,0 +1,63 @@
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+exclude = [
+  ".git",
+  ".venv",
+  "build",
+  "generated/site_docs",
+  "site",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["papyrus", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*.py" = ["E402", "I001"]
+"tests/*.py" = ["E402", "I001"]
+"tests/**/*.py" = ["E402", "I001"]
+"src/papyrus/compat/kb_common.py" = ["F401"]
+"src/papyrus/**/__init__.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.13"
+files = ["src", "tests", "scripts"]
+mypy_path = "src"
+namespace_packages = true
+explicit_package_bases = true
+exclude = '(^build/|^generated/site_docs/|^site/|^\.venv/)'
+check_untyped_defs = true
+warn_return_any = false
+warn_unused_ignores = true
+warn_unused_configs = true
+no_implicit_optional = true
+pretty = true
+show_error_codes = true
+disable_error_code = [
+  "arg-type",
+  "assignment",
+  "attr-defined",
+  "call-overload",
+  "index",
+  "misc",
+  "no-any-return",
+  "union-attr",
+  "var-annotated",
+]
+
+[[tool.mypy.overrides]]
+module = [
+  "papyrus.application.substrate_checks",
+  "papyrus.interfaces.web.route_catalog",
+  "papyrus.jobs.route_map_build",
+]
+disallow_untyped_defs = true
+warn_return_any = true
+
+[[tool.mypy.overrides]]
+module = ["_bootstrap", "lxml", "yaml"]
+ignore_missing_imports = true

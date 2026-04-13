@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 from papyrus.application.blueprint_registry import list_blueprints
-from papyrus.application.ui_projection import build_draft_readiness_projection, workflow_projection_payload
+from papyrus.application.ui_projection import (
+    build_draft_readiness_projection,
+    workflow_projection_payload,
+)
 from papyrus.domain.evidence import summarize_evidence_posture
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
-from papyrus.interfaces.web.presenters.governed_presenter import action_descriptor, render_action_contract_panel, render_projection_status_panel
+from papyrus.interfaces.web.presenters.governed_presenter import (
+    action_descriptor,
+    render_action_contract_panel,
+    render_projection_status_panel,
+)
 from papyrus.interfaces.web.presenters.write_support_presenter import (
     evidence_guidance_body_html,
     render_next_action_panel_html,
@@ -20,7 +27,9 @@ from papyrus.interfaces.web.urls import write_object_url, write_submit_url
 from papyrus.interfaces.web.view_helpers import escape, join_html, render_list
 
 
-def present_object_setup_page(runtime, values: dict[str, str], errors: dict[str, list[str]], *, form_action: str) -> dict[str, str]:
+def present_object_setup_page(
+    runtime, values: dict[str, str], errors: dict[str, list[str]], *, form_action: str
+) -> dict[str, str]:
     forms = FormPresenter(runtime.template_renderer)
     components = ComponentPresenter(runtime.template_renderer)
     primary_controls = [
@@ -39,7 +48,12 @@ def present_object_setup_page(runtime, values: dict[str, str], errors: dict[str,
         forms.field(
             field_id="title",
             label="Title",
-            control_html=forms.input(field_id="title", name="title", value=values["title"], placeholder="Name the guidance clearly"),
+            control_html=forms.input(
+                field_id="title",
+                name="title",
+                value=values["title"],
+                placeholder="Name the guidance clearly",
+            ),
             hint="Use the name readers will recognize in search and review.",
             errors=errors.get("title"),
         ),
@@ -59,7 +73,12 @@ def present_object_setup_page(runtime, values: dict[str, str], errors: dict[str,
         forms.field(
             field_id="owner",
             label="Owner",
-            control_html=forms.input(field_id="owner", name="owner", value=values["owner"], placeholder="Team or person responsible"),
+            control_html=forms.input(
+                field_id="owner",
+                name="owner",
+                value=values["owner"],
+                placeholder="Team or person responsible",
+            ),
             hint="Name the team or person accountable for keeping this guidance current.",
             errors=errors.get("owner"),
         ),
@@ -158,7 +177,9 @@ def present_object_setup_page(runtime, values: dict[str, str], errors: dict[str,
     return {
         "validation_html": validation_html,
         "progress_html": render_object_progress_html(components, values=values, errors=errors),
-        "form_html": components.content_section(title="Set up the draft", eyebrow="Write", body_html=body_html),
+        "form_html": components.content_section(
+            title="Set up the draft", eyebrow="Write", body_html=body_html
+        ),
         "guidance_html": support_details_html(
             title="What happens next",
             summary="Papyrus opens the first required section after setup.",
@@ -184,7 +205,9 @@ def present_guided_revision_page(
     blueprint = draft_status["blueprint"]
     section = blueprint.section(section_id)
     completion = draft_status["completion"]
-    validation_html = render_revision_error_summary_html(components, form_errors) if form_errors else ""
+    validation_html = (
+        render_revision_error_summary_html(components, form_errors) if form_errors else ""
+    )
     section_form_html = (
         f'<form class="governed-form" method="post" action="{escape(write_object_url(str(object_detail["object"]["object_id"]), revision_id=revision_id, section_id=section_id))}">'
         f'<input type="hidden" name="section_id" value="{escape(section_id)}" />'
@@ -218,7 +241,9 @@ def present_guided_revision_page(
         )
     return {
         "stage_label_html": "",
-        "progress_html": render_progress_bar_html(runtime, blueprint=blueprint, completion=completion, current_section_id=section_id),
+        "progress_html": render_progress_bar_html(
+            runtime, blueprint=blueprint, completion=completion, current_section_id=section_id
+        ),
         "validation_html": validation_html,
         "section_editor_html": runtime.template_renderer.render(
             "partials/section_editor.html",
@@ -254,7 +279,9 @@ def present_submit_page(
     forms = FormPresenter(runtime.template_renderer)
     components = ComponentPresenter(runtime.template_renderer)
     revision = detail["revision"]
-    evidence_posture = completion.get("evidence_posture") or summarize_evidence_posture(detail.get("citations", []))
+    evidence_posture = completion.get("evidence_posture") or summarize_evidence_posture(
+        detail.get("citations", [])
+    )
     submit_action = action_descriptor(object_detail.get("ui_projection"), "submit_for_review")
     draft_projection = workflow_projection_payload(
         build_draft_readiness_projection(
@@ -271,7 +298,9 @@ def present_submit_page(
             + forms.field(
                 field_id="notes",
                 label="Submission notes",
-                control_html=forms.textarea(field_id="notes", name="notes", value=values.get("notes", ""), rows=3),
+                control_html=forms.textarea(
+                    field_id="notes", name="notes", value=values.get("notes", ""), rows=3
+                ),
                 hint="Optional notes for reviewers and assignment triage.",
                 errors=form_errors.get("notes"),
             )
@@ -318,7 +347,11 @@ def present_submit_page(
         tone=str(draft_projection.get("tone") or "default"),
         body_html=(
             f"<p>{escape(draft_projection.get('summary') or 'Submission status available.')}</p>"
-            + (render_list([escape(item) for item in progress_rows], css_class="stack-list") if progress_rows else "")
+            + (
+                render_list([escape(item) for item in progress_rows], css_class="stack-list")
+                if progress_rows
+                else ""
+            )
             + f"<p><strong>Warnings to review:</strong> {escape(len(findings))}</p>"
         ),
         footer_html='<p class="section-footer">Send the revision only after the remaining warnings are understood.</p>',

@@ -13,7 +13,9 @@ def render_impact_relationship_list(
 ) -> str:
     body_html = (
         '<div class="impact-relationship-list__items">'
-        + join_html([f'<div class="impact-relationship-list__item">{item}</div>' for item in items_html])
+        + join_html(
+            [f'<div class="impact-relationship-list__item">{item}</div>' for item in items_html]
+        )
         + "</div>"
         if items_html
         else f'<p class="impact-relationship-list__empty">{escape(empty_label)}</p>'

@@ -39,6 +39,8 @@ directories:
     - AGENTS.md
     - README.md
     - mkdocs.yml
+    - pyproject.toml
+    - requirements-dev.txt
     - requirements.txt
 templates:
   approved_files:

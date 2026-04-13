@@ -56,7 +56,9 @@ class HomePresenterTests(SemanticHookAssertions, unittest.TestCase):
                     "needs_decision": [],
                 },
                 "services": [],
-                "events": [{"what_happened": "Home changed", "next_action": "Open the activity surface."}],
+                "events": [
+                    {"what_happened": "Home changed", "next_action": "Open the activity surface."}
+                ],
             },
         )
 

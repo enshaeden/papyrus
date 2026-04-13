@@ -8,9 +8,10 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from papyrus.application.revision_runtime import RevisionRuntimeServices
 from papyrus.application import writeback_flow
 from papyrus.application.policy_authority import PolicyAuthority, policy_decision_payload
+from papyrus.application.revision_runtime import RevisionRuntimeServices
+from papyrus.application.runtime_projection import persist_revision_artifacts
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.entities import AuditEvent, KnowledgeObject, KnowledgeRevision, ReviewAssignment
 from papyrus.domain.lifecycle import (
@@ -35,13 +36,13 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     find_revision_by_content_hash,
     get_knowledge_object,
     get_knowledge_revision,
+    insert_knowledge_revision,
     next_revision_number,
-    upsert_knowledge_object,
-    upsert_relationship,
     update_knowledge_object_runtime_state,
     update_knowledge_revision_content,
     update_knowledge_revision_state,
-    insert_knowledge_revision,
+    upsert_knowledge_object,
+    upsert_relationship,
 )
 from papyrus.infrastructure.repositories.review_repo import (
     get_review_assignment,
@@ -50,12 +51,14 @@ from papyrus.infrastructure.repositories.review_repo import (
     update_review_assignment,
 )
 from papyrus.infrastructure.search.indexer import fts5_available
-from papyrus.infrastructure.transactional_mutation import MutationRecoveryError, TransactionalMutation
-from papyrus.application.runtime_projection import persist_revision_artifacts
+from papyrus.infrastructure.transactional_mutation import (
+    MutationRecoveryError,
+    TransactionalMutation,
+)
 
 
 def _now_utc() -> dt.datetime:
-    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    return dt.datetime.now(dt.UTC).replace(microsecond=0)
 
 
 def _event_id(prefix: str) -> str:
@@ -63,11 +66,15 @@ def _event_id(prefix: str) -> str:
 
 
 def _content_hash(normalized_payload_json: str, body_markdown: str) -> str:
-    return hashlib.sha256(f"{normalized_payload_json}\n{body_markdown}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{normalized_payload_json}\n{body_markdown}".encode()).hexdigest()
 
 
-def _relationship_id(source_type: str, source_id: str, target_type: str, target_id: str, rel_type: str) -> str:
-    return hashlib.sha256(f"{source_type}|{source_id}|{target_type}|{target_id}|{rel_type}".encode("utf-8")).hexdigest()[:24]
+def _relationship_id(
+    source_type: str, source_id: str, target_type: str, target_id: str, rel_type: str
+) -> str:
+    return hashlib.sha256(
+        f"{source_type}|{source_id}|{target_type}|{target_id}|{rel_type}".encode()
+    ).hexdigest()[:24]
 
 
 def _archive_canonical_path(canonical_path: str) -> str:
@@ -191,7 +198,9 @@ class GovernanceWorkflow:
         _ensure_mutation_recovery(source_root=self.source_root, authority=self.authority)
 
     def _connection(self) -> sqlite3.Connection:
-        connection = open_runtime_database(self.database_path, minimum_schema_version=RUNTIME_SCHEMA_VERSION)
+        connection = open_runtime_database(
+            self.database_path, minimum_schema_version=RUNTIME_SCHEMA_VERSION
+        )
         apply_runtime_schema(connection, has_fts5=fts5_available(connection))
         connection.execute(
             "INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (?, ?)",
@@ -216,7 +225,9 @@ class GovernanceWorkflow:
         if row is None:
             raise ValueError(f"revision not found: {revision_id}")
         if row["object_id"] != object_id:
-            raise ValueError(f"revision {revision_id} does not belong to knowledge object {object_id}")
+            raise ValueError(
+                f"revision {revision_id} does not belong to knowledge object {object_id}"
+            )
         return row
 
     def _require_assignment(
@@ -228,9 +239,14 @@ class GovernanceWorkflow:
     ) -> sqlite3.Row:
         assignments = list_review_assignments_for_revision(connection, revision_id)
         for assignment in reversed(assignments):
-            if assignment["reviewer"] == reviewer and assignment["state"] == ReviewAssignmentState.ASSIGNED.value:
+            if (
+                assignment["reviewer"] == reviewer
+                and assignment["state"] == ReviewAssignmentState.ASSIGNED.value
+            ):
                 return assignment
-        raise ValueError(f"no active review assignment for reviewer {reviewer} on revision {revision_id}")
+        raise ValueError(
+            f"no active review assignment for reviewer {reviewer} on revision {revision_id}"
+        )
 
     def create_object(
         self,
@@ -336,7 +352,9 @@ class GovernanceWorkflow:
             content_hash = _content_hash(normalized_payload_json, body_markdown)
             duplicate = find_revision_by_content_hash(connection, object_id, content_hash)
             if duplicate is not None:
-                raise ValueError(f"revision content already exists for knowledge object {object_id}")
+                raise ValueError(
+                    f"revision content already exists for knowledge object {object_id}"
+                )
 
             revision_number = next_revision_number(connection, object_id)
             revision_id = f"{object_id}-rev-{content_hash[:12]}"
@@ -410,7 +428,9 @@ class GovernanceWorkflow:
                 details_json=json_dump(details),
             )
             connection.commit()
-            return _row_to_revision(self._require_revision(connection, object_id=object_id, revision_id=revision_id))
+            return _row_to_revision(
+                self._require_revision(connection, object_id=object_id, revision_id=revision_id)
+            )
         except Exception:
             connection.rollback()
             raise
@@ -430,7 +450,9 @@ class GovernanceWorkflow:
         now = _now_utc()
         try:
             self._require_object(connection, object_id)
-            revision_row = self._require_revision(connection, object_id=object_id, revision_id=revision_id)
+            revision_row = self._require_revision(
+                connection, object_id=object_id, revision_id=revision_id
+            )
             revision_state = _revision_review_state(revision_row)
             draft_progress_state = _draft_progress_state(revision_row)
             if draft_progress_state != DraftProgressState.READY_FOR_REVIEW.value:
@@ -502,14 +524,23 @@ class GovernanceWorkflow:
         now = _now_utc()
         try:
             self._require_object(connection, object_id)
-            revision_row = self._require_revision(connection, object_id=object_id, revision_id=revision_id)
+            revision_row = self._require_revision(
+                connection, object_id=object_id, revision_id=revision_id
+            )
             if _revision_review_state(revision_row) != RevisionReviewState.IN_REVIEW.value:
-                raise ValueError(f"revision {revision_id} must be in_review before assigning reviewers")
+                raise ValueError(
+                    f"revision {revision_id} must be in_review before assigning reviewers"
+                )
 
             existing = list_review_assignments_for_revision(connection, revision_id)
             for assignment in existing:
-                if assignment["reviewer"] == reviewer and assignment["state"] == ReviewAssignmentState.ASSIGNED.value:
-                    raise ValueError(f"reviewer {reviewer} is already assigned to revision {revision_id}")
+                if (
+                    assignment["reviewer"] == reviewer
+                    and assignment["state"] == ReviewAssignmentState.ASSIGNED.value
+                ):
+                    raise ValueError(
+                        f"reviewer {reviewer} is already assigned to revision {revision_id}"
+                    )
 
             assignment_id = _event_id("review-assignment")
             insert_review_assignment(
@@ -562,24 +593,29 @@ class GovernanceWorkflow:
     ) -> KnowledgeRevision:
         actor = require_actor_id(actor)
         connection = self._connection()
-        now = _now_utc()
         pending_writeback: writeback_flow.PendingSourceWriteback | None = None
         writeback_result: writeback_flow.SourceWritebackResult | None = None
         try:
             object_row = self._require_object(connection, object_id)
-            revision_row = self._require_revision(connection, object_id=object_id, revision_id=revision_id)
+            revision_row = self._require_revision(
+                connection, object_id=object_id, revision_id=revision_id
+            )
             revision_state = _revision_review_state(revision_row)
             if revision_state != RevisionReviewState.IN_REVIEW.value:
                 raise ValueError(f"revision {revision_id} must be in_review before approval")
             revision_author = _revision_author_actor(connection, revision_id)
             if revision_author and revision_author == actor:
-                raise ValueError("self-approval is not allowed; another actor must approve this revision")
+                raise ValueError(
+                    "self-approval is not allowed; another actor must approve this revision"
+                )
             revision_decision = self.authority.require_revision_review_transition(
                 revision_state,
                 RevisionReviewState.APPROVED.value,
             )
 
-            active_assignment = self._require_assignment(connection, revision_id=revision_id, reviewer=reviewer)
+            active_assignment = self._require_assignment(
+                connection, revision_id=revision_id, reviewer=reviewer
+            )
             assignments = list_review_assignments_for_revision(connection, revision_id)
             for assignment in assignments:
                 if assignment["assignment_id"] == active_assignment["assignment_id"]:
@@ -645,7 +681,9 @@ class GovernanceWorkflow:
                 "policy_decision": policy_decision_payload(revision_decision),
                 "object_lifecycle_decision": policy_decision_payload(object_decision),
                 "previous_revision_id": writeback_result.previous_revision_id,
-                "source_writeback_path": writeback_result.file_path.relative_to(self.source_root).as_posix(),
+                "source_writeback_path": writeback_result.file_path.relative_to(
+                    self.source_root
+                ).as_posix(),
                 "writeback_backup_path": (
                     writeback_result.backup_path.relative_to(self.source_root).as_posix()
                     if writeback_result.backup_path is not None
@@ -667,7 +705,9 @@ class GovernanceWorkflow:
                 pending_writeback = None
             else:
                 connection.commit()
-            return _row_to_revision(self._require_revision(connection, object_id=object_id, revision_id=revision_id))
+            return _row_to_revision(
+                self._require_revision(connection, object_id=object_id, revision_id=revision_id)
+            )
         except Exception:
             if pending_writeback is not None:
                 pending_writeback.rollback(connection)
@@ -691,7 +731,9 @@ class GovernanceWorkflow:
         now = _now_utc()
         try:
             self._require_object(connection, object_id)
-            revision_row = self._require_revision(connection, object_id=object_id, revision_id=revision_id)
+            revision_row = self._require_revision(
+                connection, object_id=object_id, revision_id=revision_id
+            )
             revision_state = _revision_review_state(revision_row)
             if revision_state != RevisionReviewState.IN_REVIEW.value:
                 raise ValueError(f"revision {revision_id} must be in_review before rejection")
@@ -699,7 +741,9 @@ class GovernanceWorkflow:
                 revision_state,
                 RevisionReviewState.REJECTED.value,
             )
-            active_assignment = self._require_assignment(connection, revision_id=revision_id, reviewer=reviewer)
+            active_assignment = self._require_assignment(
+                connection, revision_id=revision_id, reviewer=reviewer
+            )
             assignments = list_review_assignments_for_revision(connection, revision_id)
             for assignment in assignments:
                 if assignment["assignment_id"] == active_assignment["assignment_id"]:
@@ -749,7 +793,9 @@ class GovernanceWorkflow:
                 details_json=json_dump(details),
             )
             connection.commit()
-            return _row_to_revision(self._require_revision(connection, object_id=object_id, revision_id=revision_id))
+            return _row_to_revision(
+                self._require_revision(connection, object_id=object_id, revision_id=revision_id)
+            )
         except Exception:
             connection.rollback()
             raise
@@ -795,7 +841,10 @@ class GovernanceWorkflow:
                     object_id=object_id,
                     revision_id=str(source_object["current_revision_id"]),
                 )
-                if _revision_review_state(current_revision_row) == RevisionReviewState.APPROVED.value:
+                if (
+                    _revision_review_state(current_revision_row)
+                    == RevisionReviewState.APPROVED.value
+                ):
                     self.authority.require_revision_review_transition(
                         RevisionReviewState.APPROVED.value,
                         RevisionReviewState.SUPERSEDED.value,
@@ -865,11 +914,17 @@ class GovernanceWorkflow:
 
             current_revision_id = str(object_row["current_revision_id"] or "").strip()
             if not current_revision_id:
-                raise ValueError("archive requires a current revision so canonical content can be updated coherently")
-            revision_row = self._require_revision(connection, object_id=object_id, revision_id=current_revision_id)
+                raise ValueError(
+                    "archive requires a current revision so canonical content can be updated coherently"
+                )
+            revision_row = self._require_revision(
+                connection, object_id=object_id, revision_id=current_revision_id
+            )
 
             metadata = json.loads(str(revision_row["normalized_payload_json"]))
-            current_canonical_path = str(metadata.get("canonical_path") or object_row["canonical_path"])
+            current_canonical_path = str(
+                metadata.get("canonical_path") or object_row["canonical_path"]
+            )
             archived_canonical_path = _archive_canonical_path(current_canonical_path)
             current_file_path = self.authority.resolve_canonical_target_path(
                 source_root=self.source_root,
@@ -882,14 +937,20 @@ class GovernanceWorkflow:
             if archived_file_path.exists():
                 raise ValueError(f"archive target already exists: {archived_canonical_path}")
 
-            current_source_text = current_file_path.read_text(encoding="utf-8") if current_file_path.exists() else None
+            current_source_text = (
+                current_file_path.read_text(encoding="utf-8")
+                if current_file_path.exists()
+                else None
+            )
             archived_metadata = dict(metadata)
             archived_metadata["object_lifecycle_state"] = ObjectLifecycleState.ARCHIVED.value
             archived_metadata["canonical_path"] = archived_canonical_path
             archived_metadata["retirement_reason"] = retirement_reason
             archived_metadata["updated"] = now.date().isoformat()
             archived_payload_json = json_dump(archived_metadata)
-            archived_content_hash = _content_hash(archived_payload_json, str(revision_row["body_markdown"]))
+            archived_content_hash = _content_hash(
+                archived_payload_json, str(revision_row["body_markdown"])
+            )
             archived_markdown = writeback_flow.render_revision_markdown(
                 object_type=str(object_row["object_type"]),
                 metadata=archived_metadata,
@@ -946,7 +1007,9 @@ class GovernanceWorkflow:
                     draft_progress_state=_draft_progress_state(revision_row),
                     section_content_json=str(revision_row["section_content_json"]),
                     section_completion_json=str(revision_row["section_completion_json"]),
-                    change_summary=str(revision_row["change_summary"]) if revision_row["change_summary"] is not None else None,
+                    change_summary=str(revision_row["change_summary"])
+                    if revision_row["change_summary"] is not None
+                    else None,
                 )
                 update_knowledge_object_runtime_state(
                     connection,

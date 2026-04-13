@@ -36,7 +36,7 @@ def render_home_activity_block(*, dashboard: dict[str, Any]) -> str:
                     f'<p class="home-activity-block__detail">{escape(event["next_action"])}</p>'
                     "</div>"
                     '<div class="home-activity-block__meta">'
-                    f'{link("Open", activity_url(role), css_class="button button-ghost", attrs={"data-action-id": "open-activity"})}'
+                    f"{link('Open', activity_url(role), css_class='button button-ghost', attrs={'data-action-id': 'open-activity'})}"
                     "</div>"
                     "</li>"
                 )

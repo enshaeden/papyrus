@@ -10,7 +10,6 @@ from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.infrastructure.markdown.serializer import slugify
 from papyrus.infrastructure.paths import ROOT
 
-
 OBJECT_TYPE_DEFAULT_DIRS = {
     "runbook": "runbooks",
     "known_error": "known-errors",
@@ -129,7 +128,9 @@ class MarkdownWriter:
                 changed=False,
             )
 
-        backup_path = self._write_backup(object_id=object_id, file_path=file_path, previous_text=current_text)
+        backup_path = self._write_backup(
+            object_id=object_id, file_path=file_path, previous_text=current_text
+        )
         self._atomic_write(file_path, text)
         return MarkdownWriteResult(
             file_path=file_path,
@@ -148,18 +149,22 @@ class MarkdownWriter:
             return
         self._atomic_write(file_path, previous_text)
 
-    def _write_backup(self, *, object_id: str, file_path: Path, previous_text: str | None) -> Path | None:
+    def _write_backup(
+        self, *, object_id: str, file_path: Path, previous_text: str | None
+    ) -> Path | None:
         if previous_text is None:
             return None
         backup_dir = self.backup_root / slugify(object_id)
         backup_dir.mkdir(parents=True, exist_ok=True)
-        timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        timestamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
         backup_path = backup_dir / f"{timestamp}-{file_path.name}"
         self._atomic_write(backup_path, previous_text)
         return backup_path
 
     def _atomic_write(self, file_path: Path, text: str) -> None:
-        fd, temp_name = tempfile.mkstemp(prefix=".papyrus-writeback-", suffix=".tmp", dir=str(file_path.parent))
+        fd, temp_name = tempfile.mkstemp(
+            prefix=".papyrus-writeback-", suffix=".tmp", dir=str(file_path.parent)
+        )
         temp_path = Path(temp_name)
         try:
             with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
@@ -176,7 +181,9 @@ class MarkdownWriter:
                 return
             except ValueError:
                 continue
-        raise ValueError(f"canonical Markdown path must stay under knowledge/ or archive/knowledge/: {file_path}")
+        raise ValueError(
+            f"canonical Markdown path must stay under knowledge/ or archive/knowledge/: {file_path}"
+        )
 
     def _cleanup_empty_parents(self, directory: Path) -> None:
         stop_roots = set(self.canonical_roots)

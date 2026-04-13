@@ -34,16 +34,33 @@ class IngestionFlowTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            detail = ingestion_detail(ingestion_id=result["ingestion_id"], database_path=database_path)
+            result = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            detail = ingestion_detail(
+                ingestion_id=result["ingestion_id"], database_path=database_path
+            )
 
             self.assertEqual(detail["filename"], "sample.md")
             self.assertEqual(detail["ingestion_state"], "classified")
             self.assertEqual(detail["mapping_result"], {})
             self.assertEqual(detail["normalized_content"]["title"], "VPN Recovery")
             artifact_types = {artifact["artifact_type"] for artifact in detail["artifacts"]}
-            self.assertTrue({"uploaded", "parsed", "normalized", "classified", "sections", "stage_progress"}.issubset(artifact_types))
-            stage_progress = next(artifact["content"] for artifact in detail["artifacts"] if artifact["artifact_type"] == "stage_progress")
+            self.assertTrue(
+                {
+                    "uploaded",
+                    "parsed",
+                    "normalized",
+                    "classified",
+                    "sections",
+                    "stage_progress",
+                }.issubset(artifact_types)
+            )
+            stage_progress = next(
+                artifact["content"]
+                for artifact in detail["artifacts"]
+                if artifact["artifact_type"] == "stage_progress"
+            )
             self.assertEqual(stage_progress["completed_stages"], ["upload", "parse", "classify"])
             self.assertEqual(stage_progress["current_stage"], "map")
 
@@ -56,37 +73,51 @@ class IngestionFlowTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            detail = ingestion_detail(ingestion_id=result["ingestion_id"], database_path=database_path)
+            result = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            detail = ingestion_detail(
+                ingestion_id=result["ingestion_id"], database_path=database_path
+            )
             classified_actions = {
-                action["action_id"]: action
-                for action in detail["workflow_projection"]["actions"]
+                action["action_id"]: action for action in detail["workflow_projection"]["actions"]
             }
             self.assertEqual(detail["workflow_projection"]["summary"], "Generate mapping review")
-            self.assertEqual(classified_actions["review_ingestion_mapping"]["availability"], "allowed")
-            self.assertEqual(classified_actions["convert_ingestion_to_draft"]["availability"], "illegal")
+            self.assertEqual(
+                classified_actions["review_ingestion_mapping"]["availability"], "allowed"
+            )
+            self.assertEqual(
+                classified_actions["convert_ingestion_to_draft"]["availability"], "illegal"
+            )
 
             map_to_blueprint(
                 ingestion_id=result["ingestion_id"],
                 blueprint_id="runbook",
                 database_path=database_path,
             )
-            mapped = ingestion_detail(ingestion_id=result["ingestion_id"], database_path=database_path)
+            mapped = ingestion_detail(
+                ingestion_id=result["ingestion_id"], database_path=database_path
+            )
             mapped_actions = {
-                action["action_id"]: action
-                for action in mapped["workflow_projection"]["actions"]
+                action["action_id"]: action for action in mapped["workflow_projection"]["actions"]
             }
             self.assertEqual(mapped["workflow_projection"]["rows"][0]["value"], "mapped")
             self.assertEqual(mapped_actions["review_ingestion_mapping"]["availability"], "allowed")
-            self.assertEqual(mapped_actions["convert_ingestion_to_draft"]["availability"], "allowed")
+            self.assertEqual(
+                mapped_actions["convert_ingestion_to_draft"]["availability"], "allowed"
+            )
 
     def test_mapping_transition_requires_real_mapping_result(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root, source_path = governed_ingest_path(temp_dir, "sample.md")
-            source_path.write_text("# VPN Recovery\n\n## Steps\n\n- Validate connectivity\n", encoding="utf-8")
+            source_path.write_text(
+                "# VPN Recovery\n\n## Steps\n\n- Validate connectivity\n", encoding="utf-8"
+            )
 
-            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
+            result = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
 
             with self.assertRaisesRegex(ValueError, "real mapping result exists"):
                 update_ingestion_mapping(
@@ -96,7 +127,9 @@ class IngestionFlowTests(unittest.TestCase):
                     database_path=database_path,
                 )
 
-            detail = ingestion_detail(ingestion_id=result["ingestion_id"], database_path=database_path)
+            detail = ingestion_detail(
+                ingestion_id=result["ingestion_id"], database_path=database_path
+            )
             self.assertEqual(detail["ingestion_state"], "classified")
             self.assertEqual(detail["mapping_result"], {})
 
@@ -104,11 +137,17 @@ class IngestionFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root, source_path = governed_ingest_path(temp_dir, "sample.md")
-            source_path.write_text("# VPN Recovery\n\n## Steps\n\n- Validate connectivity\n", encoding="utf-8")
+            source_path.write_text(
+                "# VPN Recovery\n\n## Steps\n\n- Validate connectivity\n", encoding="utf-8"
+            )
 
-            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
+            result = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
 
-            with self.assertRaisesRegex(ValueError, "real mapping result before it can be reviewed and converted"):
+            with self.assertRaisesRegex(
+                ValueError, "real mapping result before it can be reviewed and converted"
+            ):
                 mark_ingestion_converted(
                     ingestion_id=result["ingestion_id"],
                     object_id="kb-vpn-recovery-imported",
@@ -116,7 +155,9 @@ class IngestionFlowTests(unittest.TestCase):
                     database_path=database_path,
                 )
 
-            detail = ingestion_detail(ingestion_id=result["ingestion_id"], database_path=database_path)
+            detail = ingestion_detail(
+                ingestion_id=result["ingestion_id"], database_path=database_path
+            )
             self.assertEqual(detail["ingestion_state"], "classified")
             self.assertIsNone(detail["converted_revision_id"])
 
@@ -136,7 +177,9 @@ class IngestionFlowTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
+            result = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
             sections = result["sections"]
 
             self.assertEqual(
@@ -168,12 +211,20 @@ class IngestionFlowTests(unittest.TestCase):
             source_root, source_path = governed_ingest_path(temp_dir, "empty.md")
             source_path.write_text("", encoding="utf-8")
 
-            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            detail = ingestion_detail(ingestion_id=result["ingestion_id"], database_path=database_path)
+            result = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            detail = ingestion_detail(
+                ingestion_id=result["ingestion_id"], database_path=database_path
+            )
 
             self.assertEqual(detail["ingestion_state"], "classified")
-            self.assertEqual(detail["normalized_content"]["extraction_quality"]["state"], "degraded")
-            self.assertIn("Markdown file is empty.", detail["normalized_content"]["parser_warnings"])
+            self.assertEqual(
+                detail["normalized_content"]["extraction_quality"]["state"], "degraded"
+            )
+            self.assertIn(
+                "Markdown file is empty.", detail["normalized_content"]["parser_warnings"]
+            )
 
     def test_weak_pdf_is_ingested_with_parser_warnings(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -183,13 +234,21 @@ class IngestionFlowTests(unittest.TestCase):
                 b"%PDF-1.4\n1 0 obj\n<< /Length 18 >>\nstream\nBT /F1 12 Tf ET\nendstream\nendobj\n%%EOF"
             )
 
-            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            detail = ingestion_detail(ingestion_id=result["ingestion_id"], database_path=database_path)
+            result = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            detail = ingestion_detail(
+                ingestion_id=result["ingestion_id"], database_path=database_path
+            )
 
             self.assertEqual(detail["ingestion_state"], "classified")
-            self.assertEqual(detail["normalized_content"]["extraction_quality"]["state"], "degraded")
+            self.assertEqual(
+                detail["normalized_content"]["extraction_quality"]["state"], "degraded"
+            )
             self.assertTrue(detail["normalized_content"]["parser_warnings"])
-            self.assertIn("No extractable PDF text found.", detail["normalized_content"]["parser_warnings"][0])
+            self.assertIn(
+                "No extractable PDF text found.", detail["normalized_content"]["parser_warnings"][0]
+            )
 
     def test_malformed_docx_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -198,7 +257,9 @@ class IngestionFlowTests(unittest.TestCase):
             source_path.write_bytes(b"not-a-docx")
 
             with self.assertRaisesRegex(ValueError, "malformed DOCX"):
-                ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
+                ingest_file(
+                    file_path=source_path, database_path=database_path, source_root=source_root
+                )
 
     def test_malformed_pdf_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -207,7 +268,9 @@ class IngestionFlowTests(unittest.TestCase):
             source_path.write_bytes(b"not-a-pdf")
 
             with self.assertRaisesRegex(ValueError, "malformed PDF"):
-                ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
+                ingest_file(
+                    file_path=source_path, database_path=database_path, source_root=source_root
+                )
 
     def test_unsupported_file_type_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -216,4 +279,6 @@ class IngestionFlowTests(unittest.TestCase):
             source_path.write_text("unsupported", encoding="utf-8")
 
             with self.assertRaisesRegex(ValueError, "unsupported ingestion file type"):
-                ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
+                ingest_file(
+                    file_path=source_path, database_path=database_path, source_root=source_root
+                )

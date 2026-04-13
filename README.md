@@ -14,6 +14,11 @@ Start at `/operator` for the operator home surface. Reader and Admin surfaces ar
 Current primary entrypoints:
 
 - Web runtime: `python3 scripts/run.py --operator`
+- Formatter: `./scripts/format.sh`
+- Lint: `./scripts/lint.sh`
+- Type check: `./scripts/typecheck.sh`
+- Route map: `python3 scripts/build_route_map.py`
+- Full engineering gate: `./scripts/check.sh`
 - CLI queue view: `python3 scripts/operator_view.py queue --db build/knowledge.db`
 - Validation: `python3 scripts/validate.py`
 - Tests: `python3 -m unittest discover -s tests`

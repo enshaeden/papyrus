@@ -124,7 +124,9 @@ def update_citation_evidence_fields(
     )
 
 
-def citation_status_counts_for_revision(connection: sqlite3.Connection, revision_id: str) -> dict[str, int]:
+def citation_status_counts_for_revision(
+    connection: sqlite3.Connection, revision_id: str
+) -> dict[str, int]:
     counts = {"verified": 0, "unverified": 0, "stale": 0, "broken": 0}
     rows = connection.execute(
         """

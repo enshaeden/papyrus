@@ -77,7 +77,9 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "retirement_reason": None,
         "services": ["Remote Access"],
         "related_articles": [],
-        "references": [{"title": "Seed import manifest", "path": "docs/migration/seed-migration-rationale.md"}],
+        "references": [
+            {"title": "Seed import manifest", "path": "docs/migration/seed-migration-rationale.md"}
+        ],
         "change_log": [{"date": "2026-04-07", "summary": "Initial draft.", "author": "tests"}],
     }
 
@@ -88,7 +90,9 @@ class GovernanceWorkflowTests(unittest.TestCase):
             database_path = Path(temp_dir) / "workflow.db"
             build_search_projection(database_path)
             source_root = Path(temp_dir) / "repo"
-            pending_target = source_root / "knowledge" / "runbooks" / "pending-governance-recovery.md"
+            pending_target = (
+                source_root / "knowledge" / "runbooks" / "pending-governance-recovery.md"
+            )
             pending_target.parent.mkdir(parents=True, exist_ok=True)
             pending_target.write_text("original review content\n", encoding="utf-8")
 
@@ -106,11 +110,15 @@ class GovernanceWorkflowTests(unittest.TestCase):
             pending_mutation.apply_files()
             pending_mutation.close()
 
-            self.assertEqual(pending_target.read_text(encoding="utf-8"), "interrupted review content\n")
+            self.assertEqual(
+                pending_target.read_text(encoding="utf-8"), "interrupted review content\n"
+            )
 
             workflow = GovernanceWorkflow(database_path, source_root=source_root)
 
-            self.assertEqual(pending_target.read_text(encoding="utf-8"), "original review content\n")
+            self.assertEqual(
+                pending_target.read_text(encoding="utf-8"), "original review content\n"
+            )
 
             created = workflow.create_object(
                 object_id="kb-governance-recovery-target",
@@ -132,17 +140,25 @@ class GovernanceWorkflowTests(unittest.TestCase):
             seeded_source = source_root / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
             seeded_source.parent.mkdir(parents=True, exist_ok=True)
             seeded_source.write_text(
-                (ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md").read_text(encoding="utf-8"),
+                (ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md").read_text(
+                    encoding="utf-8"
+                ),
                 encoding="utf-8",
             )
             workflow = GovernanceWorkflow(database_path, source_root=source_root)
 
-            document = parse_knowledge_document(ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md")
+            document = parse_knowledge_document(
+                ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
+            )
             payload = copy.deepcopy(document.metadata)
             payload["summary"] = "Diagnose VPN failures with explicit workflow review coverage."
             payload["change_log"] = [
                 *payload["change_log"],
-                {"date": "2026-04-07", "summary": "Workflow review test revision.", "author": "tests"},
+                {
+                    "date": "2026-04-07",
+                    "summary": "Workflow review test revision.",
+                    "author": "tests",
+                },
             ]
             revision = workflow.create_revision(
                 object_id=payload["id"],
@@ -152,7 +168,9 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 legacy_metadata=document.metadata,
                 change_summary="Workflow review test revision.",
             )
-            workflow.submit_for_review(object_id=payload["id"], revision_id=revision.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=payload["id"], revision_id=revision.revision_id, actor="tests"
+            )
             assignment = workflow.assign_reviewer(
                 object_id=payload["id"],
                 revision_id=revision.revision_id,
@@ -208,7 +226,9 @@ class GovernanceWorkflowTests(unittest.TestCase):
             self.assertIn("reviewer_assigned", audit_event_types)
             self.assertIn("revision_approved", audit_event_types)
 
-    def test_runtime_created_objects_support_reject_supersede_suspect_and_validation_run(self) -> None:
+    def test_runtime_created_objects_support_reject_supersede_suspect_and_validation_run(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"
             source_root = Path(temp_dir) / "repo"
@@ -237,12 +257,16 @@ class GovernanceWorkflowTests(unittest.TestCase):
 
             revision_a = workflow.create_revision(
                 object_id=object_a.object_id,
-                normalized_payload=runbook_payload(object_a.object_id, object_a.canonical_path, object_a.title),
+                normalized_payload=runbook_payload(
+                    object_a.object_id, object_a.canonical_path, object_a.title
+                ),
                 body_markdown="## Steps\n\n1. Execute workflow A.",
                 actor="tests",
                 change_summary="Initial workflow A revision.",
             )
-            workflow.submit_for_review(object_id=object_a.object_id, revision_id=revision_a.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=object_a.object_id, revision_id=revision_a.revision_id, actor="tests"
+            )
             workflow.assign_reviewer(
                 object_id=object_a.object_id,
                 revision_id=revision_a.revision_id,
@@ -259,12 +283,16 @@ class GovernanceWorkflowTests(unittest.TestCase):
 
             revision_b = workflow.create_revision(
                 object_id=object_b.object_id,
-                normalized_payload=runbook_payload(object_b.object_id, object_b.canonical_path, object_b.title),
+                normalized_payload=runbook_payload(
+                    object_b.object_id, object_b.canonical_path, object_b.title
+                ),
                 body_markdown="## Steps\n\n1. Execute workflow B.",
                 actor="tests",
                 change_summary="Initial workflow B revision.",
             )
-            workflow.submit_for_review(object_id=object_b.object_id, revision_id=revision_b.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=object_b.object_id, revision_id=revision_b.revision_id, actor="tests"
+            )
             workflow.assign_reviewer(
                 object_id=object_b.object_id,
                 revision_id=revision_b.revision_id,
@@ -389,12 +417,16 @@ class GovernanceWorkflowTests(unittest.TestCase):
             )
             revision = workflow.create_revision(
                 object_id=created.object_id,
-                normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+                normalized_payload=runbook_payload(
+                    created.object_id, created.canonical_path, created.title
+                ),
                 body_markdown="## Steps\n\n1. Exercise rollback.",
                 actor="tests",
                 change_summary="Approval rollback coverage.",
             )
-            workflow.submit_for_review(object_id=created.object_id, revision_id=revision.revision_id, actor="tests")
+            workflow.submit_for_review(
+                object_id=created.object_id, revision_id=revision.revision_id, actor="tests"
+            )
             workflow.assign_reviewer(
                 object_id=created.object_id,
                 revision_id=revision.revision_id,
@@ -402,14 +434,19 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 actor="tests",
             )
 
-            original_insert_audit_event = __import__("papyrus.application.review_flow", fromlist=["insert_audit_event"]).insert_audit_event
+            original_insert_audit_event = __import__(
+                "papyrus.application.review_flow", fromlist=["insert_audit_event"]
+            ).insert_audit_event
 
             def fail_revision_approved(connection, *, event_type, **kwargs):
                 if event_type == "revision_approved":
                     raise RuntimeError("forced approval audit failure")
                 return original_insert_audit_event(connection, event_type=event_type, **kwargs)
 
-            with mock.patch("papyrus.application.review_flow.insert_audit_event", side_effect=fail_revision_approved):
+            with mock.patch(
+                "papyrus.application.review_flow.insert_audit_event",
+                side_effect=fail_revision_approved,
+            ):
                 with self.assertRaisesRegex(RuntimeError, "forced approval audit failure"):
                     workflow.approve_revision(
                         object_id=created.object_id,

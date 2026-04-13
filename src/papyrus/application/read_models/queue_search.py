@@ -8,7 +8,11 @@ from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.posture import build_posture_summary
 from papyrus.application.role_visibility import filter_queue_items_for_role, normalize_role
 from papyrus.application.runtime_projection import RuntimeStateSnapshot
-from papyrus.application.ui_projection import build_object_actions, build_ui_projection, ui_projection_payload
+from papyrus.application.ui_projection import (
+    build_object_actions,
+    build_ui_projection,
+    ui_projection_payload,
+)
 from papyrus.domain.entities import SearchHit
 from papyrus.domain.policies import citation_health_label, searchable_statuses, status_rank_map
 from papyrus.infrastructure.paths import DB_PATH
@@ -22,6 +26,7 @@ from .support import (
     build_status_filter_clause,
     require_runtime_connection,
 )
+
 
 def search_projection(
     query: str,
@@ -40,9 +45,14 @@ def search_projection(
         has_fts = connection.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='knowledge_search'"
         ).fetchone()
-        case_sql = "CASE " + " ".join(
-            f"WHEN d.object_lifecycle_state = '{status}' THEN {rank}" for status, rank in status_rank.items()
-        ) + " ELSE 999 END"
+        case_sql = (
+            "CASE "
+            + " ".join(
+                f"WHEN d.object_lifecycle_state = '{status}' THEN {rank}"
+                for status, rank in status_rank.items()
+            )
+            + " ELSE 999 END"
+        )
         governance_sql = (
             "CASE d.revision_review_state "
             "WHEN 'approved' THEN 0 "
@@ -100,6 +110,7 @@ def search_projection(
         for row in rows
     ]
 
+
 def _trust_priority(trust_state: str) -> int:
     order = {
         "trusted": 0,
@@ -109,6 +120,7 @@ def _trust_priority(trust_state: str) -> int:
     }
     return order.get(trust_state, 9)
 
+
 def _triage_trust_priority(trust_state: str) -> int:
     order = {
         "stale": 0,
@@ -117,6 +129,7 @@ def _triage_trust_priority(trust_state: str) -> int:
         "trusted": 3,
     }
     return order.get(trust_state, 9)
+
 
 def _review_priority(revision_review_state: str | None) -> int:
     order = {
@@ -128,6 +141,7 @@ def _review_priority(revision_review_state: str | None) -> int:
     }
     return order.get(str(revision_review_state or ""), 9)
 
+
 def _triage_review_priority(revision_review_state: str | None) -> int:
     order = {
         "in_review": 0,
@@ -137,6 +151,7 @@ def _triage_review_priority(revision_review_state: str | None) -> int:
         "superseded": 4,
     }
     return order.get(str(revision_review_state or ""), 9)
+
 
 def _queue_reasons(row: sqlite3.Row) -> list[str]:
     reasons: list[str] = []
@@ -152,6 +167,7 @@ def _queue_reasons(row: sqlite3.Row) -> list[str]:
     if row["trust_state"] != "trusted":
         reasons.append(f"trust:{row['trust_state']}")
     return reasons
+
 
 def _load_service_links(
     connection: sqlite3.Connection,
@@ -182,6 +198,7 @@ def _load_service_links(
         )
     return mapping
 
+
 def _load_relationship_counts(
     connection: sqlite3.Connection,
     object_ids: list[str],
@@ -208,6 +225,7 @@ def _load_relationship_counts(
         tuple(object_ids) + tuple(object_ids),
     ).fetchall()
     return {str(row["object_id"]): int(row["item_count"] or 0) for row in rows}
+
 
 def _load_latest_object_audit_events(
     connection: sqlite3.Connection,
@@ -241,6 +259,7 @@ def _load_latest_object_audit_events(
         }
     return mapping
 
+
 def _build_item_posture(
     *,
     object_id: str,
@@ -265,7 +284,10 @@ def _build_item_posture(
         latest_suspect_event=object_events.get("object_marked_suspect_due_to_change"),
     )
 
-def _augment_queue_items(connection: sqlite3.Connection, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+
+def _augment_queue_items(
+    connection: sqlite3.Connection, items: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     object_ids = [str(item["object_id"]) for item in items]
     service_links = _load_service_links(connection, object_ids)
     relationship_counts = _load_relationship_counts(connection, object_ids)
@@ -282,10 +304,13 @@ def _augment_queue_items(connection: sqlite3.Connection, items: list[dict[str, A
             citation_health_rank=int(item.get("citation_health_rank") or 0),
             ownership_rank=int(item.get("ownership_rank") or 0),
             owner=str(item.get("owner") or ""),
-            current_revision_id=str(item["current_revision_id"]) if item.get("current_revision_id") else None,
+            current_revision_id=str(item["current_revision_id"])
+            if item.get("current_revision_id")
+            else None,
             audit_events=audit_events,
         )
     return items
+
 
 def _queue_projection_select() -> str:
     return """
@@ -314,8 +339,11 @@ def _queue_projection_select() -> str:
         LEFT JOIN knowledge_revisions AS r ON r.revision_id = o.current_revision_id
     """
 
+
 def _queue_item_from_projection_row(row: sqlite3.Row) -> dict[str, Any]:
-    current_revision_id = str(row["current_revision_id"]) if row["current_revision_id"] is not None else None
+    current_revision_id = (
+        str(row["current_revision_id"]) if row["current_revision_id"] is not None else None
+    )
     reasons = _queue_reasons(row)
     if current_revision_id is None:
         reasons.insert(0, "no_revision")
@@ -340,6 +368,7 @@ def _queue_item_from_projection_row(row: sqlite3.Row) -> dict[str, Any]:
         "current_revision_id": current_revision_id,
         "reasons": reasons,
     }
+
 
 def knowledge_queue(
     *,
@@ -408,6 +437,7 @@ def knowledge_queue(
         return items[:limit]
     finally:
         connection.close()
+
 
 def search_knowledge_objects(
     query: str,

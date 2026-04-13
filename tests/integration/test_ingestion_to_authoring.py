@@ -21,7 +21,9 @@ def governed_ingest_path(temp_dir: str, filename: str) -> tuple[Path, Path]:
 
 
 class IngestionToAuthoringIntegrationTests(unittest.TestCase):
-    def test_imported_runbook_stays_honestly_partial_when_required_fields_are_unresolved(self) -> None:
+    def test_imported_runbook_stays_honestly_partial_when_required_fields_are_unresolved(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root, source_path = governed_ingest_path(temp_dir, "runbook.md")
@@ -30,8 +32,14 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            ingested = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            map_to_blueprint(ingestion_id=ingested["ingestion_id"], blueprint_id="runbook", database_path=database_path)
+            ingested = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            map_to_blueprint(
+                ingestion_id=ingested["ingestion_id"],
+                blueprint_id="runbook",
+                database_path=database_path,
+            )
             converted = convert_to_draft(
                 ingestion_id=ingested["ingestion_id"],
                 object_id="kb-access-recovery-imported",
@@ -68,23 +76,33 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
             self.assertEqual(detail["revision"]["section_content"]["purpose"]["use_when"], "")
             self.assertEqual(detail["revision"]["section_content"]["evidence"]["citations"], [])
             self.assertEqual(
-                detail["revision"]["section_content"]["procedure"]["_field_provenance"]["steps"]["status"],
+                detail["revision"]["section_content"]["procedure"]["_field_provenance"]["steps"][
+                    "status"
+                ],
                 "mapped",
             )
             self.assertEqual(
-                detail["revision"]["section_content"]["purpose"]["_field_provenance"]["use_when"]["status"],
+                detail["revision"]["section_content"]["purpose"]["_field_provenance"]["use_when"][
+                    "status"
+                ],
                 "manual_required",
             )
             self.assertEqual(
-                detail["revision"]["section_content"]["stewardship"]["_field_provenance"]["summary"]["status"],
+                detail["revision"]["section_content"]["stewardship"]["_field_provenance"][
+                    "summary"
+                ]["status"],
                 "manual_required",
             )
             self.assertEqual(
-                detail["revision"]["section_content"]["evidence"]["_field_provenance"]["citations"]["status"],
+                detail["revision"]["section_content"]["evidence"]["_field_provenance"]["citations"][
+                    "status"
+                ],
                 "manual_required",
             )
             self.assertEqual(
-                detail["revision"]["section_content"]["relationships"]["_field_provenance"]["related_object_ids"]["status"],
+                detail["revision"]["section_content"]["relationships"]["_field_provenance"][
+                    "related_object_ids"
+                ]["status"],
                 "unresolved",
             )
             self.assertTrue(detail["revision"]["section_completion_map"]["procedure"]["completed"])
@@ -121,8 +139,14 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            ingested = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            map_to_blueprint(ingestion_id=ingested["ingestion_id"], blueprint_id="known_error", database_path=database_path)
+            ingested = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            map_to_blueprint(
+                ingestion_id=ingested["ingestion_id"],
+                blueprint_id="known_error",
+                database_path=database_path,
+            )
             converted = convert_to_draft(
                 ingestion_id=ingested["ingestion_id"],
                 object_id="kb-login-failure-imported",
@@ -146,9 +170,13 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
             self.assertEqual(detail["object"]["summary"], "")
             self.assertEqual(detail["revision"]["metadata"]["summary"], "")
             diagnosis = detail["revision"]["section_content"]["diagnosis"]
-            self.assertEqual(diagnosis["symptoms"], ["Users cannot sign in", "Sessions expire immediately"])
+            self.assertEqual(
+                diagnosis["symptoms"], ["Users cannot sign in", "Sessions expire immediately"]
+            )
             self.assertEqual(diagnosis["scope"], "Only federated desktop clients are affected.")
-            self.assertEqual(diagnosis["cause"], "A cached token schema mismatch breaks refresh validation.")
+            self.assertEqual(
+                diagnosis["cause"], "A cached token schema mismatch breaks refresh validation."
+            )
             self.assertNotEqual(
                 diagnosis["_field_provenance"]["symptoms"]["source_fragment_id"],
                 diagnosis["_field_provenance"]["scope"]["source_fragment_id"],
@@ -157,18 +185,26 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
                 diagnosis["_field_provenance"]["scope"]["source_fragment_id"],
                 diagnosis["_field_provenance"]["cause"]["source_fragment_id"],
             )
-            self.assertEqual(detail["revision"]["section_content"]["mitigations"]["permanent_fix_status"], "")
             self.assertEqual(
-                detail["revision"]["section_content"]["mitigations"]["_field_provenance"]["permanent_fix_status"]["status"],
+                detail["revision"]["section_content"]["mitigations"]["permanent_fix_status"], ""
+            )
+            self.assertEqual(
+                detail["revision"]["section_content"]["mitigations"]["_field_provenance"][
+                    "permanent_fix_status"
+                ]["status"],
                 "manual_required",
             )
             self.assertEqual(
                 detail["revision"]["section_content"]["escalation"]["detection_notes"],
                 "Alert when refresh failures exceed five per minute.",
             )
-            self.assertFalse(detail["revision"]["section_completion_map"]["mitigations"]["completed"])
+            self.assertFalse(
+                detail["revision"]["section_completion_map"]["mitigations"]["completed"]
+            )
 
-    def test_policy_import_uses_explicit_policy_fields_and_stays_partial_without_evidence(self) -> None:
+    def test_policy_import_uses_explicit_policy_fields_and_stays_partial_without_evidence(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root, source_path = governed_ingest_path(temp_dir, "policy.md")
@@ -184,8 +220,14 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            ingested = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            map_to_blueprint(ingestion_id=ingested["ingestion_id"], blueprint_id="policy", database_path=database_path)
+            ingested = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            map_to_blueprint(
+                ingestion_id=ingested["ingestion_id"],
+                blueprint_id="policy",
+                database_path=database_path,
+            )
             converted = convert_to_draft(
                 ingestion_id=ingested["ingestion_id"],
                 object_id="kb-remote-access-policy-imported",
@@ -207,24 +249,34 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
                 database_path=database_path,
             )
             self.assertEqual(detail["object"]["object_type"], "policy")
-            self.assertEqual(detail["revision"]["section_content"]["policy_scope"]["policy_scope"], "Applies to authentication, VPN, and remote access control changes.")
+            self.assertEqual(
+                detail["revision"]["section_content"]["policy_scope"]["policy_scope"],
+                "Applies to authentication, VPN, and remote access control changes.",
+            )
             self.assertEqual(
                 detail["revision"]["section_content"]["controls"]["controls"],
-                ["Require CAB approval before production change", "Record a rollback plan before execution"],
+                [
+                    "Require CAB approval before production change",
+                    "Record a rollback plan before execution",
+                ],
             )
             self.assertEqual(
                 detail["revision"]["section_content"]["exceptions"]["exceptions"],
                 "Emergency changes require follow-up review within 24 hours.",
             )
             self.assertEqual(
-                detail["revision"]["section_content"]["evidence"]["_field_provenance"]["citations"]["status"],
+                detail["revision"]["section_content"]["evidence"]["_field_provenance"]["citations"][
+                    "status"
+                ],
                 "manual_required",
             )
             self.assertEqual(detail["object"]["summary"], "")
             self.assertNotEqual(detail["revision"]["draft_progress_state"], "ready_for_review")
             self.assertLess(converted["completion"]["completion_percentage"], 100)
 
-    def test_system_design_import_uses_explicit_system_design_fields_and_keeps_optional_support_blank(self) -> None:
+    def test_system_design_import_uses_explicit_system_design_fields_and_keeps_optional_support_blank(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root, source_path = governed_ingest_path(temp_dir, "system-design.md")
@@ -246,8 +298,14 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            ingested = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            map_to_blueprint(ingestion_id=ingested["ingestion_id"], blueprint_id="system_design", database_path=database_path)
+            ingested = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            map_to_blueprint(
+                ingestion_id=ingested["ingestion_id"],
+                blueprint_id="system_design",
+                database_path=database_path,
+            )
             converted = convert_to_draft(
                 ingestion_id=ingested["ingestion_id"],
                 object_id="kb-identity-platform-design-imported",
@@ -289,9 +347,13 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
                 detail["revision"]["section_content"]["operations"]["operational_notes"],
                 "Coordinate production changes through platform operations.",
             )
-            self.assertEqual(detail["revision"]["section_content"]["operations"]["support_entrypoints"], [])
             self.assertEqual(
-                detail["revision"]["section_content"]["operations"]["_field_provenance"]["support_entrypoints"]["status"],
+                detail["revision"]["section_content"]["operations"]["support_entrypoints"], []
+            )
+            self.assertEqual(
+                detail["revision"]["section_content"]["operations"]["_field_provenance"][
+                    "support_entrypoints"
+                ]["status"],
                 "unresolved",
             )
             self.assertTrue(detail["revision"]["section_completion_map"]["operations"]["completed"])

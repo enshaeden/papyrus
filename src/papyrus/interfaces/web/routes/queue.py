@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from papyrus.application.role_visibility import queue_ranking_for_role
 from papyrus.application.queries import knowledge_queue, search_knowledge_objects
+from papyrus.application.role_visibility import queue_ranking_for_role
 from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.http import Request, html_response
 from papyrus.interfaces.web.presenters.queue_presenter import present_queue_page
@@ -23,7 +23,9 @@ def _apply_filters(
     if selected_trust:
         filtered = [item for item in filtered if item["trust_state"] == selected_trust]
     if selected_review_state:
-        filtered = [item for item in filtered if item["revision_review_state"] == selected_review_state]
+        filtered = [
+            item for item in filtered if item["revision_review_state"] == selected_review_state
+        ]
     return filtered
 
 
@@ -38,7 +40,9 @@ def register(router, runtime) -> None:
         selected_revision_id = request.query_value("selected_revision_id").strip()
         limit = int(request.query_value("limit", "100"))
         items = (
-            search_knowledge_objects(query, limit=limit, database_path=runtime.database_path, role=experience.role)
+            search_knowledge_objects(
+                query, limit=limit, database_path=runtime.database_path, role=experience.role
+            )
             if query
             else knowledge_queue(
                 limit=limit,

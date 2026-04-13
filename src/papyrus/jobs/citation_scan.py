@@ -9,11 +9,15 @@ from pathlib import Path
 from papyrus.domain.policies import normalize_citation_validity_status, worse_citation_validity
 from papyrus.infrastructure.markdown.serializer import parse_iso_date, parse_iso_date_or_datetime
 from papyrus.infrastructure.paths import ROOT
-from papyrus.infrastructure.repositories.citation_repo import list_current_citations, update_citation_validity_status
-from papyrus.infrastructure.repositories.knowledge_repo import get_knowledge_object_by_canonical_path
+from papyrus.infrastructure.repositories.citation_repo import (
+    list_current_citations,
+    update_citation_validity_status,
+)
+from papyrus.infrastructure.repositories.knowledge_repo import (
+    get_knowledge_object_by_canonical_path,
+)
 from papyrus.infrastructure.storage.evidence_store import EvidenceStore
 from papyrus.jobs.stale_scan import cadence_to_days
-
 
 LOCAL_EVIDENCE_PREFIXES = ("knowledge/", "archive/knowledge/", "docs/", "decisions/")
 
@@ -59,7 +63,9 @@ def classify_citation(
     source_ref = str(row["source_ref"] or "").strip()
     captured_at = row["captured_at"]
     integrity_hash = str(row["integrity_hash"]).strip() if row["integrity_hash"] else None
-    evidence_snapshot_path = str(row["evidence_snapshot_path"]).strip() if row["evidence_snapshot_path"] else None
+    evidence_snapshot_path = (
+        str(row["evidence_snapshot_path"]).strip() if row["evidence_snapshot_path"] else None
+    )
     evidence_expiry_at = row["evidence_expiry_at"]
     evidence_last_validated_at = row["evidence_last_validated_at"]
     object_last_reviewed = parse_iso_date(row["object_last_reviewed"])
@@ -104,7 +110,9 @@ def classify_citation(
                     reasons.append(f"cited knowledge object is {target_status}")
                 if parse_iso_date(target_object["updated_date"]) > object_last_reviewed:
                     status = worse_citation_validity(status, "stale")
-                    reasons.append("cited knowledge object changed after the current object was last reviewed")
+                    reasons.append(
+                        "cited knowledge object changed after the current object was last reviewed"
+                    )
         return status, reasons
 
     if captured_at is None:
@@ -185,4 +193,6 @@ def run(
     as_of: dt.date | None = None,
     root_path: Path = ROOT,
 ) -> CitationScanResult:
-    return scan_citations(connection, taxonomies=taxonomies, as_of=as_of, persist=True, root_path=root_path)
+    return scan_citations(
+        connection, taxonomies=taxonomies, as_of=as_of, persist=True, root_path=root_path
+    )

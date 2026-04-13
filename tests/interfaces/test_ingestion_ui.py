@@ -21,7 +21,9 @@ def governed_ingest_path(temp_dir: str, filename: str) -> tuple[Path, Path]:
     return source_root, source_path
 
 
-def call_wsgi(application, path: str, *, method: str = "GET", form: dict[str, object] | None = None) -> tuple[str, dict[str, str], str]:
+def call_wsgi(
+    application, path: str, *, method: str = "GET", form: dict[str, object] | None = None
+) -> tuple[str, dict[str, str], str]:
     status_holder: dict[str, object] = {}
 
     def start_response(status: str, headers: list[tuple[str, str]]) -> None:
@@ -71,8 +73,8 @@ def call_wsgi_multipart(
     for field_name, value in (fields or {}).items():
         body_parts.extend(
             [
-                f"--{boundary}\r\n".encode("utf-8"),
-                f'Content-Disposition: form-data; name="{field_name}"\r\n\r\n'.encode("utf-8"),
+                f"--{boundary}\r\n".encode(),
+                f'Content-Disposition: form-data; name="{field_name}"\r\n\r\n'.encode(),
                 str(value).encode("utf-8"),
                 b"\r\n",
             ]
@@ -80,14 +82,14 @@ def call_wsgi_multipart(
     for field_name, (filename, content_type, payload) in (files or {}).items():
         body_parts.extend(
             [
-                f"--{boundary}\r\n".encode("utf-8"),
-                f'Content-Disposition: form-data; name="{field_name}"; filename="{filename}"\r\n'.encode("utf-8"),
-                f"Content-Type: {content_type}\r\n\r\n".encode("utf-8"),
+                f"--{boundary}\r\n".encode(),
+                f'Content-Disposition: form-data; name="{field_name}"; filename="{filename}"\r\n'.encode(),
+                f"Content-Type: {content_type}\r\n\r\n".encode(),
                 payload,
                 b"\r\n",
             ]
         )
-    body_parts.append(f"--{boundary}--\r\n".encode("utf-8"))
+    body_parts.append(f"--{boundary}--\r\n".encode())
     body = b"".join(body_parts)
     if "?" in path:
         path_info, query_string = path.split("?", 1)
@@ -120,7 +122,9 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             source_root = Path(temp_dir) / "repo"
             source_file = Path(temp_dir) / "import.md"
             source_file.write_text("# Import coverage\n", encoding="utf-8")
-            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+            application = web_app(
+                database_path, source_root=source_root, allow_noncanonical_source_root=True
+            )
 
             status, _, body = call_wsgi(application, "/operator/import")
             self.assertEqual(status, "200 OK")
@@ -129,7 +133,12 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("This session accepts uploaded files only.", body)
             self.assert_component(body, "ingest-upload")
 
-            status, _, body = call_wsgi(application, "/operator/import", method="POST", form={"source_path": str(source_file)})
+            status, _, body = call_wsgi(
+                application,
+                "/operator/import",
+                method="POST",
+                form={"source_path": str(source_file)},
+            )
             self.assertEqual(status, "200 OK")
             self.assertIn("Local source file import is unavailable in this session.", body)
 
@@ -137,7 +146,9 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root, source_file = governed_ingest_path(temp_dir, "import.md")
-            source_file.write_text("# Import coverage\n\n## Steps\n\n- Review the import\n", encoding="utf-8")
+            source_file.write_text(
+                "# Import coverage\n\n## Steps\n\n- Review the import\n", encoding="utf-8"
+            )
             application = web_app(
                 database_path,
                 source_root=source_root,
@@ -145,7 +156,12 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
                 allow_web_ingest_local_paths=True,
             )
 
-            status, headers, _ = call_wsgi(application, "/operator/import", method="POST", form={"source_path": str(source_file)})
+            status, headers, _ = call_wsgi(
+                application,
+                "/operator/import",
+                method="POST",
+                form={"source_path": str(source_file)},
+            )
             self.assertEqual(status, "303 See Other")
             detail_path = headers["Location"]
 
@@ -173,7 +189,9 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+            application = web_app(
+                database_path, source_root=source_root, allow_noncanonical_source_root=True
+            )
 
             status, _, body = call_wsgi(application, "/operator/import", method="POST", form={})
             self.assertEqual(status, "200 OK")
@@ -196,12 +214,19 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("Local source file", body)
             self.assertIn("Use an absolute path on this computer.", body)
 
-            status, _, invalid_body = call_wsgi(application, "/operator/import", method="POST", form={"source_path": "relative.md"})
+            status, _, invalid_body = call_wsgi(
+                application, "/operator/import", method="POST", form={"source_path": "relative.md"}
+            )
             self.assertEqual(status, "200 OK")
             self.assertIn("Local file path ingestion requires an absolute path", invalid_body)
 
             missing_path = (Path(temp_dir) / "missing.md").resolve()
-            status, _, missing_body = call_wsgi(application, "/operator/import", method="POST", form={"source_path": str(missing_path)})
+            status, _, missing_body = call_wsgi(
+                application,
+                "/operator/import",
+                method="POST",
+                form={"source_path": str(missing_path)},
+            )
             self.assertEqual(status, "200 OK")
             self.assertIn("Local source path not found.", missing_body)
 
@@ -217,7 +242,12 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
                 allow_web_ingest_local_paths=True,
             )
 
-            status, headers, _ = call_wsgi(application, "/operator/import", method="POST", form={"source_path": str(source_file)})
+            status, headers, _ = call_wsgi(
+                application,
+                "/operator/import",
+                method="POST",
+                form={"source_path": str(source_file)},
+            )
             self.assertEqual(status, "303 See Other")
             detail_path = headers["Location"]
 
@@ -252,7 +282,12 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
                 allow_web_ingest_local_paths=True,
             )
 
-            status, headers, _ = call_wsgi(application, "/operator/import", method="POST", form={"source_path": str(source_file)})
+            status, headers, _ = call_wsgi(
+                application,
+                "/operator/import",
+                method="POST",
+                form={"source_path": str(source_file)},
+            )
             self.assertEqual(status, "303 See Other")
             review_path = headers["Location"].split("?", 1)[0].rstrip("/") + "/review"
 
@@ -267,7 +302,9 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(database_path, source_root=source_root, allow_noncanonical_source_root=True)
+            application = web_app(
+                database_path, source_root=source_root, allow_noncanonical_source_root=True
+            )
 
             status, headers, _ = call_wsgi_multipart(
                 application,

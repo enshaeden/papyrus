@@ -11,14 +11,20 @@ from papyrus.interfaces.web.urls import (
     object_url,
     review_assignment_url,
     review_decision_url,
-    suspect_url,
     supersede_url,
+    suspect_url,
     write_object_start_url,
     write_object_url,
     write_submit_url,
 )
-from papyrus.interfaces.web.view_helpers import button_form, escape, join_html, link, quoted_path, render_definition_rows, render_list
-
+from papyrus.interfaces.web.view_helpers import (
+    button_form,
+    escape,
+    join_html,
+    link,
+    render_definition_rows,
+    render_list,
+)
 
 ACTION_AVAILABILITY_TONES = {
     "allowed": "approved",
@@ -55,9 +61,7 @@ def workflow_reasons(projection: dict[str, Any] | None) -> list[str]:
 
 def workflow_actions(projection: dict[str, Any] | None) -> list[dict[str, Any]]:
     return [
-        dict(action)
-        for action in (projection or {}).get("actions", [])
-        if isinstance(action, dict)
+        dict(action) for action in (projection or {}).get("actions", []) if isinstance(action, dict)
     ]
 
 
@@ -81,7 +85,9 @@ def projection_actions(ui_projection: dict[str, Any] | None) -> list[dict[str, A
     ]
 
 
-def action_descriptor(ui_projection: dict[str, Any] | None, action_id: str) -> dict[str, Any] | None:
+def action_descriptor(
+    ui_projection: dict[str, Any] | None, action_id: str
+) -> dict[str, Any] | None:
     for action in projection_actions(ui_projection):
         if str(action.get("action_id") or "") == action_id:
             return action
@@ -124,7 +130,10 @@ def authoring_entry_start_action(
 ) -> str | None:
     if str(current_revision_id or "").strip():
         return None
-    if authoring_entry_label(ui_projection=ui_projection, current_revision_id=current_revision_id) is None:
+    if (
+        authoring_entry_label(ui_projection=ui_projection, current_revision_id=current_revision_id)
+        is None
+    ):
         return None
     return write_object_start_url(object_id)
 
@@ -159,7 +168,11 @@ def authoring_entry_html(
     if not str(current_revision_id or "").strip() or allow_start_when_not_in_draft_state:
         return button_form(
             action=write_object_start_url(object_id),
-            label=label_override or authoring_entry_label(ui_projection=ui_projection, current_revision_id=current_revision_id) or "Start draft",
+            label=label_override
+            or authoring_entry_label(
+                ui_projection=ui_projection, current_revision_id=current_revision_id
+            )
+            or "Start draft",
             css_class="button button-primary",
             button_attrs={"data-action-id": "authoring_entry"},
         )
@@ -273,7 +286,9 @@ def compact_action_menu_html(
 def _transition_summary(transition: dict[str, Any] | None) -> str:
     if not transition:
         return "No transition recorded."
-    from_state = str(transition.get("from_state") or transition.get("state") or "").strip() or "unknown"
+    from_state = (
+        str(transition.get("from_state") or transition.get("state") or "").strip() or "unknown"
+    )
     to_state = str(transition.get("to_state") or transition.get("state") or "").strip() or "unknown"
     semantics = str(transition.get("semantics") or "").strip()
     if from_state == to_state or not semantics:
@@ -349,10 +364,16 @@ def render_projection_status_panel(
     body_html = join_html(
         [
             f'<p class="governed-summary"><strong>{escape(use_guidance.get("summary") or "Backend guidance unavailable")}</strong></p>',
-            f'<p>{escape(use_guidance.get("detail") or "Papyrus did not return a governed use-guidance detail for this view.")}</p>',
+            f"<p>{escape(use_guidance.get('detail') or 'Papyrus did not return a governed use-guidance detail for this view.')}</p>",
             render_definition_rows(
                 [
-                    ("Next action", escape(use_guidance.get("next_action") or "Papyrus did not return a next action for this view.")),
+                    (
+                        "Next action",
+                        escape(
+                            use_guidance.get("next_action")
+                            or "Papyrus did not return a next action for this view."
+                        ),
+                    ),
                     ("Lifecycle", escape(state.get("object_lifecycle_state") or "unknown")),
                     ("Review state", escape(state.get("revision_review_state") or "unknown")),
                     ("Draft progress", escape(state.get("draft_progress_state") or "unknown")),
@@ -399,10 +420,16 @@ def render_projection_overview_panel(
     reasons = projection_reasons(ui_projection)
     body_parts = [
         f'<p class="governed-summary"><strong>{escape(use_guidance.get("summary") or "Backend guidance unavailable")}</strong></p>',
-        f'<p>{escape(use_guidance.get("detail") or "Papyrus did not return a governed use-guidance detail for this view.")}</p>',
+        f"<p>{escape(use_guidance.get('detail') or 'Papyrus did not return a governed use-guidance detail for this view.')}</p>",
         render_definition_rows(
             [
-                ("Next action", escape(use_guidance.get("next_action") or "Papyrus did not return a next action for this view.")),
+                (
+                    "Next action",
+                    escape(
+                        use_guidance.get("next_action")
+                        or "Papyrus did not return a next action for this view."
+                    ),
+                ),
                 ("Lifecycle", escape(state.get("object_lifecycle_state") or "unknown")),
                 ("Review state", escape(state.get("revision_review_state") or "unknown")),
                 ("Draft progress", escape(state.get("draft_progress_state") or "unknown")),
@@ -429,7 +456,9 @@ def render_projection_overview_panel(
         revision_id=revision_id,
         current_revision_id=current_revision_id,
     )
-    body_parts.append(f'<div class="governed-action-cta" data-component="action-cluster">{action_html}</div>')
+    body_parts.append(
+        f'<div class="governed-action-cta" data-component="action-cluster">{action_html}</div>'
+    )
     return components.context_panel(
         title=title,
         eyebrow="Current posture",
@@ -466,8 +495,14 @@ def render_contract_status_panel(
             [
                 ("Source of truth", escape(source_of_truth or "unknown")),
                 ("Transition", escape(_transition_summary(transition))),
-                ("Required acknowledgements", escape(", ".join(_humanize_token(item) for item in required) or "None")),
-                ("Recorded acknowledgements", escape(", ".join(_humanize_token(item) for item in provided) or "None")),
+                (
+                    "Required acknowledgements",
+                    escape(", ".join(_humanize_token(item) for item in required) or "None"),
+                ),
+                (
+                    "Recorded acknowledgements",
+                    escape(", ".join(_humanize_token(item) for item in provided) or "None"),
+                ),
             ]
         ),
     ]
@@ -515,7 +550,11 @@ def render_action_contract_panel(
         components,
         title=title,
         summary=str(action.get("summary") or action.get("label") or "Governed action"),
-        operator_message=str(action.get("detail") or policy.get("operator_message") or "No operator message returned."),
+        operator_message=str(
+            action.get("detail")
+            or policy.get("operator_message")
+            or "No operator message returned."
+        ),
         source_of_truth=str(policy.get("source_of_truth") or "gate"),
         transition=dict(policy.get("transition") or {}),
         required_acknowledgements=[
@@ -565,7 +604,7 @@ def render_action_descriptor_panel(
             )
             + "</div>"
             + f'<p class="governed-action-summary">{escape(action.get("summary") or action.get("label") or "")}</p>'
-            + f'<p>{escape(action.get("detail") or "No operator detail was supplied for this action.")}</p>'
+            + f"<p>{escape(action.get('detail') or 'No operator detail was supplied for this action.')}</p>"
             + (
                 render_definition_rows(
                     [
@@ -574,7 +613,9 @@ def render_action_descriptor_panel(
                         (
                             "Acknowledgements",
                             escape(
-                                ", ".join(_humanize_token(item) for item in required_acknowledgements)
+                                ", ".join(
+                                    _humanize_token(item) for item in required_acknowledgements
+                                )
                                 or "None"
                             ),
                         ),
@@ -589,12 +630,14 @@ def render_action_descriptor_panel(
     return components.context_panel(
         title=title,
         eyebrow="Actions",
-        body_html=join_html(items_html) or '<p class="empty-state-copy">No actions were returned for this screen.</p>',
+        body_html=join_html(items_html)
+        or '<p class="empty-state-copy">No actions were returned for this screen.</p>',
         tone="context",
         variant="actions",
         surface="actions",
         body_class="section-card-body governed-action-list",
     )
+
 
 def render_acknowledgement_panel(
     components: ComponentPresenter,
@@ -629,11 +672,7 @@ def render_acknowledgement_panel(
         [
             f'<p class="governed-summary"><strong>{escape(operator_message or "Review the required acknowledgements before continuing.")}</strong></p>',
             (
-                (
-                    '<div class="governed-acknowledgement-list">'
-                    + join_html(items)
-                    + "</div>"
-                )
+                ('<div class="governed-acknowledgement-list">' + join_html(items) + "</div>")
                 if items
                 else '<p class="empty-state-copy">No acknowledgements are required.</p>'
                 if not read_only
@@ -643,7 +682,9 @@ def render_acknowledgement_panel(
                 )
             ),
             (
-                render_list([escape(item) for item in errors or []], css_class="validation-findings")
+                render_list(
+                    [escape(item) for item in errors or []], css_class="validation-findings"
+                )
                 if errors
                 else ""
             ),

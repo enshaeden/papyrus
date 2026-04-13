@@ -47,11 +47,13 @@ def call_wsgi(
     form: dict[str, object] | None = None,
     json_payload: dict[str, object] | None = None,
 ) -> tuple[str, dict[str, str], str]:
-    status_holder: dict[str, object] = {}
+    response_status = ""
+    response_headers: dict[str, str] = {}
 
     def start_response(status: str, headers: list[tuple[str, str]]) -> None:
-        status_holder["object_lifecycle_state"] = status
-        status_holder["headers"] = {name: value for name, value in headers}
+        nonlocal response_status, response_headers
+        response_status = status
+        response_headers = {name: value for name, value in headers}
 
     if json_payload is not None:
         body = json.dumps(json_payload).encode("utf-8")
@@ -81,8 +83,8 @@ def call_wsgi(
         "wsgi.multiprocess": False,
         "wsgi.run_once": False,
     }
-    body = b"".join(application(environ, start_response)).decode("utf-8")
-    return str(status_holder["object_lifecycle_state"]), dict(status_holder["headers"]), body
+    response_body = b"".join(application(environ, start_response)).decode("utf-8")
+    return response_status, response_headers, response_body
 
 
 def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str, object]:
@@ -124,12 +126,18 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "retirement_reason": None,
         "services": ["Remote Access"],
         "related_articles": [],
-        "references": [{"title": "Seed import manifest", "path": "docs/migration/seed-migration-rationale.md"}],
-        "change_log": [{"date": "2026-04-09", "summary": "Surface conformance draft.", "author": "tests"}],
+        "references": [
+            {"title": "Seed import manifest", "path": "docs/migration/seed-migration-rationale.md"}
+        ],
+        "change_log": [
+            {"date": "2026-04-09", "summary": "Surface conformance draft.", "author": "tests"}
+        ],
     }
 
 
-def read_truth(database_path: Path, *, object_id: str, revision_id: str, reviewer: str, source_root: Path) -> dict[str, object]:
+def read_truth(
+    database_path: Path, *, object_id: str, revision_id: str, reviewer: str, source_root: Path
+) -> dict[str, object]:
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
     try:
@@ -190,11 +198,15 @@ def read_truth(database_path: Path, *, object_id: str, revision_id: str, reviewe
         "search_revision_review_state": str(search_row["revision_review_state"]),
         "search_source_sync_state": str(search_row["source_sync_state"]),
         "audit_types": audit_types,
-        "canonical_exists": (source_root / "knowledge" / "runbooks" / "surface-conformance.md").exists(),
+        "canonical_exists": (
+            source_root / "knowledge" / "runbooks" / "surface-conformance.md"
+        ).exists(),
     }
 
 
-def read_archive_truth(database_path: Path, *, object_id: str, source_root: Path) -> dict[str, object]:
+def read_archive_truth(
+    database_path: Path, *, object_id: str, source_root: Path
+) -> dict[str, object]:
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
     try:
@@ -283,7 +295,9 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
         )
         revision = workflow.create_revision(
             object_id=created.object_id,
-            normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+            normalized_payload=runbook_payload(
+                created.object_id, created.canonical_path, created.title
+            ),
             body_markdown="## Use When\n\nExercise the same review truth across surfaces.\n",
             actor="surface.author",
             change_summary="Surface conformance revision.",
@@ -330,7 +344,9 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
         )
         revision = workflow.create_revision(
             object_id=created.object_id,
-            normalized_payload=runbook_payload(created.object_id, created.canonical_path, created.title),
+            normalized_payload=runbook_payload(
+                created.object_id, created.canonical_path, created.title
+            ),
             body_markdown=f"## Use When\n\nExercise {title.lower()} state rendering across surfaces.\n",
             actor="surface.author",
             change_summary=f"{title} seed revision.",
@@ -497,7 +513,9 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
 
     def _exercise_cli(self) -> dict[str, object]:
         with tempfile.TemporaryDirectory() as temp_dir:
-            database_path, source_root, object_id, revision_id = self._seed_candidate(temp_dir, submitted=True)
+            database_path, source_root, object_id, revision_id = self._seed_candidate(
+                temp_dir, submitted=True
+            )
             reviewer = "reviewer_cli"
             common = [
                 "--db",
@@ -538,11 +556,19 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                     "cli.approve",
                 ]
             )
-            return read_truth(database_path, object_id=object_id, revision_id=revision_id, reviewer=reviewer, source_root=source_root)
+            return read_truth(
+                database_path,
+                object_id=object_id,
+                revision_id=revision_id,
+                reviewer=reviewer,
+                source_root=source_root,
+            )
 
     def _exercise_api(self) -> dict[str, object]:
         with tempfile.TemporaryDirectory() as temp_dir:
-            database_path, source_root, object_id, revision_id = self._seed_candidate(temp_dir, submitted=True)
+            database_path, source_root, object_id, revision_id = self._seed_candidate(
+                temp_dir, submitted=True
+            )
             reviewer = "reviewer_api"
             application = api_app(database_path, source_root, allow_noncanonical_source_root=True)
             status, _, _ = call_wsgi(
@@ -569,11 +595,19 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                 },
             )
             self.assertEqual(status, "200 OK")
-            return read_truth(database_path, object_id=object_id, revision_id=revision_id, reviewer=reviewer, source_root=source_root)
+            return read_truth(
+                database_path,
+                object_id=object_id,
+                revision_id=revision_id,
+                reviewer=reviewer,
+                source_root=source_root,
+            )
 
     def _exercise_web(self) -> dict[str, object]:
         with tempfile.TemporaryDirectory() as temp_dir:
-            database_path, source_root, object_id, revision_id = self._seed_candidate(temp_dir, submitted=True)
+            database_path, source_root, object_id, revision_id = self._seed_candidate(
+                temp_dir, submitted=True
+            )
             reviewer = "reviewer_web"
             application = web_app(database_path, source_root, allow_noncanonical_source_root=True)
             status, _, _ = call_wsgi(
@@ -590,7 +624,13 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                 form={"reviewer": reviewer, "notes": "", "decision": "approve"},
             )
             self.assertIn(status, {"302 Found", "303 See Other"})
-            return read_truth(database_path, object_id=object_id, revision_id=revision_id, reviewer=reviewer, source_root=source_root)
+            return read_truth(
+                database_path,
+                object_id=object_id,
+                revision_id=revision_id,
+                reviewer=reviewer,
+                source_root=source_root,
+            )
 
     def _seed_archivable_candidate(self, temp_dir: str) -> tuple[Path, Path, str]:
         database_path = Path(temp_dir) / "runtime.db"
@@ -618,12 +658,16 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
         )
         revision = workflow.create_revision(
             object_id=archived.object_id,
-            normalized_payload=runbook_payload(archived.object_id, archived.canonical_path, archived.title),
+            normalized_payload=runbook_payload(
+                archived.object_id, archived.canonical_path, archived.title
+            ),
             body_markdown="## Use When\n\nArchive the same object across every surface.\n",
             actor="surface.author",
             change_summary="Archive conformance revision.",
         )
-        workflow.submit_for_review(object_id=archived.object_id, revision_id=revision.revision_id, actor="surface.submit")
+        workflow.submit_for_review(
+            object_id=archived.object_id, revision_id=revision.revision_id, actor="surface.submit"
+        )
         workflow.assign_reviewer(
             object_id=archived.object_id,
             revision_id=revision.revision_id,
@@ -728,16 +772,28 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(result["revision_review_state"], expected["revision_review_state"])
             self.assertEqual(result["assignment_state"], expected["assignment_state"])
             self.assertEqual(result["object_lifecycle_state"], expected["object_lifecycle_state"])
-            self.assertEqual(result["object_source_sync_state"], expected["object_source_sync_state"])
-            self.assertTrue(str(result["current_revision_id"]).startswith(expected["current_revision_id"]))
-            self.assertEqual(result["search_revision_review_state"], expected["search_revision_review_state"])
-            self.assertEqual(result["search_source_sync_state"], expected["search_source_sync_state"])
+            self.assertEqual(
+                result["object_source_sync_state"], expected["object_source_sync_state"]
+            )
+            self.assertTrue(
+                str(result["current_revision_id"]).startswith(expected["current_revision_id"])
+            )
+            self.assertEqual(
+                result["search_revision_review_state"], expected["search_revision_review_state"]
+            )
+            self.assertEqual(
+                result["search_source_sync_state"], expected["search_source_sync_state"]
+            )
             self.assertEqual(result["audit_types"], expected_audit_types)
             self.assertTrue(result["canonical_exists"])
 
     def test_archive_matrix_matches_expected_truth_across_cli_api_and_web(self) -> None:
         expected_path = "archive/knowledge/runbooks/archive-conformance.md"
-        results = [self._exercise_cli_archive(), self._exercise_api_archive(), self._exercise_web_archive()]
+        results = [
+            self._exercise_cli_archive(),
+            self._exercise_api_archive(),
+            self._exercise_web_archive(),
+        ]
         for result in results:
             self.assertEqual(result["canonical_path"], expected_path)
             self.assertEqual(result["object_lifecycle_state"], "archived")
@@ -763,9 +819,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                 json.dumps(result["latest_event_details"]["transition"], sort_keys=True)
                 for result in results
             },
-            {
-                json.dumps(results[0]["latest_event_details"]["transition"], sort_keys=True)
-            },
+            {json.dumps(results[0]["latest_event_details"]["transition"], sort_keys=True)},
         )
         self.assertEqual(
             {str(result["latest_event_details"]["operator_message"]) for result in results},
@@ -802,7 +856,9 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
 
     def test_object_action_contracts_match_across_cli_api_and_web(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            database_path, source_root, object_id, revision_id = self._seed_candidate(temp_dir, submitted=True)
+            database_path, source_root, object_id, revision_id = self._seed_candidate(
+                temp_dir, submitted=True
+            )
             workflow = GovernanceWorkflow(database_path, source_root=source_root)
             workflow.assign_reviewer(
                 object_id=object_id,
@@ -816,13 +872,23 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                 object_id=object_id,
             )
             self.assertEqual(cli_payload["ui_projection"], api_payload["ui_projection"])
-            self.assert_page_contract(web_body, primary_surface="object-detail", components=("action-cluster",))
+            self.assert_page_contract(
+                web_body, primary_surface="object-detail", components=("action-cluster",)
+            )
             self.assert_surface(web_body, "posture")
             for action in cli_payload["ui_projection"]["actions"]:
                 if str(action.get("availability") or "") != "allowed":
                     continue
                 action_id = str(action.get("action_id") or "")
-                if action_href(role="operator", action_id=action_id, object_id=object_id, revision_id=revision_id) is None:
+                if (
+                    action_href(
+                        role="operator",
+                        action_id=action_id,
+                        object_id=object_id,
+                        revision_id=revision_id,
+                    )
+                    is None
+                ):
                     continue
                 self.assert_action_id(web_body, action_id)
             self.assertIn(cli_payload["ui_projection"]["use_guidance"]["summary"], web_body)
@@ -837,8 +903,12 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                 source_root=source_root,
                 object_id=object_id,
             )
-            cli_archive_action = action_by_id(cli_payload["ui_projection"]["actions"], "archive_object")
-            api_archive_action = action_by_id(api_payload["ui_projection"]["actions"], "archive_object")
+            cli_archive_action = action_by_id(
+                cli_payload["ui_projection"]["actions"], "archive_object"
+            )
+            api_archive_action = action_by_id(
+                api_payload["ui_projection"]["actions"], "archive_object"
+            )
             self.assertEqual(cli_archive_action, api_archive_action)
 
             status, _, web_body = call_wsgi(
@@ -848,15 +918,19 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn(str(cli_archive_action["summary"]), web_body)
             self.assertIn(str(cli_archive_action["detail"]), web_body)
-            for token in (cli_archive_action.get("policy") or {}).get("required_acknowledgements") or []:
+            for token in (cli_archive_action.get("policy") or {}).get(
+                "required_acknowledgements"
+            ) or []:
                 self.assertIn(humanize_token(str(token)), web_body)
             self.assertEqual(web_body.count('name="acknowledgements"'), 1)
 
     def test_writeback_preview_conflict_contract_matches_across_cli_api_and_web(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            database_path, source_root, object_id, revision_id = self._seed_writeback_preview_candidate(
-                temp_dir,
-                conflict=True,
+            database_path, source_root, object_id, revision_id = (
+                self._seed_writeback_preview_candidate(
+                    temp_dir,
+                    conflict=True,
+                )
             )
             cli_preview = self._run_cli_json(
                 [
@@ -953,7 +1027,9 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                 source_root=source_root,
                 object_id=object_id,
             )
-            self.assertEqual(cli_payload["ui_projection"]["state"], api_payload["ui_projection"]["state"])
+            self.assertEqual(
+                cli_payload["ui_projection"]["state"], api_payload["ui_projection"]["state"]
+            )
             self.assertEqual(
                 cli_payload["ui_projection"]["state"]["object_lifecycle_state"],
                 "archived",

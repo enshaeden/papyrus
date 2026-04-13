@@ -16,7 +16,12 @@ def render_ingest_upload(
         forms.field(
             field_id="source_path",
             label="Local source file",
-            control_html=forms.input(field_id="source_path", name="source_path", value="", placeholder="/absolute/path/to/file.md"),
+            control_html=forms.input(
+                field_id="source_path",
+                name="source_path",
+                value="",
+                placeholder="/absolute/path/to/file.md",
+            ),
             hint="Use an absolute path on this computer. Use this only in a trusted local session.",
         )
         if allow_web_ingest_local_paths

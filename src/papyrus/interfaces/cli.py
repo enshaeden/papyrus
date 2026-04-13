@@ -7,22 +7,27 @@ import sqlite3
 import sys
 from pathlib import Path
 
-from papyrus.application.authoring_flow import create_draft_from_blueprint, update_section, validate_draft_progress
+from papyrus.application.authoring_flow import (
+    create_draft_from_blueprint,
+    update_section,
+    validate_draft_progress,
+)
 from papyrus.application.commands import (
-    archive_object_command,
     approve_revision_command,
+    archive_object_command,
     assign_reviewer_command,
+    build_projection_command,
     create_object_command,
     mark_object_suspect_due_to_change_command,
     reject_revision_command,
     restore_writeback_command,
     submit_for_review_command,
     supersede_object_command,
+    validate_repository_command,
     writeback_object_command,
 )
-from papyrus.application.ingestion_flow import ingest_file, ingestion_detail, list_ingestions
+from papyrus.application.ingestion_flow import ingestion_detail, list_ingestions
 from papyrus.application.mapping_flow import convert_to_draft
-from papyrus.application.commands import build_projection_command, validate_repository_command
 from papyrus.application.queries import (
     CONTENT_HEALTH_SECTIONS,
     collect_content_health_sections,
@@ -45,7 +50,9 @@ from papyrus.interfaces.startup_guard import prepare_operator_source_root
 
 
 def validate_main() -> int:
-    parser = argparse.ArgumentParser(description="Validate repository source content and optional rendered site output.")
+    parser = argparse.ArgumentParser(
+        description="Validate repository source content and optional rendered site output."
+    )
     parser.add_argument(
         "--include-rendered-site",
         action="store_true",
@@ -112,7 +119,9 @@ def search_main() -> int:
 
 
 def report_stale_main() -> int:
-    parser = argparse.ArgumentParser(description="Report active or deprecated articles due for review")
+    parser = argparse.ArgumentParser(
+        description="Report active or deprecated articles due for review"
+    )
     parser.add_argument(
         "--as-of",
         default=dt.date.today().isoformat(),
@@ -143,7 +152,9 @@ def report_stale_main() -> int:
 
 
 def report_content_health_main() -> int:
-    parser = argparse.ArgumentParser(description="Report repository content health and drift signals")
+    parser = argparse.ArgumentParser(
+        description="Report repository content health and drift signals"
+    )
     parser.add_argument(
         "--section",
         choices=CONTENT_HEALTH_SECTIONS,
@@ -171,7 +182,9 @@ def build_index_main() -> int:
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
-    print(f"built {result.database_path} with {result.document_count} knowledge object(s) using {result.mode}")
+    print(
+        f"built {result.database_path} with {result.document_count} knowledge object(s) using {result.mode}"
+    )
     return 0
 
 
@@ -208,16 +221,25 @@ def _projection_use_guidance(projection: dict[str, object] | None) -> dict[str, 
 
 
 def _projection_summary(projection: dict[str, object] | None) -> str:
-    return str(_projection_use_guidance(projection).get("summary") or "Backend guidance unavailable")
+    return str(
+        _projection_use_guidance(projection).get("summary") or "Backend guidance unavailable"
+    )
 
 
 def _projection_detail(projection: dict[str, object] | None) -> str:
-    return str(_projection_use_guidance(projection).get("detail") or "Papyrus did not return governed detail for this view.")
+    return str(
+        _projection_use_guidance(projection).get("detail")
+        or "Papyrus did not return governed detail for this view."
+    )
 
 
 def _projection_next_action(projection: dict[str, object] | None) -> str:
     use_guidance = _projection_use_guidance(projection)
-    return str(use_guidance.get("next_action") or use_guidance.get("detail") or "Backend guidance unavailable")
+    return str(
+        use_guidance.get("next_action")
+        or use_guidance.get("detail")
+        or "Backend guidance unavailable"
+    )
 
 
 def _line_block(*lines: str) -> list[str]:
@@ -225,7 +247,9 @@ def _line_block(*lines: str) -> list[str]:
 
 
 def operator_main() -> int:
-    parser = argparse.ArgumentParser(description="Inspect Papyrus lifecycle, stewardship, and consequence surfaces from the terminal.")
+    parser = argparse.ArgumentParser(
+        description="Inspect Papyrus lifecycle, stewardship, and consequence surfaces from the terminal."
+    )
     parser.add_argument("--db", default=str(DB_PATH), help="Path to the runtime SQLite database.")
     parser.add_argument("--format", choices=("text", "json"), default="text", help="Output format.")
     common = argparse.ArgumentParser(add_help=False)
@@ -243,7 +267,9 @@ def operator_main() -> int:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    queue_parser = subparsers.add_parser("queue", help="Show guided read results.", parents=[common])
+    queue_parser = subparsers.add_parser(
+        "queue", help="Show guided read results.", parents=[common]
+    )
     queue_parser.add_argument("--limit", type=int, default=25, help="Maximum queue items.")
 
     dashboard_parser = subparsers.add_parser(
@@ -252,12 +278,18 @@ def operator_main() -> int:
         help="Show knowledge health and stewardship signals.",
         parents=[common],
     )
-    dashboard_parser.add_argument("--limit", type=int, default=25, help="Maximum queue items in text mode.")
+    dashboard_parser.add_argument(
+        "--limit", type=int, default=25, help="Maximum queue items in text mode."
+    )
 
-    object_parser = subparsers.add_parser("object", help="Show guided object detail.", parents=[common])
+    object_parser = subparsers.add_parser(
+        "object", help="Show guided object detail.", parents=[common]
+    )
     object_parser.add_argument("object_id", help="Knowledge object ID.")
 
-    review_parser = subparsers.add_parser("review", help="Show review detail for a revision.", parents=[common])
+    review_parser = subparsers.add_parser(
+        "review", help="Show review detail for a revision.", parents=[common]
+    )
     review_parser.add_argument("object_id", help="Knowledge object ID.")
     review_parser.add_argument("revision_id", help="Revision ID.")
 
@@ -272,111 +304,253 @@ def operator_main() -> int:
     events_parser.add_argument("--entity-id", default=None, help="Optional entity ID filter.")
     events_parser.add_argument("--event-type", default=None, help="Optional event type filter.")
 
-    subparsers.add_parser("manage-queue", help="Show review and stewardship buckets.", parents=[common])
+    subparsers.add_parser(
+        "manage-queue", help="Show review and stewardship buckets.", parents=[common]
+    )
     subparsers.add_parser("validation-runs", help="Show validation run history.", parents=[common])
 
-    create_draft_parser = subparsers.add_parser("create-draft", help="Create a structured draft from a blueprint.", parents=[common])
-    create_draft_parser.add_argument("--type", required=True, dest="blueprint_id", help="Blueprint ID.")
+    create_draft_parser = subparsers.add_parser(
+        "create-draft", help="Create a structured draft from a blueprint.", parents=[common]
+    )
+    create_draft_parser.add_argument(
+        "--type", required=True, dest="blueprint_id", help="Blueprint ID."
+    )
     create_draft_parser.add_argument("--object-id", required=True, help="Knowledge object ID.")
     create_draft_parser.add_argument("--title", required=True, help="Title.")
     create_draft_parser.add_argument("--summary", required=True, help="Summary.")
     create_draft_parser.add_argument("--owner", required=True, help="Owner.")
     create_draft_parser.add_argument("--team", required=True, help="Team.")
-    create_draft_parser.add_argument("--canonical-path", required=True, help="Canonical Markdown path.")
-    create_draft_parser.add_argument("--review-cadence", default="quarterly", help="Review cadence.")
-    create_draft_parser.add_argument("--object-lifecycle-state", default="draft", help="Lifecycle state.")
-    create_draft_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+    create_draft_parser.add_argument(
+        "--canonical-path", required=True, help="Canonical Markdown path."
+    )
+    create_draft_parser.add_argument(
+        "--review-cadence", default="quarterly", help="Review cadence."
+    )
+    create_draft_parser.add_argument(
+        "--object-lifecycle-state", default="draft", help="Lifecycle state."
+    )
+    create_draft_parser.add_argument(
+        "--actor", default="local.operator", help="Actor for the governed change."
+    )
 
-    edit_section_parser = subparsers.add_parser("edit-section", help="Update one structured draft section.", parents=[common])
-    edit_section_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
-    edit_section_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+    edit_section_parser = subparsers.add_parser(
+        "edit-section", help="Update one structured draft section.", parents=[common]
+    )
+    edit_section_parser.add_argument(
+        "--object", required=True, dest="object_id", help="Knowledge object ID."
+    )
+    edit_section_parser.add_argument(
+        "--revision", required=True, dest="revision_id", help="Revision ID."
+    )
     edit_section_parser.add_argument("--section", required=True, help="Blueprint section ID.")
-    edit_section_parser.add_argument("--field", action="append", default=[], help="Field assignment in name=value form. Use a|b|c for list values.")
-    edit_section_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+    edit_section_parser.add_argument(
+        "--field",
+        action="append",
+        default=[],
+        help="Field assignment in name=value form. Use a|b|c for list values.",
+    )
+    edit_section_parser.add_argument(
+        "--actor", default="local.operator", help="Actor for the governed change."
+    )
 
-    submit_review_parser = subparsers.add_parser("submit-review", help="Submit a draft revision for review.", parents=[common])
-    submit_review_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
-    submit_review_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+    submit_review_parser = subparsers.add_parser(
+        "submit-review", help="Submit a draft revision for review.", parents=[common]
+    )
+    submit_review_parser.add_argument(
+        "--object", required=True, dest="object_id", help="Knowledge object ID."
+    )
+    submit_review_parser.add_argument(
+        "--revision", required=True, dest="revision_id", help="Revision ID."
+    )
     submit_review_parser.add_argument("--notes", default=None, help="Optional submission notes.")
-    submit_review_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+    submit_review_parser.add_argument(
+        "--actor", default="local.operator", help="Actor for the governed change."
+    )
 
-    assign_review_parser = subparsers.add_parser("assign-reviewer", help="Assign a reviewer to an in-review revision.", parents=[common])
-    assign_review_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
-    assign_review_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+    assign_review_parser = subparsers.add_parser(
+        "assign-reviewer", help="Assign a reviewer to an in-review revision.", parents=[common]
+    )
+    assign_review_parser.add_argument(
+        "--object", required=True, dest="object_id", help="Knowledge object ID."
+    )
+    assign_review_parser.add_argument(
+        "--revision", required=True, dest="revision_id", help="Revision ID."
+    )
     assign_review_parser.add_argument("--reviewer", required=True, help="Reviewer identifier.")
     assign_review_parser.add_argument("--due-at", default=None, help="Optional ISO timestamp.")
     assign_review_parser.add_argument("--notes", default=None, help="Optional assignment notes.")
-    assign_review_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+    assign_review_parser.add_argument(
+        "--actor", default="local.operator", help="Actor for the governed change."
+    )
 
-    approve_review_parser = subparsers.add_parser("approve-review", help="Approve an in-review revision.", parents=[common])
-    approve_review_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
-    approve_review_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+    approve_review_parser = subparsers.add_parser(
+        "approve-review", help="Approve an in-review revision.", parents=[common]
+    )
+    approve_review_parser.add_argument(
+        "--object", required=True, dest="object_id", help="Knowledge object ID."
+    )
+    approve_review_parser.add_argument(
+        "--revision", required=True, dest="revision_id", help="Revision ID."
+    )
     approve_review_parser.add_argument("--reviewer", required=True, help="Reviewer identifier.")
     approve_review_parser.add_argument("--notes", default=None, help="Optional approval notes.")
-    approve_review_parser.add_argument("--actor", default="local.reviewer", help="Actor for the governed change.")
+    approve_review_parser.add_argument(
+        "--actor", default="local.reviewer", help="Actor for the governed change."
+    )
 
-    reject_review_parser = subparsers.add_parser("reject-review", help="Reject an in-review revision.", parents=[common])
-    reject_review_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
-    reject_review_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+    reject_review_parser = subparsers.add_parser(
+        "reject-review", help="Reject an in-review revision.", parents=[common]
+    )
+    reject_review_parser.add_argument(
+        "--object", required=True, dest="object_id", help="Knowledge object ID."
+    )
+    reject_review_parser.add_argument(
+        "--revision", required=True, dest="revision_id", help="Revision ID."
+    )
     reject_review_parser.add_argument("--reviewer", required=True, help="Reviewer identifier.")
     reject_review_parser.add_argument("--notes", required=True, help="Rejection notes.")
-    reject_review_parser.add_argument("--actor", default="local.reviewer", help="Actor for the governed change.")
+    reject_review_parser.add_argument(
+        "--actor", default="local.reviewer", help="Actor for the governed change."
+    )
 
-    supersede_parser = subparsers.add_parser("supersede-object", help="Deprecate an object in favor of a replacement.", parents=[common])
-    supersede_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
-    supersede_parser.add_argument("--replacement", required=True, dest="replacement_object_id", help="Replacement object ID.")
+    supersede_parser = subparsers.add_parser(
+        "supersede-object", help="Deprecate an object in favor of a replacement.", parents=[common]
+    )
+    supersede_parser.add_argument(
+        "--object", required=True, dest="object_id", help="Knowledge object ID."
+    )
+    supersede_parser.add_argument(
+        "--replacement", required=True, dest="replacement_object_id", help="Replacement object ID."
+    )
     supersede_parser.add_argument("--notes", default=None, help="Optional supersede notes.")
-    supersede_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+    supersede_parser.add_argument(
+        "--actor", default="local.operator", help="Actor for the governed change."
+    )
 
-    archive_parser = subparsers.add_parser("archive-object", help="Archive a deprecated object and move its canonical file under archive/knowledge/.", parents=[common])
-    archive_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
-    archive_parser.add_argument("--retirement-reason", required=True, help="Required rationale for archival.")
-    archive_parser.add_argument("--notes", default=None, help="Optional operator notes for the archive action.")
-    archive_parser.add_argument("--ack", action="append", default=[], help="Required acknowledgement token. Repeat for multiple acknowledgements.")
-    archive_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+    archive_parser = subparsers.add_parser(
+        "archive-object",
+        help="Archive a deprecated object and move its canonical file under archive/knowledge/.",
+        parents=[common],
+    )
+    archive_parser.add_argument(
+        "--object", required=True, dest="object_id", help="Knowledge object ID."
+    )
+    archive_parser.add_argument(
+        "--retirement-reason", required=True, help="Required rationale for archival."
+    )
+    archive_parser.add_argument(
+        "--notes", default=None, help="Optional operator notes for the archive action."
+    )
+    archive_parser.add_argument(
+        "--ack",
+        action="append",
+        default=[],
+        help="Required acknowledgement token. Repeat for multiple acknowledgements.",
+    )
+    archive_parser.add_argument(
+        "--actor", default="local.operator", help="Actor for the governed change."
+    )
 
-    suspect_parser = subparsers.add_parser("mark-suspect", help="Mark an object suspect due to a change event.", parents=[common])
-    suspect_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
+    suspect_parser = subparsers.add_parser(
+        "mark-suspect", help="Mark an object suspect due to a change event.", parents=[common]
+    )
+    suspect_parser.add_argument(
+        "--object", required=True, dest="object_id", help="Knowledge object ID."
+    )
     suspect_parser.add_argument("--reason", required=True, help="Reason for suspect posture.")
     suspect_parser.add_argument("--changed-entity-type", required=True, help="Changed entity type.")
-    suspect_parser.add_argument("--changed-entity-id", default=None, help="Optional changed entity ID.")
-    suspect_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+    suspect_parser.add_argument(
+        "--changed-entity-id", default=None, help="Optional changed entity ID."
+    )
+    suspect_parser.add_argument(
+        "--actor", default="local.operator", help="Actor for the governed change."
+    )
 
-    show_progress_parser = subparsers.add_parser("show-progress", help="Show structured draft completion state.", parents=[common])
-    show_progress_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
-    show_progress_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+    show_progress_parser = subparsers.add_parser(
+        "show-progress", help="Show structured draft completion state.", parents=[common]
+    )
+    show_progress_parser.add_argument(
+        "--object", required=True, dest="object_id", help="Knowledge object ID."
+    )
+    show_progress_parser.add_argument(
+        "--revision", required=True, dest="revision_id", help="Revision ID."
+    )
 
     subparsers.add_parser("list-ingestions", help="List ingestion jobs.", parents=[common])
 
-    review_ingestion_parser = subparsers.add_parser("review-ingestion", help="Show ingestion job detail.", parents=[common])
+    review_ingestion_parser = subparsers.add_parser(
+        "review-ingestion", help="Show ingestion job detail.", parents=[common]
+    )
     review_ingestion_parser.add_argument("ingestion_id", help="Ingestion job ID.")
 
-    convert_ingestion_parser = subparsers.add_parser("convert-ingestion", help="Convert an ingestion into a structured draft.", parents=[common])
+    convert_ingestion_parser = subparsers.add_parser(
+        "convert-ingestion", help="Convert an ingestion into a structured draft.", parents=[common]
+    )
     convert_ingestion_parser.add_argument("ingestion_id", help="Ingestion job ID.")
     convert_ingestion_parser.add_argument("--object-id", required=True, help="Knowledge object ID.")
     convert_ingestion_parser.add_argument("--title", required=True, help="Draft title.")
-    convert_ingestion_parser.add_argument("--canonical-path", required=True, help="Canonical Markdown path.")
+    convert_ingestion_parser.add_argument(
+        "--canonical-path", required=True, help="Canonical Markdown path."
+    )
     convert_ingestion_parser.add_argument("--owner", required=True, help="Owner.")
     convert_ingestion_parser.add_argument("--team", required=True, help="Team.")
-    convert_ingestion_parser.add_argument("--review-cadence", default="quarterly", help="Review cadence.")
-    convert_ingestion_parser.add_argument("--object-lifecycle-state", default="draft", help="Lifecycle state.")
+    convert_ingestion_parser.add_argument(
+        "--review-cadence", default="quarterly", help="Review cadence."
+    )
+    convert_ingestion_parser.add_argument(
+        "--object-lifecycle-state", default="draft", help="Lifecycle state."
+    )
     convert_ingestion_parser.add_argument("--audience", default="service_desk", help="Audience.")
     convert_ingestion_parser.add_argument("--actor", default="local.operator", help="Actor.")
 
-    preview_sync_parser = subparsers.add_parser("preview-source-sync", help="Preview canonical source sync for a revision.", parents=[common])
-    preview_sync_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
-    preview_sync_parser.add_argument("--revision", required=True, dest="revision_id", help="Revision ID.")
+    preview_sync_parser = subparsers.add_parser(
+        "preview-source-sync",
+        help="Preview canonical source sync for a revision.",
+        parents=[common],
+    )
+    preview_sync_parser.add_argument(
+        "--object", required=True, dest="object_id", help="Knowledge object ID."
+    )
+    preview_sync_parser.add_argument(
+        "--revision", required=True, dest="revision_id", help="Revision ID."
+    )
 
-    apply_sync_parser = subparsers.add_parser("apply-source-sync", help="Apply canonical source sync for the current approved revision.", parents=[common])
-    apply_sync_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
-    apply_sync_parser.add_argument("--ack", action="append", default=[], help="Required acknowledgement token. Repeat for multiple acknowledgements.")
-    apply_sync_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+    apply_sync_parser = subparsers.add_parser(
+        "apply-source-sync",
+        help="Apply canonical source sync for the current approved revision.",
+        parents=[common],
+    )
+    apply_sync_parser.add_argument(
+        "--object", required=True, dest="object_id", help="Knowledge object ID."
+    )
+    apply_sync_parser.add_argument(
+        "--ack",
+        action="append",
+        default=[],
+        help="Required acknowledgement token. Repeat for multiple acknowledgements.",
+    )
+    apply_sync_parser.add_argument(
+        "--actor", default="local.operator", help="Actor for the governed change."
+    )
 
-    restore_sync_parser = subparsers.add_parser("restore-source-sync", help="Restore the last canonical source sync.", parents=[common])
-    restore_sync_parser.add_argument("--object", required=True, dest="object_id", help="Knowledge object ID.")
-    restore_sync_parser.add_argument("--revision", default=None, dest="revision_id", help="Optional revision ID.")
-    restore_sync_parser.add_argument("--ack", action="append", default=[], help="Required acknowledgement token. Repeat for multiple acknowledgements.")
-    restore_sync_parser.add_argument("--actor", default="local.operator", help="Actor for the governed change.")
+    restore_sync_parser = subparsers.add_parser(
+        "restore-source-sync", help="Restore the last canonical source sync.", parents=[common]
+    )
+    restore_sync_parser.add_argument(
+        "--object", required=True, dest="object_id", help="Knowledge object ID."
+    )
+    restore_sync_parser.add_argument(
+        "--revision", default=None, dest="revision_id", help="Optional revision ID."
+    )
+    restore_sync_parser.add_argument(
+        "--ack",
+        action="append",
+        default=[],
+        help="Required acknowledgement token. Repeat for multiple acknowledgements.",
+    )
+    restore_sync_parser.add_argument(
+        "--actor", default="local.operator", help="Actor for the governed change."
+    )
 
     args = parser.parse_args()
     database_path = args.db or str(DB_PATH)
@@ -396,7 +570,10 @@ def operator_main() -> int:
             return _emit_payload({"queue": payload}, output_format=output_format)
         lines = ["Read guidance", f"results={len(payload)}"]
         for item in payload:
-            linked_services = ", ".join(service["service_name"] for service in item.get("linked_services", [])) or "no linked services"
+            linked_services = (
+                ", ".join(service["service_name"] for service in item.get("linked_services", []))
+                or "no linked services"
+            )
             lines.extend(
                 _line_block(
                     f"{item['object_id']} | {item['title']}",
@@ -613,7 +790,10 @@ def operator_main() -> int:
         return _emit_payload(payload, output_format=output_format)
 
     if args.command == "list-ingestions":
-        return _emit_payload({"ingestions": list_ingestions(database_path=Path(database_path))}, output_format=output_format)
+        return _emit_payload(
+            {"ingestions": list_ingestions(database_path=Path(database_path))},
+            output_format=output_format,
+        )
 
     if args.command == "review-ingestion":
         return _emit_payload(
@@ -727,8 +907,12 @@ def operator_main() -> int:
         lines = [
             "Knowledge health",
             f"objects={payload['object_count']}",
-            "trust=" + ", ".join(f"{key}={value}" for key, value in sorted(payload["trust_counts"].items())),
-            "review=" + ", ".join(f"{key}={value}" for key, value in sorted(payload["review_counts"].items())),
+            "trust="
+            + ", ".join(f"{key}={value}" for key, value in sorted(payload["trust_counts"].items())),
+            "review="
+            + ", ".join(
+                f"{key}={value}" for key, value in sorted(payload["review_counts"].items())
+            ),
             "validation=" + payload["validation_posture"]["summary"],
         ]
         lines.extend(
@@ -788,8 +972,10 @@ def operator_main() -> int:
                 if preview.conflict_detected
                 else "ready to become canonical guidance"
             ),
-            "changed_fields=" + (", ".join(preview.changed_fields) if preview.changed_fields else "none"),
-            "changed_sections=" + (", ".join(preview.changed_sections) if preview.changed_sections else "none"),
+            "changed_fields="
+            + (", ".join(preview.changed_fields) if preview.changed_fields else "none"),
+            "changed_sections="
+            + (", ".join(preview.changed_sections) if preview.changed_sections else "none"),
         ]
         lines.extend(
             f"assignment | reviewer={assignment['reviewer']} | state={assignment['state']}"

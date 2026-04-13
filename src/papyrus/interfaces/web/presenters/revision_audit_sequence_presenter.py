@@ -6,7 +6,9 @@ from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.view_helpers import escape, format_timestamp, join_html
 
 
-def render_revision_audit_sequence(*, components: ComponentPresenter, history: dict[str, Any]) -> str:
+def render_revision_audit_sequence(
+    *, components: ComponentPresenter, history: dict[str, Any]
+) -> str:
     del components
     body_html = (
         join_html(

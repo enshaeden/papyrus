@@ -18,7 +18,9 @@ def register(router, runtime) -> None:
         experience = require_experience(request, "operator")
         values = default_object_values()
         errors: dict[str, list[str]] = {}
-        page_flash_html = flash_html_for_request(runtime, request) if request.method != "POST" else ""
+        page_flash_html = (
+            flash_html_for_request(runtime, request) if request.method != "POST" else ""
+        )
         if request.method == "POST":
             values = {key: request.form_value(key) for key in values}
             result = validate_object_form(values, taxonomies=runtime.taxonomies)

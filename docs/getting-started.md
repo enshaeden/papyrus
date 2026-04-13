@@ -10,6 +10,7 @@ Use this path when you need a working Papyrus runtime quickly and want the curre
 
 Outcome:
 - The environment is bootstrapped.
+- Formatter, lint, and type-check tooling are installed into `.venv/`.
 - Canonical source validates cleanly.
 - The local runtime database is rebuilt in `build/knowledge.db`.
 - Any content created under `build/` remains local derived state and is not source of truth.
@@ -125,8 +126,9 @@ Guardrail:
 
 | Category | Scripts | Notes |
 | --- | --- | --- |
-| Bootstrap and build | `_bootstrap.py`, `bootstrap.sh`, `build.sh`, `build_index.py`, `build_site_docs.py`, `build_static_export.sh`, `validate.py` | Local environment setup, validation, runtime rebuild, and static/export build entrypoints. |
+| Bootstrap and build | `_bootstrap.py`, `bootstrap.sh`, `build.sh`, `build_index.py`, `build_route_map.py`, `build_site_docs.py`, `build_static_export.sh`, `validate.py` | Local environment setup, validation, route-map generation, runtime rebuild, and static/export build entrypoints. |
 | Serve and operator entrypoints | `run.py`, `serve.sh`, `serve_web.py`, `serve_api.py`, `serve_static_export.sh`, `operator_view.py`, `search.py` | Web, API, shell, and operator-facing read/manage entrypoints. |
 | Authoring, import, and source mutation | `new_article.py`, `ingest.py`, `ingest_event.py`, `source_sync.py` | Create or ingest knowledge, record events, and manage governed source synchronization. |
+| Engineering gate | `check.sh`, `format.sh`, `lint.sh`, `typecheck.sh` | Formatter, lint, type-check, and full engineering gate commands. |
 | Reporting, demo, and migration | `report_stale.py`, `report_content_health.py`, `demo_runtime.py`, `run_scenario.py`, `validate_migration.py` | Reporting, demo/runtime seeding, scenario exercises, and migration validation. |
 | Retired legacy migration shim | `import_knowledge_portal.py` | Stable filename kept for compatibility only. The command is retired and points operators to `decisions/index.md` plus the maintained migration rationale under `docs/migration/`. |

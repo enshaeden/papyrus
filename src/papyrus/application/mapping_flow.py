@@ -11,13 +11,16 @@ from papyrus.application.authoring_flow import (
     validate_draft_progress,
 )
 from papyrus.application.blueprint_registry import get_blueprint
-from papyrus.application.ingestion_flow import ingestion_detail, mark_ingestion_converted, update_ingestion_mapping
+from papyrus.application.ingestion_flow import (
+    ingestion_detail,
+    mark_ingestion_converted,
+    update_ingestion_mapping,
+)
 from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.ingestion import has_mapping_result
 from papyrus.infrastructure.paths import DB_PATH, ROOT
-
 
 SECTION_KEYWORDS = {
     "purpose": ("purpose", "overview", "summary", "use when"),
@@ -55,7 +58,10 @@ FIELD_IMPORT_CONFIDENCE_THRESHOLD = 0.7
 FIELD_IMPORT_RULES: dict[str, dict[str, dict[str, dict[str, Any]]]] = {
     "runbook": {
         "purpose": {
-            "use_when": {"keywords": ("use when", "purpose", "overview", "summary"), "mode": "text"},
+            "use_when": {
+                "keywords": ("use when", "purpose", "overview", "summary"),
+                "mode": "text",
+            },
         },
         "prerequisites": {
             "prerequisites": {
@@ -65,7 +71,11 @@ FIELD_IMPORT_RULES: dict[str, dict[str, dict[str, dict[str, Any]]]] = {
             },
         },
         "procedure": {
-            "steps": {"keywords": ("procedure", "step", "workflow"), "mode": "list", "allow_paragraph_to_list": True},
+            "steps": {
+                "keywords": ("procedure", "step", "workflow"),
+                "mode": "list",
+                "allow_paragraph_to_list": True,
+            },
         },
         "verification": {
             "verification": {
@@ -75,16 +85,30 @@ FIELD_IMPORT_RULES: dict[str, dict[str, dict[str, dict[str, Any]]]] = {
             },
         },
         "rollback": {
-            "rollback": {"keywords": ("rollback", "undo", "recovery"), "mode": "list", "allow_paragraph_to_list": True},
+            "rollback": {
+                "keywords": ("rollback", "undo", "recovery"),
+                "mode": "list",
+                "allow_paragraph_to_list": True,
+            },
         },
         "boundaries": {
-            "boundaries_and_escalation": {"keywords": ("boundary", "boundaries", "escalation", "scope"), "mode": "text"},
-            "related_knowledge_notes": {"keywords": ("related knowledge", "knowledge notes", "follow-on"), "mode": "text"},
+            "boundaries_and_escalation": {
+                "keywords": ("boundary", "boundaries", "escalation", "scope"),
+                "mode": "text",
+            },
+            "related_knowledge_notes": {
+                "keywords": ("related knowledge", "knowledge notes", "follow-on"),
+                "mode": "text",
+            },
         },
     },
     "known_error": {
         "diagnosis": {
-            "symptoms": {"keywords": ("symptom", "symptoms", "failure", "error"), "mode": "list", "allow_paragraph_to_list": True},
+            "symptoms": {
+                "keywords": ("symptom", "symptoms", "failure", "error"),
+                "mode": "list",
+                "allow_paragraph_to_list": True,
+            },
             "scope": {"keywords": ("scope", "affected", "impact", "boundary"), "mode": "text"},
             "cause": {"keywords": ("cause", "root cause", "because"), "mode": "text"},
         },
@@ -105,8 +129,14 @@ FIELD_IMPORT_RULES: dict[str, dict[str, dict[str, dict[str, Any]]]] = {
         },
         "escalation": {
             "detection_notes": {"keywords": ("detection", "alert", "monitor"), "mode": "text"},
-            "escalation_threshold": {"keywords": ("escalation", "threshold", "escalate", "page"), "mode": "text"},
-            "evidence_notes": {"keywords": ("evidence note", "evidence", "log", "reference"), "mode": "text"},
+            "escalation_threshold": {
+                "keywords": ("escalation", "threshold", "escalate", "page"),
+                "mode": "text",
+            },
+            "evidence_notes": {
+                "keywords": ("evidence note", "evidence", "log", "reference"),
+                "mode": "text",
+            },
         },
     },
     "service_record": {
@@ -116,7 +146,11 @@ FIELD_IMPORT_RULES: dict[str, dict[str, dict[str, dict[str, Any]]]] = {
             "scope_notes": {"keywords": ("scope", "service profile", "overview"), "mode": "text"},
         },
         "dependencies": {
-            "dependencies": {"keywords": ("dependency", "dependencies", "depends"), "mode": "list", "allow_paragraph_to_list": True},
+            "dependencies": {
+                "keywords": ("dependency", "dependencies", "depends"),
+                "mode": "list",
+                "allow_paragraph_to_list": True,
+            },
         },
         "support_entrypoints": {
             "support_entrypoints": {
@@ -133,7 +167,10 @@ FIELD_IMPORT_RULES: dict[str, dict[str, dict[str, dict[str, Any]]]] = {
             },
         },
         "operations": {
-            "operational_notes": {"keywords": ("operational notes", "operations", "caveat"), "mode": "text"},
+            "operational_notes": {
+                "keywords": ("operational notes", "operations", "caveat"),
+                "mode": "text",
+            },
             "evidence_notes": {"keywords": ("evidence note", "evidence"), "mode": "text"},
             "related_runbooks": {"mode": "manual_only"},
             "related_known_errors": {"mode": "manual_only"},
@@ -144,7 +181,11 @@ FIELD_IMPORT_RULES: dict[str, dict[str, dict[str, dict[str, Any]]]] = {
             "policy_scope": {"keywords": ("policy scope", "scope", "purpose"), "mode": "text"},
         },
         "controls": {
-            "controls": {"keywords": ("control", "controls", "requirement", "must", "shall"), "mode": "list", "allow_paragraph_to_list": True},
+            "controls": {
+                "keywords": ("control", "controls", "requirement", "must", "shall"),
+                "mode": "list",
+                "allow_paragraph_to_list": True,
+            },
         },
         "exceptions": {
             "exceptions": {"keywords": ("exception", "exceptions", "waiver"), "mode": "text"},
@@ -155,10 +196,18 @@ FIELD_IMPORT_RULES: dict[str, dict[str, dict[str, dict[str, Any]]]] = {
             "architecture": {"keywords": ("architecture", "design", "component"), "mode": "text"},
         },
         "dependencies": {
-            "dependencies": {"keywords": ("dependency", "dependencies", "depends"), "mode": "list", "allow_paragraph_to_list": True},
+            "dependencies": {
+                "keywords": ("dependency", "dependencies", "depends"),
+                "mode": "list",
+                "allow_paragraph_to_list": True,
+            },
         },
         "interfaces": {
-            "interfaces": {"keywords": ("interface", "interfaces", "integration", "api"), "mode": "list", "allow_paragraph_to_list": True},
+            "interfaces": {
+                "keywords": ("interface", "interfaces", "integration", "api"),
+                "mode": "list",
+                "allow_paragraph_to_list": True,
+            },
         },
         "failure_modes": {
             "common_failure_modes": {
@@ -168,7 +217,10 @@ FIELD_IMPORT_RULES: dict[str, dict[str, dict[str, dict[str, Any]]]] = {
             },
         },
         "operations": {
-            "operational_notes": {"keywords": ("operational notes", "operations", "support posture"), "mode": "text"},
+            "operational_notes": {
+                "keywords": ("operational notes", "operations", "support posture"),
+                "mode": "text",
+            },
             "support_entrypoints": {
                 "keywords": ("support entrypoint", "support entrypoints", "contact"),
                 "mode": "list",
@@ -187,7 +239,9 @@ def _fragment_text(fragment: dict[str, Any]) -> str:
     if isinstance(content, list):
         if content and isinstance(content[0], list):
             rows = [row for row in content if isinstance(row, list)]
-            return "\n".join(" | ".join(str(cell).strip() for cell in row if str(cell).strip()) for row in rows)
+            return "\n".join(
+                " | ".join(str(cell).strip() for cell in row if str(cell).strip()) for row in rows
+            )
         return "\n".join(str(item).strip() for item in content if str(item).strip())
     return str(content or "").strip()
 
@@ -217,7 +271,8 @@ def _normalized_fragment(fragment: dict[str, Any], index: int) -> dict[str, Any]
         "fragment_id": str(fragment.get("fragment_id") or f"fragment-{order:04d}"),
         "order": order,
         "kind": kind,
-        "heading": heading or (normalized_heading_path[-1]["text"] if normalized_heading_path else ""),
+        "heading": heading
+        or (normalized_heading_path[-1]["text"] if normalized_heading_path else ""),
         "heading_path": normalized_heading_path,
         "content": fragment.get("content"),
         "text": text,
@@ -240,11 +295,7 @@ def _rank_fragment(
     active_heading = str(fragment.get("heading") or "").lower()
     body_text = _fragment_text(fragment).lower()
     matched_keywords = sorted(
-        {
-            keyword
-            for keyword in keywords
-            if keyword in active_heading or keyword in body_text
-        }
+        {keyword for keyword in keywords if keyword in active_heading or keyword in body_text}
     )
     if not matched_keywords:
         return 0.0, []
@@ -269,7 +320,9 @@ def _fragment_provenance(fragment: dict[str, Any] | None) -> dict[str, Any] | No
         "fragment_order": int(fragment.get("order") or 0),
         "source_kind": str(fragment.get("kind") or ""),
         "source_heading": str(fragment.get("heading") or ""),
-        "heading_path": fragment.get("heading_path") if isinstance(fragment.get("heading_path"), list) else [],
+        "heading_path": fragment.get("heading_path")
+        if isinstance(fragment.get("heading_path"), list)
+        else [],
         "source_element_index": int(source.get("element_index") or 0),
         "source_text": _fragment_text(fragment),
     }
@@ -294,7 +347,9 @@ def _mapping_candidates(
         for fragment in fragments:
             if str(fragment.get("kind") or "") not in MAPPABLE_FRAGMENT_KINDS:
                 continue
-            confidence, matched_keywords = _rank_fragment(section_id=section_id, fragment=fragment, keywords=keywords)
+            confidence, matched_keywords = _rank_fragment(
+                section_id=section_id, fragment=fragment, keywords=keywords
+            )
             if confidence <= 0.0:
                 continue
             ranked.append(
@@ -322,7 +377,9 @@ def _assigned_candidates(
     candidates_by_section: dict[str, list[dict[str, Any]]],
 ) -> tuple[dict[str, dict[str, Any] | None], dict[str, str]]:
     section_priority = {section_id: index for index, section_id in enumerate(blueprint.ordering)}
-    assigned: dict[str, dict[str, Any] | None] = {section_id: None for section_id in blueprint.ordering}
+    assigned: dict[str, dict[str, Any] | None] = {
+        section_id: None for section_id in blueprint.ordering
+    }
     fragment_usage: dict[str, str] = {}
     all_candidates = [
         candidate
@@ -381,7 +438,9 @@ def _mapping_conflicts(
                 "section_id": section_id,
                 "confidence": round(float(contender["confidence"]), 2),
                 "matched_keywords": list(contender.get("matched_keywords", [])),
-                "outcome": "selected" if section_id == assigned_section_id else "blocked_duplicate_source_reuse",
+                "outcome": "selected"
+                if section_id == assigned_section_id
+                else "blocked_duplicate_source_reuse",
             }
             conflict_entry["competing_sections"].append(competitor)
             conflicts_by_section.setdefault(section_id, []).append(
@@ -425,17 +484,25 @@ def map_to_blueprint(
     database_path: Path = DB_PATH,
 ) -> dict[str, Any]:
     detail = ingestion_detail(ingestion_id=ingestion_id, database_path=database_path)
-    resolved_blueprint_id = blueprint_id or detail.get("blueprint_id") or detail["classification"]["blueprint_id"]
+    resolved_blueprint_id = (
+        blueprint_id or detail.get("blueprint_id") or detail["classification"]["blueprint_id"]
+    )
     blueprint = get_blueprint(str(resolved_blueprint_id))
     fragments: list[dict[str, Any]] = []
     for artifact in detail["artifacts"]:
         if artifact["artifact_type"] == "sections":
             raw_sections = artifact["content"].get("sections", [])
             if isinstance(raw_sections, list):
-                fragments = [_normalized_fragment(fragment, index) for index, fragment in enumerate(raw_sections) if isinstance(fragment, dict)]
+                fragments = [
+                    _normalized_fragment(fragment, index)
+                    for index, fragment in enumerate(raw_sections)
+                    if isinstance(fragment, dict)
+                ]
             break
     candidates_by_section = _mapping_candidates(blueprint=blueprint, fragments=fragments)
-    assigned, fragment_usage = _assigned_candidates(blueprint=blueprint, candidates_by_section=candidates_by_section)
+    assigned, fragment_usage = _assigned_candidates(
+        blueprint=blueprint, candidates_by_section=candidates_by_section
+    )
     conflicts, conflicts_by_section = _mapping_conflicts(
         candidates_by_section=candidates_by_section,
         fragment_usage=fragment_usage,
@@ -446,18 +513,24 @@ def map_to_blueprint(
         best_match = assignment["fragment"] if assignment is not None else None
         best_score = float(assignment["confidence"]) if assignment is not None else 0.0
         section_conflicts = conflicts_by_section.get(section_id, [])
-        conflict_state = "conflicted" if section_conflicts else "clear" if best_match is not None else "unmapped"
+        conflict_state = (
+            "conflicted" if section_conflicts else "clear" if best_match is not None else "unmapped"
+        )
         mapped_sections[section_id] = {
             "match": best_match,
             "confidence": round(best_score, 2),
             "required": section_id in blueprint.required_sections,
-            "matched_keywords": list(assignment.get("matched_keywords", [])) if assignment is not None else [],
+            "matched_keywords": list(assignment.get("matched_keywords", []))
+            if assignment is not None
+            else [],
             "provenance": _fragment_provenance(best_match),
             "conflict_state": conflict_state,
             "conflicts": section_conflicts,
         }
 
-    unmapped = [fragment for fragment in fragments if str(fragment["fragment_id"]) not in fragment_usage]
+    unmapped = [
+        fragment for fragment in fragments if str(fragment["fragment_id"]) not in fragment_usage
+    ]
 
     result = {
         "blueprint_id": blueprint.blueprint_id,
@@ -517,7 +590,9 @@ def _field_keywords(section_id: str, field_name: str, rule: dict[str, Any]) -> t
     return tuple(dict.fromkeys(keyword for keyword in raw_keywords if keyword))
 
 
-def _field_value_from_fragment(field: dict[str, Any], fragment: dict[str, Any], rule: dict[str, Any]) -> Any | None:
+def _field_value_from_fragment(
+    field: dict[str, Any], fragment: dict[str, Any], rule: dict[str, Any]
+) -> Any | None:
     kind = str(field.get("kind") or "text")
     fragment_kind = str(fragment.get("kind") or "")
     text = _fragment_text(fragment)
@@ -552,7 +627,9 @@ def _field_candidate_score(
 ) -> tuple[float, list[str]]:
     active_heading = str(fragment.get("heading") or "").lower()
     body_text = _fragment_text(fragment).lower()
-    matched_keywords = sorted({keyword for keyword in keywords if keyword in active_heading or keyword in body_text})
+    matched_keywords = sorted(
+        {keyword for keyword in keywords if keyword in active_heading or keyword in body_text}
+    )
     if not matched_keywords:
         return 0.0, []
     score = 0.0
@@ -563,9 +640,14 @@ def _field_candidate_score(
             score += 0.35
     if str(field.get("kind") or "text") == "list" and str(fragment.get("kind") or "") == "list":
         score += 0.2
-    if str(field.get("kind") or "text") in {"text", "long_text"} and str(fragment.get("kind") or "") in {"paragraph", "table"}:
+    if str(field.get("kind") or "text") in {"text", "long_text"} and str(
+        fragment.get("kind") or ""
+    ) in {"paragraph", "table"}:
         score += 0.1
-    if section_match_fragment_id and str(fragment.get("fragment_id") or "") == section_match_fragment_id:
+    if (
+        section_match_fragment_id
+        and str(fragment.get("fragment_id") or "") == section_match_fragment_id
+    ):
         score += 0.05
     return min(0.99, round(score, 2)), matched_keywords
 
@@ -577,7 +659,7 @@ def _blank_field_provenance(
     note: str,
     candidate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    provenance = {
+    provenance: dict[str, Any] = {
         "status": status,
         "note": note,
     }
@@ -621,7 +703,11 @@ def _section_fragment_pool(
 ) -> list[dict[str, Any]]:
     fragments: list[dict[str, Any]] = []
     seen: set[str] = set()
-    section_entry = mapping_result.get("sections", {}).get(section_id, {}) if isinstance(mapping_result.get("sections"), dict) else {}
+    section_entry = (
+        mapping_result.get("sections", {}).get(section_id, {})
+        if isinstance(mapping_result.get("sections"), dict)
+        else {}
+    )
     match = section_entry.get("match") if isinstance(section_entry, dict) else None
     if isinstance(match, dict):
         fragment_id = str(match.get("fragment_id") or "")
@@ -655,7 +741,9 @@ def _field_import_plan(
         if isinstance(mapping_entry.get("match"), dict)
         else None
     )
-    fragment_pool = _section_fragment_pool(mapping_result=mapping_result, section_id=section.section_id)
+    fragment_pool = _section_fragment_pool(
+        mapping_result=mapping_result, section_id=section.section_id
+    )
     section_rules = _section_field_rules(blueprint_id, section.section_id)
 
     for field in section.fields:
@@ -665,7 +753,9 @@ def _field_import_plan(
         if str(rule.get("mode") or "") == "manual_only":
             status = "manual_required" if bool(field.get("required", True)) else "unresolved"
             note = "Papyrus does not infer this field safely from imported source text."
-            field_provenance[field_name] = _blank_field_provenance(field=field, status=status, note=note)
+            field_provenance[field_name] = _blank_field_provenance(
+                field=field, status=status, note=note
+            )
             conversion_gaps.append({"field": field_name, "status": status, "reason": note})
             continue
         keywords = _field_keywords(section.section_id, field_name, rule)
@@ -702,9 +792,13 @@ def _field_import_plan(
             )
         )
         best_candidate = candidates[0] if candidates else None
-        if best_candidate is not None and float(best_candidate["confidence"]) >= float(rule.get("min_confidence") or FIELD_IMPORT_CONFIDENCE_THRESHOLD):
+        if best_candidate is not None and float(best_candidate["confidence"]) >= float(
+            rule.get("min_confidence") or FIELD_IMPORT_CONFIDENCE_THRESHOLD
+        ):
             values[field_name] = best_candidate["value"]
-            field_provenance[field_name] = _mapped_field_provenance(mapping_entry=mapping_entry, candidate=best_candidate)
+            field_provenance[field_name] = _mapped_field_provenance(
+                mapping_entry=mapping_entry, candidate=best_candidate
+            )
             if not bool(rule.get("allow_reuse")):
                 used_fragments.add(str(best_candidate["fragment"].get("fragment_id") or ""))
             continue
@@ -721,13 +815,17 @@ def _field_import_plan(
                     "field": field_name,
                     "status": "low_confidence",
                     "reason": note,
-                    "candidate_fragment_id": str(best_candidate["fragment"].get("fragment_id") or ""),
+                    "candidate_fragment_id": str(
+                        best_candidate["fragment"].get("fragment_id") or ""
+                    ),
                 }
             )
             continue
         status = "manual_required" if bool(field.get("required", True)) else "unresolved"
         note = "No confident source fragment matched this field during import conversion."
-        field_provenance[field_name] = _blank_field_provenance(field=field, status=status, note=note)
+        field_provenance[field_name] = _blank_field_provenance(
+            field=field, status=status, note=note
+        )
         conversion_gaps.append({"field": field_name, "status": status, "reason": note})
 
     return values, {FIELD_PROVENANCE_KEY: field_provenance, CONVERSION_GAPS_KEY: conversion_gaps}
@@ -753,7 +851,9 @@ def convert_to_draft(
     detail = ingestion_detail(ingestion_id=ingestion_id, database_path=database_path)
     if detail.get("converted_revision_id"):
         raise ValueError(f"ingestion {ingestion_id} has already been reviewed and converted")
-    existing_mapping = detail.get("mapping_result") if has_mapping_result(detail.get("mapping_result")) else None
+    existing_mapping = (
+        detail.get("mapping_result") if has_mapping_result(detail.get("mapping_result")) else None
+    )
     mapping_result = existing_mapping or map_to_blueprint(
         ingestion_id=ingestion_id,
         blueprint_id=detail["classification"]["blueprint_id"],
@@ -836,14 +936,30 @@ def convert_to_draft(
                 },
                 "owner": _manual_input_provenance("Provided during import conversion."),
                 "team": _manual_input_provenance("Provided during import conversion."),
-                "object_lifecycle_state": _manual_input_provenance("Provided during import conversion."),
+                "object_lifecycle_state": _manual_input_provenance(
+                    "Provided during import conversion."
+                ),
                 "review_cadence": _manual_input_provenance("Provided during import conversion."),
                 "audience": _manual_input_provenance("Provided during import conversion."),
-                "systems": {"status": "unresolved", "note": "No structured system mapping was inferred from the import."},
-                "tags": {"status": "unresolved", "note": "No structured tag mapping was inferred from the import."},
-                "related_services": {"status": "unresolved", "note": "No related services were inferred from the import."},
-                "related_object_ids": {"status": "unresolved", "note": "No related object IDs were inferred from the import."},
-                "change_summary": _manual_input_provenance("Recorded by the import conversion workflow."),
+                "systems": {
+                    "status": "unresolved",
+                    "note": "No structured system mapping was inferred from the import.",
+                },
+                "tags": {
+                    "status": "unresolved",
+                    "note": "No structured tag mapping was inferred from the import.",
+                },
+                "related_services": {
+                    "status": "unresolved",
+                    "note": "No related services were inferred from the import.",
+                },
+                "related_object_ids": {
+                    "status": "unresolved",
+                    "note": "No related object IDs were inferred from the import.",
+                },
+                "change_summary": _manual_input_provenance(
+                    "Recorded by the import conversion workflow."
+                ),
             },
             CONVERSION_GAPS_KEY: [
                 {

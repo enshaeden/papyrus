@@ -29,9 +29,17 @@ class MappingFlowTests(unittest.TestCase):
                 "# Login failure\n\n## Symptoms\n\nUsers cannot sign in.\n\n## Mitigations\n\n- Reset the cache\n",
                 encoding="utf-8",
             )
-            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            mapping = map_to_blueprint(ingestion_id=result["ingestion_id"], blueprint_id="known_error", database_path=database_path)
-            detail = ingestion_detail(ingestion_id=result["ingestion_id"], database_path=database_path)
+            result = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            mapping = map_to_blueprint(
+                ingestion_id=result["ingestion_id"],
+                blueprint_id="known_error",
+                database_path=database_path,
+            )
+            detail = ingestion_detail(
+                ingestion_id=result["ingestion_id"], database_path=database_path
+            )
 
             self.assertEqual(mapping["blueprint_id"], "known_error")
             self.assertIn("diagnostic_checks", mapping["missing_sections"])
@@ -53,8 +61,14 @@ class MappingFlowTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            mapping = map_to_blueprint(ingestion_id=result["ingestion_id"], blueprint_id="known_error", database_path=database_path)
+            result = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            mapping = map_to_blueprint(
+                ingestion_id=result["ingestion_id"],
+                blueprint_id="known_error",
+                database_path=database_path,
+            )
 
             used_fragments = [
                 entry["provenance"]["source_fragment_id"]
@@ -63,12 +77,20 @@ class MappingFlowTests(unittest.TestCase):
             ]
             self.assertEqual(len(used_fragments), len(set(used_fragments)))
             self.assertTrue(mapping["conflicts"])
-            self.assertEqual(mapping["sections"]["diagnostic_checks"]["conflict_state"], "conflicted")
+            self.assertEqual(
+                mapping["sections"]["diagnostic_checks"]["conflict_state"], "conflicted"
+            )
             self.assertEqual(mapping["sections"]["mitigations"]["conflict_state"], "conflicted")
             self.assertIsNotNone(mapping["sections"]["diagnostic_checks"]["provenance"])
             self.assertIsNone(mapping["sections"]["mitigations"]["match"])
-            self.assertIn("diagnostic_checks", {item["section_id"] for item in mapping["conflicts"][0]["competing_sections"]})
-            self.assertIn("mitigations", {item["section_id"] for item in mapping["conflicts"][0]["competing_sections"]})
+            self.assertIn(
+                "diagnostic_checks",
+                {item["section_id"] for item in mapping["conflicts"][0]["competing_sections"]},
+            )
+            self.assertIn(
+                "mitigations",
+                {item["section_id"] for item in mapping["conflicts"][0]["competing_sections"]},
+            )
 
     def test_mapping_keeps_unmapped_leftovers_with_fragment_provenance(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -85,17 +107,27 @@ class MappingFlowTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            mapping = map_to_blueprint(ingestion_id=result["ingestion_id"], blueprint_id="runbook", database_path=database_path)
+            result = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            mapping = map_to_blueprint(
+                ingestion_id=result["ingestion_id"],
+                blueprint_id="runbook",
+                database_path=database_path,
+            )
 
             self.assertTrue(mapping["unmapped_content"])
             note_fragment = next(
-                item for item in mapping["unmapped_content"] if item.get("text") == "Keep this note for the reviewer."
+                item
+                for item in mapping["unmapped_content"]
+                if item.get("text") == "Keep this note for the reviewer."
             )
             self.assertEqual(note_fragment["heading"], "Notes")
             self.assertTrue(note_fragment["fragment_id"].startswith("fragment-"))
 
-    def test_convert_to_draft_leaves_unresolved_fields_blank_instead_of_spraying_section_text(self) -> None:
+    def test_convert_to_draft_leaves_unresolved_fields_blank_instead_of_spraying_section_text(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
@@ -109,8 +141,14 @@ class MappingFlowTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            ingested = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            map_to_blueprint(ingestion_id=ingested["ingestion_id"], blueprint_id="known_error", database_path=database_path)
+            ingested = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            map_to_blueprint(
+                ingestion_id=ingested["ingestion_id"],
+                blueprint_id="known_error",
+                database_path=database_path,
+            )
             converted = convert_to_draft(
                 ingestion_id=ingested["ingestion_id"],
                 object_id="kb-login-failure-imported",
@@ -141,7 +179,10 @@ class MappingFlowTests(unittest.TestCase):
             self.assertEqual(diagnosis["_field_provenance"]["cause"]["status"], "manual_required")
             self.assertEqual(mitigations["mitigations"], ["Clear the stale token cache"])
             self.assertEqual(mitigations["permanent_fix_status"], "")
-            self.assertEqual(mitigations["_field_provenance"]["permanent_fix_status"]["status"], "manual_required")
+            self.assertEqual(
+                mitigations["_field_provenance"]["permanent_fix_status"]["status"],
+                "manual_required",
+            )
             self.assertEqual(detail["object"]["summary"], "")
             self.assertEqual(detail["revision"]["metadata"]["summary"], "")
             self.assertLess(converted["completion"]["completion_percentage"], 100)
@@ -160,8 +201,14 @@ class MappingFlowTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            ingested = ingest_file(file_path=source_path, database_path=database_path, source_root=source_root)
-            map_to_blueprint(ingestion_id=ingested["ingestion_id"], blueprint_id="runbook", database_path=database_path)
+            ingested = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            map_to_blueprint(
+                ingestion_id=ingested["ingestion_id"],
+                blueprint_id="runbook",
+                database_path=database_path,
+            )
             first_conversion = convert_to_draft(
                 ingestion_id=ingested["ingestion_id"],
                 object_id="kb-access-recovery-imported",
@@ -193,7 +240,9 @@ class MappingFlowTests(unittest.TestCase):
                     source_root=source_root,
                 )
 
-            detail = ingestion_detail(ingestion_id=ingested["ingestion_id"], database_path=database_path)
+            detail = ingestion_detail(
+                ingestion_id=ingested["ingestion_id"], database_path=database_path
+            )
             self.assertEqual(detail["ingestion_state"], "converted")
             self.assertEqual(detail["converted_object_id"], "kb-access-recovery-imported")
             self.assertEqual(detail["converted_revision_id"], first_conversion["revision_id"])

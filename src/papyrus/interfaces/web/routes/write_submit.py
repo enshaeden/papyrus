@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from urllib.parse import quote_plus
 
+from papyrus.application.authoring_flow import validate_draft_progress
 from papyrus.application.blueprint_registry import get_blueprint
 from papyrus.application.commands import submit_for_review_command
 from papyrus.application.queries import knowledge_object_detail, review_detail
-from papyrus.application.authoring_flow import validate_draft_progress
 from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.forms.review_forms import validate_submit_form
 from papyrus.interfaces.web.forms.revision_forms import build_submission_findings
@@ -20,7 +20,9 @@ def register(router, runtime) -> None:
         experience = require_experience(request, "operator")
         object_id = request.route_value("object_id")
         object_detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
-        revision_id = request.query_value("revision_id") or str((object_detail["current_revision"] or {})["revision_id"])
+        revision_id = request.query_value("revision_id") or str(
+            (object_detail["current_revision"] or {})["revision_id"]
+        )
         detail = review_detail(object_id, revision_id, database_path=runtime.database_path)
         values = {"notes": request.form_value("notes")}
         form_errors: dict[str, list[str]] = {}
@@ -30,7 +32,9 @@ def register(router, runtime) -> None:
             database_path=runtime.database_path,
             source_root=runtime.source_root,
         )
-        blueprint = get_blueprint(str(detail["revision"]["blueprint_id"] or detail["object"]["object_type"]))
+        blueprint = get_blueprint(
+            str(detail["revision"]["blueprint_id"] or detail["object"]["object_type"])
+        )
         findings = [
             *draft_status["completion"]["blockers"],
             *draft_status["completion"]["warnings"],
@@ -56,7 +60,9 @@ def register(router, runtime) -> None:
                 )
             form_errors = result.errors
             if draft_status["completion"]["blockers"]:
-                form_errors.setdefault("notes", []).append("Clear the draft blockers before submitting for review.")
+                form_errors.setdefault("notes", []).append(
+                    "Clear the draft blockers before submitting for review."
+                )
         page_context = present_submit_page(
             runtime,
             role=experience.role,

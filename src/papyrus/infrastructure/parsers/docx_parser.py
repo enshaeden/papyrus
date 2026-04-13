@@ -5,7 +5,6 @@ from zipfile import BadZipFile, ZipFile
 
 from lxml import etree
 
-
 WORD_NS = {
     "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
     "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
@@ -21,11 +20,15 @@ def _normalize_text(value: str) -> str:
 
 
 def _extract_text(element: etree._Element) -> str:
-    return _normalize_text("".join(node for node in element.xpath(".//w:t/text()", namespaces=WORD_NS)))
+    return _normalize_text(
+        "".join(node for node in element.xpath(".//w:t/text()", namespaces=WORD_NS))
+    )
 
 
 def _table_text(rows: list[list[str]]) -> str:
-    return "\n".join(" | ".join(cell for cell in row if cell) for row in rows if any(cell for cell in row))
+    return "\n".join(
+        " | ".join(cell for cell in row if cell) for row in rows if any(cell for cell in row)
+    )
 
 
 def _relationship_targets(archive: ZipFile) -> dict[str, str]:
@@ -45,7 +48,9 @@ def _relationship_targets(archive: ZipFile) -> dict[str, str]:
     return targets
 
 
-def _paragraph_links(paragraph: etree._Element, relationship_targets: dict[str, str]) -> tuple[list[dict[str, str]], int]:
+def _paragraph_links(
+    paragraph: etree._Element, relationship_targets: dict[str, str]
+) -> tuple[list[dict[str, str]], int]:
     links: list[dict[str, str]] = []
     unresolved = 0
     for hyperlink in paragraph.xpath("./w:hyperlink", namespaces=WORD_NS):
@@ -153,10 +158,14 @@ def parse_docx_bytes(payload: bytes) -> dict[str, object]:
     flush_list()
     if unresolved_links:
         warnings.append("One or more DOCX hyperlinks could not be resolved to a target.")
-        degradation_notes.append("Relationship loss may hide source references that were present in the original document.")
+        degradation_notes.append(
+            "Relationship loss may hide source references that were present in the original document."
+        )
     if not raw_text_parts:
         warnings.append("DOCX document did not yield any extractable text.")
-        degradation_notes.append("The document may be empty, image-based, or structurally malformed even if the container opened.")
+        degradation_notes.append(
+            "The document may be empty, image-based, or structurally malformed even if the container opened."
+        )
     extraction_quality = {
         "state": "degraded" if warnings or not raw_text_parts else "clean",
         "score": 0.2 if not raw_text_parts else 0.72 if warnings else 0.96,

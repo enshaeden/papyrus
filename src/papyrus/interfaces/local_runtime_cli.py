@@ -12,8 +12,8 @@ from papyrus.application.commands import build_projection_command
 from papyrus.application.demo_flow import DEMO_SOURCE_ROOT, build_operator_demo_runtime
 from papyrus.infrastructure.observability import get_logger, log_event
 from papyrus.infrastructure.paths import DB_PATH, ROOT
-from papyrus.interfaces.startup_guard import resolve_operator_source_root
 from papyrus.interfaces.api import app as api_app
+from papyrus.interfaces.startup_guard import resolve_operator_source_root
 from papyrus.interfaces.web import app as web_app
 
 LOGGER = get_logger(__name__)
@@ -42,13 +42,27 @@ def main() -> int:
         description="Start Papyrus in operator or demo mode with lifecycle-guided web and API surfaces."
     )
     mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--demo", action="store_true", help="Build the demo runtime, then start both local surfaces.")
-    mode.add_argument("--operator", action="store_true", help="Rebuild the operator runtime, then start both local surfaces.")
-    parser.add_argument("--host", default="127.0.0.1", help="Bind host for both web and API servers.")
+    mode.add_argument(
+        "--demo",
+        action="store_true",
+        help="Build the demo runtime, then start both local surfaces.",
+    )
+    mode.add_argument(
+        "--operator",
+        action="store_true",
+        help="Rebuild the operator runtime, then start both local surfaces.",
+    )
+    parser.add_argument(
+        "--host", default="127.0.0.1", help="Bind host for both web and API servers."
+    )
     parser.add_argument("--web-port", type=int, default=8080, help="Web port. Defaults to 8080.")
     parser.add_argument("--api-port", type=int, default=8081, help="API port. Defaults to 8081.")
     parser.add_argument("--db", default=None, help="Override the runtime SQLite database path.")
-    parser.add_argument("--source-root", default=None, help="Override the source root used for writeback and evidence snapshots.")
+    parser.add_argument(
+        "--source-root",
+        default=None,
+        help="Override the source root used for writeback and evidence snapshots.",
+    )
     parser.add_argument(
         "--allow-web-ingest-local-paths",
         action="store_true",
@@ -59,14 +73,26 @@ def main() -> int:
     if args.demo:
         database_path = Path(args.db or ROOT / "build" / "demo-knowledge.db")
         source_root = Path(args.source_root or DEMO_SOURCE_ROOT)
-        log_event(LOGGER, logging.INFO, "runtime_cli_demo_started", database_path=str(database_path), source_root=str(source_root))
+        log_event(
+            LOGGER,
+            logging.INFO,
+            "runtime_cli_demo_started",
+            database_path=str(database_path),
+            source_root=str(source_root),
+        )
         _reset_runtime_artifacts(database_path, source_root)
         build_operator_demo_runtime(database_path=database_path, source_root=source_root)
     else:
         try:
             database_path = Path(args.db or DB_PATH)
             source_root = resolve_operator_source_root(args.source_root)
-            log_event(LOGGER, logging.INFO, "runtime_cli_operator_started", database_path=str(database_path), source_root=str(source_root))
+            log_event(
+                LOGGER,
+                logging.INFO,
+                "runtime_cli_operator_started",
+                database_path=str(database_path),
+                source_root=str(source_root),
+            )
             build_projection_command(database_path=database_path)
         except ValueError as exc:
             log_event(LOGGER, logging.ERROR, "runtime_cli_startup_failed", error=str(exc))
@@ -112,7 +138,9 @@ def main() -> int:
     print(f"API: http://{args.host}:{args.api_port}")
     print(f"Runtime DB: {database_path}")
     print(f"Source root: {source_root}")
-    print("Local web root / redirects to /operator. Start with Home to see next actions, lifecycle work areas, and recent operational activity.")
+    print(
+        "Local web root / redirects to /operator. Start with Home to see next actions, lifecycle work areas, and recent operational activity."
+    )
     try:
         web_thread.join()
         api_thread.join()

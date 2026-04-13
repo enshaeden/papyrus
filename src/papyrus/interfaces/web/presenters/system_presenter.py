@@ -18,7 +18,7 @@ def present_error_page(
     error_html = components.surface_panel(
         title=title,
         eyebrow="System",
-        body_html=f"<p>{escape(detail)}</p><p><strong>Next action:</strong> {escape(action)}</p><p class=\"section-footer\">HTTP status: {escape(status)}</p>",
+        body_html=f'<p>{escape(detail)}</p><p><strong>Next action:</strong> {escape(action)}</p><p class="section-footer">HTTP status: {escape(status)}</p>',
         tone="danger" if status.startswith("5") else "default",
         variant="system-error",
         surface="system-error",
