@@ -1,79 +1,9 @@
 # Route Separation and Experience Boundaries
 
-Status: Approved
-Owner: Architecture
-Scope: Web app route structure, layout ownership, role isolation
+Status: Superseded
+Replaced by: [Role-Scoped Experience Architecture](role-scoped-experience-architecture.md)
 
-## Core rule
-Reader, Operator, and Admin are separate experience route groups.
-They are not tabs within one dashboard and not modes of one shared page.
+This file is retained as a compatibility pointer.
 
-## Implementation status
-This route model is the target architecture.
-Current Papyrus web routes remain transitional and development-shaped in places.
-Do not use transitional route patterns as justification for preserving blended shells long term.
-All new route, shell, and navigation work must move the application toward the route groups defined in this record.
-
-## Route groups
-
-### Shared
-- `/` (local entry shim redirecting to `/operator`; not a role-owned destination)
-- `/search`
-- `/account`
-- `/system-menu` (if route-based)
-- shared utility routes only if they remain role-safe
-
-### Reader
-- `/reader`
-- `/reader/browse`
-- `/reader/tree/:nodeId`
-- `/reader/object/:objectId`
-- `/reader/object/:objectId/flag`
-
-### Operator
-- `/operator`
-- `/operator/read`
-- `/operator/read/tree/:nodeId`
-- `/operator/read/object/:objectId`
-- `/operator/write`
-- `/operator/write/drafts`
-- `/operator/write/new`
-- `/operator/write/object/:objectId`
-- `/operator/write/object/:objectId/validate`
-- `/operator/write/object/:objectId/preview`
-- `/operator/review`
-- `/operator/review/flags`
-- `/operator/review/flags/:flagId`
-- `/operator/review/assignments`
-- `/operator/review/object/:objectId`
-
-### Admin
-- `/admin`
-- `/admin/overview`
-- `/admin/users`
-- `/admin/roles`
-- `/admin/spaces`
-- `/admin/access`
-- `/admin/templates`
-- `/admin/schemas`
-- `/admin/governance`
-- `/admin/publishing`
-- `/admin/audit`
-- `/admin/settings`
-
-## Route rules
-- Route guards must enforce role access before render.
-- Navigation generation must derive from role-scoped route definitions, not from one global list with runtime filtering.
-- Deep links must still respect role access and fail closed.
-- Search results must link only to routes the current role can access.
-- Production must not expose a route or client control for manual role switching.
-
-## Layout ownership
-- `/reader/*` uses Reader shell
-- `/operator/*` uses Operator shell
-- `/admin/*` uses Admin shell
-- Shared primitives may be reused, but shell composition remains separate.
-
-## URL and naming rules
-- Route names must make role ownership obvious.
-- Layout files, shell files, test files, and route definitions should mirror the same structure.
+The governing route groups, route guard rules, shell ownership, and route-boundary policy now live in [Role-Scoped Experience Architecture](role-scoped-experience-architecture.md).
+This consolidation removed duplicated routing authority across multiple decision records.

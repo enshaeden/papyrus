@@ -124,16 +124,10 @@ Current rule:
 
 This decision intentionally does not assign canonical flag-state names until the flag record schema and storage contract are formalized.
 
-## Role Expectations
+## Experience boundary reference
 
-- Reader surfaces consume only reader-safe guidance and do not expose review or authoring controls.
-- Operator surfaces handle normal read, write, import, review, and follow-up workflows.
-- Admin surfaces handle oversight, governance pressure, audit, and intervention workflows without blending in operator authoring routes.
-
-Role visibility is governed separately by:
-
-- `role-experience-visibility-matrix.md`
-- `route-separation-and-experience-boundaries.md`
+Reader, Operator, and Admin experience boundaries, visibility rules, and route groups are governed by `role-scoped-experience-architecture.md`.
+This record does not redefine role-specific UI or shell policy.
 
 ## Non-Goals
 

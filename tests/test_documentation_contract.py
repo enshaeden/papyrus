@@ -54,21 +54,40 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("not part of the role-scoped web experience contract", getting_started)
         self.assertIn("separate decision and migration", getting_started)
 
-    def test_decision_docs_lock_centered_search_and_root_entry_shim(self) -> None:
-        experience_principles = (ROOT / "decisions" / "experience-principles.md").read_text(encoding="utf-8").lower()
-        route_boundaries = (ROOT / "decisions" / "route-separation-and-experience-boundaries.md").read_text(
+    def test_canonical_decision_docs_lock_experience_architecture(self) -> None:
+        experience_architecture = (
+            ROOT / "decisions" / "role-scoped-experience-architecture.md"
+        ).read_text(encoding="utf-8").lower()
+        layout_contracts = (ROOT / "decisions" / "layout-contracts-by-role.md").read_text(encoding="utf-8").lower()
+        component_contracts = (ROOT / "decisions" / "web-ui-component-contracts.md").read_text(
             encoding="utf-8"
         ).lower()
-        layout_contracts = (ROOT / "decisions" / "layout-contracts-by-role.md").read_text(encoding="utf-8").lower()
 
-        self.assertIn("global search is shell-owned and remains centered in the top bar", experience_principles)
-        self.assertIn("pantone 7659 c", experience_principles)
-        self.assertIn("one dominant purple-family tone per component", experience_principles)
-        self.assertIn("`/`", route_boundaries)
-        self.assertIn("redirecting to `/operator`", route_boundaries)
-        self.assertIn("global search remains centered in the shell", layout_contracts)
-        self.assertIn("pantone 7658 c", layout_contracts)
-        self.assertIn("neutral surfaces dominate", layout_contracts)
+        self.assertIn("global search is shell-owned and remains centered in the top bar", experience_architecture)
+        self.assertIn("pantone 7659 c", experience_architecture)
+        self.assertIn("one dominant purple-family tone per component", experience_architecture)
+        self.assertIn("redirecting to `/operator`", experience_architecture)
+        self.assertIn("`local.operator` maps to operator", experience_architecture)
+        self.assertIn("top bar", layout_contracts)
+        self.assertIn("contextual only", layout_contracts)
+        self.assertIn("page files are assemblers only", component_contracts)
+        self.assertIn("data-component", component_contracts)
+        self.assertIn("remove duplicated navigation", component_contracts)
+
+    def test_mkdocs_nav_lists_only_canonical_decision_records(self) -> None:
+        mkdocs = (ROOT / "mkdocs.yml").read_text(encoding="utf-8").lower()
+
+        self.assertIn("role-scoped experience architecture", mkdocs)
+        self.assertIn("layout contracts by role", mkdocs)
+        self.assertIn("knowledge workflows and lifecycle", mkdocs)
+        self.assertIn("web ui component contracts", mkdocs)
+        self.assertNotIn("experience principles: decisions/experience-principles.md", mkdocs)
+        self.assertNotIn("role and visibility matrix: decisions/role-experience-visibility-matrix.md", mkdocs)
+        self.assertNotIn(
+            "route separation and experience boundaries: decisions/route-separation-and-experience-boundaries.md",
+            mkdocs,
+        )
+        self.assertNotIn("actor model to role model mapping: decisions/actor-model-to-role-model-mapping.md", mkdocs)
 
     def test_docs_describe_operator_only_api_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()

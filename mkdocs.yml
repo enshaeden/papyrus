@@ -42,9 +42,7 @@ nav:
           - Web Contract Residue Log: system-design-docs/reference/web-contract-residue-log.md
   - Governance & Decisions:
       - Overview: decisions/index.md
-      - Experience Principles: decisions/experience-principles.md
-      - Role and Visibility Matrix: decisions/role-experience-visibility-matrix.md
-      - Route Separation and Experience Boundaries: decisions/route-separation-and-experience-boundaries.md
+      - Role-Scoped Experience Architecture: decisions/role-scoped-experience-architecture.md
       - Layout Contracts by Role: decisions/layout-contracts-by-role.md
       - Knowledge Workflows and Lifecycle: decisions/knowledge-workflows-and-lifecycle.md
-      - Actor Model to Role Model Mapping: decisions/actor-model-to-role-model-mapping.md
+      - Web UI Component Contracts: decisions/web-ui-component-contracts.md

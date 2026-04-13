@@ -97,12 +97,10 @@ Papyrus must preserve strict separation between Reader, Operator, and Admin expe
 - Do not expose navigation, routes, actions, metadata panels, or search results to roles not explicitly permitted to see them.
 - Treat route separation, visibility rules, and workflow boundaries as binding architecture.
 - When touching navigation, routing, layouts, object views, or workflow actions, consult:
-  - `decisions/role-experience-visibility-matrix.md`
-  - `decisions/route-separation-and-experience-boundaries.md`
+  - `decisions/role-scoped-experience-architecture.md`
   - `decisions/layout-contracts-by-role.md`
   - `decisions/knowledge-workflows-and-lifecycle.md`
-  - `decisions/experience-principles.md`
-  - `decisions/actor-model-to-role-model-mapping.md`
+  - `decisions/web-ui-component-contracts.md`
 
 ## Product Experience Principle
 
