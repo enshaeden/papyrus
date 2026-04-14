@@ -12,14 +12,14 @@ source_type: imported
 source_system: knowledge_portal_export
 source_title: Creating <MESSAGING_PLATFORM> Apps For integration endpoints (and deprecating directly using
   integration endpoints in channels)
-team: Identity and Access
+team: IT Operations
 systems: []
 tags: []
 created: '2025-10-22'
 updated: '2025-10-22'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 related_services:
 - Collaboration
 prerequisites:

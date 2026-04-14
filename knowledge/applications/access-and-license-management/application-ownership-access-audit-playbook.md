@@ -11,7 +11,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Application Ownership & Access Audit Playbook
-team: Identity and Access
+team: IT Operations
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 tags:
@@ -21,7 +21,7 @@ created: '2025-11-17'
 updated: '2025-11-28'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 related_services:
 - Access Management
 prerequisites:

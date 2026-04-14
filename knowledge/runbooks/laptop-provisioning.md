@@ -11,7 +11,7 @@ owner: it_operations
 source_type: native
 source_system: repository
 source_title: Laptop Provisioning
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 - <ENDPOINT_MANAGEMENT_PLATFORM>

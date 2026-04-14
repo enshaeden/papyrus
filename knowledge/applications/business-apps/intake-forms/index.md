@@ -10,14 +10,14 @@ owner: it_operations
 source_type: derived
 source_system: knowledge_portal
 source_title: Applications / Business Apps / Intake Forms
-team: Identity and Access
+team: IT Operations
 systems: []
 tags: []
 created: '2026-04-07'
 updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 service_name: Applications / Business Apps / Intake Forms
 service_criticality: not_classified
 dependencies: []

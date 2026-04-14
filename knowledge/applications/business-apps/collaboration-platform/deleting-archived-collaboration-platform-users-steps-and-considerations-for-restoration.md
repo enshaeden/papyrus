@@ -11,7 +11,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: 'Deleting Archived <COLLABORATION_PLATFORM> Users: Steps and Considerations for Restoration'
-team: Identity and Access
+team: IT Operations
 systems:
 - <COLLABORATION_PLATFORM>
 tags:
@@ -20,7 +20,7 @@ created: '2026-02-25'
 updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 related_services:
 - Access Management
 prerequisites:

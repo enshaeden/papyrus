@@ -11,7 +11,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Contractor to FTE
-team: Identity and Access
+team: IT Operations
 systems:
 - <HR_SYSTEM>
 - <IDENTITY_PROVIDER>
@@ -23,7 +23,7 @@ created: '2025-10-15'
 updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
-audience: identity_admins
+audience: it_ops
 related_services:
 - Identity
 - Onboarding

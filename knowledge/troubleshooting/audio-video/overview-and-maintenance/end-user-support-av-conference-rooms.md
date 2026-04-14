@@ -12,7 +12,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: "End User Support \u2013 AV Conference Rooms"
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <VIDEO_CONFERENCING_PLATFORM>
 tags:

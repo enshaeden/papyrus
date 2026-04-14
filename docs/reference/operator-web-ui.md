@@ -101,6 +101,12 @@ Tests should assert those hooks plus structured contract payload behavior instea
 ## Component Token Mapping
 
 - Design tokens live in `src/papyrus/interfaces/web/static/css/tokens.css`.
+- Typography:
+  - proportional UI text uses `--font-sans` across Reader, Operator, and Admin surfaces
+  - `--font-sans` is system-first: `"Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif`
+  - `--font-serif` remains only as a compatibility alias to `--font-sans`; new UI CSS should not use it as a distinct visual contract
+  - code and source surfaces remain on `--font-mono`
+  - Papyrus does not bundle licensed Avenir webfont assets or define `@font-face`
 - Primary button:
   - `--color-accent-primary`
   - `--color-accent-primary-hover`

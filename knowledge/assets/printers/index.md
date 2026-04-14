@@ -10,13 +10,12 @@ owner: it_operations
 source_type: derived
 source_system: knowledge_portal
 source_title: Assets / Printers
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 - <PRINTER_MANAGEMENT_PLATFORM>
 tags:
 - endpoint
-- printer
 created: '2026-04-07'
 updated: '2026-04-07'
 last_reviewed: '2026-04-07'
@@ -75,7 +74,6 @@ replaced_by: null
 retirement_reason: null
 services:
 - Endpoint Provisioning
-- Printing
 related_articles:
 - kb-assets-printers-overview-region-a-office-printers
 - kb-assets-printers-overview-office-site-b-office-printer

@@ -10,7 +10,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Application Catalog App Owner Review Process
-team: Identity and Access
+team: IT Operations
 systems:
 - <APPLICATION_CATALOG>
 - <ASSET_MANAGEMENT_SYSTEM>
@@ -22,7 +22,7 @@ created: '2025-11-06'
 updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 related_services:
 - Access Management
 prerequisites:

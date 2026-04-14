@@ -10,7 +10,7 @@ owner: it_operations
 source_type: derived
 source_system: knowledge_portal
 source_title: Asset Management Overview
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 tags:

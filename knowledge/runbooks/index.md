@@ -10,7 +10,7 @@ owner: it_operations
 source_type: derived
 source_system: knowledge_portal
 source_title: Laptop Provisioning Runbook
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <ENDPOINT_ENROLLMENT_PORTAL>
 tags:

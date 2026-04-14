@@ -10,7 +10,7 @@ owner: it_operations
 source_type: derived
 source_system: knowledge_portal
 source_title: User Lifecycle / Onboarding New Hires
-team: Identity and Access
+team: IT Operations
 systems:
 - <HR_SYSTEM>
 tags:
@@ -20,7 +20,7 @@ created: '2026-04-07'
 updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
-audience: identity_admins
+audience: it_ops
 service_name: Onboarding
 service_criticality: not_classified
 dependencies:

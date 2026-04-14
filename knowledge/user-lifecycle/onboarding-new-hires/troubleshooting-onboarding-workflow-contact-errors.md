@@ -10,7 +10,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Troubleshooting <HR_SYSTEM> To <ONBOARDING_WORKFLOW> Contact Errors
-team: Identity and Access
+team: IT Operations
 systems:
 - <HR_SYSTEM>
 tags:
@@ -21,7 +21,7 @@ created: '2025-09-19'
 updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
-audience: identity_admins
+audience: it_ops
 related_services:
 - Onboarding
 symptoms:

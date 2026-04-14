@@ -12,7 +12,7 @@ source_type: imported
 source_system: knowledge_portal_export
 source_title: '<PRODUCTIVITY_PLATFORM> licensing: core productivity tier, mailbox tier, and messaging
   tier'
-team: Identity and Access
+team: IT Operations
 systems:
 - <COLLABORATION_PLATFORM>
 tags: []
@@ -20,7 +20,7 @@ created: '2025-10-24'
 updated: '2025-11-25'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 related_services: []
 prerequisites:
 - Verify the request, identity details, and required approvals before changing access or account state.

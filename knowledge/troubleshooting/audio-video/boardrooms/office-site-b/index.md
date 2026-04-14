@@ -11,7 +11,7 @@ owner: it_operations
 source_type: derived
 source_system: knowledge_portal
 source_title: Troubleshooting / Audio and Video / Boardrooms / <OFFICE_SITE_B>
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <VIDEO_CONFERENCING_PLATFORM>
 tags:

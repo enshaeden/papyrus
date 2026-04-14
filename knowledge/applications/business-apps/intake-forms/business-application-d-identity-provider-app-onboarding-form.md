@@ -11,7 +11,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: <BUSINESS_APPLICATION_D> <IDENTITY_PROVIDER> App Onboarding Form
-team: Identity and Access
+team: IT Operations
 systems:
 - <HR_SYSTEM>
 - <IDENTITY_PROVIDER>
@@ -23,7 +23,7 @@ created: '2025-10-27'
 updated: '2025-10-27'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 service_name: <BUSINESS_APPLICATION_D> <IDENTITY_PROVIDER> App Onboarding Form
 service_criticality: not_classified
 dependencies:

@@ -12,7 +12,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Automated Offboarding processes
-team: Identity and Access
+team: IT Operations
 systems:
 - <HR_SYSTEM>
 tags:
@@ -21,7 +21,7 @@ created: '2026-02-17'
 updated: '2026-02-18'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
-audience: identity_admins
+audience: it_ops
 related_services:
 - Offboarding
 prerequisites:

@@ -36,9 +36,11 @@
 
 .article-section h2 {
   margin: 0;
-  font-family: var(--font-serif);
-  font-size: clamp(1.45rem, 2.3vw, 1.95rem);
-  line-height: 1.06;
+  font-family: var(--font-sans);
+  font-size: clamp(1.3rem, 2vw, 1.65rem);
+  font-weight: 700;
+  line-height: 1.14;
+  letter-spacing: -0.014em;
   overflow-wrap: anywhere;
 }
 

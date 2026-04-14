@@ -12,7 +12,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: IT Guide for Gardening Leave
-team: Identity and Access
+team: IT Operations
 systems:
 - <HR_SYSTEM>
 - <VIDEO_CONFERENCING_PLATFORM>
@@ -23,7 +23,7 @@ created: '2025-10-22'
 updated: '2025-10-28'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
-audience: identity_admins
+audience: it_ops
 related_services:
 - Collaboration
 - Offboarding

@@ -105,9 +105,11 @@
 
 .home-launch-block__head h2 {
   margin: 0;
-  font-family: var(--font-serif);
-  font-size: 1.38rem;
-  line-height: 1.03;
+  font-family: var(--font-sans);
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.014em;
   overflow-wrap: anywhere;
 }
 
@@ -280,7 +282,6 @@
 
 .home-activity-block__head h2 {
   margin: 0;
-  font-family: var(--font-serif);
   font-size: 1.3rem;
   overflow-wrap: anywhere;
 }

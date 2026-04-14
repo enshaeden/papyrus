@@ -12,7 +12,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: <BUSINESS_APPLICATION_A> - Overview & Access Guide
-team: Identity and Access
+team: IT Operations
 systems: []
 tags:
 - account
@@ -21,7 +21,7 @@ created: '2025-08-14'
 updated: '2025-08-20'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 service_name: Access Management
 service_criticality: not_classified
 dependencies: []

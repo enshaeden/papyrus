@@ -11,7 +11,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: <PASSWORD_MANAGER> Invitation
-team: Identity and Access
+team: IT Operations
 systems:
 - <IDENTITY_PROVIDER>
 tags:
@@ -22,7 +22,7 @@ created: '2025-12-02'
 updated: '2026-03-05'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 related_services:
 - Identity
 prerequisites:
