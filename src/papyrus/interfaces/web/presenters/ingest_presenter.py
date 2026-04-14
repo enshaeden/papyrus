@@ -146,6 +146,53 @@ def render_ingest_list(
     )
 
 
+def render_ingest_journey_overview(*, allow_web_ingest_local_paths: bool) -> str:
+    local_source_line = (
+        "or use an allowlisted absolute local path on this machine"
+        if allow_web_ingest_local_paths
+        else "through the browser upload path"
+    )
+    steps = [
+        (
+            "1. Bring in source",
+            f"Upload Markdown, DOCX, or a text-based PDF {local_source_line}.",
+        ),
+        (
+            "2. Check extraction",
+            "Inspect parser warnings, extraction quality, and the parsed structure before trusting the shape of the content.",
+        ),
+        (
+            "3. Review mapping",
+            "See which blueprint sections mapped cleanly, which ones are weak, and what content still has no governed home.",
+        ),
+        (
+            "4. Create draft",
+            "Convert only after the mapping reads truthfully and the draft target is clear.",
+        ),
+        (
+            "5. Continue in write and review",
+            "The converted result becomes the same governed draft used by native authoring and later review.",
+        ),
+    ]
+    return (
+        '<section class="ingest-orchestration" data-component="ingest-orchestration" data-surface="ingest">'
+        '<p class="ingest-orchestration__kicker">Import walkthrough</p>'
+        "<h2>See the transformation before you commit to it</h2>"
+        "<p>Import is a governed transformation flow, not a blind file upload. Each step shows what Papyrus extracted, what it could map, and what still needs operator judgment.</p>"
+        '<ol class="ingest-orchestration__list">'
+        + join_html(
+            [
+                '<li class="ingest-orchestration__item">'
+                f'<p class="ingest-orchestration__title">{escape(title)}</p>'
+                f'<p class="ingest-orchestration__detail">{escape(detail)}</p>'
+                "</li>"
+                for title, detail in steps
+            ]
+        )
+        + "</ol></section>"
+    )
+
+
 INGEST_STAGES = ("upload", "parse", "classify", "map", "review", "convert")
 
 
@@ -220,11 +267,31 @@ def render_ingest_progress(
     )
 
 
-def _stage_card(*, title: str, tone: str, body_lines: list[str]) -> str:
+def _stage_card(
+    *,
+    title: str,
+    tone: str,
+    state: str,
+    body_lines: list[str],
+    href: str | None = None,
+    action_label: str = "Open",
+) -> str:
     return (
-        f'<article class="ingest-stage-board__card tone-{escape(tone)}" data-component="ingest-stage-card" data-surface="ingest-detail">'
+        f'<article class="ingest-stage-board__card tone-{escape(tone)} state-{escape(state)}" data-component="ingest-stage-card" data-surface="ingest-detail">'
+        '<div class="ingest-stage-board__card-head">'
         f"<h3>{escape(title)}</h3>"
+        f'<p class="ingest-stage-board__state">{escape(state.replace("_", " "))}</p>'
+        "</div>"
         + join_html([f"<p>{line}</p>" for line in body_lines])
+        + (
+            link(
+                action_label,
+                href,
+                css_class="button button-ghost ingest-stage-board__link",
+            )
+            if href
+            else ""
+        )
         + "</article>"
     )
 
@@ -236,51 +303,82 @@ def render_ingest_stage_board(*, detail: dict[str, object]) -> str:
     mapping_generated = has_mapping_result(mapping)
     extraction_quality = normalized.get("extraction_quality") or {}
     parser_warnings = normalized.get("parser_warnings") or []
+    ingestion_id = str(detail["ingestion_id"])
+    detail_href = import_detail_url(ingestion_id)
+    review_href = import_review_url(ingestion_id)
+    converted_href = (
+        write_object_url(
+            str(detail["converted_object_id"]),
+            revision_id=str(detail["converted_revision_id"]),
+        )
+        if detail.get("converted_object_id") and detail.get("converted_revision_id")
+        else ""
+    )
     parse_tone = (
         "warning"
         if str(extraction_quality.get("state") or "") == "degraded" or parser_warnings
         else "approved"
     )
+    current_stage = _current_stage(detail)
+    completed_stages = _completed_stages(detail)
+    draft_created = bool(detail.get("converted_revision_id"))
+    draft_state = (
+        "complete" if draft_created else "current" if current_stage == "review" else "upcoming"
+    )
+    mapping_lines = [
+        "<strong>Suggested content type:</strong> "
+        + escape(
+            _blueprint_target_label(classification.get("blueprint_id"), include_scope_note=True)
+        ),
+        f"<strong>Confidence:</strong> {escape(classification.get('confidence') or 0.0)}",
+    ]
+    advanced_notice = _advanced_blueprint_notice(classification.get("blueprint_id"))
+    if advanced_notice:
+        mapping_lines.append(escape(advanced_notice))
+    if mapping_generated:
+        mapping_lines.extend(
+            [
+                f"<strong>Missing required sections:</strong> {escape(len(mapping.get('missing_sections', [])))}",
+                f"<strong>Low-confidence mappings:</strong> {escape(len(mapping.get('low_confidence', [])))}",
+                f"<strong>Mapping conflicts:</strong> {escape(len(mapping.get('conflicts', [])))}",
+                f"<strong>Unmapped content blocks:</strong> {escape(len(mapping.get('unmapped_content', [])))}",
+            ]
+        )
+    else:
+        mapping_lines.append("Open mapping review to generate section matches and inspect gaps.")
     cards = [
         _stage_card(
-            title="Upload",
+            title="1. Bring in source",
             tone="approved",
+            state="complete",
             body_lines=[
                 f"<strong>File:</strong> {escape(detail['filename'])}",
                 f"<strong>Media type:</strong> {escape(detail['media_type'])}",
             ],
+            href=detail_href,
+            action_label="Open import",
         ),
         _stage_card(
-            title="Parse",
+            title="2. Check extraction",
             tone=parse_tone,
+            state=(
+                "current"
+                if current_stage in {"parse", "classify"}
+                else "complete"
+                if "parse" in completed_stages
+                else "upcoming"
+            ),
             body_lines=[
                 f"<strong>Parser:</strong> {escape(detail['parser_name'])}",
-                f"<strong>Headings:</strong> {escape(len(normalized.get('headings', [])))}",
-                f"<strong>Paragraphs:</strong> {escape(len(normalized.get('paragraphs', [])))}",
                 f"<strong>Extraction quality:</strong> {escape(extraction_quality.get('state') or 'unknown')}",
                 f"<strong>Parser warnings:</strong> {escape(len(parser_warnings))}",
+                f"<strong>Detected structure:</strong> {escape(len(normalized.get('headings', [])))} headings and {escape(len(normalized.get('paragraphs', [])))} paragraphs",
             ],
+            href=detail_href,
+            action_label="Inspect extraction",
         ),
         _stage_card(
-            title="Classify",
-            tone="approved",
-            body_lines=[
-                "<strong>Suggested content type:</strong> "
-                + escape(
-                    _blueprint_target_label(
-                        classification.get("blueprint_id"), include_scope_note=True
-                    )
-                ),
-                f"<strong>Confidence:</strong> {escape(classification.get('confidence') or 0.0)}",
-                (
-                    f"<strong>Authoring path:</strong> {escape(_advanced_blueprint_notice(classification.get('blueprint_id')))}"
-                    if _advanced_blueprint_notice(classification.get("blueprint_id"))
-                    else "<strong>Authoring path:</strong> Primary template set"
-                ),
-            ],
-        ),
-        _stage_card(
-            title="Map",
+            title="3. Review mapping",
             tone=(
                 "warning"
                 if mapping_generated
@@ -293,25 +391,63 @@ def render_ingest_stage_board(*, detail: dict[str, object]) -> str:
                 if mapping_generated
                 else "default"
             ),
+            state=(
+                "current"
+                if current_stage in {"map", "review"}
+                else "complete"
+                if "map" in completed_stages
+                else "upcoming"
+            ),
+            body_lines=mapping_lines,
+            href=review_href,
+            action_label="Review mapping",
+        ),
+        _stage_card(
+            title="4. Create draft",
+            tone="brand" if not draft_created else "approved",
+            state=draft_state,
             body_lines=(
                 [
-                    f"<strong>Missing required sections:</strong> {escape(len(mapping.get('missing_sections', [])))}",
-                    f"<strong>Low-confidence mappings:</strong> {escape(len(mapping.get('low_confidence', [])))}",
-                    f"<strong>Mapping conflicts:</strong> {escape(len(mapping.get('conflicts', [])))}",
-                    f"<strong>Unmapped content blocks:</strong> {escape(len(mapping.get('unmapped_content', [])))}",
+                    "<strong>Status:</strong> Draft created from this import.",
+                    f"<strong>Draft object:</strong> {escape(detail.get('converted_object_id') or 'Created draft')}",
                 ]
-                if mapping_generated
+                if draft_created
                 else [
-                    "Mapping has not been generated yet.",
-                    "Review the mapping to generate section matches and inspect gaps.",
+                    "Convert only after the extraction and mapping read truthfully.",
+                    "The resulting draft will enter the same governed write flow used by native authoring.",
                 ]
             ),
+            href=converted_href
+            or (
+                f"{review_href}#convert-to-draft-form" if draft_state == "current" else review_href
+            ),
+            action_label="Open draft"
+            if converted_href
+            else "Create draft"
+            if draft_state == "current"
+            else "Prepare draft",
+        ),
+        _stage_card(
+            title="5. Continue in write and review",
+            tone="approved" if draft_created else "default",
+            state="complete" if draft_created else "upcoming",
+            body_lines=(
+                [
+                    "Continue guided drafting, validate the draft, and route it into review when it is ready.",
+                ]
+                if draft_created
+                else [
+                    "This step unlocks after draft creation and keeps imported content on the same governed lifecycle as native authoring.",
+                ]
+            ),
+            href=converted_href or None,
+            action_label="Continue drafting",
         ),
     ]
     return (
         '<section class="ingest-stage-board" data-component="ingest-stage-board" data-surface="ingest-detail">'
-        '<p class="ingest-stage-board__kicker">Import</p>'
-        "<h2>Stage summary</h2>"
+        '<p class="ingest-stage-board__kicker">Import walkthrough</p>'
+        "<h2>Move from source file to governed draft</h2>"
         '<div class="ingest-stage-board__grid">' + join_html(cards) + "</div></section>"
     )
 
@@ -509,13 +645,9 @@ def render_ingest_convert_form(
     )
     slug = slugify(str(detail["normalized_content"].get("title") or detail["filename"]))
     target_blueprint_id = str(
-        detail.get("blueprint_id")
-        or (detail.get("classification") or {}).get("blueprint_id")
-        or ""
+        detail.get("blueprint_id") or (detail.get("classification") or {}).get("blueprint_id") or ""
     )
-    target_blueprint_label = _blueprint_target_label(
-        target_blueprint_id, include_scope_note=True
-    )
+    target_blueprint_label = _blueprint_target_label(target_blueprint_id, include_scope_note=True)
     target_notice = _advanced_blueprint_notice(target_blueprint_id)
     return (
         '<section class="ingest-convert-form" data-component="ingest-convert-form" data-surface="ingest-review">'
@@ -640,7 +772,6 @@ def _ingest_aside_html(
                 actions=workflow_actions(detail.get("workflow_projection")),
                 href_resolver=lambda action: _ingestion_action_href(detail=detail, action=action),
             ),
-            render_ingest_parser_assessment(detail=detail, surface=surface),
         ]
     )
 
@@ -659,11 +790,14 @@ def present_ingest_list_page(
         "page_title": "Import",
         "page_header": {
             "headline": "Import",
-            "show_actor_links": True,
+            "intro": "Bring external source material into Papyrus, inspect what the parser extracted, review how it maps, then convert it into the normal governed draft flow.",
         },
         "active_nav": "import",
         "aside_html": "",
         "page_context": {
+            "journey_html": render_ingest_journey_overview(
+                allow_web_ingest_local_paths=allow_web_ingest_local_paths
+            ),
             "upload_html": render_ingest_upload(
                 components=components,
                 forms=forms,
@@ -689,7 +823,7 @@ def present_ingestion_detail_page(
         "page_title": f"Ingestion {detail['filename']}",
         "page_header": {
             "headline": detail["filename"],
-            "show_actor_links": True,
+            "intro": "Check what Papyrus extracted from the source before you trust the mapping or create a draft.",
         },
         "active_nav": "import",
         "aside_html": _ingest_aside_html(components, detail=detail, surface="ingest-detail"),
@@ -698,6 +832,9 @@ def present_ingestion_detail_page(
                 renderer, detail=detail, surface="ingest-detail"
             ),
             "stage_html": render_ingest_stage_board(detail=detail),
+            "assessment_html": render_ingest_parser_assessment(
+                detail=detail, surface="ingest-detail"
+            ),
             "detail_html": render_ingest_parsed_content(
                 normalized=detail["normalized_content"], surface="ingest-detail"
             ),
@@ -721,13 +858,17 @@ def present_mapping_review_page(
         "page_title": f"Review mapping for {detail['filename']}",
         "page_header": {
             "headline": f"Review mapping for {detail['filename']}",
-            "show_actor_links": True,
+            "intro": "Confirm the extracted structure, inspect the mapped sections and gaps, then create a draft only when the transformation is readable and traceable.",
         },
         "active_nav": "import",
         "aside_html": _ingest_aside_html(components, detail=detail, surface="ingest-review"),
         "page_context": {
             "progress_html": render_ingest_progress(
                 renderer, detail=detail, surface="ingest-review"
+            ),
+            "stage_html": render_ingest_stage_board(detail=detail),
+            "assessment_html": render_ingest_parser_assessment(
+                detail=detail, surface="ingest-review"
             ),
             "mapping_html": render_ingest_mapping_table(components=components, mapping=mapping),
             "gaps_html": render_ingest_mapping_gaps(mapping=mapping),

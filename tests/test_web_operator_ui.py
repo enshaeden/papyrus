@@ -906,7 +906,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, reader_body = call_wsgi(application, "/reader/browse")
             self.assertEqual(status, "200 OK")
-            self.assertIn("<title>Content | Papyrus</title>", reader_body)
+            self.assertIn("<title>Read | Papyrus</title>", reader_body)
             self.assertIn('data-role="reader"', reader_body)
             self.assertIn("Reader", reader_body)
             self.assertIn('href="/reader/browse"', reader_body)
@@ -918,12 +918,14 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, operator_body = call_wsgi(application, "/operator/read")
             self.assertEqual(status, "200 OK")
-            self.assertIn("<title>Content | Papyrus</title>", operator_body)
+            self.assertIn("<title>Read | Papyrus</title>", operator_body)
             self.assertIn('data-role="operator"', operator_body)
             self.assertIn("Operator", operator_body)
             self.assertIn('href="/operator/write/new"', operator_body)
             self.assertIn('href="/operator/review"', operator_body)
             self.assertIn('href="/operator/import"', operator_body)
+            self.assertIn('href="/operator/review/governance"', operator_body)
+            self.assertIn('href="/operator/review/activity"', operator_body)
             self.assertNotIn('href="/admin/review"', operator_body)
             self.assertNotIn("/actor/select", operator_body)
             self.assertNotIn("papyrus_actor", operator_body)
@@ -1049,7 +1051,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 'class="topbar-menu-chip is-active topbar-menu-role">Operator</span>', body
             )
             self.assertIn(
-                'class="sidebar-link is-active" href="/operator/write/new">Authoring</a>', body
+                'class="sidebar-link is-active" href="/operator/write/new">Write</a>', body
             )
             self.assert_component(body, "progress-strip")
             self.assertNotIn('class="write-stage-label"', body)

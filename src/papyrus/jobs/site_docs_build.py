@@ -373,7 +373,8 @@ def visible_blueprint_type_order(articles: list) -> list[str]:
     present_types = {
         primary_object_type(article)
         for article in articles
-        if str(primary_object_type(article) or "").strip() and primary_object_type(article) != "unknown"
+        if str(primary_object_type(article) or "").strip()
+        and primary_object_type(article) != "unknown"
     }
     return ordered_blueprint_ids(primary_types | present_types)
 

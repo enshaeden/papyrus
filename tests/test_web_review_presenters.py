@@ -44,7 +44,9 @@ class ReviewPresenterTests(SemanticHookAssertions, unittest.TestCase):
             items=[QUEUE_ITEM],
             active_object_id="kb-review",
             active_revision_id="kb-review-r1",
-            action_html_resolver=lambda item: f'<a href="/operator/read/object/{item["object_id"]}">Open</a>',
+            action_html_resolver=lambda item: (
+                f'<a href="/operator/read/object/{item["object_id"]}">Open</a>'
+            ),
         )
 
         self.assert_component(lane_html, "review-lane")

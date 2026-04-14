@@ -47,3 +47,9 @@ class HomeActivityBlockPresenterTests(SemanticHookAssertions, unittest.TestCase)
         )
 
         self.assertEqual(html, "")
+
+    def test_home_activity_block_keeps_empty_summary_for_operator_without_events(self) -> None:
+        html = render_home_activity_block(dashboard={"role": "operator", "events": []})
+
+        self.assert_component(html, "home-activity-block")
+        self.assertIn("No consequential changes are active right now.", html)

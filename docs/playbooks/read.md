@@ -1,4 +1,4 @@
-# Content Playbook
+# Read Playbook
 
 Use this playbook when you need dependable content, need to know whether it is safe to rely on, and need a clear next step if it is not.
 
@@ -34,11 +34,11 @@ python3 scripts/serve_api.py
 ```
 
 - Web operator home route: `/operator`
-- Web content route: `/operator/read`
+- Web read route: `/operator/read`
 - Web oversight route: `/operator/review/governance`
 - API queue route: `/queue`
 
-Use search when you know the topic. Use the home page, content workspace, service map, or oversight board when you need to browse by role, service context, or operational posture.
+Use search when you know the topic. Use the home page, read workspace, service map, or health board when you need to browse by role, service context, or operational posture.
 
 Use the operator CLI when you need parity checks without opening the browser:
 

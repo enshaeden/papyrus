@@ -11,11 +11,19 @@ from papyrus.interfaces.web.rendering import TemplateRenderer
 
 def present_home_page(renderer: TemplateRenderer, *, dashboard: dict[str, Any]) -> dict[str, Any]:
     del renderer
+    role = str(dashboard.get("role") or "")
     return {
         "page_template": "pages/home.html",
-        "page_title": "Overview" if str(dashboard.get("role") or "") == "admin" else "Home",
+        "page_title": "Overview" if role == "admin" else "Home",
         "page_surface": "home",
-        "page_header": {},
+        "page_header": {
+            "headline": "Overview" if role == "admin" else "Home",
+            "intro": (
+                "Start with the boards that unblock review and approval work first."
+                if role == "admin"
+                else "Start from dependable guidance, then branch into drafting, review, or follow-up only when the content tells you to."
+            ),
+        },
         "active_nav": "home",
         "aside_html": "",
         "page_context": {

@@ -9,3 +9,5 @@ values:
     description: Governed operational procedure.
   - name: known_error
     description: Diagnosed failure pattern with checks and mitigations.
+  - name: service_record
+    description: Governed service reference with support entry points and dependency context.

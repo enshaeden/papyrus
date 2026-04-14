@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from papyrus.application.role_visibility import READER_ROLE
+from papyrus.application.role_visibility import OPERATOR_ROLE, READER_ROLE
 from papyrus.interfaces.web.experience import ExperienceContext
 
 
@@ -86,10 +86,33 @@ def _governance_context(
     if experience.role == READER_ROLE:
         return {
             "section_id": "governance",
-            "title": "Governance summary",
-            "eyebrow": "Status",
+            "title": "About this guidance",
+            "eyebrow": "Context",
             "blocks": [
                 _paragraph_block(use_guidance.get("summary")),
+                _facts_block(
+                    [
+                        ("Last reviewed", item.get("last_reviewed")),
+                        ("Review cadence", item.get("review_cadence")),
+                        ("Owner", item.get("owner")),
+                        ("Team", item.get("team")),
+                        (
+                            "Lifecycle",
+                            state.get("object_lifecycle_state")
+                            or item.get("object_lifecycle_state"),
+                        ),
+                    ]
+                ),
+            ],
+        }
+    if experience.role == OPERATOR_ROLE:
+        return {
+            "section_id": "governance",
+            "title": "Use and review context",
+            "eyebrow": "Context",
+            "blocks": [
+                _paragraph_block(use_guidance.get("summary"), title="Use now"),
+                _paragraph_block(use_guidance.get("detail"), title="Guardrail"),
                 _facts_block(
                     [
                         (
@@ -97,10 +120,16 @@ def _governance_context(
                             state.get("object_lifecycle_state")
                             or item.get("object_lifecycle_state"),
                         ),
-                        ("Owner", item.get("owner")),
-                        ("Team", item.get("team")),
+                        (
+                            "Review",
+                            state.get("revision_review_state") or item.get("revision_review_state"),
+                        ),
+                        ("Trust", state.get("trust_state") or item.get("trust_state")),
                         ("Last reviewed", item.get("last_reviewed")),
                         ("Review cadence", item.get("review_cadence")),
+                        ("Evidence posture", evidence_status.get("summary")),
+                        ("Owner", item.get("owner")),
+                        ("Team", item.get("team")),
                     ]
                 ),
             ],

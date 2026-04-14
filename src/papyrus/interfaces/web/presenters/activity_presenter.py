@@ -131,8 +131,8 @@ def present_audit_page(
     is_admin = role == "admin"
     return _page_definition(
         page_template="pages/manage_audit.html",
-        page_title="Audit" if is_admin else "History",
-        headline="Audit" if is_admin else "History",
+        page_title="Audit" if is_admin else "Activity",
+        headline="Audit" if is_admin else "Activity",
         active_nav="activity",
         show_actor_links=False,
         page_context={

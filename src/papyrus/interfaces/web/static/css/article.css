@@ -16,6 +16,13 @@
 .article-flow {
   display: grid;
   gap: 1rem;
+  min-width: 0;
+}
+
+.article-appendix {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
 }
 
 .article-section {
@@ -89,6 +96,15 @@
   border-radius: 1.2rem;
   background: var(--color-panel-governance-bg);
   box-shadow: var(--shadow-panel);
+}
+
+.article-appendix .article-context-panel {
+  padding: 0.9rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--color-border-default);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .article-context-panel__source summary {
