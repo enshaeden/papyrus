@@ -36,9 +36,6 @@ def render_home_activity_block(*, dashboard: dict[str, Any]) -> str:
                         f'<p class="home-activity-block__title">{escape(event["what_happened"])}</p>'
                         f'<p class="home-activity-block__detail">{escape(event["next_action"])}</p>'
                         "</div>"
-                        '<div class="home-activity-block__meta">'
-                        f"{link('Open', activity_url(role), css_class='button button-ghost', attrs={'data-action-id': 'open-activity'})}"
-                        "</div>"
                         "</li>"
                     )
                     for event in events
@@ -61,17 +58,24 @@ def render_home_activity_block(*, dashboard: dict[str, Any]) -> str:
             '<p class="home-activity-block__title">Activity feed</p>'
             '<p class="home-activity-block__detail">Open the full activity surface for recent decisions, validations, and source-sync events.</p>'
             "</div>"
-            '<div class="home-activity-block__meta">'
-            f"{link('Open', activity_url(role), css_class='button button-ghost', attrs={'data-action-id': 'open-activity'})}"
-            "</div>"
             "</li></ul>"
         )
 
     return (
         '<section class="home-activity-block" data-component="home-activity-block" data-surface="home">'
         '<div class="home-activity-block__head">'
+        '<div class="home-activity-block__head-copy">'
         "<h2>Activity summary</h2>"
-        "<p>Only recent changes that materially affect today’s next move stay on the landing view.</p>"
+        "<p>Only changes that materially alter today’s next move stay on Home.</p>"
         "</div>"
-        f"{signal_html}" + list_html + "</section>"
+        + link(
+            "Open activity",
+            activity_url(role),
+            css_class="button button-ghost home-activity-block__action",
+            attrs={"data-action-id": "open-activity"},
+        )
+        + "</div>"
+        + signal_html
+        + list_html
+        + "</section>"
     )

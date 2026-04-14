@@ -58,6 +58,7 @@ def render_activity_filter_bar(*, role: str, object_id: str | None, selected_gro
 def render_activity_audit_log(*, events: list[dict[str, object]]) -> str:
     return (
         '<section class="activity-audit-log" data-component="activity-audit-log" data-surface="activity">'
+        '<p class="activity-log__kicker">Audit</p>'
         "<h2>Audit log</h2>"
         '<div class="activity-audit-log__list">'
         + join_html(
@@ -100,6 +101,7 @@ def render_activity_event_list(*, structured_events: list[dict[str, object]]) ->
 def render_activity_validation_log(*, validation_runs: list[dict[str, object]]) -> str:
     return (
         '<section class="activity-validation-log" data-component="activity-validation-log" data-surface="activity">'
+        '<p class="activity-log__kicker">Validation</p>'
         "<h2>Validation runs</h2>"
         '<div class="activity-validation-log__list">'
         + join_html(

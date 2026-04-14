@@ -126,8 +126,8 @@ OPERATOR_EXPERIENCE = ExperienceContext(
     audit_actor_id="local.operator",
     nav_sections=(
         ShellSection(
-            title="Launchpad",
-            description="Start from the role-shaped landing view, then branch into one of the four core modes.",
+            title="Core modes",
+            description="Read dependable guidance first, then move into writing, import, or review only when the work truly branches.",
             items=(
                 ShellLink("home", "Home", "/operator", match_prefixes=()),
                 ShellLink("read", "Read", "/operator/read", match_prefixes=("/operator/read",)),
@@ -146,8 +146,8 @@ OPERATOR_EXPERIENCE = ExperienceContext(
             ),
         ),
         ShellSection(
-            title="Supporting context",
-            description="Open broader portfolio surfaces only when the current read, write, import, or review task needs them.",
+            title="Context",
+            description="Open broader portfolio context only when the active mode needs a wider health, service, or activity view.",
             items=(
                 ShellLink(
                     "oversight",

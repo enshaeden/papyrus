@@ -47,6 +47,7 @@ def render_service_map(*, role: str, services: list[dict[str, Any]]) -> str:
 def render_service_pressure(*, posture: dict[str, object]) -> str:
     return (
         '<section class="service-pressure" data-component="service-pressure" data-surface="services">'
+        '<p class="service-pressure__kicker">Service posture</p>'
         "<h2>Service pressure</h2>"
         '<div class="service-pressure__grid">'
         f'<article><p class="service-pressure__metric">{escape(posture["linked_object_count"])}</p><p>Linked guidance items</p></article>'
@@ -61,6 +62,7 @@ def render_service_path(*, role: str, linked_objects: list[dict[str, Any]]) -> s
         return '<section class="service-path-empty" data-component="service-path-empty" data-surface="services"><h2>Linked guidance path</h2><p>No guidance is linked to this service yet.</p></section>'
     return (
         '<section class="service-path" data-component="service-path" data-surface="services">'
+        '<p class="service-path__kicker">Guidance path</p>'
         "<h2>Linked guidance path</h2>"
         '<div class="service-path__list">'
         + join_html(

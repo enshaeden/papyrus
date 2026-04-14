@@ -138,6 +138,7 @@ def _governed_context_html(
 def render_review_cleanup_strip(*, cleanup_counts: dict[str, object]) -> str:
     return (
         '<section class="review-cleanup-strip" data-component="review-cleanup-strip" data-surface="review">'
+        '<p class="review-cleanup-strip__label">Cleanup debt</p>'
         f"<span>Placeholder-heavy {escape(cleanup_counts.get('placeholder-heavy', 0))}</span>"
         f"<span>Legacy fallback {escape(cleanup_counts.get('legacy-blueprint-fallback', 0))}</span>"
         f"<span>Ownership gaps {escape(cleanup_counts.get('unclear-ownership', 0))}</span>"
@@ -159,7 +160,11 @@ def render_review_lane(
     if not items:
         return (
             '<section class="review-lane" data-component="review-lane" data-surface="review">'
-            f'<h2>{escape(title)}</h2><p class="review-lane-empty">No items in this lane.</p></section>'
+            '<div class="review-lane__head">'
+            f"<h2>{escape(title)}</h2>"
+            '<p class="review-lane__count">0 items</p>'
+            "</div>"
+            '<p class="review-lane-empty">No items in this lane.</p></section>'
         )
     rows = []
     for item in items:
@@ -180,7 +185,10 @@ def render_review_lane(
         )
     return (
         '<section class="review-lane" data-component="review-lane" data-surface="review">'
-        f"<h2>{escape(title)}</h2>"
+        '<div class="review-lane__head">'
+        + f"<h2>{escape(title)}</h2>"
+        + f'<p class="review-lane__count">{escape(len(items))} {"item" if len(items) == 1 else "items"}</p>'
+        + "</div>"
         '<table class="workbench-table">'
         "<thead><tr><th>Guidance</th><th>Status</th><th>Why now</th><th>Owner</th><th>Action</th></tr></thead>"
         "<tbody>" + join_html(rows) + "</tbody></table></section>"

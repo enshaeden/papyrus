@@ -249,6 +249,14 @@ def render_ingest_progress(
             }
         )
     percentage = int((len(completed_stages) / len(INGEST_STAGES)) * 100)
+    current_label = (
+        "Continue drafting"
+        if detail.get("converted_revision_id")
+        else next(
+            (item["label"] for item in items if str(item.get("state") or "") == "current"),
+            "Upload",
+        )
+    )
     progress_html = renderer.render(
         "partials/progress_bar.html",
         {
@@ -262,7 +270,8 @@ def render_ingest_progress(
     return (
         f'<section class="ingest-progress" data-component="ingest-progress" data-surface="{escape(surface)}">'
         '<p class="ingest-progress__kicker">Import</p>'
-        "<h2>Ingestion progress</h2>"
+        "<h2>Transformation progress</h2>"
+        f'<p class="ingest-progress__summary">Current focus: <strong>{escape(current_label)}</strong></p>'
         f"{progress_html}</section>"
     )
 
@@ -279,10 +288,12 @@ def _stage_card(
     return (
         f'<article class="ingest-stage-board__card tone-{escape(tone)} state-{escape(state)}" data-component="ingest-stage-card" data-surface="ingest-detail">'
         '<div class="ingest-stage-board__card-head">'
-        f"<h3>{escape(title)}</h3>"
+        f'<h3 class="ingest-stage-board__title">{escape(title)}</h3>'
         f'<p class="ingest-stage-board__state">{escape(state.replace("_", " "))}</p>'
         "</div>"
+        + '<div class="ingest-stage-board__body">'
         + join_html([f"<p>{line}</p>" for line in body_lines])
+        + "</div>"
         + (
             link(
                 action_label,
@@ -448,6 +459,7 @@ def render_ingest_stage_board(*, detail: dict[str, object]) -> str:
         '<section class="ingest-stage-board" data-component="ingest-stage-board" data-surface="ingest-detail">'
         '<p class="ingest-stage-board__kicker">Import walkthrough</p>'
         "<h2>Move from source file to governed draft</h2>"
+        '<p class="ingest-stage-board__summary">Read the source, inspect what Papyrus extracted, confirm the mapping, then create a governed draft only when the transformation looks trustworthy.</p>'
         '<div class="ingest-stage-board__grid">' + join_html(cards) + "</div></section>"
     )
 
@@ -560,6 +572,7 @@ def render_ingest_mapping_gaps(*, mapping: dict[str, object]) -> str:
         '<section class="ingest-mapping-gaps" data-component="ingest-mapping-gaps" data-surface="ingest-review">'
         '<p class="ingest-mapping-gaps__kicker">Review</p>'
         "<h2>Mapping gaps</h2>"
+        '<p class="ingest-mapping-gaps__summary">Anything unresolved here will carry risk into the converted draft. Clear the missing, weak, or ambiguous mappings before you convert.</p>'
         '<div class="ingest-mapping-gaps__grid">'
         + _gap_block(
             title="Missing required sections",
@@ -653,6 +666,7 @@ def render_ingest_convert_form(
         '<section class="ingest-convert-form" data-component="ingest-convert-form" data-surface="ingest-review">'
         + '<p class="ingest-convert-form__kicker">Import</p>'
         + "<h2>Create draft</h2>"
+        + "<p>Conversion is the handoff into Papyrus’s normal governed drafting flow. Set the identity once, then continue the draft in Write.</p>"
         + f"{error_html}"
         + f"<p><strong>Mapped target:</strong> {escape(target_blueprint_label)}</p>"
         + (f"<p>{escape(target_notice)}</p>" if target_notice else "")

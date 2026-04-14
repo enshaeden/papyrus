@@ -64,7 +64,10 @@ class HealthPresenterTests(SemanticHookAssertions, unittest.TestCase):
             },
         )
 
-        board_html = page["page_context"]["summary_cards_html"]
+        board_html = page["page_context"]["board_html"]
+        support_html = (
+            page["page_context"]["cleanup_html"] + page["page_context"]["validation_html"]
+        )
         self.assert_component(board_html, "oversight-board")
-        self.assert_component(board_html, "oversight-cleanup-board")
-        self.assert_component(board_html, "oversight-validation-board")
+        self.assert_component(support_html, "oversight-cleanup-board")
+        self.assert_component(support_html, "oversight-validation-board")

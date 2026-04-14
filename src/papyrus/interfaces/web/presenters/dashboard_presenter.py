@@ -49,6 +49,7 @@ def intervention_groups(queue: list[dict[str, Any]]) -> dict[str, list[dict[str,
 def render_oversight_column(
     title: str, summary: str, items: list[dict[str, Any]], *, role: str, tone: str
 ) -> str:
+    count_label = f"{len(items)} item" if len(items) == 1 else f"{len(items)} items"
     body = (
         join_html(
             [
@@ -69,8 +70,11 @@ def render_oversight_column(
     )
     return (
         f'<section class="oversight-board__column tone-{escape(tone)}" data-component="oversight-column" data-surface="oversight">'
-        f"<h2>{escape(title)}</h2>"
-        f'<p class="oversight-board__summary">{escape(summary)}</p>'
+        '<div class="oversight-board__head">'
+        + f'<p class="oversight-board__count">{escape(count_label)}</p>'
+        + f"<h2>{escape(title)}</h2>"
+        + f'<p class="oversight-board__summary">{escape(summary)}</p>'
+        + "</div>"
         f"{body}</section>"
     )
 
@@ -150,21 +154,18 @@ def present_oversight_dashboard(
         "page_title": "Oversight",
         "page_header": {
             "headline": "Oversight",
-            "intro": "Content risk and review board",
+            "intro": "See which content needs intervention, which items are simply worth watching, and where cleanup debt is accumulating.",
         },
         "active_nav": "oversight",
         "aside_html": "",
         "page_context": {
-            "summary_cards_html": (
-                render_oversight_board(role=role, queue=dashboard["queue"])
-                + render_oversight_cleanup_board(
-                    cleanup_counts=dashboard.get("cleanup_counts") or {}
-                )
-                + render_oversight_validation_board(
-                    validation_posture=dashboard["validation_posture"]
-                )
+            "board_html": render_oversight_board(role=role, queue=dashboard["queue"]),
+            "cleanup_html": render_oversight_cleanup_board(
+                cleanup_counts=dashboard.get("cleanup_counts") or {}
             ),
-            "primary_html": "",
+            "validation_html": render_oversight_validation_board(
+                validation_posture=dashboard["validation_posture"]
+            ),
         },
         "page_surface": "oversight",
     }

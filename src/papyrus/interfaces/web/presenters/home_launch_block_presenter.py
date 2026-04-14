@@ -148,7 +148,7 @@ def _render_do_now_block(dashboard: dict[str, Any]) -> str:
     return _render_block_shell(
         block_id="do_now",
         title="Do now",
-        summary="Start with the strongest current guidance. Open the best answer first, then branch into work only if the article is missing or suspect.",
+        summary="Open the best current answer first. Leave the reading flow only when the article is missing, weak, or clearly needs work.",
         tone="approved",
         items_html=items_html,
         emphasis="primary",
@@ -187,7 +187,7 @@ def _render_continue_block(dashboard: dict[str, Any]) -> str:
     return _render_block_shell(
         block_id="continue",
         title="Continue",
-        summary="Continue a governed revision before starting a new template.",
+        summary="Keep governed drafting moving before you start a new template.",
         tone="brand",
         items_html=items_html,
         emphasis="supporting",
@@ -220,7 +220,7 @@ def _render_watch_block(dashboard: dict[str, Any]) -> str:
     return _render_block_shell(
         block_id="watch",
         title="Watch",
-        summary="These items may change whether the current content is dependable.",
+        summary="These changes could alter whether the current guidance is still dependable.",
         tone="warning",
         items_html=items_html,
         emphasis="supporting",
@@ -424,7 +424,7 @@ def _render_board_links_entry(*, dashboard: dict[str, Any]) -> str:
         '<section class="home-board-links" data-component="home-board-links" data-surface="home">'
         '<details class="home-board-links__details">'
         "<summary>View all boards</summary>"
-        '<p class="home-board-links__summary">Keep the landing view focused, then branch into the full work surfaces only when you need broader context.</p>'
+        '<p class="home-board-links__summary">Use the landing view for the next move. Open the broader work surfaces only when you need more scope than this page should carry.</p>'
         '<ul class="home-board-links__list">'
         + join_html(
             [
@@ -453,8 +453,16 @@ def render_home_launch_blocks(*, dashboard: dict[str, Any]) -> str:
         return (
             '<div class="home-launch-area role-operator">'
             + (f'<div class="home-launch-primary">{primary_block}</div>' if primary_block else "")
-            + (f'<div class="home-launch-support">{support_blocks}</div>' if support_blocks else "")
-            + board_links_html
+            + (
+                '<div class="home-launch-rail">'
+                + (
+                    f'<div class="home-launch-support">{support_blocks}</div>'
+                    if support_blocks
+                    else ""
+                )
+                + board_links_html
+                + "</div>"
+            )
             + (
                 f'<div class="home-launch-secondary">{secondary_html}</div>'
                 if secondary_html

@@ -1,6 +1,6 @@
 .page-article {
   display: grid;
-  gap: 1.15rem;
+  gap: 1.4rem;
 }
 
 .article-section__kicker,
@@ -15,34 +15,39 @@
 
 .article-flow {
   display: grid;
-  gap: 1rem;
+  gap: 1.5rem;
   min-width: 0;
+  max-width: 48rem;
 }
 
 .article-appendix {
   display: grid;
-  gap: 1rem;
+  gap: 1.15rem;
   min-width: 0;
+  max-width: 48rem;
 }
 
 .article-section {
-  padding: 1.2rem 1.3rem;
+  display: grid;
+  gap: 0.7rem;
+  padding: 0 0 1.6rem;
+  border-bottom: 1px solid var(--color-border-default);
 }
 
 .article-section h2 {
   margin: 0;
   font-family: var(--font-serif);
-  font-size: clamp(1.3rem, 2vw, 1.65rem);
-  line-height: 1.1;
+  font-size: clamp(1.45rem, 2.3vw, 1.95rem);
+  line-height: 1.06;
   overflow-wrap: anywhere;
 }
 
 .article-block + .article-block {
-  margin-top: 0.95rem;
+  margin-top: 1rem;
 }
 
 .article-block-title {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.45rem;
   font-weight: 700;
   color: var(--color-panel-governance-label);
 }
@@ -51,7 +56,9 @@
 .article-section li,
 .article-context-panel p,
 .article-context-panel li {
-  line-height: 1.62;
+  max-width: 70ch;
+  font-size: 1rem;
+  line-height: 1.74;
 }
 
 .article-list {
@@ -90,21 +97,18 @@
 
 .article-context-panel {
   display: grid;
-  gap: 0.85rem;
-  padding: 1.1rem 1.15rem;
-  border: 1px solid var(--color-panel-governance-border);
+  gap: 0.7rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid rgba(93, 55, 84, 0.12);
   border-radius: 1.2rem;
-  background: var(--color-panel-governance-bg);
-  box-shadow: var(--shadow-panel);
+  background: rgba(245, 239, 244, 0.68);
+  box-shadow: none;
 }
 
 .article-appendix .article-context-panel {
-  padding: 0.9rem 0 0;
-  border: 0;
-  border-top: 1px solid var(--color-border-default);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  padding: 1rem 1.05rem;
+  border-color: rgba(93, 55, 84, 0.1);
+  background: rgba(255, 255, 255, 0.74);
 }
 
 .article-context-panel__source summary {

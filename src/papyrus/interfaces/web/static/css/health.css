@@ -1,6 +1,16 @@
 .page-oversight {
   display: grid;
-  gap: 1.15rem;
+  gap: 1.25rem;
+}
+
+.page-oversight__main,
+.page-oversight__support {
+  display: grid;
+  gap: 1rem;
+}
+
+.page-oversight__support {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .oversight-board {
@@ -23,37 +33,51 @@
   padding: 1.1rem 1.15rem;
 }
 
+.oversight-board__head {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.oversight-board__count {
+  margin: 0;
+  color: var(--color-panel-governance-label);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .oversight-board__column > h2,
 .oversight-board__column > p {
   margin: 0;
 }
 
 .oversight-board__column.tone-danger {
-  border: 1px solid var(--color-border-default);
+  border: 1px solid rgba(123, 38, 46, 0.18);
   border-radius: 1.2rem;
-  background: var(--color-status-error-bg);
-  box-shadow: var(--shadow-panel);
+  background: rgba(252, 244, 245, 0.98);
+  box-shadow: none;
 }
 
 .oversight-board__column.tone-warning {
-  border: 1px solid var(--color-border-default);
+  border: 1px solid rgba(178, 109, 21, 0.22);
   border-radius: 1.2rem;
-  background: var(--color-status-warning-bg);
-  box-shadow: var(--shadow-panel);
+  background: rgba(255, 248, 239, 0.98);
+  box-shadow: none;
 }
 
 .oversight-board__column.tone-brand {
-  border: 1px solid var(--color-border-default);
+  border: 1px solid rgba(93, 55, 84, 0.14);
   border-radius: 1.2rem;
-  background: var(--color-panel-governance-bg);
-  box-shadow: var(--shadow-panel);
+  background: rgba(245, 239, 244, 0.92);
+  box-shadow: none;
 }
 
 .oversight-board__column.tone-default {
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
   background: var(--color-surface-panel);
-  box-shadow: var(--shadow-panel);
+  box-shadow: none;
 }
 
 .oversight-board__summary {
@@ -112,7 +136,7 @@
   border: 1px solid var(--color-border-default);
   border-radius: 1.2rem;
   background: var(--color-surface-panel);
-  box-shadow: var(--shadow-panel);
+  box-shadow: none;
 }
 
 .oversight-cleanup-board__grid {
@@ -145,7 +169,7 @@
 }
 
 .page-oversight .oversight-cleanup-board {
-  margin-top: 0.2rem;
+  margin-top: 0;
 }
 
 .oversight-board__empty,
@@ -155,14 +179,16 @@
 
 @media (max-width: 1100px) {
   .oversight-board__grid,
-  .oversight-cleanup-board__grid {
+  .oversight-cleanup-board__grid,
+  .page-oversight__support {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
   .oversight-board__grid,
-  .oversight-cleanup-board__grid {
+  .oversight-cleanup-board__grid,
+  .page-oversight__support {
     grid-template-columns: 1fr;
   }
 }
