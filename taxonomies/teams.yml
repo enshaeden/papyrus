@@ -5,6 +5,10 @@ values:
     description: Front-line IT support.
   - name: IT Operations
     description: Core systems operations team.
+  - name: Workplace Engineering
+    description: Workplace systems, collaboration, and environment engineering team.
+  - name: Identity and Access
+    description: Identity lifecycle, access governance, and application access administration team.
   - name: Systems Engineering
     description: Endpoint and collaboration engineering team
   - name: Security Operations

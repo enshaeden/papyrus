@@ -94,6 +94,7 @@ class IngestPresenterTests(SemanticHookAssertions, unittest.TestCase):
             allow_web_ingest_local_paths=True,
         )
 
+        self.assert_component(page["page_context"]["journey_html"], "ingest-orchestration")
         self.assert_component(page["page_context"]["upload_html"], "ingest-upload")
         self.assert_component(page["page_context"]["ingestions_html"], "ingest-list")
 
@@ -105,6 +106,7 @@ class IngestPresenterTests(SemanticHookAssertions, unittest.TestCase):
         page_html = (
             page["page_context"]["progress_html"]
             + page["page_context"]["stage_html"]
+            + page["page_context"]["assessment_html"]
             + page["page_context"]["detail_html"]
             + page["aside_html"]
         )
@@ -126,10 +128,13 @@ class IngestPresenterTests(SemanticHookAssertions, unittest.TestCase):
         )
 
         page_html = (
-            page["page_context"]["mapping_html"]
+            page["page_context"]["stage_html"]
+            + page["page_context"]["assessment_html"]
+            + page["page_context"]["mapping_html"]
             + page["page_context"]["gaps_html"]
             + page["page_context"]["convert_html"]
         )
+        self.assert_component(page_html, "ingest-stage-board")
         self.assert_component(page_html, "ingest-mapping-table")
         self.assert_component(page_html, "ingest-mapping-gaps")
         self.assert_component(page_html, "ingest-mapping-gap")

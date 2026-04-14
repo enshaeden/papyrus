@@ -170,7 +170,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("Import started. Review the mapping before creating the draft.", body)
             self.assert_surface(body, "workflow")
             self.assert_surface(body, "actions")
-            self.assertIn("Mapping has not been generated yet.", body)
+            self.assertIn("Open mapping review to generate section matches and inspect gaps.", body)
             self.assert_component(body, "surface-panel")
             self.assert_action_id(body, "review_ingestion_mapping")
             self.assertNotIn("#convert-to-draft-form", body)

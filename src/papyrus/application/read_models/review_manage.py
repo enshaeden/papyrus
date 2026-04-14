@@ -260,6 +260,7 @@ def review_queue(
     finally:
         connection.close()
 
+
 def review_detail(
     object_id: str,
     revision_id: str,

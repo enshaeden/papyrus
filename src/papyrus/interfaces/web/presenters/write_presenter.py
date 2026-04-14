@@ -97,7 +97,8 @@ def _advanced_guidance_html() -> str:
     return (
         "<p>This path keeps the full blueprint model available, including deferred classes.</p>"
         + (
-            "<p><strong>Advanced targets</strong></p>" + _blueprint_scope_list_html(advanced_blueprints)
+            "<p><strong>Advanced targets</strong></p>"
+            + _blueprint_scope_list_html(advanced_blueprints)
             if advanced_blueprints
             else ""
         )
@@ -276,22 +277,20 @@ def present_object_setup_page(
         "validation_html": validation_html,
         "progress_html": render_object_progress_html(components, values=values, errors=errors),
         "form_html": components.content_section(
-            title="Start an advanced draft" if is_advanced_mode else "Start from a primary template",
+            title="Start an advanced draft"
+            if is_advanced_mode
+            else "Start from a primary template",
             eyebrow="Authoring",
             body_html=body_html,
         ),
         "guidance_html": support_details_html(
-            title="Advanced and deferred authoring"
-            if is_advanced_mode
-            else "Primary template set",
+            title="Advanced and deferred authoring" if is_advanced_mode else "Primary template set",
             summary=(
                 "Use this path when the draft belongs to an internal or deferred blueprint class."
                 if is_advanced_mode
                 else "Papyrus markets and organizes visible authoring around runbooks, known errors, and service records."
             ),
-            body_html=(
-                _advanced_guidance_html() if is_advanced_mode else _primary_guidance_html()
-            )
+            body_html=(_advanced_guidance_html() if is_advanced_mode else _primary_guidance_html())
             + "<p>After setup, complete one required section at a time and then hand the revision to review.</p>",
         ),
     }

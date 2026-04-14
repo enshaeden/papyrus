@@ -181,7 +181,7 @@ def render_impact_trace(
             selected_item is not None and str(selected_item.get("object_id") or "") == object_id
         )
         rows.append(
-            f"<tr{' class=\"is-selected\"' if is_selected else ''}>"
+            f"<tr{' class="is-selected"' if is_selected else ''}>"
             f"<td>{components.decision_cell(title_html=link(str(item['title']), _impact_selection_href(base_path, object_id=object_id, revision_id=revision_id), css_class='selected-row-link'), supporting_html=escape(item['reason']), meta=[escape(item['trust_state'])])}</td>"
             f"<td>{components.decision_cell(title_html=escape(item['what_changed']), supporting_html=escape(' -> '.join(item['propagation_path'])))}</td>"
             f"<td>{components.decision_cell(title_html=escape(' | '.join(item['revalidate'])))}</td>"

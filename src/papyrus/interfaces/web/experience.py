@@ -99,7 +99,7 @@ READER_EXPERIENCE = ExperienceContext(
         ShellSection(
             title="Knowledge",
             description="Open dependable content and content-first object views.",
-            items=(ShellLink("read", "Content", "/reader/browse", match_prefixes=("/reader",)),),
+            items=(ShellLink("read", "Read", "/reader/browse", match_prefixes=("/reader",)),),
         ),
     ),
     page_behaviors=(
@@ -126,13 +126,13 @@ OPERATOR_EXPERIENCE = ExperienceContext(
     audit_actor_id="local.operator",
     nav_sections=(
         ShellSection(
-            title="Operator workflow",
-            description="Use content first, author when it is missing, and keep oversight tied to the current task.",
+            title="Core modes",
+            description="Read dependable guidance first, then move into writing, import, or review only when the work truly branches.",
             items=(
                 ShellLink("home", "Home", "/operator", match_prefixes=()),
-                ShellLink("read", "Content", "/operator/read", match_prefixes=("/operator/read",)),
+                ShellLink("read", "Read", "/operator/read", match_prefixes=("/operator/read",)),
                 ShellLink(
-                    "write", "Authoring", "/operator/write/new", match_prefixes=("/operator/write",)
+                    "write", "Write", "/operator/write/new", match_prefixes=("/operator/write",)
                 ),
                 ShellLink(
                     "import", "Import", "/operator/import", match_prefixes=("/operator/import",)
@@ -143,9 +143,15 @@ OPERATOR_EXPERIENCE = ExperienceContext(
                     "/operator/review",
                     match_prefixes=("/operator/review",),
                 ),
+            ),
+        ),
+        ShellSection(
+            title="Context",
+            description="Open broader portfolio context only when the active mode needs a wider health, service, or activity view.",
+            items=(
                 ShellLink(
                     "oversight",
-                    "Oversight",
+                    "Health",
                     "/operator/review/governance",
                     match_prefixes=("/operator/review/governance", "/operator/review/impact"),
                 ),
@@ -157,7 +163,7 @@ OPERATOR_EXPERIENCE = ExperienceContext(
                 ),
                 ShellLink(
                     "activity",
-                    "History",
+                    "Activity",
                     "/operator/review/activity",
                     match_prefixes=(
                         "/operator/review/activity",
@@ -193,9 +199,7 @@ OPERATOR_EXPERIENCE = ExperienceContext(
             columns="wide",
             show_context_rail=True,
         ),
-        ExperiencePageBehavior(
-            "activity", mode="history-feed", density="medium", columns="wide"
-        ),
+        ExperiencePageBehavior("activity", mode="history-feed", density="medium", columns="wide"),
         ExperiencePageBehavior("services", mode="entry-map", density="comfortable", columns="wide"),
     ),
     page_configs=(

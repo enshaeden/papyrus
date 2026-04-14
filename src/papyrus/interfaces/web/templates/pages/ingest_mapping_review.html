@@ -1,6 +1,18 @@
-<div class="page-stack">
-  {{ progress_html }}
-  {{ mapping_html }}
-  {{ gaps_html }}
-  {{ convert_html }}
+<div class="page-ingest-review">
+  <div class="page-ingest-review__hero">
+    {{ progress_html }}
+    {{ stage_html }}
+  </div>
+  <div class="page-ingest-review__assessment">
+    {{ assessment_html }}
+  </div>
+  <div class="page-ingest-review__body">
+    <div class="page-ingest-review__main">
+      {{ mapping_html }}
+      {{ gaps_html }}
+    </div>
+    <div class="page-ingest-review__convert">
+      {{ convert_html }}
+    </div>
+  </div>
 </div>

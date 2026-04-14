@@ -142,8 +142,16 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 ### Home
 
+- Operator Home is a launchpad, not a dashboard wall. `Do now` is the dominant primary surface; `Continue`, `Watch`, and the activity summary stay visible support; everything else moves behind one lower-emphasis `View all boards` entry.
+- Admin Home keeps only the highest-signal control-room boards on the landing view: queue status, pending decisions, blocked reviews, and one pressure summary.
 - `Home Launch Block`
   - `data-component`: `home-launch-block`
+  - owner file: `src/papyrus/interfaces/web/presenters/home_launch_block_presenter.py`
+  - upstream data source: `papyrus.application.read_models.home_dashboard`
+  - CSS location: `src/papyrus/interfaces/web/static/css/home.css`
+  - test location: `tests/test_web_home_launch_block_presenter.py`
+- `Home Board Links`
+  - `data-component`: `home-board-links`
   - owner file: `src/papyrus/interfaces/web/presenters/home_launch_block_presenter.py`
   - upstream data source: `papyrus.application.read_models.home_dashboard`
   - CSS location: `src/papyrus/interfaces/web/static/css/home.css`
@@ -345,6 +353,14 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 ### Ingest
 
+- Import is a visible transformation flow. The operator should be able to follow the source file through extraction, mapping, gap review, draft conversion, and handoff into governed drafting without guessing which step comes next.
+- Parser assessment is part of the main flow on detail and review pages, not a hidden side note.
+- `Ingest Orchestration`
+  - `data-component`: `ingest-orchestration`
+  - owner file: `src/papyrus/interfaces/web/presenters/ingest_presenter.py`
+  - upstream data source: import route state plus the import walkthrough contract
+  - CSS location: `src/papyrus/interfaces/web/static/css/ingest.css`
+  - test location: `tests/test_web_ingest_presenters.py`
 - `Ingest Upload`
   - `data-component`: `ingest-upload`
   - owner file: `src/papyrus/interfaces/web/presenters/ingest_presenter.py`
@@ -415,7 +431,7 @@ Tests should assert those hooks plus structured contract payload behavior instea
 
 ## Current Boundaries
 
-- Page presenters now assemble browser-visible surfaces from explicit owner files for Home, Content, object detail, services, oversight, review, history, revision history, impact, and ingest.
+- Page presenters now assemble browser-visible surfaces from explicit owner files for Home, Read, object detail, services, oversight, review, activity, revision history, impact, and ingest.
 - Shared components still provide low-level building blocks such as badges, decision cells, and governed panels, but surface-specific copy and internal markup now live in the owning presenter for that visible component.
 - `papyrus.application.read_models.home_dashboard` now supplies role-scoped dashboard data rather than Home-specific launch or activity structures.
 - Object-detail section composition belongs to the web view-model layer, not `papyrus.application.read_models`.

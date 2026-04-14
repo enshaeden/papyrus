@@ -3,6 +3,8 @@ description: Starter controlled tags for search and reporting.
 values:
   - name: endpoint
     description: Endpoint management work.
+  - name: printer
+    description: Printer provisioning and troubleshooting topic.
   - name: macos
     description: macOS endpoint content.
   - name: windows

@@ -5,6 +5,8 @@ values:
     description: Front-line support responders.
   - name: it_ops
     description: IT operations staff.
+  - name: identity_admins
+    description: Identity and access administrators responsible for provisioning and governance.
   - name: systems_admins
     description: Infrastructure and systems administrators.
   - name: security

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 FieldWidget = dict[str, Any]
 BlueprintField = dict[str, Any]
 
 
-class SectionType(str, Enum):
+class SectionType(StrEnum):
     TEXT = "text"
     LONG_TEXT = "long_text"
     STEPS = "steps"

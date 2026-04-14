@@ -189,7 +189,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
 
         status, _, body = call_wsgi(application, "/operator/read")
         self.assertEqual(status, "200 OK")
-        self.assertIn("<title>Content | Papyrus</title>", body)
+        self.assertIn("<title>Read | Papyrus</title>", body)
         self.assert_page_contract(
             body, primary_surface="read-queue", action_ids=("open-primary-surface",)
         )

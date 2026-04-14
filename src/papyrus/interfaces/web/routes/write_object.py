@@ -35,9 +35,7 @@ def _render_object_setup_page(
     )
     values = default_object_values(object_type=default_object_type)
     errors: dict[str, list[str]] = {}
-    page_flash_html = (
-        flash_html_for_request(runtime, request) if request.method != "POST" else ""
-    )
+    page_flash_html = flash_html_for_request(runtime, request) if request.method != "POST" else ""
     if request.method == "POST":
         values = {key: request.form_value(key) for key in values}
         result = validate_object_form(

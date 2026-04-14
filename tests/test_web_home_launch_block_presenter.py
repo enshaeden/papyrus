@@ -60,6 +60,8 @@ class HomeLaunchBlockPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn('href="/operator/read/object/kb-vpn"', html)
         self.assertIn("runbook", html)
         self.assertIn("Open", html)
+        self.assertIn("Start here", html)
+        self.assertIn("View all boards", html)
         self.assertNotIn("Fallback summary", html)
         self.assertNotIn("runbook · kb-vpn", html)
 
@@ -97,6 +99,8 @@ class HomeLaunchBlockPresenterTests(SemanticHookAssertions, unittest.TestCase):
             }
         )
 
-        self.assert_component_count(html, "home-launch-block", 9)
-        self.assertIn("Recent changes", html)
-        self.assertIn("Inspect the queue.", html)
+        self.assert_component_count(html, "home-launch-block", 4)
+        self.assert_component(html, "home-board-links")
+        self.assertIn("Pressure summary", html)
+        self.assertIn("View all boards", html)
+        self.assertNotIn("Recent changes", html)
