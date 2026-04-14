@@ -10,13 +10,12 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Printing in the <REGION_D> Office
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 - <PRINTER_MANAGEMENT_PLATFORM>
 tags:
 - endpoint
-- printer
 created: '2025-12-02'
 updated: '2026-03-05'
 last_reviewed: '2026-04-07'
@@ -24,7 +23,6 @@ review_cadence: quarterly
 audience: systems_admins
 related_services:
 - Endpoint Provisioning
-- Printing
 prerequisites:
 - Confirm the device, asset record, and office or shipping context before taking action.
 - Verify you have the required inventory, MDM, or ticketing access for the task.
@@ -55,7 +53,6 @@ replaced_by: null
 retirement_reason: null
 services:
 - Endpoint Provisioning
-- Printing
 related_articles:
 - kb-assets-printers-index
 references:

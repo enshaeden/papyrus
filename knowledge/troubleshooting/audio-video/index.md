@@ -10,7 +10,7 @@ owner: it_operations
 source_type: derived
 source_system: knowledge_portal
 source_title: Global AV Maintenance SOP Overview
-team: Workplace Engineering
+team: Systems Engineering
 systems: []
 tags:
 - av

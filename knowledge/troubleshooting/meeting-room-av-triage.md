@@ -11,7 +11,7 @@ owner: it_operations
 source_type: native
 source_system: repository
 source_title: Meeting Room AV Triage
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <TICKETING_SYSTEM>
 - <VIDEO_CONFERENCING_PLATFORM>

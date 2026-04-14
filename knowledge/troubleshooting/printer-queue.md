@@ -16,15 +16,13 @@ systems:
 - <PRINTER_MANAGEMENT_PLATFORM>
 - <TICKETING_SYSTEM>
 tags:
-- printer
 - service-desk
 created: 2026-04-07
 updated: 2026-04-07
 last_reviewed: 2026-04-07
 review_cadence: quarterly
 audience: service_desk
-related_services:
-- Printing
+related_services: []
 symptoms:
 - Restore common office printing failures by checking queue state, consumables, and endpoint printer mappings.
 scope: 'Legacy source does not declare structured scope. Summary: Restore common office printing failures
@@ -75,8 +73,7 @@ rollback:
 superseded_by: null
 replaced_by: null
 retirement_reason: null
-services:
-- Printing
+services: []
 related_articles:
 - kb-troubleshooting-meeting-room-av-triage
 references:

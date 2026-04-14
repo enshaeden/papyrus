@@ -10,7 +10,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Shipping devices in <REGION_D> using an email-based shipping workflow
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 tags:

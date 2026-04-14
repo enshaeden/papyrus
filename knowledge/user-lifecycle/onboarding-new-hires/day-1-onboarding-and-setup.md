@@ -11,7 +11,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: 'Day 1: Onboarding and Setup'
-team: Identity and Access
+team: IT Operations
 systems:
 - <HR_SYSTEM>
 tags:
@@ -21,7 +21,7 @@ created: '2025-07-25'
 updated: '2026-02-27'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
-audience: identity_admins
+audience: it_ops
 related_services:
 - Onboarding
 prerequisites:

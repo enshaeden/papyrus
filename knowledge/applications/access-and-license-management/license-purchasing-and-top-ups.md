@@ -11,7 +11,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: License purchasing and top ups
-team: Identity and Access
+team: IT Operations
 systems: []
 tags:
 - account
@@ -20,7 +20,7 @@ created: '2026-03-17'
 updated: '2026-03-19'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 related_services:
 - Access Management
 prerequisites:

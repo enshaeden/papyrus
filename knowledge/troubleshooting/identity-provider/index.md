@@ -10,7 +10,7 @@ owner: it_operations
 source_type: derived
 source_system: knowledge_portal
 source_title: Troubleshooting / <IDENTITY_PROVIDER>
-team: Identity and Access
+team: IT Operations
 systems:
 - <IDENTITY_PROVIDER>
 tags:
@@ -21,7 +21,7 @@ created: '2026-04-07'
 updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
-audience: identity_admins
+audience: it_ops
 service_name: Identity
 service_criticality: not_classified
 dependencies:

@@ -11,7 +11,7 @@ owner: it_operations
 source_type: native
 source_system: repository
 source_title: Password Reset and Account Lockout Response
-team: Identity and Access
+team: IT Operations
 systems:
 - <COLLABORATION_PLATFORM>
 - <IDENTITY_PROVIDER>

@@ -97,10 +97,10 @@ The repository scaffold path still exists when you explicitly need a canonical f
 python3 scripts/new_article.py --type runbook --title "Example Procedure"
 ```
 
-List valid taxonomy values before you choose metadata:
+List the scaffoldable object types and valid taxonomy values before you choose metadata:
 
 ```bash
-python3 scripts/new_article.py --list-taxonomy knowledge_object_types
+python3 scripts/new_article.py --list-object-types
 python3 scripts/new_article.py --list-taxonomy services
 python3 scripts/new_article.py --list-taxonomy systems
 python3 scripts/new_article.py --list-taxonomy tags

@@ -241,6 +241,16 @@ def validate_field(
     else:
         issues.append(ValidationIssue(path, f"unsupported schema kind: {kind}", field_name))
 
+    expected_value = spec.get("equals")
+    if expected_value is not None and value != expected_value:
+        issues.append(
+            ValidationIssue(
+                path,
+                f"must equal '{expected_value}'",
+                field_name,
+            )
+        )
+
     taxonomy_name = spec.get("taxonomy")
     if taxonomy_name and taxonomy_name in taxonomies:
         allowed = set(taxonomies[taxonomy_name]["allowed_values"])

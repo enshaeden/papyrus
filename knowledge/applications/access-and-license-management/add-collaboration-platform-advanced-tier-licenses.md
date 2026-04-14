@@ -10,7 +10,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Add <COLLABORATION_PLATFORM> advanced tier licenses
-team: Identity and Access
+team: IT Operations
 systems:
 - <COLLABORATION_PLATFORM>
 tags:
@@ -20,7 +20,7 @@ created: '2026-03-17'
 updated: '2026-03-17'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 related_services:
 - Access Management
 prerequisites:

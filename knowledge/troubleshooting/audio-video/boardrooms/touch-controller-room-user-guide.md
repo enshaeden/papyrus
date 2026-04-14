@@ -10,7 +10,7 @@ owner: it_operations
 source_type: native
 source_system: repository
 source_title: Touch Controller Room User Guide
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <VIDEO_CONFERENCING_PLATFORM>
 tags:

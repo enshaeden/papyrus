@@ -10,7 +10,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: <CLOUD_PLATFORM> access requests
-team: Identity and Access
+team: IT Operations
 systems:
 - <CLOUD_PLATFORM>
 - <IDENTITY_PROVIDER>
@@ -21,7 +21,7 @@ created: '2025-10-28'
 updated: '2026-04-07'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 related_services:
 - Access Management
 prerequisites:

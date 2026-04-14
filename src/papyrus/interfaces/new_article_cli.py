@@ -168,6 +168,18 @@ def print_taxonomy(name: str, values: list[object]) -> None:
             print(str(entry))
 
 
+def scaffoldable_object_types(policy: dict[str, object]) -> list[str]:
+    template_config = policy.get("templates", {})
+    family_mapping = template_config.get("family_by_knowledge_object_type", {})
+    return [str(object_type) for object_type in family_mapping]
+
+
+def print_object_types(values: list[str]) -> None:
+    print("[object_types]")
+    for value in values:
+        print(value)
+
+
 def emit_authoring_feedback(
     draft_metadata: dict[str, object],
     related_ids: list[str],
@@ -223,7 +235,7 @@ def main() -> int:
     parser.add_argument("--root", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--title", help="Object title")
     parser.add_argument(
-        "--type", help="Knowledge object type from taxonomies/knowledge_object_types.yml"
+        "--type", help="Knowledge object type from the approved scaffold templates"
     )
     parser.add_argument("--slug", help="Optional explicit slug. Derived from title when omitted.")
     parser.add_argument("--owner", default="TBD", help="Object owner")
@@ -258,26 +270,37 @@ def main() -> int:
         choices=LISTABLE_TAXONOMIES,
         help="Print allowed values and descriptions for a taxonomy, then exit.",
     )
+    parser.add_argument(
+        "--list-object-types",
+        action="store_true",
+        help="Print scaffoldable knowledge object types, then exit.",
+    )
     args = parser.parse_args()
 
     root = Path(args.root).resolve() if args.root else ROOT
     policy = load_policy(root / "schemas" / "repository_policy.yml")
     taxonomies = load_taxonomies(root / "taxonomies")
+    supported_types = scaffoldable_object_types(policy)
 
     if args.list_taxonomy:
         for name in args.list_taxonomy:
             print_taxonomy(name, taxonomies[name]["values"])
+    if args.list_object_types:
+        print_object_types(supported_types)
+    if args.list_taxonomy or args.list_object_types:
         return 0
 
     if not args.title or not args.type:
-        parser.error("--title and --type are required unless --list-taxonomy is used.")
+        parser.error(
+            "--title and --type are required unless --list-taxonomy or --list-object-types is used."
+        )
 
     def ensure_allowed(value: str, taxonomy_name: str, field_name: str) -> None:
         allowed = set(taxonomies[taxonomy_name]["allowed_values"])
         if value not in allowed:
             raise ValueError(f"{field_name} must be one of {sorted(allowed)}")
 
-    allowed_types = set(taxonomies["knowledge_object_types"]["allowed_values"])
+    allowed_types = set(supported_types)
     if args.type not in allowed_types:
         print(f"unsupported knowledge object type: {args.type}", file=sys.stderr)
         return 1

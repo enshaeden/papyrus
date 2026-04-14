@@ -19,7 +19,7 @@ fields:
   knowledge_object_type:
     kind: string
     required: true
-    taxonomy: knowledge_object_types
+    equals: known_error
   legacy_article_type:
     kind: string_or_null
     required: true

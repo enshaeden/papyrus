@@ -10,7 +10,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: IT Team Workflow for Ticket Management and Access Review
-team: Identity and Access
+team: IT Operations
 systems:
 - <TICKETING_SYSTEM>
 tags:
@@ -20,7 +20,7 @@ created: '2025-12-18'
 updated: '2025-12-18'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
-audience: identity_admins
+audience: it_ops
 related_services:
 - Access Management
 prerequisites:

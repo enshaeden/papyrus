@@ -10,14 +10,14 @@ owner: it_operations
 source_type: derived
 source_system: knowledge_portal
 source_title: Employee Conversion
-team: Identity and Access
+team: IT Operations
 systems: []
 tags: []
 created: '2025-10-15'
 updated: '2025-10-15'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
-audience: identity_admins
+audience: it_ops
 service_name: User Lifecycle / Employee Conversion
 service_criticality: not_classified
 dependencies: []

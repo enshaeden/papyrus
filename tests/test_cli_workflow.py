@@ -224,6 +224,12 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertIn("[services]", result.stdout)
         self.assertIn("Remote Access", result.stdout)
 
+    def test_list_object_types_cli(self) -> None:
+        result = run_command("scripts/new_article.py", "--list-object-types")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertIn("[object_types]", result.stdout)
+        self.assertIn("service_record", result.stdout)
+
     def test_validate_cli(self) -> None:
         result = run_command("scripts/validate.py")
         self.assertEqual(result.returncode, 0, msg=result.stderr)

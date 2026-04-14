@@ -11,7 +11,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: <BUSINESS_APPLICATION_B> request
-team: Identity and Access
+team: IT Operations
 systems: []
 tags:
 - access
@@ -19,7 +19,7 @@ created: '2025-11-07'
 updated: '2025-11-07'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 related_services:
 - Access Management
 prerequisites:

@@ -12,7 +12,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Windows Device Decommissioning Standard Operating Procedure (SOP)
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 - <ENDPOINT_MANAGEMENT_PLATFORM>

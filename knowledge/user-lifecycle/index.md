@@ -10,14 +10,14 @@ owner: it_operations
 source_type: derived
 source_system: knowledge_portal
 source_title: User Lifecycle Management
-team: Identity and Access
+team: IT Operations
 systems: []
 tags: []
 created: '2025-10-28'
 updated: '2026-03-23'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
-audience: identity_admins
+audience: it_ops
 service_name: User Lifecycle
 service_criticality: not_classified
 dependencies: []

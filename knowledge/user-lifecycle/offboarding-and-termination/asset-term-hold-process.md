@@ -11,7 +11,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Asset Term Hold Process
-team: Identity and Access
+team: IT Operations
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 - <HR_SYSTEM>
@@ -22,7 +22,7 @@ created: '2025-11-26'
 updated: '2026-02-17'
 last_reviewed: '2026-04-07'
 review_cadence: quarterly
-audience: identity_admins
+audience: it_ops
 related_services:
 - Endpoint Provisioning
 - Offboarding

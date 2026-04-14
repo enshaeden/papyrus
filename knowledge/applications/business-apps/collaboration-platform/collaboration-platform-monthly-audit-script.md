@@ -11,7 +11,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: <COLLABORATION_PLATFORM> Monthly audit script
-team: Identity and Access
+team: IT Operations
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 - <COLLABORATION_PLATFORM>
@@ -20,7 +20,7 @@ created: '2025-12-10'
 updated: '2025-12-18'
 last_reviewed: '2026-04-07'
 review_cadence: after_change
-audience: identity_admins
+audience: it_ops
 related_services: []
 prerequisites:
 - Review the scope, approvals, and dependencies described in this article before starting.

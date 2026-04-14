@@ -11,7 +11,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: <OFFICE_SITE_C> Loaner Location and Access for Remote Support
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <ASSET_MANAGEMENT_SYSTEM>
 tags:

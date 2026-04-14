@@ -10,7 +10,7 @@ owner: it_operations
 source_type: imported
 source_system: knowledge_portal_export
 source_title: Meeting Room User Guide - <ROOM_NAME_A>, <ROOM_NAME_B>, <ROOM_NAME_C>
-team: Workplace Engineering
+team: Systems Engineering
 systems:
 - <VIDEO_CONFERENCING_PLATFORM>
 tags:

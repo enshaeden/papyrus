@@ -29,7 +29,7 @@
     },
     {
       "handler_module": "papyrus.interfaces.web.routes.dashboard",
-      "handler_name": "trust_dashboard_page",
+      "handler_name": "oversight_dashboard_page",
       "methods": [
         "GET"
       ],
@@ -92,7 +92,7 @@
     },
     {
       "handler_module": "papyrus.interfaces.web.routes.manage",
-      "handler_name": "manage_queue_page",
+      "handler_name": "review_queue_page",
       "methods": [
         "GET"
       ],
@@ -281,7 +281,7 @@
     },
     {
       "handler_module": "papyrus.interfaces.web.routes.manage",
-      "handler_name": "manage_queue_page",
+      "handler_name": "review_queue_page",
       "methods": [
         "GET"
       ],
@@ -299,7 +299,7 @@
     },
     {
       "handler_module": "papyrus.interfaces.web.routes.dashboard",
-      "handler_name": "trust_dashboard_page",
+      "handler_name": "oversight_dashboard_page",
       "methods": [
         "GET"
       ],
@@ -404,6 +404,16 @@
       "role_group": "operator"
     },
     {
+      "handler_module": "papyrus.interfaces.web.routes.write_object",
+      "handler_name": "create_advanced_object_page",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "pattern": "/operator/write/advanced",
+      "role_group": "operator"
+    },
+    {
       "handler_module": "papyrus.interfaces.web.routes.write_search",
       "handler_name": "citation_search_endpoint",
       "methods": [
@@ -414,7 +424,7 @@
     },
     {
       "handler_module": "papyrus.interfaces.web.routes.write_object",
-      "handler_name": "create_object_page",
+      "handler_name": "create_primary_object_page",
       "methods": [
         "GET",
         "POST"
