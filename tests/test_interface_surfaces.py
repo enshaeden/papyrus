@@ -296,6 +296,11 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("--color-panel-governance-label: var(--color-brand-depth);", body)
         self.assertIn("--color-panel-governance-bg: var(--color-surface-context-panel);", body)
         self.assertIn("--color-command-highlight: var(--color-brand-hero);", body)
+        self.assertIn(
+            '--font-sans: "Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;',
+            body,
+        )
+        self.assertIn("--font-serif: var(--font-sans);", body)
 
     def test_static_layout_assets_keep_topbar_search_centered(self) -> None:
         application = web_app(self.database_path)
@@ -316,6 +321,36 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertEqual(body.count(".topbar-menu-chip.is-active {"), 1)
         self.assertEqual(body.count(".sidebar-link {"), 1)
         self.assertEqual(body.count(".page-header {"), 1)
+        self.assertNotIn("var(--font-serif)", body)
+
+    def test_static_typography_assets_use_sans_contract(self) -> None:
+        application = web_app(self.database_path)
+
+        for asset_path in (
+            "/static/css/layout.css",
+            "/static/css/pages.css",
+            "/static/css/home.css",
+            "/static/css/health.css",
+            "/static/css/services.css",
+            "/static/css/article.css",
+        ):
+            with self.subTest(asset_path=asset_path):
+                status, headers, body = call_wsgi(application, asset_path)
+                self.assertEqual(status, "200 OK")
+                self.assertEqual(headers["Content-Type"], "text/css")
+                self.assertIn("font-family: var(--font-sans);", body)
+                self.assertNotIn("var(--font-serif)", body)
+
+        for asset_path in (
+            "/static/css/activity.css",
+            "/static/css/article.css",
+            "/static/css/components.css",
+        ):
+            with self.subTest(mono_asset_path=asset_path):
+                status, headers, body = call_wsgi(application, asset_path)
+                self.assertEqual(status, "200 OK")
+                self.assertEqual(headers["Content-Type"], "text/css")
+                self.assertIn("font-family: var(--font-mono);", body)
 
     def test_static_component_assets_map_primary_and_context_tones_semantically(self) -> None:
         application = web_app(self.database_path)

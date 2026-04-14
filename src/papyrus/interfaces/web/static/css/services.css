@@ -123,9 +123,11 @@
 
 .service-pressure__metric {
   margin: 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 2rem;
-  line-height: 1;
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
   color: var(--color-accent-primary);
 }
 
