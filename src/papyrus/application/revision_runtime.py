@@ -8,6 +8,7 @@ from typing import Any
 from papyrus.application.runtime_projection import refresh_current_object_projection
 from papyrus.domain.entities import KnowledgeDocument
 from papyrus.infrastructure.markdown.parser import normalize_object_metadata
+from papyrus.infrastructure.paths import ROOT
 from papyrus.infrastructure.repositories.knowledge_repo import (
     delete_search_document,
     get_knowledge_object,
@@ -82,6 +83,7 @@ class RevisionRuntimeServices:
             as_of=review_date,
             object_ids=[object_id],
             persist=True,
+            root_path=self.source_root or ROOT,
         )
         refresh_current_object_projection(
             connection,

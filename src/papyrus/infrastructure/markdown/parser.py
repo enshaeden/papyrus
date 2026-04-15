@@ -28,18 +28,23 @@ from papyrus.infrastructure.paths import (
 LEGACY_FIELD_NOTE_PREFIX = "Legacy source does not declare structured"
 
 
-def parse_knowledge_document(path: Path) -> KnowledgeDocument:
+def parse_knowledge_document(
+    path: Path,
+    *,
+    workspace_root: Path | None = None,
+) -> KnowledgeDocument:
     text = path.read_text(encoding="utf-8")
     match = FRONT_MATTER_PATTERN.match(text)
+    display_path = relative_path(path, root=workspace_root)
     if not match:
-        raise ValueError(f"{relative_path(path)}: missing YAML front matter")
+        raise ValueError(f"{display_path}: missing YAML front matter")
     metadata = yaml.safe_load(match.group(1)) or {}
     if not isinstance(metadata, dict):
-        raise ValueError(f"{relative_path(path)}: front matter must be a YAML mapping")
+        raise ValueError(f"{display_path}: front matter must be a YAML mapping")
     body = match.group(2).strip()
     return KnowledgeDocument(
         source_path=path,
-        relative_path=relative_path(path),
+        relative_path=display_path,
         metadata=metadata,
         body=body,
     )

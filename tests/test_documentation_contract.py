@@ -50,11 +50,10 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("placeholder-heavy content", operator_readiness)
         self.assertIn("remaining technical debt", operator_readiness)
 
-    def test_getting_started_inventory_marks_retired_import_shim(self) -> None:
+    def test_getting_started_documents_explicit_source_workspace_boundary(self) -> None:
         getting_started = (ROOT / "docs" / "getting-started.md").read_text(encoding="utf-8").lower()
-        self.assertIn("retired legacy migration shim", getting_started)
-        self.assertIn("import_knowledge_portal.py", getting_started)
-        self.assertIn("decisions/index.md", getting_started)
+        self.assertIn("committed seed corpus was removed", getting_started)
+        self.assertIn("--source-root /path/to/workspace", getting_started)
         self.assertIn("/operator", getting_started)
         self.assertIn("/reader/*", getting_started)
         self.assertIn("/admin/*", getting_started)

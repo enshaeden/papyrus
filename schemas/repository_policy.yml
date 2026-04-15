@@ -1,9 +1,6 @@
 policy: repository_contract
 version: 1
 directories:
-  workspace_canonical_article_roots:
-    - knowledge
-    - archive/knowledge
   documentation_root: docs
   decisions_root: decisions
   template_root: templates
@@ -15,12 +12,10 @@ directories:
     - generated/route-map.json
     - generated/route-map.md
   allowed_top_level_directories:
-    - archive
     - build
     - decisions
     - docs
     - generated
-    - knowledge
     - reports
     - schemas
     - scripts
@@ -63,7 +58,10 @@ lifecycle:
     - deprecated
     - draft
     - archived
-path_policy:
+source_workspace:
+  article_roots:
+    - knowledge
+    - archive/knowledge
   canonical_write_roots:
     - knowledge
     - archive/knowledge

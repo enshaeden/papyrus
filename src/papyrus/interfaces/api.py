@@ -844,7 +844,7 @@ def app(
                     error="runtime_unavailable",
                     title="Runtime unavailable",
                     detail=str(exc),
-                    action="Run `python3 scripts/build_index.py` to rebuild the runtime projection.",
+                    action="Run `python3 scripts/build_index.py --source-root /path/to/workspace` to rebuild the runtime projection.",
                     category="runtime_rebuild_needed",
                 ),
             )
@@ -868,7 +868,7 @@ def app(
                     error="workspace_source_required",
                     title="Workspace source root required",
                     detail=str(exc),
-                    action="Retry the source-backed action with a workspace source root.",
+                    action="Retry the source-backed action with an explicit workspace source root.",
                     category="workspace_required",
                 ),
             )

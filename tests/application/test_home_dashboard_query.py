@@ -41,9 +41,9 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "rollback": ["Undo the remediation step."],
         "citations": [
             {
-                "source_title": "Seed import manifest",
+                "source_title": "System model",
                 "source_type": "document",
-                "source_ref": "docs/migration/seed-migration-rationale.md",
+                "source_ref": "docs/reference/system-model.md",
                 "note": "Home dashboard coverage.",
             }
         ],
@@ -52,9 +52,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "retirement_reason": None,
         "services": ["Remote Access"],
         "related_articles": [],
-        "references": [
-            {"title": "Seed import manifest", "path": "docs/migration/seed-migration-rationale.md"}
-        ],
+        "references": [{"title": "System model", "path": "docs/reference/system-model.md"}],
         "change_log": [{"date": "2026-04-09", "summary": "Initial draft.", "author": "tests"}],
     }
 

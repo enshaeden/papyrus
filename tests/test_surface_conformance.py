@@ -25,6 +25,7 @@ from papyrus.interfaces.web.app import app as web_app
 from papyrus.interfaces.web.presenters.governed_presenter import action_href
 from papyrus.infrastructure.transactional_mutation import TransactionalMutation
 from papyrus.application.writeback_flow import restore_last_writeback
+from tests.source_workspace import fixture_source_root
 from tests.web_assertions import SemanticHookAssertions
 
 
@@ -115,9 +116,9 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "rollback": ["Undo the last remediation step."],
         "citations": [
             {
-                "source_title": "Seed import manifest",
+                "source_title": "System model",
                 "source_type": "document",
-                "source_ref": "docs/migration/seed-migration-rationale.md",
+                "source_ref": "docs/reference/system-model.md",
                 "note": "Surface conformance evidence.",
             }
         ],
@@ -126,9 +127,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "retirement_reason": None,
         "services": ["Remote Access"],
         "related_articles": [],
-        "references": [
-            {"title": "Seed import manifest", "path": "docs/migration/seed-migration-rationale.md"}
-        ],
+        "references": [{"title": "System model", "path": "docs/reference/system-model.md"}],
         "change_log": [
             {"date": "2026-04-09", "summary": "Surface conformance draft.", "author": "tests"}
         ],
@@ -258,7 +257,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
     def _seed_pending_mutation(self, temp_dir: str) -> tuple[Path, Path, Path]:
         database_path = Path(temp_dir) / "runtime.db"
         source_root = Path(temp_dir) / "repo"
-        build_search_projection(database_path, workspace_root=ROOT)
+        build_search_projection(database_path, workspace_root=fixture_source_root())
         target_path = source_root / "knowledge" / "runbooks" / "startup-recovery.md"
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_path.write_text("before\n", encoding="utf-8")

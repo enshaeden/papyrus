@@ -66,26 +66,28 @@ class PolicyAuthority:
         return cls(load_policy())
 
     def canonical_write_roots(self, *, source_root: Path) -> tuple[Path, ...]:
-        configured = self.policy.get("path_policy", {}).get("canonical_write_roots", [])
+        configured = self.policy.get("source_workspace", {}).get("canonical_write_roots", [])
         return tuple(self._resolve_policy_path(source_root, item).resolve() for item in configured)
 
     def local_ingest_read_roots(self, *, source_root: Path) -> tuple[Path, ...]:
-        configured = self.policy.get("path_policy", {}).get("local_ingest_read_roots", [])
+        configured = self.policy.get("source_workspace", {}).get("local_ingest_read_roots", [])
         return tuple(self._resolve_policy_path(source_root, item).resolve() for item in configured)
 
     def mutation_root(self, *, source_root: Path) -> Path:
-        configured = str(self.policy.get("path_policy", {}).get("mutation_root", "build/mutations"))
+        configured = str(
+            self.policy.get("source_workspace", {}).get("mutation_root", "build/mutations")
+        )
         return self._resolve_policy_path(source_root, configured).resolve()
 
     def backup_root(self, *, source_root: Path) -> Path:
         configured = str(
-            self.policy.get("path_policy", {}).get("backup_root", "build/writeback-backups")
+            self.policy.get("source_workspace", {}).get("backup_root", "build/writeback-backups")
         )
         return self._resolve_policy_path(source_root, configured).resolve()
 
     def archive_root(self, *, source_root: Path) -> Path:
         configured = str(
-            self.policy.get("path_policy", {}).get("archive_root", "archive/knowledge")
+            self.policy.get("source_workspace", {}).get("archive_root", "archive/knowledge")
         )
         return self._resolve_policy_path(source_root, configured).resolve()
 
@@ -100,7 +102,7 @@ class PolicyAuthority:
             raise ValueError("Canonical path must end in .md.")
         allowed_roots = [
             Path(item).as_posix()
-            for item in self.policy.get("path_policy", {}).get("canonical_write_roots", [])
+            for item in self.policy.get("source_workspace", {}).get("canonical_write_roots", [])
         ]
         if not allow_archive:
             allowed_roots = [root for root in allowed_roots if root != "archive/knowledge"]

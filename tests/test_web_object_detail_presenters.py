@@ -80,9 +80,9 @@ DETAIL = {
     },
     "citations": [
         {
-            "source_title": "Seed manifest",
+            "source_title": "System model",
             "source_type": "document",
-            "source_ref": "docs/migration/seed-migration-rationale.md",
+            "source_ref": "docs/reference/system-model.md",
             "note": "Evidence",
             "validity_status": "verified",
         }

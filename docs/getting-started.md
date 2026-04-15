@@ -4,6 +4,8 @@ Papyrus is a governed knowledge management database that provides end users with
 
 Use this path when you need a working Papyrus runtime quickly and want the current operator workflow, not just the underlying repository surfaces.
 
+The committed seed corpus was removed from this repository. When you need source-backed authoring or sync, point Papyrus at an explicit external workspace root that contains trees such as `knowledge/` and `archive/knowledge/`.
+
 ## 1. Prepare The Environment
 
 ```bash
@@ -13,21 +15,20 @@ Use this path when you need a working Papyrus runtime quickly and want the curre
 Outcome:
 - The environment is bootstrapped.
 - Formatter, lint, and type-check tooling are installed into `.venv/`.
-- Canonical source validates cleanly.
-- The local runtime database is rebuilt in `build/knowledge.db`.
+- Repository policy, schemas, docs, route-map artifacts, and runtime dependencies validate cleanly.
 - Any content created under `build/` remains local derived state and is not source of truth.
-- Read-only runtime can later start from `build/knowledge.db` plus retained derived artifacts without requiring repo-local `knowledge/` or `archive/knowledge/`.
+- Read-only runtime can later start from `build/knowledge.db` plus retained derived artifacts without any repo-local knowledge corpus.
 
 Failure signals:
 - `validate.py` reports schema, taxonomy, metadata, citation, or link errors.
-- `build_index.py` cannot rebuild the runtime database.
+- `build_index.py --source-root /path/to/workspace` cannot rebuild the runtime database when you run a source-backed build.
 
 ## 2. Choose Your Entry Point
 
 For the default operator path:
 
 ```bash
-python3 scripts/build_index.py
+python3 scripts/build_index.py --source-root /path/to/workspace
 python3 scripts/run.py --operator
 ```
 
@@ -68,10 +69,10 @@ python3 scripts/operator_view.py activity --db build/knowledge.db --format json
 For structured drafting and import from the terminal:
 
 ```bash
-python3 scripts/operator_view.py create-draft --db build/knowledge.db --source-root . --type runbook --object-id kb-example --title "Example" --summary "Example" --owner it_operations --team "IT Operations" --canonical-path knowledge/examples/example.md
-python3 scripts/operator_view.py edit-section --db build/knowledge.db --source-root . --object kb-example --revision <revision_id> --section purpose --field use_when="Use this when the blueprint applies."
-python3 scripts/operator_view.py show-progress --db build/knowledge.db --source-root . --object kb-example --revision <revision_id>
-python3 scripts/ingest.py --source-root . path/to/source.docx
+python3 scripts/operator_view.py create-draft --db build/knowledge.db --source-root /path/to/workspace --type runbook --object-id kb-example --title "Example" --summary "Example" --owner it_operations --team "IT Operations" --canonical-path knowledge/examples/example.md
+python3 scripts/operator_view.py edit-section --db build/knowledge.db --source-root /path/to/workspace --object kb-example --revision <revision_id> --section purpose --field use_when="Use this when the blueprint applies."
+python3 scripts/operator_view.py show-progress --db build/knowledge.db --source-root /path/to/workspace --object kb-example --revision <revision_id>
+python3 scripts/ingest.py --source-root /path/to/workspace path/to/source.docx
 python3 scripts/operator_view.py list-ingestions --db build/knowledge.db
 python3 scripts/operator_view.py review-ingestion <ingestion_id> --db build/knowledge.db
 ```
@@ -113,7 +114,7 @@ Guardrail:
 
 ## 4. Use The Right Source
 
-- Canonical knowledge lives in workspace source trees such as `knowledge/` and `archive/knowledge/`.
+- Canonical knowledge is not committed to this repository. When source-backed workflows are in scope, it lives in the explicit workspace source root you pass to Papyrus.
 - Repository decisions live in `decisions/`.
 - Operator and reference docs live in `docs/`.
 - Derived output in `generated/` and `build/` is rebuildable and not authoritative.
@@ -138,5 +139,4 @@ Guardrail:
 | Serve and operator entrypoints | `run.py`, `serve.sh`, `serve_web.py`, `serve_api.py`, `operator_view.py`, `search.py` | Web, API, shell, and operator-facing read/manage entrypoints. |
 | Authoring, import, and source mutation | `new_article.py`, `ingest.py`, `ingest_event.py`, `source_sync.py` | Create or ingest knowledge, record events, and manage governed source synchronization. |
 | Engineering gate | `check.sh`, `format.sh`, `lint.sh`, `typecheck.sh` | Formatter, lint, type-check, and full engineering gate commands. |
-| Reporting, demo, and migration | `report_stale.py`, `report_content_health.py`, `demo_runtime.py`, `run_scenario.py`, `validate_migration.py` | Reporting, demo/runtime seeding, scenario exercises, and migration validation. |
-| Retired legacy migration shim | `import_knowledge_portal.py` | Stable filename kept for compatibility only. The command is retired and points operators to `decisions/index.md` plus the maintained migration rationale under `docs/migration/`. |
+| Reporting and demo | `report_stale.py`, `report_content_health.py`, `demo_runtime.py`, `run_scenario.py` | Reporting, demo/runtime seeding, and scenario exercises. |

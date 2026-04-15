@@ -47,7 +47,7 @@ def main() -> int:
     mode.add_argument(
         "--operator",
         action="store_true",
-        help="Rebuild the operator runtime, then start both local surfaces.",
+        help="Start both local operator surfaces against the selected runtime database.",
     )
     parser.add_argument(
         "--host", default="127.0.0.1", help="Bind host for both web and API servers."
@@ -128,7 +128,7 @@ def main() -> int:
     print(f"Runtime DB: {database_path}")
     print(f"Source root: {source_root}")
     print(
-        "Local web root / redirects to /operator. Start with Home to see next actions, lifecycle work areas, and recent operational activity."
+        "Local web root / redirects to /operator. Rebuild the runtime separately with `python3 scripts/build_index.py --source-root /path/to/workspace` when source-backed data must change."
     )
     try:
         web_thread.join()

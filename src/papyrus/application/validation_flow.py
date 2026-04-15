@@ -811,28 +811,35 @@ def validate_runtime_artifacts() -> list[ValidationIssue]:
     return issues
 
 
-def validate_repository(*, workspace_root: Path) -> list[ValidationIssue]:
-    resolved_workspace_root = require_workspace_source_root(
-        workspace_root,
-        operation="workspace validation",
-    )
+def validate_repository(*, source_workspace_root: Path | None = None) -> list[ValidationIssue]:
     policy = load_policy()
     object_schemas = load_object_schemas()
     legacy_schema = load_schema()
     taxonomies = load_taxonomies()
-    documents = load_knowledge_documents(resolved_workspace_root, policy)
     issues: list[ValidationIssue] = []
     issues.extend(validate_runtime_artifacts())
     issues.extend(validate_directory_contract(policy))
-    issues.extend(
-        validate_knowledge_documents(documents, object_schemas, legacy_schema, taxonomies, policy)
-    )
-    issues.extend(validate_docs_duplication(documents, policy))
+    documents: list[KnowledgeDocument] = []
+    source_markdown_paths: list[Path] = []
+    resolved_source_workspace_root: Path | None = None
+    if source_workspace_root is not None:
+        resolved_source_workspace_root = require_workspace_source_root(
+            source_workspace_root,
+            operation="source workspace validation",
+        )
+        documents = load_knowledge_documents(resolved_source_workspace_root, policy)
+        source_markdown_paths = collect_article_paths(resolved_source_workspace_root, policy)
+        issues.extend(
+            validate_knowledge_documents(
+                documents, object_schemas, legacy_schema, taxonomies, policy
+            )
+        )
+        issues.extend(validate_docs_duplication(documents, policy))
     markdown_paths = (
         collect_root_markdown_paths()
         + collect_docs_source_paths()
         + collect_decision_paths()
-        + collect_article_paths(resolved_workspace_root, policy)
+        + source_markdown_paths
     )
     documentation_paths = (
         collect_root_markdown_paths() + collect_docs_source_paths() + collect_decision_paths()
@@ -848,7 +855,14 @@ def validate_repository(*, workspace_root: Path) -> list[ValidationIssue]:
     issues.extend(validate_documented_repository_paths(documentation_paths))
     issues.extend(validate_documented_web_routes(documentation_paths))
     issues.extend(validate_static_asset_references())
-    issues.extend(validate_sanitization(collect_sanitization_paths(policy)))
+    issues.extend(
+        validate_sanitization(
+            collect_sanitization_paths(
+                policy,
+                source_workspace_root=resolved_source_workspace_root,
+            )
+        )
+    )
     return issues
 
 

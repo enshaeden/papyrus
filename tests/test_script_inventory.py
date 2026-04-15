@@ -14,7 +14,6 @@ WRAPPER_IMPORTS = {
     "new_article.py": "from papyrus.interfaces.new_article_cli import main",
     "run.py": "from papyrus.interfaces.local_runtime_cli import main",
     "source_sync.py": "from papyrus.interfaces.source_sync_cli import main",
-    "validate_migration.py": "from papyrus.jobs.migration_validation import main",
 }
 
 
@@ -44,8 +43,6 @@ class ScriptInventoryTests(unittest.TestCase):
                 msg=f"{script_name} should bootstrap src/ before import",
             )
 
-    def test_retired_import_shim_points_to_decision_and_migration_record(self) -> None:
-        script_text = (SCRIPTS_DIR / "import_knowledge_portal.py").read_text(encoding="utf-8")
-        self.assertIn("retired and unsupported", script_text)
-        self.assertIn("decisions/index.md", script_text)
-        self.assertIn("docs/migration/seed-migration-rationale.md", script_text)
+    def test_removed_migration_scripts_are_not_present(self) -> None:
+        self.assertFalse((SCRIPTS_DIR / "import_knowledge_portal.py").exists())
+        self.assertFalse((SCRIPTS_DIR / "validate_migration.py").exists())

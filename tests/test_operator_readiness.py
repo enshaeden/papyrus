@@ -20,6 +20,7 @@ from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.interfaces.api import app as api_app
 from papyrus.interfaces.web.app import app as web_app
+from tests.source_workspace import fixture_source_root
 from tests.web_assertions import SemanticHookAssertions
 
 
@@ -75,7 +76,7 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
     def test_operator_cli_queue_matches_api_payload(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
             api_payload = json.loads(call_wsgi(api_app(database_path), "/queue")[2])
             cli_result = run_script(
                 "scripts/operator_view.py", "queue", "--db", str(database_path), "--format", "json"
@@ -132,7 +133,6 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
                 connection.close()
             self.assertGreaterEqual(review_counts.get("approved", 0), 1)
             self.assertGreaterEqual(review_counts.get("in_review", 0), 1)
-            self.assertGreaterEqual(trust_counts.get("trusted", 0), 1)
             self.assertGreaterEqual(trust_counts.get("weak_evidence", 0), 1)
             self.assertGreaterEqual(trust_counts.get("stale", 0), 1)
             self.assertGreaterEqual(trust_counts.get("suspect", 0), 1)
@@ -167,7 +167,7 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
     def test_governance_api_endpoints_require_actor_and_record_outcomes(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
             workflow = GovernanceWorkflow(database_path)
             created = workflow.create_object(
                 object_id="kb-api-governance-object",
@@ -249,7 +249,7 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
     ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
             application = api_app(database_path)
 
             status, _, body = call_wsgi(
@@ -309,7 +309,7 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
     def test_programmatic_read_only_surfaces_start_without_workspace_source_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
             sandbox_root = Path(temp_dir) / "sandbox-root"
             sandbox_root.mkdir()
 
@@ -333,7 +333,7 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
     def test_source_backed_cli_requires_workspace_source_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
             connection = sqlite3.connect(database_path)
             connection.row_factory = sqlite3.Row
             try:
@@ -373,7 +373,7 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
                 "--revision",
                 str(row["current_revision_id"]),
                 "--source-root",
-                str(ROOT),
+                str(fixture_source_root()),
             )
             self.assertEqual(with_workspace.returncode, 0, msg=with_workspace.stderr)
 

@@ -29,7 +29,7 @@ When files or outputs disagree, use this order of authority unless a deeper `AGE
 1. `schemas/` for field definitions, validation rules, and repository policy definitions
 2. `taxonomies/` for controlled vocabularies and classification structures
 3. `templates/` for approved content structures and authoring patterns
-4. `knowledge/` and `archive/knowledge/` for canonical knowledge objects and entries
+4. explicit external workspace source trees such as `knowledge/` and `archive/knowledge/` when a task includes source-backed content
 5. `decisions/` for intentional deviations, design rationale, and governance records
 6. `src/` for application source code for system behaviour and interfaces
 7. `docs/` for explanatory and operational documentation
@@ -39,14 +39,14 @@ Rendered, indexed, exported, copied, cached, or generated outputs are never auth
 
 ## Runtime Boundary
 
-- Canonical knowledge source lives in workspace source trees such as `knowledge/` and `archive/knowledge/`.
+- This repository does not ship a canonical knowledge corpus. Source-backed work uses explicit workspace source trees such as `knowledge/` and `archive/knowledge/`.
 - Shipped and read-only runtime surfaces must boot from the runtime database plus retained derived artifacts. They must not universally require repo-local source Markdown.
 - Source-backed authoring, writeback, sync, ingest conversion, and similar source-dependent mutations are workspace-only operations.
 - Runtime packaging may exclude workspace source trees as long as the runtime database and retained derived artifacts required by read-only surfaces are present.
 
 ## Canonical Content Rules
 
-- Canonical knowledge articles and objects live only under `knowledge/` and `archive/knowledge/`.
+- Canonical knowledge articles and objects are not committed to this repository. When source-backed operations are in scope, they live only under explicit workspace roots such as `knowledge/` and `archive/knowledge/`.
 - Canonical explanatory documentation lives only under `docs/`.
 - Architectural and governance decisions live under `decisions/`.
 - Controlled vocabularies live only under `taxonomies/`.
@@ -118,7 +118,7 @@ Interface-specific execution rules belong in subtree `AGENTS.md` files for the r
 ## Canonical Content Governance
 
 Canonical knowledge content must comply with the governing schemas, taxonomies, templates, and lifecycle policy.
-Detailed knowledge-object and metadata rules are defined in `knowledge/AGENTS.md`.
+Detailed knowledge-object and metadata rules are defined by the repository schemas, templates, and lifecycle policy.
 Changes to schemas or taxonomies require rationale recorded in `decisions/`.
 
 ## Ingestion and Transformation Rules
@@ -227,7 +227,6 @@ Strong candidates include:
 - `apps/web/` for layout, navigation, reading mode, and design-system rules
 - `apps/cli/` for command behaviour and output expectations
 - `docs/` for documentation drift and evidence standards
-- `knowledge/` for content object and lifecycle handling
 - generator or importer directories for transformation-specific guardrails
 
 The deeper file must narrow or extend these rules, not contradict them without explicit rationale.

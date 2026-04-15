@@ -171,7 +171,7 @@ Do not let the docs describe a cleaner UI than the one that actually ships.
 This web surface ships through the Python application and WSGI entrypoints in `scripts/serve_web.py` and `scripts/run.py --operator`.
 Use `docs/guides/experience-conformance-checklist.md` as a review checklist when reviewing route, shell, role-visibility, and workflow-surface changes. The authoritative constraints live under `decisions/`.
 
-- dev: `python3 scripts/serve_web.py --db build/knowledge.db --source-root .`
+- dev: `python3 scripts/serve_web.py --db build/knowledge.db --source-root /path/to/workspace`
 - format: `./scripts/format.sh`
 - lint: `./scripts/lint.sh`
 - typecheck: `./scripts/typecheck.sh`

@@ -20,6 +20,8 @@ from papyrus.infrastructure.storage.evidence_store import EvidenceStore
 from papyrus.jobs.stale_scan import cadence_to_days
 
 LOCAL_EVIDENCE_PREFIXES = ("knowledge/", "archive/knowledge/", "docs/", "decisions/")
+WORKSPACE_LOCAL_EVIDENCE_PREFIXES = ("knowledge/", "archive/knowledge/")
+REPOSITORY_LOCAL_EVIDENCE_PREFIXES = ("docs/", "decisions/")
 
 
 @dataclass(frozen=True)
@@ -39,11 +41,15 @@ class CitationScanResult:
     counts_by_object: dict[str, dict[str, int]]
 
 
-def resolve_local_evidence_path(source_ref: str) -> Path | None:
+def resolve_local_evidence_path(source_ref: str, *, root_path: Path = ROOT) -> Path | None:
     normalized = source_ref.strip()
     if not normalized.startswith(LOCAL_EVIDENCE_PREFIXES):
         return None
-    return (ROOT / normalized).resolve()
+    if normalized.startswith(WORKSPACE_LOCAL_EVIDENCE_PREFIXES):
+        return (root_path / normalized).resolve()
+    if normalized.startswith(REPOSITORY_LOCAL_EVIDENCE_PREFIXES):
+        return (ROOT / normalized).resolve()
+    return None
 
 
 def current_integrity_hash(path: Path) -> str:
@@ -70,7 +76,7 @@ def classify_citation(
     evidence_last_validated_at = row["evidence_last_validated_at"]
     object_last_reviewed = parse_iso_date(row["object_last_reviewed"])
     cadence_days = cadence_to_days(str(row["object_review_cadence"]), taxonomies)
-    local_path = resolve_local_evidence_path(source_ref)
+    local_path = resolve_local_evidence_path(source_ref, root_path=root_path)
     evidence_store = EvidenceStore(root_path=root_path)
 
     if evidence_snapshot_path:

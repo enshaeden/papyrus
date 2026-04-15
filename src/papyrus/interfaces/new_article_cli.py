@@ -67,7 +67,7 @@ def render_inline_list(values: list[str]) -> str:
 
 def load_existing_article_records(root: Path, policy: dict[str, object]) -> list[dict[str, object]]:
     records = []
-    for directory in policy["directories"]["workspace_canonical_article_roots"]:
+    for directory in policy["source_workspace"]["article_roots"]:
         base = root / directory
         if not base.exists():
             continue
@@ -275,9 +275,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    root = Path(args.root).resolve() if args.root else ROOT
-    policy = load_policy(root / "schemas" / "repository_policy.yml")
-    taxonomies = load_taxonomies(root / "taxonomies")
+    root = Path(args.root).resolve() if args.root else None
+    policy = load_policy(ROOT / "schemas" / "repository_policy.yml")
+    taxonomies = load_taxonomies(ROOT / "taxonomies")
     supported_types = scaffoldable_object_types(policy)
 
     if args.list_taxonomy:
@@ -292,6 +292,8 @@ def main() -> int:
         parser.error(
             "--title and --type are required unless --list-taxonomy or --list-object-types is used."
         )
+    if root is None:
+        parser.error("--root is required when creating a source-backed knowledge object scaffold.")
 
     def ensure_allowed(value: str, taxonomy_name: str, field_name: str) -> None:
         allowed = set(taxonomies[taxonomy_name]["allowed_values"])
@@ -343,7 +345,7 @@ def main() -> int:
             print(f"related knowledge object not found: {related_id}", file=sys.stderr)
             return 1
 
-    template_path = root / "templates" / f"{family}.md"
+    template_path = ROOT / "templates" / f"{family}.md"
     template_text = template_path.read_text(encoding="utf-8")
     today = dt.date.today().isoformat()
 

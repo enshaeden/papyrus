@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.interfaces.api import app as api_app
 from papyrus.interfaces.web.app import app as web_app
+from tests.source_workspace import fixture_source_root
 from tests.web_assertions import SemanticHookAssertions
 
 
@@ -76,7 +77,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.database_path = Path(cls.temp_dir.name) / "runtime.db"
-        build_search_projection(cls.database_path, workspace_root=ROOT)
+        build_search_projection(cls.database_path, workspace_root=fixture_source_root())
         connection = sqlite3.connect(cls.database_path)
         connection.row_factory = sqlite3.Row
         try:
@@ -468,7 +469,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"
             source_root = Path(temp_dir) / "repo"
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
             application = api_app(database_path, source_root=source_root)
 
             status, _, body = call_wsgi(
