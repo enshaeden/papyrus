@@ -28,7 +28,7 @@ from papyrus.application.validation_flow import (
 from papyrus.application.validation_flow import (
     validate_knowledge_documents as validate_articles,
 )
-from papyrus.application.workspace import repository_workspace_root
+from papyrus.application.workspace import require_workspace_source_root
 from papyrus.domain.entities import (
     BrokenLink,
     DocsPlacementWarning,
@@ -64,7 +64,6 @@ from papyrus.infrastructure.markdown.serializer import (
 )
 from papyrus.infrastructure.paths import (
     ADDRESS_PATTERN,
-    ARCHIVE_KNOWLEDGE_DIR,
     BARE_PLACEHOLDER_PATTERN,
     BRANDED_ADMIN_PATTERNS,
     BUILD_DIR,
@@ -79,7 +78,6 @@ from papyrus.infrastructure.paths import (
     GENERATED_DIR,
     GENERIC_BRAND_ALLOWLIST,
     IP_PATTERN,
-    KNOWLEDGE_DIR,
     LEGACY_GENERATED_DOCS_DIR,
     LIKELY_BRANDED_PRODUCT_PATTERN,
     MARKDOWN_LINK_PATTERN,
@@ -118,8 +116,11 @@ from papyrus.jobs.stale_scan import cadence_to_days
 from papyrus.jobs.stale_scan import stale_documents as stale_articles
 
 
-def article_roots(policy=None):
-    return workspace_knowledge_source_roots(repository_workspace_root(), policy)
+def article_roots(workspace_root, policy=None):
+    return workspace_knowledge_source_roots(
+        require_workspace_source_root(workspace_root, operation="legacy article root lookup"),
+        policy,
+    )
 
 
 __all__ = [name for name in globals() if not name.startswith("_")]

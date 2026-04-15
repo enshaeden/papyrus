@@ -18,6 +18,7 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     load_schema,
     load_taxonomies,
 )
+from tests.source_workspace import fixture_source_root
 
 
 def _citation() -> list[dict[str, object]]:
@@ -42,10 +43,11 @@ class BlueprintValidationTests(unittest.TestCase):
         self.legacy_schema = load_schema()
         self.taxonomies = load_taxonomies()
         self.policy = load_policy()
+        self.fixture_root = fixture_source_root()
 
     def test_legacy_runbook_uses_blueprint_fallback_without_failing_required_sections(self) -> None:
         document = KnowledgeDocument(
-            source_path=ROOT / "knowledge" / "tests" / "legacy-runbook.md",
+            source_path=self.fixture_root / "knowledge" / "tests" / "legacy-runbook.md",
             relative_path="knowledge/tests/legacy-runbook.md",
             metadata={
                 "id": "kb-tests-legacy-runbook",
@@ -114,7 +116,7 @@ class BlueprintValidationTests(unittest.TestCase):
 
     def test_native_runbook_without_required_blueprint_sections_still_fails(self) -> None:
         document = KnowledgeDocument(
-            source_path=ROOT / "knowledge" / "tests" / "native-runbook.md",
+            source_path=self.fixture_root / "knowledge" / "tests" / "native-runbook.md",
             relative_path="knowledge/tests/native-runbook.md",
             metadata={
                 "id": "kb-tests-native-runbook",
@@ -177,7 +179,7 @@ class BlueprintValidationTests(unittest.TestCase):
 
     def test_native_policy_without_required_blueprint_sections_still_fails(self) -> None:
         document = KnowledgeDocument(
-            source_path=ROOT / "knowledge" / "tests" / "native-policy.md",
+            source_path=self.fixture_root / "knowledge" / "tests" / "native-policy.md",
             relative_path="knowledge/tests/native-policy.md",
             metadata={
                 "id": "kb-tests-native-policy",
@@ -237,7 +239,7 @@ class BlueprintValidationTests(unittest.TestCase):
 
     def test_native_system_design_without_required_blueprint_sections_still_fails(self) -> None:
         document = KnowledgeDocument(
-            source_path=ROOT / "knowledge" / "tests" / "native-system-design.md",
+            source_path=self.fixture_root / "knowledge" / "tests" / "native-system-design.md",
             relative_path="knowledge/tests/native-system-design.md",
             metadata={
                 "id": "kb-tests-native-system-design",

@@ -8,7 +8,7 @@ Use this page when you need the minimum shared model behind Papyrus. Each rule i
 
 Papyrus keeps governed mutation meaning in shared backend contracts, rebuildable derived state, and two governed construction flows:
 
-- Canonical source: workspace Markdown knowledge under trees such as `knowledge/` and `archive/knowledge/`
+- Canonical source: explicit workspace Markdown knowledge under trees such as `knowledge/` and `archive/knowledge/`
 - Runtime derived state: rebuildable relational state and local workbench artifacts under `build/` used for validation, search, reporting, revision history, trust, governance views, ingestion review, and demo seeding
 - Derived build outputs: rebuildable artifacts under `generated/` for retained runtime and build contracts such as the route map
 - Blueprint authoring flow: structured draft creation and revision driven by blueprint sections
@@ -18,7 +18,7 @@ If these layers disagree, canonical source wins and the runtime or derived build
 
 Read-only runtime boundary:
 - Runtime startup depends on the runtime database plus retained runtime artifacts such as `generated/route-map.json` and `generated/route-map.md`.
-- Read-only runtime does not universally require repo-local `knowledge/` or `archive/knowledge/`.
+- Read-only runtime does not require a repo-local canonical corpus.
 - Source-backed authoring, ingest conversion, source sync, and other canonical-source mutations require an explicit workspace source root.
 
 ## Reference
@@ -62,22 +62,22 @@ Papyrus does not treat compatibility aliases such as `status`, `revision_state`,
 
 ```bash
 python3 scripts/validate.py
-python3 scripts/build_index.py
-python3 scripts/ingest.py --source-root . path/to/source.md
-python3 scripts/operator_view.py create-draft --db build/knowledge.db --source-root . --type runbook --object-id kb-example --title "Example" --summary "Example" --owner it_operations --team "IT Operations" --canonical-path knowledge/examples/example.md
-python3 scripts/operator_view.py show-progress --db build/knowledge.db --source-root . --object kb-example --revision <revision_id>
+python3 scripts/build_index.py --source-root /path/to/workspace
+python3 scripts/ingest.py --source-root /path/to/workspace path/to/source.md
+python3 scripts/operator_view.py create-draft --db build/knowledge.db --source-root /path/to/workspace --type runbook --object-id kb-example --title "Example" --summary "Example" --owner it_operations --team "IT Operations" --canonical-path knowledge/examples/example.md
+python3 scripts/operator_view.py show-progress --db build/knowledge.db --source-root /path/to/workspace --object kb-example --revision <revision_id>
 python3 scripts/operator_view.py list-ingestions
 python3 scripts/report_stale.py
 python3 scripts/report_content_health.py --section citation-health --section suspect-objects
 python3 scripts/run.py --operator
-python3 scripts/source_sync.py --source-root . writeback-all
+python3 scripts/source_sync.py --source-root /path/to/workspace writeback-all
 python3 scripts/ingest_event.py --type service_change --entity Remote\\ Access --payload payload.json
 python3 scripts/operator_view.py events --db build/knowledge.db --format json
 ```
 
 ## Practical Rules
 
-- Edit canonical knowledge in workspace source trees such as `knowledge/` or `archive/knowledge/`.
+- Edit canonical knowledge only in the explicit workspace source tree supplied for source-backed operations.
 - Start new authoring from the primary template set unless you intentionally need the advanced route.
 - Route external documents through the import workbench before they become drafts.
 - Use `/operator/write/advanced` only when the draft belongs to a deferred blueprint class such as policy or system design.

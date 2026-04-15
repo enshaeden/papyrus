@@ -6,21 +6,30 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from shutil import copytree
-
+from shutil import copytree, ignore_patterns
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 
-def run_command(*args: str) -> subprocess.CompletedProcess[str]:
+def run_command(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, *args],
-        cwd=ROOT,
+        cwd=cwd or ROOT,
         text=True,
         capture_output=True,
         check=False,
     )
+
+
+def copy_repo_for_cli(destination: Path) -> Path:
+    target = destination / "repo"
+    copytree(
+        ROOT,
+        target,
+        ignore=ignore_patterns(".git", ".venv", "__pycache__", "site", "site_docs"),
+    )
+    return target
 
 
 class CliWorkflowTests(unittest.TestCase):
@@ -100,77 +109,121 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertIn("service_record", result.stdout)
 
     def test_validate_cli(self) -> None:
-        result = run_command("scripts/validate.py")
-        self.assertEqual(result.returncode, 0, msg=result.stderr)
-        self.assertIn("validated", result.stdout)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = copy_repo_for_cli(Path(temp_dir))
+            result = run_command("scripts/validate.py", cwd=repo_root)
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("validated", result.stdout)
 
-    def test_build_sh_builds_runtime_without_static_export(self) -> None:
-        result = subprocess.run(
-            ["bash", "scripts/build.sh"],
-            cwd=ROOT,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        self.assertEqual(result.returncode, 0, msg=result.stderr)
-        self.assertIn("validated", result.stdout)
-        self.assertIn("knowledge.db", result.stdout)
+    def test_build_sh_validates_repo_contract_without_source_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = copy_repo_for_cli(Path(temp_dir))
+            result = subprocess.run(
+                ["bash", "scripts/build.sh"],
+                cwd=repo_root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("validated repo contract", result.stdout)
+
+    def test_build_sh_builds_runtime_with_explicit_source_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = copy_repo_for_cli(Path(temp_dir))
+            result = subprocess.run(
+                [
+                    "bash",
+                    "scripts/build.sh",
+                    "--source-root",
+                    str(repo_root / "tests" / "fixtures" / "source_workspace"),
+                ],
+                cwd=repo_root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("validated repo contract and", result.stdout)
+            self.assertIn("knowledge.db", result.stdout)
+
+    def test_build_index_cli_requires_explicit_source_root(self) -> None:
+        result = run_command("scripts/build_index.py")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--source-root", result.stderr)
 
     def test_build_index_and_search_cli(self) -> None:
-        build_result = run_command("scripts/build_index.py")
-        self.assertEqual(build_result.returncode, 0, msg=build_result.stderr)
-        self.assertIn("knowledge.db", build_result.stdout)
-        connection = sqlite3.connect(ROOT / "build" / "knowledge.db")
-        connection.row_factory = sqlite3.Row
-        try:
-            table_names = {
-                row[0]
-                for row in connection.execute(
-                    "SELECT name FROM sqlite_master WHERE type IN ('table', 'view')"
-                ).fetchall()
-            }
-            citation_statuses = {
-                row["validity_status"]: row["item_count"]
-                for row in connection.execute(
-                    "SELECT validity_status, COUNT(*) AS item_count FROM citations GROUP BY validity_status"
-                ).fetchall()
-            }
-            citation_validation_row = connection.execute(
-                "SELECT run_type, status FROM validation_runs WHERE run_type = 'citation_scan' ORDER BY completed_at DESC LIMIT 1"
-            ).fetchone()
-            after_change_row = connection.execute(
-                """
-                SELECT freshness_rank
-                FROM search_documents
-                WHERE object_id = 'kb-applications-access-and-license-management-add-productivity-platform-licenses'
-                """
-            ).fetchone()
-        finally:
-            connection.close()
-        self.assertIn("knowledge_objects", table_names)
-        self.assertIn("knowledge_revisions", table_names)
-        self.assertIn("citations", table_names)
-        self.assertIn("services", table_names)
-        self.assertIn("relationships", table_names)
-        self.assertIn("review_assignments", table_names)
-        self.assertIn("validation_runs", table_names)
-        self.assertIn("audit_events", table_names)
-        self.assertIn("search_documents", table_names)
-        self.assertNotIn("articles", table_names)
-        self.assertIn("unverified", citation_statuses)
-        self.assertIn("verified", citation_statuses)
-        self.assertIsNotNone(citation_validation_row)
-        self.assertEqual(citation_validation_row["run_type"], "citation_scan")
-        self.assertEqual(after_change_row["freshness_rank"], 0)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = copy_repo_for_cli(Path(temp_dir))
+            source_root = repo_root / "tests" / "fixtures" / "source_workspace"
+            build_result = run_command(
+                "scripts/build_index.py",
+                "--source-root",
+                str(source_root),
+                cwd=repo_root,
+            )
+            self.assertEqual(build_result.returncode, 0, msg=build_result.stderr)
+            self.assertIn("knowledge.db", build_result.stdout)
+            connection = sqlite3.connect(repo_root / "build" / "knowledge.db")
+            connection.row_factory = sqlite3.Row
+            try:
+                table_names = {
+                    row[0]
+                    for row in connection.execute(
+                        "SELECT name FROM sqlite_master WHERE type IN ('table', 'view')"
+                    ).fetchall()
+                }
+                citation_statuses = {
+                    row["validity_status"]: row["item_count"]
+                    for row in connection.execute(
+                        "SELECT validity_status, COUNT(*) AS item_count FROM citations GROUP BY validity_status"
+                    ).fetchall()
+                }
+                citation_validation_row = connection.execute(
+                    "SELECT run_type, status FROM validation_runs WHERE run_type = 'citation_scan' ORDER BY completed_at DESC LIMIT 1"
+                ).fetchone()
+                after_change_row = connection.execute(
+                    """
+                    SELECT freshness_rank
+                    FROM search_documents
+                    WHERE object_id = 'kb-applications-access-and-license-management-add-productivity-platform-licenses'
+                    """
+                ).fetchone()
+            finally:
+                connection.close()
+            self.assertIn("knowledge_objects", table_names)
+            self.assertIn("knowledge_revisions", table_names)
+            self.assertIn("citations", table_names)
+            self.assertIn("services", table_names)
+            self.assertIn("relationships", table_names)
+            self.assertIn("review_assignments", table_names)
+            self.assertIn("validation_runs", table_names)
+            self.assertIn("audit_events", table_names)
+            self.assertIn("search_documents", table_names)
+            self.assertNotIn("articles", table_names)
+            self.assertIn("unverified", citation_statuses)
+            self.assertIn("verified", citation_statuses)
+            self.assertIsNotNone(citation_validation_row)
+            self.assertEqual(citation_validation_row["run_type"], "citation_scan")
+            self.assertEqual(after_change_row["freshness_rank"], 0)
 
-        search_result = run_command("scripts/search.py", "vpn")
-        self.assertEqual(search_result.returncode, 0, msg=search_result.stderr)
-        self.assertIn("VPN Troubleshooting", search_result.stdout)
+            search_result = run_command("scripts/search.py", "vpn", cwd=repo_root)
+            self.assertEqual(search_result.returncode, 0, msg=search_result.stderr)
+            self.assertIn("VPN Troubleshooting", search_result.stdout)
 
     def test_stale_report_for_seed_date(self) -> None:
-        result = run_command("scripts/report_stale.py", "--as-of", "2026-04-07")
-        self.assertEqual(result.returncode, 0, msg=result.stderr)
-        self.assertIn("no stale knowledge objects found", result.stdout)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = copy_repo_for_cli(Path(temp_dir))
+            result = run_command(
+                "scripts/report_stale.py",
+                "--as-of",
+                "2026-04-07",
+                "--source-root",
+                str(repo_root / "tests" / "fixtures" / "source_workspace"),
+                cwd=repo_root,
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("no stale knowledge objects found", result.stdout)
 
     def test_content_health_report_cli(self) -> None:
         result = run_command("scripts/report_content_health.py", "--section", "duplicates")
@@ -178,11 +231,24 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertIn("[duplicates]", result.stdout)
 
     def test_content_health_report_citation_section(self) -> None:
-        run_command("scripts/build_index.py")
-        result = run_command("scripts/report_content_health.py", "--section", "citation-health")
-        self.assertEqual(result.returncode, 0, msg=result.stderr)
-        self.assertIn("[citation-health]", result.stdout)
-        self.assertIn("kb-runbooks-laptop-provisioning", result.stdout)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = copy_repo_for_cli(Path(temp_dir))
+            source_root = repo_root / "tests" / "fixtures" / "source_workspace"
+            run_command(
+                "scripts/build_index.py",
+                "--source-root",
+                str(source_root),
+                cwd=repo_root,
+            )
+            result = run_command(
+                "scripts/report_content_health.py",
+                "--section",
+                "citation-health",
+                cwd=repo_root,
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("[citation-health]", result.stdout)
+            self.assertIn("kb-runbooks-laptop-provisioning", result.stdout)
 
     def test_content_health_report_docs_warning_section(self) -> None:
         result = run_command("scripts/report_content_health.py", "--section", "knowledge-like-docs")
@@ -190,42 +256,44 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertIn("[knowledge-like-docs]", result.stdout)
 
     def test_content_health_report_usefulness_sections(self) -> None:
-        build_result = run_command("scripts/build_index.py")
-        self.assertEqual(build_result.returncode, 0, msg=build_result.stderr)
-        result = run_command(
-            "scripts/report_content_health.py",
-            "--section",
-            "placeholder-heavy",
-            "--section",
-            "weak-evidence",
-            "--section",
-            "migration-gaps",
-        )
-        self.assertEqual(result.returncode, 0, msg=result.stderr)
-        self.assertIn("[placeholder-heavy]", result.stdout)
-        self.assertIn("[weak-evidence]", result.stdout)
-        self.assertIn("[migration-gaps]", result.stdout)
-        self.assertIn(
-            "kb-applications-access-and-license-management-add-productivity-platform-licenses",
-            result.stdout,
-        )
-        self.assertIn(
-            "kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide",
-            result.stdout,
-        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = copy_repo_for_cli(Path(temp_dir))
+            source_root = repo_root / "tests" / "fixtures" / "source_workspace"
+            build_result = run_command(
+                "scripts/build_index.py",
+                "--source-root",
+                str(source_root),
+                cwd=repo_root,
+            )
+            self.assertEqual(build_result.returncode, 0, msg=build_result.stderr)
+            result = run_command(
+                "scripts/report_content_health.py",
+                "--source-root",
+                str(source_root),
+                "--section",
+                "placeholder-heavy",
+                "--section",
+                "weak-evidence",
+                "--section",
+                "migration-gaps",
+                cwd=repo_root,
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("[placeholder-heavy]", result.stdout)
+            self.assertIn("[weak-evidence]", result.stdout)
+            self.assertIn("[migration-gaps]", result.stdout)
+            self.assertIn(
+                "kb-applications-access-and-license-management-add-productivity-platform-licenses",
+                result.stdout,
+            )
+            self.assertIn(
+                "kb-troubleshooting-audio-video-boardrooms-standard-av-room-user-guide",
+                result.stdout,
+            )
 
-    def test_retired_import_shim_returns_deterministic_message(self) -> None:
-        result = run_command("scripts/import_knowledge_portal.py")
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("retired and unsupported", result.stderr)
-        self.assertIn("decisions/index.md", result.stderr)
-        self.assertIn("docs/migration/seed-migration-rationale.md", result.stderr)
-        self.assertIn("scripts/validate_migration.py", result.stderr)
-
-    def test_validate_migration_cli(self) -> None:
-        result = run_command("scripts/validate_migration.py")
-        self.assertEqual(result.returncode, 0, msg=result.stderr)
-        self.assertIn("migration validation passed", result.stdout)
+    def test_retired_migration_scripts_are_removed(self) -> None:
+        self.assertFalse((ROOT / "scripts" / "import_knowledge_portal.py").exists())
+        self.assertFalse((ROOT / "scripts" / "validate_migration.py").exists())
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ from papyrus.application.impact_flow import (
     relationless_documents,
 )
 from papyrus.application.validation_flow import _uses_legacy_blueprint_fallback, orphaned_files
-from papyrus.application.workspace import repository_workspace_root
+from papyrus.application.workspace import require_workspace_source_root
 from papyrus.domain.policies import ownership_rank, primary_object_type
 from papyrus.infrastructure.markdown.parser import (
     LEGACY_FIELD_NOTE_PREFIX,
@@ -88,7 +88,12 @@ def _legacy_fallback_details(document) -> tuple[bool, list[str]]:
         reasons.append("legacy_article_type")
     if str(document.metadata.get("source_type") or "").strip() in {"imported", "derived"}:
         reasons.append(f"source_type={document.metadata.get('source_type')}")
-    if LEGACY_FIELD_NOTE_PREFIX in json.dumps(section_content, ensure_ascii=True, sort_keys=True):
+    if LEGACY_FIELD_NOTE_PREFIX in json.dumps(
+        section_content,
+        ensure_ascii=True,
+        sort_keys=True,
+        default=str,
+    ):
         reasons.append("legacy_placeholder_note")
     return True, reasons
 
@@ -121,6 +126,7 @@ def stale_projection(
     as_of,
     include_deprecated: bool = False,
     database_path: str | Path = DB_PATH,
+    source_workspace_root: str | Path | None = None,
 ) -> list[tuple[int, str, str, str, object]]:
     taxonomies = load_taxonomies()
     statuses = {"active"}
@@ -129,7 +135,15 @@ def stale_projection(
 
     connection = runtime_connection(database_path)
     if connection is None:
-        documents = load_knowledge_documents(repository_workspace_root(), load_policy())
+        if source_workspace_root is None:
+            return []
+        documents = load_knowledge_documents(
+            require_workspace_source_root(
+                source_workspace_root,
+                operation="stale reporting",
+            ),
+            load_policy(),
+        )
         from papyrus.jobs.stale_scan import stale_documents
 
         return [
@@ -157,16 +171,26 @@ def stale_projection(
 def collect_content_health_sections(
     selected: list[str] | None = None,
     database_path: str | Path = DB_PATH,
+    source_workspace_root: str | Path | None = None,
 ) -> dict[str, list[str]]:
     policy = load_policy()
-    workspace_root = repository_workspace_root()
-    source_documents = load_knowledge_documents(workspace_root, policy)
     selected_sections = selected or list(CONTENT_HEALTH_SECTIONS)
     outputs: dict[str, list[str]] = {}
     connection = runtime_connection(database_path)
-    runtime_documents = (
-        load_current_runtime_documents(connection) if connection is not None else source_documents
+    resolved_source_workspace_root = (
+        require_workspace_source_root(
+            source_workspace_root,
+            operation="content-health source inspection",
+        )
+        if source_workspace_root is not None
+        else None
     )
+    source_documents = (
+        load_knowledge_documents(resolved_source_workspace_root, policy)
+        if resolved_source_workspace_root is not None
+        else []
+    )
+    runtime_documents = load_current_runtime_documents(connection) if connection is not None else []
 
     try:
         if "duplicates" in selected_sections:
@@ -190,7 +214,11 @@ def collect_content_health_sections(
                 collect_root_markdown_paths()
                 + collect_docs_source_paths()
                 + collect_decision_paths()
-                + collect_source_paths(workspace_root, policy)
+                + (
+                    collect_source_paths(resolved_source_workspace_root, policy)
+                    if resolved_source_workspace_root is not None
+                    else []
+                )
             )
             broken_links = collect_broken_markdown_links(markdown_paths)
             outputs["broken-links"] = [

@@ -5,7 +5,8 @@ Papyrus is a governed knowledge management database that provides end users with
 Use this documentation set to operate Papyrus from the repository as it exists now.
 
 Runtime/workspace contract:
-- Canonical source lives in workspace source trees such as `knowledge/` and `archive/knowledge/`.
+- The committed seed corpus was removed from this repository.
+- Canonical source, when used, lives in an explicit workspace source tree such as `knowledge/` and `archive/knowledge/`.
 - Read-only runtime starts from the runtime DB plus retained derived artifacts.
 - Source-backed authoring, ingest conversion, and source sync are workspace-only operations.
 
@@ -29,4 +30,3 @@ Runtime/workspace contract:
 ## Supporting Reference
 
 - [Governance and decisions](../decisions/index.md): the single authoritative index for Papyrus governance records.
-- [Migration rationale](migration/seed-migration-rationale.md): historical reference for the sanitized seed and import boundary.

@@ -11,7 +11,7 @@ The oversight surfaces are intentionally distinct:
 ## Refresh The Runtime Before Review
 
 ```bash
-python3 scripts/build_index.py
+python3 scripts/build_index.py --source-root /path/to/workspace
 ```
 
 Outcome:

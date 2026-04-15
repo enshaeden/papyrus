@@ -69,7 +69,7 @@ def workspace_knowledge_source_roots(
     policy: dict[str, Any] | None = None,
 ) -> list[Path]:
     current_policy = policy or load_policy()
-    configured = current_policy["directories"]["workspace_canonical_article_roots"]
+    configured = current_policy["source_workspace"]["article_roots"]
     return [Path(workspace_root).resolve() / item for item in configured]
 
 
@@ -94,7 +94,10 @@ def load_knowledge_documents(
     workspace_root: Path,
     policy: dict[str, Any] | None = None,
 ) -> list[KnowledgeDocument]:
-    return [parse_knowledge_document(path) for path in collect_source_paths(workspace_root, policy)]
+    return [
+        parse_knowledge_document(path, workspace_root=workspace_root)
+        for path in collect_source_paths(workspace_root, policy)
+    ]
 
 
 def collect_docs_source_paths() -> list[Path]:
@@ -125,17 +128,24 @@ def collect_root_markdown_paths() -> list[Path]:
     return [path for path in candidates if path.exists()]
 
 
-def collect_sanitization_paths(policy: dict[str, Any] | None = None) -> list[Path]:
+def collect_sanitization_paths(
+    policy: dict[str, Any] | None = None,
+    *,
+    source_workspace_root: Path | None = None,
+) -> list[Path]:
     paths: list[Path] = []
     scan_roots = [
-        *workspace_knowledge_source_roots(ROOT, policy),
         DOCS_DIR,
         DECISIONS_DIR,
-        ROOT / "migration",
         TEMPLATE_DIR,
         TAXONOMY_DIR,
         REPORTS_DIR,
     ]
+    if source_workspace_root is not None:
+        scan_roots = [
+            *workspace_knowledge_source_roots(source_workspace_root, policy),
+            *scan_roots,
+        ]
     for root in scan_roots:
         if not root.exists():
             continue

@@ -16,6 +16,7 @@ from papyrus.infrastructure.repositories.knowledge_repo import (  # noqa: E402
     load_current_runtime_documents,
     load_policy,
 )
+from tests.source_workspace import fixture_source_root  # noqa: E402
 
 
 class KnowledgeRepoTests(unittest.TestCase):
@@ -23,7 +24,7 @@ class KnowledgeRepoTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             workspace_root = Path(temp_dir) / "workspace"
             policy = load_policy()
-            for root in policy["directories"]["workspace_canonical_article_roots"]:
+            for root in policy["source_workspace"]["article_roots"]:
                 (workspace_root / root).mkdir(parents=True, exist_ok=True)
             (workspace_root / "knowledge" / "AGENTS.md").write_text("ignored", encoding="utf-8")
             document_path = workspace_root / "knowledge" / "runbooks" / "test.md"
@@ -58,7 +59,7 @@ class KnowledgeRepoTests(unittest.TestCase):
     def test_runtime_documents_load_from_database_without_workspace_source_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
 
             connection = sqlite3.connect(database_path)
             connection.row_factory = sqlite3.Row

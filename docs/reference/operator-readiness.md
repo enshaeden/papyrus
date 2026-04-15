@@ -5,15 +5,16 @@ This reference records the current operator-ready boundary for Papyrus and the r
 ## Supported Operator Boundary
 
 - Papyrus is a governed knowledge management database that provides end users with dependable content, while IT operators maintain backend authorship and oversight.
-- Canonical source remains Markdown under `knowledge/` and `archive/knowledge/`.
+- The repository no longer carries a committed seed corpus.
+- Canonical source, when operators use source-backed workflows, lives under an explicit workspace root with trees such as `knowledge/` and `archive/knowledge/`.
 - Runtime projections, reports, search indexes, and other derived runtime/build outputs are rebuildable and non-authoritative.
 - Content, authoring, review, and oversight surfaces rely on explicit lifecycle, review, trust, and next-action contracts rather than compatibility-era aliases.
 
 ## Supported Startup And Recovery Paths
 
-- Build or rebuild the runtime with `python3 scripts/build_index.py`.
+- Build or rebuild the runtime with `python3 scripts/build_index.py --source-root /path/to/workspace`.
 - Start the local operator runtime with `python3 scripts/run.py --operator`.
-- Inspect or apply governed source sync with `python3 scripts/source_sync.py`.
+- Inspect or apply governed source sync with `python3 scripts/source_sync.py --source-root /path/to/workspace ...`.
 - Startup and governed mutation entrypoints run pending mutation recovery before proceeding.
 - Recovery may reclaim stale journals and stale locks only when the active mutation state can be resolved safely.
 - If recovery cannot prove a safe result, Papyrus fails closed.

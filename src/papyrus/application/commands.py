@@ -15,7 +15,7 @@ from papyrus.application import (
     writeback_flow,
 )
 from papyrus.application.policy_authority import PolicyAuthority
-from papyrus.application.workspace import repository_workspace_root, require_workspace_source_root
+from papyrus.application.workspace import require_workspace_source_root
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.entities import (
     AuditEvent,
@@ -149,23 +149,32 @@ def governance_workflow(
     )
 
 
-def validate_repository_command(*, workspace_root: Path | None = None) -> ValidationCommandResult:
-    resolved_workspace_root = workspace_root or repository_workspace_root()
-    issues = validation_flow.validate_repository(workspace_root=resolved_workspace_root)
+def validate_repository_command(
+    *,
+    source_workspace_root: Path | None = None,
+) -> ValidationCommandResult:
+    issues = validation_flow.validate_repository(source_workspace_root=source_workspace_root)
     return ValidationCommandResult(
         issues=issues,
-        document_count=len(load_knowledge_documents(resolved_workspace_root)),
+        document_count=(
+            len(load_knowledge_documents(source_workspace_root))
+            if source_workspace_root is not None
+            else 0
+        ),
     )
 
 
 def build_projection_command(
     database_path: Path = DB_PATH,
     *,
-    workspace_root: Path | None = None,
+    source_workspace_root: Path,
 ) -> ProjectionBuildResult:
     document_count, mode = sync_flow.build_search_projection(
         database_path,
-        workspace_root=workspace_root or repository_workspace_root(),
+        workspace_root=require_workspace_source_root(
+            source_workspace_root,
+            operation="runtime projection build",
+        ),
     )
     return ProjectionBuildResult(
         database_path=database_path,

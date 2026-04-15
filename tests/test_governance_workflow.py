@@ -18,6 +18,7 @@ from papyrus.application.sync_flow import build_search_projection
 from papyrus.application.validation_flow import record_validation_run
 from papyrus.infrastructure.markdown.parser import parse_knowledge_document
 from papyrus.infrastructure.transactional_mutation import TransactionalMutation
+from tests.source_workspace import copy_fixture_source_workspace, fixture_source_root
 
 
 def read_row(database_path: Path, query: str, parameters: tuple = ()) -> sqlite3.Row | None:
@@ -66,9 +67,9 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "rollback": ["Undo the last remediation step."],
         "citations": [
             {
-                "source_title": "Seed import manifest",
+                "source_title": "System model",
                 "source_type": "document",
-                "source_ref": "docs/migration/seed-migration-rationale.md",
+                "source_ref": "docs/reference/system-model.md",
                 "note": "Used as an internal provenance placeholder for the test.",
             }
         ],
@@ -77,9 +78,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "retirement_reason": None,
         "services": ["Remote Access"],
         "related_articles": [],
-        "references": [
-            {"title": "Seed import manifest", "path": "docs/migration/seed-migration-rationale.md"}
-        ],
+        "references": [{"title": "System model", "path": "docs/reference/system-model.md"}],
         "change_log": [{"date": "2026-04-07", "summary": "Initial draft.", "author": "tests"}],
     }
 
@@ -88,7 +87,7 @@ class GovernanceWorkflowTests(unittest.TestCase):
     def test_source_mutation_review_operations_recover_pending_workspace_mutations(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
             source_root = Path(temp_dir) / "repo"
             pending_target = (
                 source_root / "knowledge" / "runbooks" / "pending-governance-recovery.md"
@@ -165,20 +164,13 @@ class GovernanceWorkflowTests(unittest.TestCase):
     def test_existing_object_revision_review_flow_updates_runtime_state(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
             source_root = Path(temp_dir) / "repo"
-            seeded_source = source_root / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
-            seeded_source.parent.mkdir(parents=True, exist_ok=True)
-            seeded_source.write_text(
-                (ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md").read_text(
-                    encoding="utf-8"
-                ),
-                encoding="utf-8",
-            )
+            copy_fixture_source_workspace(source_root)
             workflow = GovernanceWorkflow(database_path, source_root=source_root)
 
             document = parse_knowledge_document(
-                ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
+                fixture_source_root() / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
             )
             payload = copy.deepcopy(document.metadata)
             payload["summary"] = "Diagnose VPN failures with explicit workflow review coverage."
@@ -515,7 +507,7 @@ class GovernanceWorkflowTests(unittest.TestCase):
     def test_sync_preserves_runtime_suspect_state_for_unchanged_source_revision(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
 
             object_id = "kb-troubleshooting-vpn-connectivity"
             mark_object_suspect_due_to_change(
@@ -526,7 +518,7 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 changed_entity_type="service",
                 changed_entity_id="remote-access",
             )
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
 
             object_row = read_row(
                 database_path,

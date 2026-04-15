@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
-import json
 import logging
 import uuid
 from pathlib import Path
@@ -258,14 +257,8 @@ def build_search_projection(
                     content_hash=revision_hash,
                     body_markdown=document.body,
                     normalized_payload_json=normalized_metadata_json,
-                    section_content_json=json.dumps(
-                        section_content, sort_keys=True, ensure_ascii=True
-                    ),
-                    section_completion_json=json.dumps(
-                        section_completion["section_completion_map"],
-                        sort_keys=True,
-                        ensure_ascii=True,
-                    ),
+                    section_content_json=json_dump(section_content),
+                    section_completion_json=json_dump(section_completion["section_completion_map"]),
                     legacy_metadata_json=json_dump(document.metadata),
                     imported_at=now_iso,
                     change_summary=latest_change,
@@ -358,7 +351,11 @@ def build_search_projection(
                 )
 
         citation_scan = scan_citations(
-            connection, taxonomies=taxonomies, as_of=dt.date.today(), persist=True
+            connection,
+            taxonomies=taxonomies,
+            as_of=dt.date.today(),
+            persist=True,
+            root_path=resolved_workspace_root,
         )
         citation_run_id = _event_id("validation-citation-scan", None, None, now_iso)
         insert_validation_run(

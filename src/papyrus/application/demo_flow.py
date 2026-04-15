@@ -23,7 +23,6 @@ from papyrus.application.queries import (
     oversight_dashboard,
     review_queue,
 )
-from papyrus.application.workspace import repository_workspace_root
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 
 DEMO_SOURCE_ROOT = ROOT / "build" / "demo-source"
@@ -73,7 +72,7 @@ def _common_payload(
         "object_lifecycle_state": "active",
         "owner": owner,
         "source_type": "native",
-        "source_system": "repository",
+        "source_system": "demo_runtime",
         "source_title": title,
         "team": "IT Operations",
         "systems": systems,
@@ -225,7 +224,7 @@ def _approve_revision(
     change_summary: str,
     actor: str,
     reviewer: str,
-    source_root: Path = ROOT,
+    source_root: Path = DEMO_SOURCE_ROOT,
 ) -> str:
     revision = create_revision_command(
         database_path=database_path,
@@ -269,7 +268,7 @@ def _approve_revision(
 def _citation_id_for_object(database_path: Path, object_id: str) -> str:
     detail = knowledge_object_detail(object_id, database_path=database_path)
     if not detail["citations"]:
-        raise ValueError(f"seeded object has no current citations: {object_id}")
+        raise ValueError(f"demo object has no current citations: {object_id}")
     return str(detail["citations"][0]["citation_id"])
 
 
@@ -309,9 +308,34 @@ def build_operator_demo_runtime(
 ) -> dict[str, object]:
     result = build_projection_command(
         database_path=database_path,
-        workspace_root=repository_workspace_root(),
+        source_workspace_root=source_root,
     )
     actor = "local.operator"
+
+    create_object_command(
+        database_path=database_path,
+        source_root=source_root,
+        object_id="kb-troubleshooting-vpn-connectivity",
+        object_type="runbook",
+        title="VPN Troubleshooting",
+        summary="Baseline troubleshooting runbook for remote-access incidents.",
+        owner="remote_access_ops",
+        team="IT Operations",
+        canonical_path="knowledge/troubleshooting/vpn-connectivity.md",
+        actor=actor,
+    )
+    create_object_command(
+        database_path=database_path,
+        source_root=source_root,
+        object_id="kb-access-password-reset-account-lockout",
+        object_type="runbook",
+        title="Password Reset Account Lockout",
+        summary="Baseline account recovery runbook for password reset lockouts.",
+        owner="identity_ops",
+        team="IT Operations",
+        canonical_path="knowledge/access/password-reset-account-lockout.md",
+        actor=actor,
+    )
 
     create_object_command(
         database_path=database_path,
@@ -396,6 +420,55 @@ def build_operator_demo_runtime(
         team="IT Operations",
         canonical_path="knowledge/known-errors/legacy-vpn-split-tunnel-failure.md",
         actor=actor,
+    )
+
+    _approve_revision(
+        database_path,
+        object_id="kb-troubleshooting-vpn-connectivity",
+        payload=_runbook_payload(
+            object_id="kb-troubleshooting-vpn-connectivity",
+            title="VPN Troubleshooting",
+            canonical_path="knowledge/troubleshooting/vpn-connectivity.md",
+            owner="remote_access_ops",
+            services=["Remote Access"],
+            citations=[
+                _citation(
+                    title="Remote access triage notes",
+                    ref="docs/playbooks/read.md",
+                    note="Verified remote-access troubleshooting reference.",
+                    validity_status="verified",
+                )
+            ],
+            related_object_ids=["kb-remote-access-service-record"],
+        ),
+        change_summary="Baseline VPN troubleshooting guidance for demo startup.",
+        actor=actor,
+        reviewer="manager.remote-access",
+        source_root=source_root,
+    )
+    _approve_revision(
+        database_path,
+        object_id="kb-access-password-reset-account-lockout",
+        payload=_runbook_payload(
+            object_id="kb-access-password-reset-account-lockout",
+            title="Password Reset Account Lockout",
+            canonical_path="knowledge/access/password-reset-account-lockout.md",
+            owner="identity_ops",
+            services=["Access Management"],
+            citations=[
+                _citation(
+                    title="Account recovery checklist",
+                    ref="docs/playbooks/write.md",
+                    note="Verified account recovery reference.",
+                    validity_status="verified",
+                )
+            ],
+            related_object_ids=["kb-identity-service-record"],
+        ),
+        change_summary="Baseline password reset lockout guidance for demo startup.",
+        actor=actor,
+        reviewer="manager.identity",
+        source_root=source_root,
     )
 
     _approve_revision(
@@ -626,6 +699,19 @@ def build_operator_demo_runtime(
         / "knowledge"
         / "services"
         / "remote-access-service-record.md",
+        actor=actor,
+        expires_at="2026-07-01T00:00:00+00:00",
+        root_path=source_root,
+    )
+    attach_evidence_snapshot_command(
+        database_path=database_path,
+        citation_id=_citation_id_for_object(
+            database_path, "kb-access-password-reset-account-lockout"
+        ),
+        snapshot_source_path=source_root
+        / "knowledge"
+        / "access"
+        / "password-reset-account-lockout.md",
         actor=actor,
         expires_at="2026-07-01T00:00:00+00:00",
         root_path=source_root,

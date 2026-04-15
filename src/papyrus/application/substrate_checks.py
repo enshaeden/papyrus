@@ -14,7 +14,7 @@ REPO_PATH_TOKEN_PATTERN = re.compile(
     r"(?P<path>"
     r"(?:README\.md|AGENTS\.md|pyproject\.toml|requirements(?:-dev)?\.txt|"
     r"\.github/workflows/[A-Za-z0-9_.-]+|"
-    r"(?:archive|decisions|docs|knowledge|schemas|scripts|src|taxonomies|templates|tests)"
+    r"(?:decisions|docs|schemas|scripts|src|taxonomies|templates|tests)"
     r"(?:/[A-Za-z0-9_.-]+)*/?)"
     r")"
 )

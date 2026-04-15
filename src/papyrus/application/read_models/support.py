@@ -50,7 +50,7 @@ def require_runtime_connection(database_path: str | Path = DB_PATH) -> sqlite3.C
     connection = runtime_connection(database_path)
     if connection is None:
         raise RuntimeUnavailableError(
-            "runtime database is not available; run `python3 scripts/build_index.py` first"
+            "runtime database is not available; run `python3 scripts/build_index.py --source-root /path/to/workspace` first"
         )
     return connection
 

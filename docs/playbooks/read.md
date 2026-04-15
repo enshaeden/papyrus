@@ -5,11 +5,11 @@ Use this playbook when you need dependable content, need to know whether it is s
 ## Build Or Refresh The Runtime
 
 ```bash
-python3 scripts/build_index.py
+python3 scripts/build_index.py --source-root /path/to/workspace
 ```
 
 Outcome:
-- Search, queue, trust, service, and impact views reflect the current repository state.
+- Search, queue, trust, service, and impact views reflect the current runtime DB plus the explicit source workspace that produced it.
 
 Failure signals:
 - The command cannot rebuild `build/knowledge.db`.

@@ -2,13 +2,13 @@
 
 Papyrus is a governed knowledge management database that provides end users with dependable content, while IT operators maintain backend authorship and oversight.
 
-Canonical knowledge remains in workspace Markdown trees such as `knowledge/` and `archive/knowledge/`; the shipped/read-only runtime boots from the runtime database plus retained derived artifacts, and those runtime surfaces are not source of truth.
+The committed seed corpus was removed from this repository. Canonical Markdown, when it is in scope, lives in an explicit external workspace source tree such as `knowledge/` and `archive/knowledge/`; the shipped/read-only runtime boots from the runtime database plus retained derived artifacts, and those runtime surfaces are not source of truth.
 
 ## Run It Now
 
 ```bash
 ./scripts/bootstrap.sh
-./scripts/build.sh
+python3 scripts/build_index.py --source-root /path/to/workspace
 python3 scripts/run.py --operator
 ```
 
@@ -38,18 +38,14 @@ python3 scripts/operator_view.py activity --db build/knowledge.db --format json
 
 ## Source Of Truth
 
-- Canonical knowledge: `knowledge/` and `archive/knowledge/`
-- Schemas and policy: `schemas/`
-- Taxonomies: `taxonomies/`
-- Templates: `templates/`
-- Governance and decisions: `decisions/`
-- Explanatory and operator docs: `docs/`
+- Canonical repository assets: `schemas/`, `taxonomies/`, `templates/`, `decisions/`, `docs/`, and `src/`
+- External source workspaces, when used for authoring or sync: `knowledge/` and `archive/knowledge/` inside the explicit workspace root
 - Derived artifacts only: `build/` and `generated/`
 
 Runtime/workspace contract:
 - Read-only runtime uses `build/knowledge.db` plus retained runtime artifacts such as `generated/route-map.json` and `generated/route-map.md`.
 - Source-backed authoring, ingest, review writeback, and sync require an explicit workspace source root.
-- The repository is a workspace by default for local development, but the runtime product must not assume repo-local source Markdown is present.
+- The repository no longer ships a canonical knowledge corpus.
 
 There is no separate MkDocs or static-export publication surface. Readers consume dependable content through the runtime product, while Operators and Admins stay on the retained backend and runtime surfaces.
 

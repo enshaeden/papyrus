@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from papyrus.application.sync_flow import build_search_projection
 from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.interfaces.web.app import app as web_app
+from tests.source_workspace import fixture_source_root
 from tests.web_assertions import SemanticHookAssertions
 
 
@@ -220,7 +221,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
     def test_read_filters_hide_policy_and_system_design_types_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
             source_root = Path(temp_dir) / "repo"
             application = web_app(database_path, source_root=source_root)
 

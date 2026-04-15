@@ -67,7 +67,7 @@ def render_inline_list(values: list[str]) -> str:
 
 def load_existing_article_records(root: Path, policy: dict[str, object]) -> list[dict[str, object]]:
     records = []
-    for directory in policy["directories"]["workspace_canonical_article_roots"]:
+    for directory in policy["source_workspace"]["article_roots"]:
         base = root / directory
         if not base.exists():
             continue
@@ -275,9 +275,10 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    root = Path(args.root).resolve() if args.root else ROOT
-    policy = load_policy(root / "schemas" / "repository_policy.yml")
-    taxonomies = load_taxonomies(root / "taxonomies")
+    root = Path(args.root).resolve() if args.root else None
+    policy_root = root or ROOT
+    policy = load_policy(policy_root / "schemas" / "repository_policy.yml")
+    taxonomies = load_taxonomies(policy_root / "taxonomies")
     supported_types = scaffoldable_object_types(policy)
 
     if args.list_taxonomy:
@@ -292,6 +293,8 @@ def main() -> int:
         parser.error(
             "--title and --type are required unless --list-taxonomy or --list-object-types is used."
         )
+    if root is None:
+        parser.error("--root is required when creating a source-backed knowledge object scaffold.")
 
     def ensure_allowed(value: str, taxonomy_name: str, field_name: str) -> None:
         allowed = set(taxonomies[taxonomy_name]["allowed_values"])

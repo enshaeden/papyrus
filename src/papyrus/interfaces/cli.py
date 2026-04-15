@@ -44,7 +44,7 @@ from papyrus.application.queries import (
 from papyrus.application.writeback_flow import preview_revision_writeback
 from papyrus.domain.policies import searchable_statuses
 from papyrus.infrastructure.markdown.serializer import parse_iso_date
-from papyrus.infrastructure.paths import DB_PATH, ROOT
+from papyrus.infrastructure.paths import DB_PATH
 from papyrus.infrastructure.repositories.knowledge_repo import load_policy
 from papyrus.interfaces.startup_guard import (
     prepare_workspace_source_root,
@@ -54,10 +54,17 @@ from papyrus.interfaces.startup_guard import (
 
 def validate_main() -> int:
     parser = argparse.ArgumentParser(description="Validate repository source content.")
-    parser.parse_args()
+    parser.add_argument(
+        "--source-root",
+        default=None,
+        help="Optional workspace source root to validate in addition to repo docs, schemas, and runtime artifacts.",
+    )
+    args = parser.parse_args()
 
     try:
-        result = validate_repository_command(workspace_root=ROOT)
+        result = validate_repository_command(
+            source_workspace_root=Path(args.source_root).resolve() if args.source_root else None
+        )
     except Exception as exc:  # pragma: no cover - exercised via CLI tests
         print(f"validation setup failed: {exc}", file=sys.stderr)
         return 1
@@ -68,7 +75,10 @@ def validate_main() -> int:
         print(f"validation failed with {len(result.issues)} issue(s)", file=sys.stderr)
         return 1
 
-    print(f"validated {result.document_count} knowledge object source file(s)")
+    if args.source_root:
+        print(f"validated repo contract and {result.document_count} source file(s)")
+    else:
+        print("validated repo contract")
     return 0
 
 
@@ -128,12 +138,18 @@ def report_stale_main() -> int:
         action="store_true",
         help="Include deprecated content in the stale report.",
     )
+    parser.add_argument(
+        "--source-root",
+        default=None,
+        help="Optional workspace source root to use when the runtime database is unavailable.",
+    )
     args = parser.parse_args()
 
     rows = stale_projection(
         as_of=parse_iso_date(args.as_of),
         include_deprecated=args.include_deprecated,
         database_path=DB_PATH,
+        source_workspace_root=Path(args.source_root).resolve() if args.source_root else None,
     )
     if not rows:
         print("no stale knowledge objects found")
@@ -157,10 +173,18 @@ def report_content_health_main() -> int:
         action="append",
         help="Limit output to one or more sections.",
     )
+    parser.add_argument(
+        "--source-root",
+        default=None,
+        help="Optional workspace source root for source-backed content health sections.",
+    )
     args = parser.parse_args()
 
     selected = args.section or list(CONTENT_HEALTH_SECTIONS)
-    outputs = collect_content_health_sections(selected)
+    outputs = collect_content_health_sections(
+        selected,
+        source_workspace_root=Path(args.source_root).resolve() if args.source_root else None,
+    )
     for section in selected:
         print(f"[{section}]")
         lines = outputs.get(section, [])
@@ -173,8 +197,25 @@ def report_content_health_main() -> int:
 
 
 def build_index_main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Build the runtime projection from an explicit workspace source root."
+    )
+    parser.add_argument(
+        "--db",
+        default=str(DB_PATH),
+        help="Path to the runtime SQLite database.",
+    )
+    parser.add_argument(
+        "--source-root",
+        required=True,
+        help="Workspace source root that contains governed Markdown content.",
+    )
+    args = parser.parse_args()
     try:
-        result = build_projection_command(workspace_root=ROOT)
+        result = build_projection_command(
+            database_path=Path(args.db),
+            source_workspace_root=Path(args.source_root).resolve(),
+        )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1

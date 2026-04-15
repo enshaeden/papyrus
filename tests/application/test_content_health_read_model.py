@@ -14,6 +14,7 @@ from papyrus.application.read_models.content_health import (  # noqa: E402
     collect_content_health_sections,
 )
 from papyrus.application.sync_flow import build_search_projection  # noqa: E402
+from tests.source_workspace import fixture_source_root  # noqa: E402
 
 
 class ContentHealthReadModelTests(unittest.TestCase):
@@ -33,7 +34,8 @@ class ContentHealthReadModelTests(unittest.TestCase):
                 "placeholder-heavy",
                 "legacy-blueprint-fallback",
                 "migration-gaps",
-            ]
+            ],
+            source_workspace_root=fixture_source_root(),
         )
 
         placeholder_lines = outputs["placeholder-heavy"]
@@ -69,7 +71,7 @@ class ContentHealthReadModelTests(unittest.TestCase):
     def test_runtime_backed_usefulness_sections_report_evidence_risk(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path, workspace_root=ROOT)
+            build_search_projection(database_path, workspace_root=fixture_source_root())
 
             outputs = collect_content_health_sections(
                 ["unclear-ownership", "weak-evidence"],

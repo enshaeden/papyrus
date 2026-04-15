@@ -4,12 +4,6 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-WORKSPACE_CANONICAL_ROOTS = (
-    "knowledge",
-    "archive/knowledge",
-)
-KNOWLEDGE_DIR = ROOT / WORKSPACE_CANONICAL_ROOTS[0]
-ARCHIVE_KNOWLEDGE_DIR = ROOT / WORKSPACE_CANONICAL_ROOTS[1]
 DOCS_DIR = ROOT / "docs"
 DECISIONS_DIR = ROOT / "decisions"
 TEMPLATE_DIR = ROOT / "templates"
@@ -139,5 +133,12 @@ GENERIC_BRAND_ALLOWLIST = {
 }
 
 
-def relative_path(path: Path) -> str:
-    return path.relative_to(ROOT).as_posix()
+def relative_path(path: Path, *, root: Path | None = None) -> str:
+    candidate_roots = [item.resolve() for item in (root, ROOT) if item is not None]
+    resolved = path.resolve()
+    for candidate_root in candidate_roots:
+        try:
+            return resolved.relative_to(candidate_root).as_posix()
+        except ValueError:
+            continue
+    return str(resolved)

@@ -68,6 +68,8 @@ For the guided CLI path, start with a blueprint-backed draft:
 
 ```bash
 python3 scripts/operator_view.py create-draft \
+  --db build/knowledge.db \
+  --source-root /path/to/workspace \
   --type runbook \
   --object-id kb-example-runbook \
   --title "Example Runbook" \
@@ -81,12 +83,16 @@ Then fill sections incrementally:
 
 ```bash
 python3 scripts/operator_view.py edit-section \
+  --db build/knowledge.db \
+  --source-root /path/to/workspace \
   --object kb-example-runbook \
   --revision <revision_id> \
   --section purpose \
   --field use_when="Use this when the governed workflow applies."
 
 python3 scripts/operator_view.py show-progress \
+  --db build/knowledge.db \
+  --source-root /path/to/workspace \
   --object kb-example-runbook \
   --revision <revision_id>
 ```
@@ -94,7 +100,7 @@ python3 scripts/operator_view.py show-progress \
 The repository scaffold path still exists when you explicitly need a canonical file created up front:
 
 ```bash
-python3 scripts/new_article.py --type runbook --title "Example Procedure"
+python3 scripts/new_article.py --root /path/to/workspace --type runbook --title "Example Procedure"
 ```
 
 List the scaffoldable object types and valid taxonomy values before you choose metadata:
@@ -107,7 +113,7 @@ python3 scripts/new_article.py --list-taxonomy tags
 ```
 
 Outcome:
-- A new canonical Markdown source file is created under `knowledge/`.
+- A new canonical Markdown source file is created under the explicit workspace source root.
 - In the guided web flow, the shell becomes step 1 and Papyrus sends you directly into blueprint-driven drafting.
 
 Failure signals:
@@ -130,10 +136,12 @@ Web path:
 CLI path:
 
 ```bash
-python3 scripts/ingest.py path/to/source.docx
+python3 scripts/ingest.py --source-root /path/to/workspace path/to/source.docx
 python3 scripts/operator_view.py list-ingestions
 python3 scripts/operator_view.py review-ingestion <ingestion_id>
 python3 scripts/operator_view.py convert-ingestion <ingestion_id> \
+  --db build/knowledge.db \
+  --source-root /path/to/workspace \
   --object-id kb-imported-example \
   --title "Imported Example" \
   --canonical-path knowledge/imported/imported-example.md \
@@ -195,7 +203,7 @@ Run:
 
 ```bash
 python3 scripts/validate.py
-python3 scripts/build_index.py
+python3 scripts/build_index.py --source-root /path/to/workspace
 ```
 
 Then review health signals that commonly catch authoring problems:
