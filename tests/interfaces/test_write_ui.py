@@ -69,9 +69,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(
-                database_path, source_root=source_root, allow_noncanonical_source_root=True
-            )
+            application = web_app(database_path, source_root=source_root)
 
             status, _, body = call_wsgi(application, "/operator/write/new")
             self.assertEqual(status, "200 OK")
@@ -93,9 +91,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(
-                database_path, source_root=source_root, allow_noncanonical_source_root=True
-            )
+            application = web_app(database_path, source_root=source_root)
 
             status, _, body = call_wsgi(application, "/operator/write/advanced")
             self.assertEqual(status, "200 OK")
@@ -111,9 +107,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(
-                database_path, source_root=source_root, allow_noncanonical_source_root=True
-            )
+            application = web_app(database_path, source_root=source_root)
 
             status, _, body = call_wsgi(
                 application,
@@ -140,9 +134,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(
-                database_path, source_root=source_root, allow_noncanonical_source_root=True
-            )
+            application = web_app(database_path, source_root=source_root)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -189,9 +181,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(
-                database_path, source_root=source_root, allow_noncanonical_source_root=True
-            )
+            application = web_app(database_path, source_root=source_root)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -230,11 +220,9 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
     def test_read_filters_hide_policy_and_system_design_types_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             source_root = Path(temp_dir) / "repo"
-            application = web_app(
-                database_path, source_root=source_root, allow_noncanonical_source_root=True
-            )
+            application = web_app(database_path, source_root=source_root)
 
             status, _, body = call_wsgi(application, "/operator/read")
             self.assertEqual(status, "200 OK")
@@ -245,9 +233,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(
-                database_path, source_root=source_root, allow_noncanonical_source_root=True
-            )
+            application = web_app(database_path, source_root=source_root)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -305,9 +291,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(
-                database_path, source_root=source_root, allow_noncanonical_source_root=True
-            )
+            application = web_app(database_path, source_root=source_root)
 
             status, headers, _ = call_wsgi(
                 application,
@@ -377,9 +361,7 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
                 canonical_path="knowledge/runbooks/empty-shell.md",
                 actor="tests",
             )
-            application = web_app(
-                database_path, source_root=source_root, allow_noncanonical_source_root=True
-            )
+            application = web_app(database_path, source_root=source_root)
 
             status, _, body = call_wsgi(application, "/operator/write/object/kb-ui-empty-shell")
 

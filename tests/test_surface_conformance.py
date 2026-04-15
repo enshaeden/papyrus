@@ -258,7 +258,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
     def _seed_pending_mutation(self, temp_dir: str) -> tuple[Path, Path, Path]:
         database_path = Path(temp_dir) / "runtime.db"
         source_root = Path(temp_dir) / "repo"
-        build_search_projection(database_path)
+        build_search_projection(database_path, workspace_root=ROOT)
         target_path = source_root / "knowledge" / "runbooks" / "startup-recovery.md"
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_path.write_text("before\n", encoding="utf-8")
@@ -479,7 +479,6 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             str(database_path),
             "--source-root",
             str(source_root),
-            "--allow-noncanonical-source-root",
             "--format",
             "json",
         ]
@@ -500,12 +499,12 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             ]
         )
         status, _, api_body = call_wsgi(
-            api_app(database_path, source_root, allow_noncanonical_source_root=True),
+            api_app(database_path, source_root),
             f"/objects/{object_id}",
         )
         self.assertEqual(status, "200 OK")
         status, _, web_body = call_wsgi(
-            web_app(database_path, source_root, allow_noncanonical_source_root=True),
+            web_app(database_path, source_root),
             f"/operator/read/object/{object_id}",
         )
         self.assertEqual(status, "200 OK")
@@ -522,7 +521,6 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                 str(database_path),
                 "--source-root",
                 str(source_root),
-                "--allow-noncanonical-source-root",
                 "--format",
                 "json",
             ]
@@ -570,7 +568,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                 temp_dir, submitted=True
             )
             reviewer = "reviewer_api"
-            application = api_app(database_path, source_root, allow_noncanonical_source_root=True)
+            application = api_app(database_path, source_root)
             status, _, _ = call_wsgi(
                 application,
                 "/reviews/assign",
@@ -609,7 +607,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                 temp_dir, submitted=True
             )
             reviewer = "reviewer_web"
-            application = web_app(database_path, source_root, allow_noncanonical_source_root=True)
+            application = web_app(database_path, source_root)
             status, _, _ = call_wsgi(
                 application,
                 f"/operator/review/object/{object_id}/{revision_id}/assign",
@@ -700,7 +698,6 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                     str(database_path),
                     "--source-root",
                     str(source_root),
-                    "--allow-noncanonical-source-root",
                     "--format",
                     "json",
                     "--object",
@@ -718,7 +715,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
     def _exercise_api_archive(self) -> dict[str, object]:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path, source_root, object_id = self._seed_archivable_candidate(temp_dir)
-            application = api_app(database_path, source_root, allow_noncanonical_source_root=True)
+            application = api_app(database_path, source_root)
             status, _, _ = call_wsgi(
                 application,
                 f"/objects/{object_id}/archive",
@@ -735,7 +732,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
     def _exercise_web_archive(self) -> dict[str, object]:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path, source_root, object_id = self._seed_archivable_candidate(temp_dir)
-            application = web_app(database_path, source_root, allow_noncanonical_source_root=True)
+            application = web_app(database_path, source_root)
             status, _, _ = call_wsgi(
                 application,
                 f"/admin/review/object/{object_id}/archive",
@@ -826,7 +823,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             {str(results[0]["latest_event_details"]["operator_message"])},
         )
 
-    def test_startup_recovery_runs_before_cli_api_and_web_surface_access(self) -> None:
+    def test_read_only_surface_startup_does_not_run_workspace_recovery(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path, source_root, target_path = self._seed_pending_mutation(temp_dir)
             self._run_cli(
@@ -837,22 +834,21 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                     str(database_path),
                     "--source-root",
                     str(source_root),
-                    "--allow-noncanonical-source-root",
                     "--format",
                     "json",
                 ]
             )
-            self.assertEqual(target_path.read_text(encoding="utf-8"), "before\n")
+            self.assertEqual(target_path.read_text(encoding="utf-8"), "after\n")
 
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path, source_root, target_path = self._seed_pending_mutation(temp_dir)
-            api_app(database_path, source_root, allow_noncanonical_source_root=True)
-            self.assertEqual(target_path.read_text(encoding="utf-8"), "before\n")
+            api_app(database_path, source_root)
+            self.assertEqual(target_path.read_text(encoding="utf-8"), "after\n")
 
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path, source_root, target_path = self._seed_pending_mutation(temp_dir)
-            web_app(database_path, source_root, allow_noncanonical_source_root=True)
-            self.assertEqual(target_path.read_text(encoding="utf-8"), "before\n")
+            web_app(database_path, source_root)
+            self.assertEqual(target_path.read_text(encoding="utf-8"), "after\n")
 
     def test_object_action_contracts_match_across_cli_api_and_web(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -912,7 +908,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(cli_archive_action, api_archive_action)
 
             status, _, web_body = call_wsgi(
-                web_app(database_path, source_root, allow_noncanonical_source_root=True),
+                web_app(database_path, source_root),
                 f"/admin/review/object/{object_id}/archive",
             )
             self.assertEqual(status, "200 OK")
@@ -944,7 +940,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
                 ]
             )
             status, _, api_body = call_wsgi(
-                api_app(database_path, source_root, allow_noncanonical_source_root=True),
+                api_app(database_path, source_root),
                 f"/objects/{object_id}/source-sync/preview",
                 method="POST",
                 json_payload={"revision_id": revision_id},
@@ -956,7 +952,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(cli_preview["transition"]["to_state"], "conflicted")
 
             status, _, web_body = call_wsgi(
-                web_app(database_path, source_root, allow_noncanonical_source_root=True),
+                web_app(database_path, source_root),
                 f"/operator/review/object/{object_id}/{revision_id}",
             )
             self.assertEqual(status, "200 OK")

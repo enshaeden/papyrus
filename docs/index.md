@@ -4,6 +4,11 @@ Papyrus is a governed knowledge management database that provides end users with
 
 Use this documentation set to operate Papyrus from the repository as it exists now.
 
+Runtime/workspace contract:
+- Canonical source lives in workspace source trees such as `knowledge/` and `archive/knowledge/`.
+- Read-only runtime starts from the runtime DB plus retained derived artifacts.
+- Source-backed authoring, ingest conversion, and source sync are workspace-only operations.
+
 ## Orientation
 
 - [Getting started](getting-started.md): shortest path to a working local runtime and the main entrypoints.

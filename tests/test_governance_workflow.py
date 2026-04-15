@@ -85,10 +85,10 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
 
 
 class GovernanceWorkflowTests(unittest.TestCase):
-    def test_workflow_constructor_recovers_pending_mutation_before_review_operations(self) -> None:
+    def test_source_mutation_review_operations_recover_pending_workspace_mutations(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             source_root = Path(temp_dir) / "repo"
             pending_target = (
                 source_root / "knowledge" / "runbooks" / "pending-governance-recovery.md"
@@ -117,7 +117,7 @@ class GovernanceWorkflowTests(unittest.TestCase):
             workflow = GovernanceWorkflow(database_path, source_root=source_root)
 
             self.assertEqual(
-                pending_target.read_text(encoding="utf-8"), "original review content\n"
+                pending_target.read_text(encoding="utf-8"), "interrupted review content\n"
             )
 
             created = workflow.create_object(
@@ -130,12 +130,42 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 canonical_path="knowledge/runbooks/governance-recovery-target.md",
                 actor="tests",
             )
+            revision = workflow.create_revision(
+                object_id=created.object_id,
+                normalized_payload=runbook_payload(
+                    created.object_id, created.canonical_path, created.title
+                ),
+                body_markdown="## Use When\n\nRecover pending review mutations before approval.\n",
+                actor="tests",
+                change_summary="Governance recovery coverage.",
+            )
+            workflow.submit_for_review(
+                object_id=created.object_id,
+                revision_id=revision.revision_id,
+                actor="tests",
+            )
+            workflow.assign_reviewer(
+                object_id=created.object_id,
+                revision_id=revision.revision_id,
+                reviewer="reviewer_a",
+                actor="tests",
+            )
+            workflow.approve_revision(
+                object_id=created.object_id,
+                revision_id=revision.revision_id,
+                reviewer="reviewer_a",
+                actor="local.reviewer",
+            )
+
+            self.assertEqual(
+                pending_target.read_text(encoding="utf-8"), "original review content\n"
+            )
             self.assertEqual(created.object_id, "kb-governance-recovery-target")
 
     def test_existing_object_revision_review_flow_updates_runtime_state(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             source_root = Path(temp_dir) / "repo"
             seeded_source = source_root / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
             seeded_source.parent.mkdir(parents=True, exist_ok=True)
@@ -485,7 +515,7 @@ class GovernanceWorkflowTests(unittest.TestCase):
     def test_sync_preserves_runtime_suspect_state_for_unchanged_source_revision(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
 
             object_id = "kb-troubleshooting-vpn-connectivity"
             mark_object_suspect_due_to_change(
@@ -496,7 +526,7 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 changed_entity_type="service",
                 changed_entity_id="remote-access",
             )
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
 
             object_row = read_row(
                 database_path,

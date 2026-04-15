@@ -2,12 +2,13 @@
 
 Papyrus is a governed knowledge management database that provides end users with dependable content, while IT operators maintain backend authorship and oversight.
 
-Canonical knowledge remains in Markdown under `knowledge/` and `archive/knowledge/`; the runtime database, web surface, CLI, and derived runtime/build outputs are operator or derived surfaces, not source of truth.
+Canonical knowledge remains in workspace Markdown trees such as `knowledge/` and `archive/knowledge/`; the shipped/read-only runtime boots from the runtime database plus retained derived artifacts, and those runtime surfaces are not source of truth.
 
 ## Run It Now
 
 ```bash
 ./scripts/bootstrap.sh
+./scripts/build.sh
 python3 scripts/run.py --operator
 ```
 
@@ -44,6 +45,11 @@ python3 scripts/operator_view.py activity --db build/knowledge.db --format json
 - Governance and decisions: `decisions/`
 - Explanatory and operator docs: `docs/`
 - Derived artifacts only: `build/` and `generated/`
+
+Runtime/workspace contract:
+- Read-only runtime uses `build/knowledge.db` plus retained runtime artifacts such as `generated/route-map.json` and `generated/route-map.md`.
+- Source-backed authoring, ingest, review writeback, and sync require an explicit workspace source root.
+- The repository is a workspace by default for local development, but the runtime product must not assume repo-local source Markdown is present.
 
 There is no separate MkDocs or static-export publication surface. Readers consume dependable content through the runtime product, while Operators and Admins stay on the retained backend and runtime surfaces.
 

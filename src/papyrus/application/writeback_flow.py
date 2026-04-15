@@ -12,11 +12,12 @@ from typing import Any
 import yaml
 
 from papyrus.application.policy_authority import PolicyAuthority, policy_decision_payload
+from papyrus.application.workspace import require_workspace_source_root
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.lifecycle import RevisionReviewState, SourceSyncState
 from papyrus.infrastructure.markdown.serializer import slugify
 from papyrus.infrastructure.markdown.writer import MarkdownWriter, SourceWriteConflictError
-from papyrus.infrastructure.paths import DB_PATH, ROOT
+from papyrus.infrastructure.paths import DB_PATH
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
 from papyrus.infrastructure.repositories.knowledge_repo import (
     get_knowledge_object,
@@ -256,7 +257,7 @@ def _writeback_preview_from_connection(
     *,
     object_id: str,
     revision_id: str,
-    root_path: Path = ROOT,
+    root_path: Path,
     writer: MarkdownWriter | None = None,
     authority: PolicyAuthority | None = None,
 ) -> SourceWritebackPreview:
@@ -354,12 +355,15 @@ def preview_revision_writeback(
     database_path: Path = DB_PATH,
     object_id: str,
     revision_id: str,
-    root_path: Path = ROOT,
+    root_path: Path | None = None,
     authority: PolicyAuthority | None = None,
 ) -> SourceWritebackPreview:
     current_authority = _policy_authority(authority)
-    root_path = Path(root_path).resolve()
-    _ensure_mutation_recovery(source_root=root_path, authority=current_authority)
+    workspace_root = require_workspace_source_root(
+        root_path,
+        operation="source sync preview",
+    )
+    _ensure_mutation_recovery(source_root=workspace_root, authority=current_authority)
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
     try:
@@ -367,7 +371,7 @@ def preview_revision_writeback(
             connection,
             object_id=object_id,
             revision_id=revision_id,
-            root_path=root_path,
+            root_path=workspace_root,
             authority=current_authority,
         )
     finally:
@@ -380,7 +384,7 @@ def write_revision_to_source(
     object_id: str,
     revision_id: str,
     actor: str,
-    root_path: Path = ROOT,
+    root_path: Path | None = None,
     writer: MarkdownWriter | None = None,
     record_audit: bool = True,
     authority: PolicyAuthority | None = None,
@@ -412,7 +416,7 @@ def prepare_revision_writeback(
     object_id: str,
     revision_id: str,
     actor: str,
-    root_path: Path = ROOT,
+    root_path: Path | None = None,
     writer: MarkdownWriter | None = None,
     record_audit: bool = True,
     authority: PolicyAuthority | None = None,
@@ -421,7 +425,10 @@ def prepare_revision_writeback(
 ) -> PendingSourceWriteback:
     current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
-    root_path = Path(root_path).resolve()
+    workspace_root = require_workspace_source_root(
+        root_path,
+        operation="source sync writeback",
+    )
     acknowledgement_list = tuple(str(item) for item in acknowledgements or [])
     revision_row = get_knowledge_revision(connection, revision_id)
     if revision_row is None:
@@ -435,7 +442,7 @@ def prepare_revision_writeback(
         connection,
         object_id=object_id,
         revision_id=revision_id,
-        root_path=root_path,
+        root_path=workspace_root,
         writer=writer,
         authority=current_authority,
     )
@@ -467,13 +474,13 @@ def prepare_revision_writeback(
     if current_text is not None:
         timestamp = _now_utc().strftime("%Y%m%dT%H%M%SZ")
         backup_path = (
-            current_authority.backup_root(source_root=root_path)
+            current_authority.backup_root(source_root=workspace_root)
             / slugify(object_id)
             / f"{timestamp}-{preview.file_path.name}"
         )
 
     mutation = TransactionalMutation(
-        source_root=root_path,
+        source_root=workspace_root,
         mutation_id=mutation_id,
         mutation_type="source_sync_apply",
         object_id=object_id,
@@ -482,7 +489,7 @@ def prepare_revision_writeback(
     try:
         mutation.set_metadata(
             revision_id=revision_id,
-            target_path=preview.file_path.relative_to(root_path).as_posix(),
+            target_path=preview.file_path.relative_to(workspace_root).as_posix(),
             content_hash=str(revision_row["content_hash"]),
             expected_previous_text=preview.expected_previous_text,
         )
@@ -522,7 +529,7 @@ def prepare_revision_writeback(
                             metadata.get("canonical_path") or object_row["canonical_path"]
                         ),
                         "backup_path": (
-                            backup_path.relative_to(root_path).as_posix()
+                            backup_path.relative_to(workspace_root).as_posix()
                             if backup_path is not None
                             else None
                         ),
@@ -591,14 +598,17 @@ def write_object_to_source(
     database_path: Path = DB_PATH,
     object_id: str,
     actor: str,
-    root_path: Path = ROOT,
+    root_path: Path | None = None,
     authority: PolicyAuthority | None = None,
     acknowledgements: list[str] | tuple[str, ...] | set[str] | None = None,
 ) -> SourceWritebackResult:
     current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
-    root_path = Path(root_path).resolve()
-    _ensure_mutation_recovery(source_root=root_path, authority=current_authority)
+    workspace_root = require_workspace_source_root(
+        root_path,
+        operation="source sync writeback",
+    )
+    _ensure_mutation_recovery(source_root=workspace_root, authority=current_authority)
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
     try:
@@ -613,7 +623,7 @@ def write_object_to_source(
             object_id=object_id,
             revision_id=revision_id,
             actor=actor,
-            root_path=root_path,
+            root_path=workspace_root,
             authority=current_authority,
             acknowledgements=acknowledgements,
             require_acknowledgements=True,
@@ -630,13 +640,16 @@ def write_all_approved_revisions(
     *,
     database_path: Path = DB_PATH,
     actor: str,
-    root_path: Path = ROOT,
+    root_path: Path | None = None,
     authority: PolicyAuthority | None = None,
 ) -> list[SourceWritebackResult]:
     current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
-    root_path = Path(root_path).resolve()
-    _ensure_mutation_recovery(source_root=root_path, authority=current_authority)
+    workspace_root = require_workspace_source_root(
+        root_path,
+        operation="source sync bulk writeback",
+    )
+    _ensure_mutation_recovery(source_root=workspace_root, authority=current_authority)
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
     pending_results: list[PendingSourceWriteback] = []
@@ -657,7 +670,7 @@ def write_all_approved_revisions(
                     object_id=str(row["object_id"]),
                     revision_id=str(row["current_revision_id"]),
                     actor=actor,
-                    root_path=root_path,
+                    root_path=workspace_root,
                     authority=current_authority,
                 )
             )
@@ -683,14 +696,17 @@ def restore_last_writeback(
     object_id: str,
     actor: str,
     revision_id: str | None = None,
-    root_path: Path = ROOT,
+    root_path: Path | None = None,
     authority: PolicyAuthority | None = None,
     acknowledgements: list[str] | tuple[str, ...] | set[str] | None = None,
 ) -> SourceWritebackRestoreResult:
     current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
-    root_path = Path(root_path).resolve()
-    _ensure_mutation_recovery(source_root=root_path, authority=current_authority)
+    workspace_root = require_workspace_source_root(
+        root_path,
+        operation="source sync restore",
+    )
+    _ensure_mutation_recovery(source_root=workspace_root, authority=current_authority)
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
     try:
@@ -720,13 +736,13 @@ def restore_last_writeback(
             raise ValueError(f"latest writeback for {object_id} did not change canonical source")
 
         file_path = (
-            root_path / str(details.get("file_path") or object_row["canonical_path"])
+            workspace_root / str(details.get("file_path") or object_row["canonical_path"])
         ).resolve()
         backup_path: Path | None = None
         previous_text: str | None = None
         backup_rel = str(details.get("backup_path") or "").strip()
         if backup_rel:
-            backup_path = (root_path / backup_rel).resolve()
+            backup_path = (workspace_root / backup_rel).resolve()
             if not backup_path.exists():
                 raise ValueError(f"writeback backup is missing for {object_id}: {backup_path}")
             previous_text = backup_path.read_text(encoding="utf-8")
@@ -742,12 +758,12 @@ def restore_last_writeback(
         if current_text is not None:
             timestamp = _now_utc().strftime("%Y%m%dT%H%M%SZ")
             restore_backup_path = (
-                current_authority.backup_root(source_root=root_path)
+                current_authority.backup_root(source_root=workspace_root)
                 / slugify(object_id)
                 / f"{timestamp}-restore-{file_path.name}"
             )
         with TransactionalMutation(
-            source_root=root_path,
+            source_root=workspace_root,
             mutation_id=mutation_id,
             mutation_type="source_sync_restore",
             object_id=object_id,
@@ -755,7 +771,7 @@ def restore_last_writeback(
         ) as mutation:
             mutation.set_metadata(
                 restored_from_event_id=str(row["event_id"]),
-                target_path=file_path.relative_to(root_path).as_posix(),
+                target_path=file_path.relative_to(workspace_root).as_posix(),
                 previous_backup_path=backup_rel or None,
             )
             if restore_backup_path is not None:
@@ -794,7 +810,7 @@ def restore_last_writeback(
             details_json=json.dumps(
                 {
                     "restored_from_event_id": str(row["event_id"]),
-                    "file_path": file_path.relative_to(root_path).as_posix(),
+                    "file_path": file_path.relative_to(workspace_root).as_posix(),
                     "backup_path": backup_rel or None,
                     "restored_to_missing": previous_text is None,
                     "mutation_id": mutation_id,

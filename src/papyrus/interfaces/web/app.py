@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,10 +13,11 @@ from papyrus.application.queries import (
     RuntimeUnavailableError,
     ServiceNotFoundError,
 )
+from papyrus.application.workspace import WorkspaceSourceRequiredError
 from papyrus.infrastructure.observability import get_logger, log_event
-from papyrus.infrastructure.paths import DB_PATH, ROOT
+from papyrus.infrastructure.paths import DB_PATH
 from papyrus.infrastructure.repositories.knowledge_repo import load_taxonomies
-from papyrus.interfaces.startup_guard import prepare_operator_source_root
+from papyrus.interfaces.startup_guard import resolve_runtime_source_root
 from papyrus.interfaces.web.experience import RoleAccessDeniedError
 from papyrus.interfaces.web.http import (
     Request,
@@ -107,16 +107,11 @@ def _error_page(
 
 def app(
     database_path: str | Path = DB_PATH,
-    source_root: str | Path = ROOT,
-    *,
-    allow_noncanonical_source_root: bool = False,
+    source_root: str | Path | None = None,
     allow_web_ingest_local_paths: bool = False,
 ) -> Callable:
     resolved_database_path = Path(database_path)
-    resolved_source_root = prepare_operator_source_root(
-        source_root,
-        allow_noncanonical=allow_noncanonical_source_root,
-    )
+    resolved_source_root = resolve_runtime_source_root(source_root)
     runtime = WebRuntime(
         database_path=resolved_database_path,
         source_root=resolved_source_root,
@@ -218,6 +213,21 @@ def app(
                 ),
                 status="404 Not Found",
             ).as_wsgi(start_response)
+        except WorkspaceSourceRequiredError as exc:
+            log_event(
+                LOGGER, logging.ERROR, "web_workspace_required", path=request.path, error=str(exc)
+            )
+            return html_response(
+                _error_page(
+                    runtime,
+                    title="Workspace source root required",
+                    detail=str(exc),
+                    status="409",
+                    action="Retry this source-backed action with a workspace source root.",
+                    active_nav="manage",
+                ),
+                status="409 Conflict",
+            ).as_wsgi(start_response)
         except ValueError as exc:
             log_event(
                 LOGGER, logging.ERROR, "web_request_rejected", path=request.path, error=str(exc)
@@ -258,12 +268,9 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=8080, help="Bind port. Defaults to 8080.")
     parser.add_argument("--db", default=str(DB_PATH), help="Runtime SQLite database path.")
     parser.add_argument(
-        "--source-root", default=str(ROOT), help="Canonical source root for governed writeback."
-    )
-    parser.add_argument(
-        "--allow-noncanonical-source-root",
-        action="store_true",
-        help="Allow a non-repository source root for advanced sandbox or demo use.",
+        "--source-root",
+        default=None,
+        help="Workspace source root for source-backed authoring, ingest, and writeback operations.",
     )
     parser.add_argument(
         "--allow-web-ingest-local-paths",
@@ -272,16 +279,11 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    try:
-        application = app(
-            args.db,
-            args.source_root,
-            allow_noncanonical_source_root=args.allow_noncanonical_source_root,
-            allow_web_ingest_local_paths=args.allow_web_ingest_local_paths,
-        )
-    except ValueError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+    application = app(
+        args.db,
+        args.source_root,
+        allow_web_ingest_local_paths=args.allow_web_ingest_local_paths,
+    )
 
     with make_server(args.host, args.port, application) as server:
         print(f"Papyrus web interface listening on http://{args.host}:{args.port}")

@@ -8,13 +8,18 @@ Use this page when you need the minimum shared model behind Papyrus. Each rule i
 
 Papyrus keeps governed mutation meaning in shared backend contracts, rebuildable derived state, and two governed construction flows:
 
-- Canonical source: Markdown knowledge under `knowledge/` and `archive/knowledge/`
+- Canonical source: workspace Markdown knowledge under trees such as `knowledge/` and `archive/knowledge/`
 - Runtime derived state: rebuildable relational state and local workbench artifacts under `build/` used for validation, search, reporting, revision history, trust, governance views, ingestion review, and demo seeding
 - Derived build outputs: rebuildable artifacts under `generated/` for retained runtime and build contracts such as the route map
 - Blueprint authoring flow: structured draft creation and revision driven by blueprint sections
 - Import flow: upload, parse with extraction warnings and quality signals, classify, generate and review mapping, and convert external files into the same structured draft model
 
 If these layers disagree, canonical source wins and the runtime or derived build output must be rebuilt.
+
+Read-only runtime boundary:
+- Runtime startup depends on the runtime database plus retained runtime artifacts such as `generated/route-map.json` and `generated/route-map.md`.
+- Read-only runtime does not universally require repo-local `knowledge/` or `archive/knowledge/`.
+- Source-backed authoring, ingest conversion, source sync, and other canonical-source mutations require an explicit workspace source root.
 
 ## Reference
 
@@ -23,7 +28,7 @@ If these layers disagree, canonical source wins and the runtime or derived build
 | Knowledge object model | Papyrus supports runbooks, known errors, service records, policies, and system designs as typed knowledge objects with stable identity, while visible operator authoring centers on runbooks, known errors, service records, governed revisions, and import-to-draft review. | Stable identity lets the runtime track revisions, relationships, services, and evidence over time without forcing every supported type into the default operator path. | Duplicate or forked objects fragment history, trust, and ownership, and operators lose the distinction between the primary template set and deferred blueprint classes. |
 | Blueprint model | Blueprints define section structure, ordering, required content, validation rules, evidence requirements, lifecycle defaults, and whether a type belongs to the primary or advanced authoring scope. | Papyrus needs one central definition of valid operational knowledge instead of ad-hoc form rules or freeform blobs. | Different surfaces drift, validation becomes inconsistent, and deferred blueprint classes get advertised as peer templates before they are operationally obvious. |
 | Blueprint versus template boundary | Approved templates may still scaffold source files, but blueprints are the authoritative structure for guided authoring and ingestion. | Source scaffolding and runtime authoring solve different problems and should not be confused. | Operators mistake a file scaffold for governed authoring behavior and bypass progress, validation, or evidence expectations. |
-| Source sync | Approved revisions can write back to canonical Markdown through a journaled mutation flow with explicit `source_sync_state`. Preview and apply run canonical-path policy, conflict detection, and recovery rules before changing source. | Runtime governance must close the loop back to the authoritative source without manual sync work or silent overwrite. | Runtime and source drift, hostile path handling bugs, reviewers approve one state while operators read another, or people patch files outside the governed path. |
+| Source sync | Approved revisions can write back to canonical Markdown through a journaled mutation flow with explicit `source_sync_state`. Preview and apply run canonical-path policy, conflict detection, and recovery rules before changing source, and they require a workspace source root. | Runtime governance must close the loop back to the authoritative source without manual sync work or silent overwrite. | Runtime and source drift, hostile path handling bugs, reviewers approve one state while operators read another, or people patch files outside the governed path. |
 | Revision lifecycle | Revisions move independently of object lifecycle so draft, in-review, approved, rejected, and superseded states can be tracked cleanly. | Review decisions apply to a revision, not to an abstract file snapshot. | Review history becomes ambiguous and operators cannot tell which version was approved. |
 | Unified draft model | Native drafts and imported drafts both use the same runtime revision shape with `blueprint_id`, structured section content, completion state, and derived Markdown. | Papyrus should not carry a separate imported-content lifecycle after conversion. | Imported content behaves like a special case, lifecycle rules diverge, and review posture becomes inconsistent. |
 | Object lifecycle | Source objects still use `draft`, `active`, `deprecated`, and `archived` lifecycle states. | Lifecycle answers whether the object should appear in normal operational use. | Deprecated or archived guidance may be treated as current, or active guidance may disappear from the wrong views. |
@@ -34,7 +39,7 @@ If these layers disagree, canonical source wins and the runtime or derived build
 | Accountability model | Governed actions always record an actor. Web, API, CLI, demo, and scenario flows all route actor identity through the application layer. | Review, rejection, evidence, and source updates need a clear accountable actor in audit history. | Audit trails become ambiguous and governance actions cannot be defended or replayed safely. |
 | Variant modeling | Shared procedures should live once, while site or room differences stay in overview pages, access pages, or narrowly scoped exceptions. | A single base procedure reduces drift and keeps local deltas visible without forking the workflow body. | Operators update one site copy and assume the family changed everywhere, leaving hidden divergence in sibling articles. |
 | Validation and reporting | Validation enforces schema, taxonomy, metadata, link, citation, and repository rules; reporting exposes stale, duplicate, broken, isolated, or suspect content. | Papyrus depends on controlled structure and visible drift signals. | Invalid or low-quality knowledge enters the corpus and governance problems stay hidden. |
-| Runtime versus source of truth | The runtime is a rebuildable projection of canonical source plus governance state. | Search, trust, queue, and impact views need relational state without making generated data authoritative. | People patch derived state by hand or trust stale runtime output over source. |
+| Runtime versus source of truth | The runtime is a rebuildable projection backed by the runtime database plus retained derived artifacts, while canonical source remains in workspace source trees. | Search, trust, queue, and impact views need relational state without making generated data authoritative or requiring source trees in the shipped runtime image. | People patch derived state by hand, trust stale runtime output over source, or accidentally couple runtime startup to repo-local Markdown. |
 ## Explicit State Machines
 
 - `object_lifecycle_state`: `draft -> active -> deprecated -> archived`
@@ -58,21 +63,21 @@ Papyrus does not treat compatibility aliases such as `status`, `revision_state`,
 ```bash
 python3 scripts/validate.py
 python3 scripts/build_index.py
-python3 scripts/ingest.py path/to/source.md
-python3 scripts/operator_view.py create-draft --type runbook --object-id kb-example --title "Example" --summary "Example" --owner it_operations --team "IT Operations" --canonical-path knowledge/examples/example.md
-python3 scripts/operator_view.py show-progress --object kb-example --revision <revision_id>
+python3 scripts/ingest.py --source-root . path/to/source.md
+python3 scripts/operator_view.py create-draft --db build/knowledge.db --source-root . --type runbook --object-id kb-example --title "Example" --summary "Example" --owner it_operations --team "IT Operations" --canonical-path knowledge/examples/example.md
+python3 scripts/operator_view.py show-progress --db build/knowledge.db --source-root . --object kb-example --revision <revision_id>
 python3 scripts/operator_view.py list-ingestions
 python3 scripts/report_stale.py
 python3 scripts/report_content_health.py --section citation-health --section suspect-objects
 python3 scripts/run.py --operator
-python3 scripts/source_sync.py writeback-all
+python3 scripts/source_sync.py --source-root . writeback-all
 python3 scripts/ingest_event.py --type service_change --entity Remote\\ Access --payload payload.json
 python3 scripts/operator_view.py events --db build/knowledge.db --format json
 ```
 
 ## Practical Rules
 
-- Edit canonical knowledge in `knowledge/` or `archive/knowledge/`.
+- Edit canonical knowledge in workspace source trees such as `knowledge/` or `archive/knowledge/`.
 - Start new authoring from the primary template set unless you intentionally need the advanced route.
 - Route external documents through the import workbench before they become drafts.
 - Use `/operator/write/advanced` only when the draft belongs to a deferred blueprint class such as policy or system design.
@@ -81,6 +86,7 @@ python3 scripts/operator_view.py events --db build/knowledge.db --format json
 - Do not reintroduce route-local policy checks, template-local acknowledgement rules, or page-local governed action availability logic.
 - Treat `build/ingestions/` and any demo source created under `build/` as disposable runtime artifacts, not repository source.
 - Use governed source sync rather than manual file sync when an approved runtime revision becomes canonical.
+- Do not require repo-local source trees to boot read-only runtime surfaces.
 - Prefer one canonical procedure plus linked site deltas over copy-based regional variants.
 - Do not patch generated files in `generated/` or `build/`.
 - Validate before treating a revision as ready.

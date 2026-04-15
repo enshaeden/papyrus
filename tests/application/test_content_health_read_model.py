@@ -69,7 +69,7 @@ class ContentHealthReadModelTests(unittest.TestCase):
     def test_runtime_backed_usefulness_sections_report_evidence_risk(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
 
             outputs = collect_content_health_sections(
                 ["unclear-ownership", "weak-evidence"],

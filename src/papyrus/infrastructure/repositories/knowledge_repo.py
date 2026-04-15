@@ -64,14 +64,21 @@ def load_taxonomies(taxonomy_dir: Path = TAXONOMY_DIR) -> dict[str, dict[str, An
     return results
 
 
-def knowledge_source_roots(policy: dict[str, Any] | None = None) -> list[Path]:
+def workspace_knowledge_source_roots(
+    workspace_root: Path,
+    policy: dict[str, Any] | None = None,
+) -> list[Path]:
     current_policy = policy or load_policy()
-    return [ROOT / item for item in current_policy["directories"]["canonical_article_roots"]]
+    configured = current_policy["directories"]["workspace_canonical_article_roots"]
+    return [Path(workspace_root).resolve() / item for item in configured]
 
 
-def collect_source_paths(policy: dict[str, Any] | None = None) -> list[Path]:
+def collect_source_paths(
+    workspace_root: Path,
+    policy: dict[str, Any] | None = None,
+) -> list[Path]:
     paths: list[Path] = []
-    for root in knowledge_source_roots(policy):
+    for root in workspace_knowledge_source_roots(workspace_root, policy):
         if root.exists():
             paths.extend(
                 sorted(
@@ -83,8 +90,11 @@ def collect_source_paths(policy: dict[str, Any] | None = None) -> list[Path]:
     return sorted(paths)
 
 
-def load_knowledge_documents(policy: dict[str, Any] | None = None) -> list[KnowledgeDocument]:
-    return [parse_knowledge_document(path) for path in collect_source_paths(policy)]
+def load_knowledge_documents(
+    workspace_root: Path,
+    policy: dict[str, Any] | None = None,
+) -> list[KnowledgeDocument]:
+    return [parse_knowledge_document(path) for path in collect_source_paths(workspace_root, policy)]
 
 
 def collect_docs_source_paths() -> list[Path]:
@@ -118,7 +128,7 @@ def collect_root_markdown_paths() -> list[Path]:
 def collect_sanitization_paths(policy: dict[str, Any] | None = None) -> list[Path]:
     paths: list[Path] = []
     scan_roots = [
-        *knowledge_source_roots(policy),
+        *workspace_knowledge_source_roots(ROOT, policy),
         DOCS_DIR,
         DECISIONS_DIR,
         ROOT / "migration",
@@ -138,12 +148,18 @@ def collect_sanitization_paths(policy: dict[str, Any] | None = None) -> list[Pat
     return sorted(set(paths))
 
 
-def collect_article_paths(policy: dict[str, Any] | None = None) -> list[Path]:
-    return collect_source_paths(policy)
+def collect_article_paths(
+    workspace_root: Path,
+    policy: dict[str, Any] | None = None,
+) -> list[Path]:
+    return collect_source_paths(workspace_root, policy)
 
 
-def load_articles(policy: dict[str, Any] | None = None) -> list[KnowledgeDocument]:
-    return load_knowledge_documents(policy)
+def load_articles(
+    workspace_root: Path,
+    policy: dict[str, Any] | None = None,
+) -> list[KnowledgeDocument]:
+    return load_knowledge_documents(workspace_root, policy)
 
 
 def load_current_runtime_documents(connection: sqlite3.Connection) -> list[KnowledgeDocument]:
@@ -161,7 +177,7 @@ def load_current_runtime_documents(connection: sqlite3.Connection) -> list[Knowl
         relative = str(row["canonical_path"])
         documents.append(
             KnowledgeDocument(
-                source_path=ROOT / relative,
+                source_path=Path(relative),
                 relative_path=relative,
                 metadata=metadata,
                 body=str(row["body_markdown"]),

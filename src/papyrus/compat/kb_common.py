@@ -28,6 +28,7 @@ from papyrus.application.validation_flow import (
 from papyrus.application.validation_flow import (
     validate_knowledge_documents as validate_articles,
 )
+from papyrus.application.workspace import repository_workspace_root
 from papyrus.domain.entities import (
     BrokenLink,
     DocsPlacementWarning,
@@ -107,9 +108,7 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     load_schema,
     load_taxonomies,
     load_yaml_file,
-)
-from papyrus.infrastructure.repositories.knowledge_repo import (
-    knowledge_source_roots as article_roots,
+    workspace_knowledge_source_roots,
 )
 from papyrus.infrastructure.search.indexer import (
     fts5_available,
@@ -117,5 +116,10 @@ from papyrus.infrastructure.search.indexer import (
 )
 from papyrus.jobs.stale_scan import cadence_to_days
 from papyrus.jobs.stale_scan import stale_documents as stale_articles
+
+
+def article_roots(policy=None):
+    return workspace_knowledge_source_roots(repository_workspace_root(), policy)
+
 
 __all__ = [name for name in globals() if not name.startswith("_")]

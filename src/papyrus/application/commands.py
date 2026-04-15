@@ -15,6 +15,7 @@ from papyrus.application import (
     writeback_flow,
 )
 from papyrus.application.policy_authority import PolicyAuthority
+from papyrus.application.workspace import repository_workspace_root, require_workspace_source_root
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.entities import (
     AuditEvent,
@@ -138,7 +139,7 @@ def _policy_authority(authority: PolicyAuthority | None) -> PolicyAuthority:
 def governance_workflow(
     database_path: Path = DB_PATH,
     *,
-    source_root: Path = ROOT,
+    source_root: Path | None = None,
     authority: PolicyAuthority | None = None,
 ) -> review_flow.GovernanceWorkflow:
     return review_flow.GovernanceWorkflow(
@@ -148,16 +149,24 @@ def governance_workflow(
     )
 
 
-def validate_repository_command() -> ValidationCommandResult:
-    issues = validation_flow.validate_repository()
+def validate_repository_command(*, workspace_root: Path | None = None) -> ValidationCommandResult:
+    resolved_workspace_root = workspace_root or repository_workspace_root()
+    issues = validation_flow.validate_repository(workspace_root=resolved_workspace_root)
     return ValidationCommandResult(
         issues=issues,
-        document_count=len(load_knowledge_documents()),
+        document_count=len(load_knowledge_documents(resolved_workspace_root)),
     )
 
 
-def build_projection_command(database_path: Path = DB_PATH) -> ProjectionBuildResult:
-    document_count, mode = sync_flow.build_search_projection(database_path)
+def build_projection_command(
+    database_path: Path = DB_PATH,
+    *,
+    workspace_root: Path | None = None,
+) -> ProjectionBuildResult:
+    document_count, mode = sync_flow.build_search_projection(
+        database_path,
+        workspace_root=workspace_root or repository_workspace_root(),
+    )
     return ProjectionBuildResult(
         database_path=database_path,
         document_count=document_count,
@@ -170,7 +179,10 @@ def _require_actor_in_kwargs(kwargs: dict[str, Any]) -> None:
 
 
 def create_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeObject:
-    source_root = Path(kwargs.pop("source_root", ROOT))
+    source_root = require_workspace_source_root(
+        kwargs.pop("source_root", None),
+        operation="object creation",
+    )
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
     return governance_workflow(
@@ -179,7 +191,10 @@ def create_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> Knowl
 
 
 def create_revision_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeRevision:
-    source_root = Path(kwargs.pop("source_root", ROOT))
+    source_root = require_workspace_source_root(
+        kwargs.pop("source_root", None),
+        operation="revision authoring",
+    )
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
     return governance_workflow(
@@ -188,7 +203,7 @@ def create_revision_command(database_path: Path = DB_PATH, **kwargs: Any) -> Kno
 
 
 def submit_for_review_command(database_path: Path = DB_PATH, **kwargs: Any) -> WorkflowAuditResult:
-    source_root = Path(kwargs.pop("source_root", ROOT))
+    source_root = kwargs.pop("source_root", None)
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
     return WorkflowAuditResult(
@@ -199,7 +214,7 @@ def submit_for_review_command(database_path: Path = DB_PATH, **kwargs: Any) -> W
 
 
 def assign_reviewer_command(database_path: Path = DB_PATH, **kwargs: Any) -> ReviewAssignment:
-    source_root = Path(kwargs.pop("source_root", ROOT))
+    source_root = kwargs.pop("source_root", None)
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
     return governance_workflow(
@@ -208,7 +223,7 @@ def assign_reviewer_command(database_path: Path = DB_PATH, **kwargs: Any) -> Rev
 
 
 def approve_revision_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeRevision:
-    source_root = Path(kwargs.pop("source_root", ROOT))
+    source_root = kwargs.pop("source_root", None)
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
     return governance_workflow(
@@ -217,7 +232,7 @@ def approve_revision_command(database_path: Path = DB_PATH, **kwargs: Any) -> Kn
 
 
 def reject_revision_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeRevision:
-    source_root = Path(kwargs.pop("source_root", ROOT))
+    source_root = kwargs.pop("source_root", None)
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
     return governance_workflow(
@@ -226,7 +241,7 @@ def reject_revision_command(database_path: Path = DB_PATH, **kwargs: Any) -> Kno
 
 
 def supersede_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> KnowledgeObject:
-    source_root = Path(kwargs.pop("source_root", ROOT))
+    source_root = kwargs.pop("source_root", None)
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
     return governance_workflow(
@@ -237,7 +252,7 @@ def supersede_object_command(database_path: Path = DB_PATH, **kwargs: Any) -> Kn
 def archive_object_command(
     database_path: Path = DB_PATH, **kwargs: Any
 ) -> ArchiveObjectCommandResult:
-    source_root = Path(kwargs.pop("source_root", ROOT))
+    source_root = kwargs.pop("source_root", None)
     authority = _policy_authority(kwargs.pop("authority", None))
     _require_actor_in_kwargs(kwargs)
     result = governance_workflow(
@@ -276,7 +291,7 @@ def writeback_object_command(
         database_path=database_path,
         object_id=object_id,
         actor=actor,
-        root_path=source_root or ROOT,
+        root_path=source_root,
         authority=current_authority,
         acknowledgements=acknowledgements,
     )
@@ -308,7 +323,7 @@ def writeback_all_command(
     results = writeback_flow.write_all_approved_revisions(
         database_path=database_path,
         actor=actor,
-        root_path=source_root or ROOT,
+        root_path=source_root,
         authority=current_authority,
     )
     return [
@@ -343,7 +358,7 @@ def preview_writeback_command(
         database_path=database_path,
         object_id=object_id,
         revision_id=revision_id,
-        root_path=source_root or ROOT,
+        root_path=source_root,
         authority=current_authority,
     )
     return SourceWritebackPreviewCommandResult(
@@ -380,7 +395,7 @@ def restore_writeback_command(
         object_id=object_id,
         revision_id=revision_id,
         actor=actor,
-        root_path=source_root or ROOT,
+        root_path=source_root,
         authority=current_authority,
         acknowledgements=acknowledgements,
     )
@@ -531,7 +546,7 @@ def mark_object_suspect_due_to_change_command(
     reason: str,
     changed_entity_type: str,
     changed_entity_id: str | None = None,
-    source_root: Path = ROOT,
+    source_root: Path | None = None,
     authority: PolicyAuthority | None = None,
 ) -> WorkflowAuditResult:
     actor = require_actor_id(actor)

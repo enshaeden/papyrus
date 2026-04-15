@@ -12,6 +12,7 @@ from papyrus.application import writeback_flow
 from papyrus.application.policy_authority import PolicyAuthority, policy_decision_payload
 from papyrus.application.revision_runtime import RevisionRuntimeServices
 from papyrus.application.runtime_projection import persist_revision_artifacts
+from papyrus.application.workspace import require_workspace_source_root
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.entities import AuditEvent, KnowledgeObject, KnowledgeRevision, ReviewAssignment
 from papyrus.domain.lifecycle import (
@@ -30,7 +31,7 @@ from papyrus.domain.value_objects import (
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.serializer import json_dump, slugify
 from papyrus.infrastructure.migrations import apply_runtime_schema
-from papyrus.infrastructure.paths import DB_PATH, ROOT
+from papyrus.infrastructure.paths import DB_PATH
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
 from papyrus.infrastructure.repositories.knowledge_repo import (
     find_revision_by_content_hash,
@@ -187,15 +188,19 @@ class GovernanceWorkflow:
     def __init__(
         self,
         database_path: Path = DB_PATH,
-        source_root: Path = ROOT,
+        source_root: Path | None = None,
         *,
         authority: PolicyAuthority | None = None,
     ):
         self.database_path = Path(database_path)
-        self.source_root = Path(source_root).resolve()
+        self.source_root = Path(source_root).resolve() if source_root is not None else None
         self.runtime = RevisionRuntimeServices(source_root=self.source_root)
         self.authority = authority or PolicyAuthority.from_repository_policy()
-        _ensure_mutation_recovery(source_root=self.source_root, authority=self.authority)
+
+    def _workspace_source_root(self, *, operation: str) -> Path:
+        resolved = require_workspace_source_root(self.source_root, operation=operation)
+        _ensure_mutation_recovery(source_root=resolved, authority=self.authority)
+        return resolved
 
     def _connection(self) -> sqlite3.Connection:
         connection = open_runtime_database(
@@ -661,12 +666,13 @@ class GovernanceWorkflow:
                 current_revision_id=revision_id,
             )
             self.runtime.refresh_object_projection(connection, object_id=object_id)
+            workspace_root = self._workspace_source_root(operation="review approval writeback")
             pending_writeback = writeback_flow.prepare_revision_writeback(
                 connection,
                 object_id=object_id,
                 revision_id=revision_id,
                 actor=actor,
-                root_path=self.source_root,
+                root_path=workspace_root,
                 authority=self.authority,
             )
             writeback_result = pending_writeback.result
@@ -682,10 +688,10 @@ class GovernanceWorkflow:
                 "object_lifecycle_decision": policy_decision_payload(object_decision),
                 "previous_revision_id": writeback_result.previous_revision_id,
                 "source_writeback_path": writeback_result.file_path.relative_to(
-                    self.source_root
+                    workspace_root
                 ).as_posix(),
                 "writeback_backup_path": (
-                    writeback_result.backup_path.relative_to(self.source_root).as_posix()
+                    writeback_result.backup_path.relative_to(workspace_root).as_posix()
                     if writeback_result.backup_path is not None
                     else None
                 ),
@@ -926,12 +932,13 @@ class GovernanceWorkflow:
                 metadata.get("canonical_path") or object_row["canonical_path"]
             )
             archived_canonical_path = _archive_canonical_path(current_canonical_path)
+            workspace_root = self._workspace_source_root(operation="object archival")
             current_file_path = self.authority.resolve_canonical_target_path(
-                source_root=self.source_root,
+                source_root=workspace_root,
                 canonical_path=current_canonical_path,
             )
             archived_file_path = self.authority.resolve_canonical_target_path(
-                source_root=self.source_root,
+                source_root=workspace_root,
                 canonical_path=archived_canonical_path,
             )
             if archived_file_path.exists():
@@ -962,13 +969,13 @@ class GovernanceWorkflow:
             if current_source_text is not None:
                 timestamp = now.strftime("%Y%m%dT%H%M%SZ")
                 backup_path = (
-                    self.authority.backup_root(source_root=self.source_root)
+                    self.authority.backup_root(source_root=workspace_root)
                     / slugify(object_id)
                     / f"{timestamp}-archive-{current_file_path.name}"
                 )
 
             with TransactionalMutation(
-                source_root=self.source_root,
+                source_root=workspace_root,
                 mutation_id=mutation_id,
                 mutation_type="archive_object",
                 object_id=object_id,
@@ -1038,7 +1045,7 @@ class GovernanceWorkflow:
                             "previous_canonical_path": current_canonical_path,
                             "archived_canonical_path": archived_canonical_path,
                             "backup_path": (
-                                backup_path.relative_to(self.source_root).as_posix()
+                                backup_path.relative_to(workspace_root).as_posix()
                                 if backup_path is not None
                                 else None
                             ),
@@ -1092,7 +1099,7 @@ class GovernanceWorkflow:
 def mark_object_suspect_due_to_change(
     *,
     database_path: Path = DB_PATH,
-    source_root: Path = ROOT,
+    source_root: Path | None = None,
     object_id: str,
     actor: str,
     reason: str,

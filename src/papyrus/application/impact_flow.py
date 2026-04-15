@@ -223,7 +223,7 @@ def mark_object_suspect_due_to_change(
     reason: str,
     changed_entity_type: str,
     changed_entity_id: str | None = None,
-    source_root: Path = ROOT,
+    source_root: Path | None = None,
     authority: PolicyAuthority | None = None,
     database_path=DB_PATH,
 ) -> AuditEvent:

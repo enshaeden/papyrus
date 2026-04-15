@@ -18,7 +18,7 @@ class ImpactPropagationTests(unittest.TestCase):
     def test_object_impact_view_includes_causal_reasoning(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             ingest_event(
                 database_path=database_path,
                 event_type="service_change",
@@ -45,7 +45,7 @@ class ImpactPropagationTests(unittest.TestCase):
     def test_service_impact_view_shows_recent_event_and_revalidation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             ingest_event(
                 database_path=database_path,
                 event_type="service_change",

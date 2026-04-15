@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from papyrus.application.workspace import require_workspace_source_root
 from papyrus.infrastructure.observability import get_logger, log_event
-from papyrus.infrastructure.paths import ROOT
 from papyrus.infrastructure.transactional_mutation import (
     MutationRecoveryError,
     TransactionalMutation,
@@ -13,50 +13,32 @@ from papyrus.infrastructure.transactional_mutation import (
 LOGGER = get_logger(__name__)
 
 
-def resolve_operator_source_root(
-    source_root: str | Path | None,
-    *,
-    allow_noncanonical: bool = False,
-) -> Path:
-    resolved = Path(source_root or ROOT).resolve()
-    canonical_root = ROOT.resolve()
+def resolve_runtime_source_root(source_root: str | Path | None) -> Path | None:
+    if source_root is None or not str(source_root).strip():
+        log_event(LOGGER, logging.INFO, "runtime_source_root_not_configured")
+        return None
+    resolved = Path(source_root).resolve()
     log_event(
         LOGGER,
         logging.INFO,
-        "operator_source_root_resolved",
-        requested_source_root=str(source_root or ROOT),
+        "runtime_source_root_resolved",
+        requested_source_root=str(source_root),
         resolved_source_root=str(resolved),
-        canonical_source_root=str(canonical_root),
-        allow_noncanonical=allow_noncanonical,
     )
-    if resolved != canonical_root and not allow_noncanonical:
-        log_event(
-            LOGGER,
-            logging.ERROR,
-            "operator_source_root_rejected",
-            resolved_source_root=str(resolved),
-            canonical_source_root=str(canonical_root),
-        )
-        raise ValueError(
-            f"operator mode requires the canonical source root {canonical_root}; "
-            f"use --demo or pass --allow-noncanonical-source-root for sandboxed roots"
-        )
     return resolved
 
 
-def prepare_operator_source_root(
+def prepare_workspace_source_root(
     source_root: str | Path | None,
     *,
-    allow_noncanonical: bool = False,
+    operation: str,
 ) -> Path:
-    resolved = resolve_operator_source_root(
-        source_root,
-        allow_noncanonical=allow_noncanonical,
-    )
+    resolved = require_workspace_source_root(source_root, operation=operation)
     log_event(
         LOGGER,
         logging.INFO,
-        "operator_mutation_recovery_started",
+        "workspace_mutation_recovery_started",
+        operation=operation,
         source_root=str(resolved),
     )
     try:
@@ -65,7 +47,8 @@ def prepare_operator_source_root(
         log_event(
             LOGGER,
             logging.ERROR,
-            "operator_mutation_recovery_failed",
+            "workspace_mutation_recovery_failed",
+            operation=operation,
             source_root=str(resolved),
             error=str(exc),
         )
@@ -73,7 +56,8 @@ def prepare_operator_source_root(
     log_event(
         LOGGER,
         logging.INFO,
-        "operator_mutation_recovery_completed",
+        "workspace_mutation_recovery_completed",
+        operation=operation,
         source_root=str(resolved),
     )
     return resolved

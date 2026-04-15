@@ -14,6 +14,7 @@ from papyrus.application.blueprint_registry import get_blueprint
 from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.revision_runtime import RevisionRuntimeServices
 from papyrus.application.runtime_projection import persist_revision_artifacts
+from papyrus.application.workspace import require_workspace_source_root
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.blueprints import Blueprint, BlueprintSection, SectionType
 from papyrus.domain.evidence import (
@@ -29,7 +30,7 @@ from papyrus.domain.value_objects import RevisionReviewStatus, TrustState
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.serializer import json_dump
 from papyrus.infrastructure.migrations import apply_runtime_schema
-from papyrus.infrastructure.paths import DB_PATH, ROOT
+from papyrus.infrastructure.paths import DB_PATH
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
 from papyrus.infrastructure.repositories.knowledge_repo import (
     get_knowledge_object,
@@ -793,15 +794,19 @@ def create_draft_from_blueprint(
     blueprint_id: str,
     actor: str,
     database_path: Path = DB_PATH,
-    source_root: Path = ROOT,
+    source_root: Path | None = None,
     authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
+    workspace_root = require_workspace_source_root(
+        source_root,
+        operation="draft creation",
+    )
     return ensure_draft_revision(
         object_id=object_id,
         blueprint_id=blueprint_id,
         actor=actor,
         database_path=database_path,
-        source_root=source_root,
+        source_root=workspace_root,
         authority=authority,
     )
 
@@ -859,13 +864,17 @@ def ensure_draft_revision(
     blueprint_id: str,
     actor: str,
     database_path: Path = DB_PATH,
-    source_root: Path = ROOT,
+    source_root: Path | None = None,
     authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
     current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
+    workspace_root = require_workspace_source_root(
+        source_root,
+        operation="draft authoring",
+    )
     blueprint = get_blueprint(blueprint_id)
-    runtime = RevisionRuntimeServices(source_root=Path(source_root))
+    runtime = RevisionRuntimeServices(source_root=workspace_root)
     taxonomies = runtime.taxonomies()
     connection = _connection(Path(database_path))
     now = _now_utc()
@@ -973,10 +982,14 @@ def load_draft_context(
     object_id: str,
     revision_id: str | None = None,
     database_path: Path = DB_PATH,
-    source_root: Path = ROOT,
+    source_root: Path | None = None,
     authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
     current_authority = _policy_authority(authority)
+    workspace_root = require_workspace_source_root(
+        source_root,
+        operation="draft authoring",
+    )
     connection = _connection(Path(database_path))
     try:
         object_row = get_knowledge_object(connection, object_id)
@@ -1017,7 +1030,7 @@ def load_draft_context(
             object_row=object_row,
             revision_row=revision_row,
         )
-        runtime = RevisionRuntimeServices(source_root=Path(source_root))
+        runtime = RevisionRuntimeServices(source_root=workspace_root)
         completion = compute_completion_state(
             blueprint=blueprint,
             section_content=section_content,
@@ -1045,12 +1058,16 @@ def update_section(
     section_metadata: dict[str, Any] | None = None,
     actor: str,
     database_path: Path = DB_PATH,
-    source_root: Path = ROOT,
+    source_root: Path | None = None,
     authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
     current_authority = _policy_authority(authority)
     actor = require_actor_id(actor)
-    runtime = RevisionRuntimeServices(source_root=Path(source_root))
+    workspace_root = require_workspace_source_root(
+        source_root,
+        operation="draft authoring",
+    )
+    runtime = RevisionRuntimeServices(source_root=workspace_root)
     taxonomies = runtime.taxonomies()
     connection = _connection(Path(database_path))
     now = _now_utc()
@@ -1148,10 +1165,14 @@ def validate_draft_progress(
     object_id: str,
     revision_id: str,
     database_path: Path = DB_PATH,
-    source_root: Path,
+    source_root: Path | None = None,
     authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
     current_authority = _policy_authority(authority)
+    workspace_root = require_workspace_source_root(
+        source_root,
+        operation="draft authoring",
+    )
     connection = _connection(Path(database_path))
     try:
         object_row = get_knowledge_object(connection, object_id)
@@ -1164,7 +1185,7 @@ def validate_draft_progress(
             object_row=object_row,
             revision_row=revision_row,
         )
-        runtime = RevisionRuntimeServices(source_root=Path(source_root))
+        runtime = RevisionRuntimeServices(source_root=workspace_root)
         return {
             "blueprint": blueprint,
             "section_content": section_content,

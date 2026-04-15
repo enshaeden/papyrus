@@ -23,6 +23,7 @@ from papyrus.application.queries import (
     oversight_dashboard,
     review_queue,
 )
+from papyrus.application.workspace import repository_workspace_root
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 
 DEMO_SOURCE_ROOT = ROOT / "build" / "demo-source"
@@ -306,7 +307,10 @@ def _scenario_summary(
 def build_operator_demo_runtime(
     database_path: Path = DB_PATH, *, source_root: Path = DEMO_SOURCE_ROOT
 ) -> dict[str, object]:
-    result = build_projection_command(database_path=database_path)
+    result = build_projection_command(
+        database_path=database_path,
+        workspace_root=repository_workspace_root(),
+    )
     actor = "local.operator"
 
     create_object_command(

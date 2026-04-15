@@ -11,3 +11,4 @@ fi
 
 "$PYTHON_BIN" scripts/validate.py
 "$PYTHON_BIN" scripts/build_index.py
+"$PYTHON_BIN" scripts/build_route_map.py

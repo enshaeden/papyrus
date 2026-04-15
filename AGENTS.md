@@ -37,6 +37,13 @@ When files or outputs disagree, use this order of authority unless a deeper `AGE
 
 Rendered, indexed, exported, copied, cached, or generated outputs are never authoritative.
 
+## Runtime Boundary
+
+- Canonical knowledge source lives in workspace source trees such as `knowledge/` and `archive/knowledge/`.
+- Shipped and read-only runtime surfaces must boot from the runtime database plus retained derived artifacts. They must not universally require repo-local source Markdown.
+- Source-backed authoring, writeback, sync, ingest conversion, and similar source-dependent mutations are workspace-only operations.
+- Runtime packaging may exclude workspace source trees as long as the runtime database and retained derived artifacts required by read-only surfaces are present.
+
 ## Canonical Content Rules
 
 - Canonical knowledge articles and objects live only under `knowledge/` and `archive/knowledge/`.
@@ -57,6 +64,7 @@ Do not create shadow copies of knowledge objects in documentation, UI fixtures, 
 - Derived artifacts must remain reproducible from canonical source files and repository build scripts.
 - If source and derived artifacts disagree, the source wins and the derived artifact must be regenerated.
 - Delete obsolete derived artifacts, stale exports, and duplicate build clutter instead of preserving them.
+- Retained runtime artifacts such as `build/knowledge.db`, `generated/route-map.json`, and `generated/route-map.md` are runtime dependencies, not new sources of truth.
 
 ## Anti-Sprawl Rules
 

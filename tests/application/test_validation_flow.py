@@ -7,7 +7,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from papyrus.application.validation_flow import validate_knowledge_documents
+from papyrus.application.validation_flow import (
+    validate_knowledge_documents,
+    validate_runtime_artifacts,
+)
 from papyrus.domain.entities import KnowledgeDocument
 from papyrus.infrastructure.repositories.knowledge_repo import (
     load_object_schemas,
@@ -300,6 +303,10 @@ class BlueprintValidationTests(unittest.TestCase):
         self.assertIn("required blueprint section is incomplete: Interfaces", messages)
         self.assertIn("required blueprint section is incomplete: Failure Modes", messages)
         self.assertIn("required blueprint section is incomplete: Operations", messages)
+
+    def test_runtime_validation_checks_retained_artifacts_without_workspace_sources(self) -> None:
+        issues = validate_runtime_artifacts()
+        self.assertEqual([], issues)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,6 @@ import argparse
 import base64
 import datetime as dt
 import json
-import sys
 from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import parse_qs, unquote
@@ -46,9 +45,10 @@ from papyrus.application.queries import (
     service_detail,
     validation_run_history,
 )
+from papyrus.application.workspace import WorkspaceSourceRequiredError
 from papyrus.domain.actor import require_actor_id
-from papyrus.infrastructure.paths import DB_PATH, ROOT
-from papyrus.interfaces.startup_guard import prepare_operator_source_root
+from papyrus.infrastructure.paths import DB_PATH
+from papyrus.interfaces.startup_guard import resolve_runtime_source_root
 
 
 def _json_response(start_response, status: str, payload: object) -> list[bytes]:
@@ -124,15 +124,10 @@ def _object_result_payload(
 
 def app(
     database_path: str | Path = DB_PATH,
-    source_root: str | Path = ROOT,
-    *,
-    allow_noncanonical_source_root: bool = False,
+    source_root: str | Path | None = None,
 ) -> Callable:
     resolved_database_path = Path(database_path)
-    resolved_source_root = prepare_operator_source_root(
-        source_root,
-        allow_noncanonical=allow_noncanonical_source_root,
-    )
+    resolved_source_root = resolve_runtime_source_root(source_root)
 
     def application(environ, start_response):
         method = environ.get("REQUEST_METHOD", "GET")
@@ -865,6 +860,18 @@ def app(
                     category="user_action_needed",
                 ),
             )
+        except WorkspaceSourceRequiredError as exc:
+            return _json_response(
+                start_response,
+                "409 Conflict",
+                _error_payload(
+                    error="workspace_source_required",
+                    title="Workspace source root required",
+                    detail=str(exc),
+                    action="Retry the source-backed action with a workspace source root.",
+                    category="workspace_required",
+                ),
+            )
         except ValueError as exc:
             return _json_response(
                 start_response,
@@ -899,24 +906,13 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=8081, help="Bind port. Defaults to 8081.")
     parser.add_argument("--db", default=str(DB_PATH), help="Runtime SQLite database path.")
     parser.add_argument(
-        "--source-root", default=str(ROOT), help="Canonical source root for governed writeback."
-    )
-    parser.add_argument(
-        "--allow-noncanonical-source-root",
-        action="store_true",
-        help="Allow a non-repository source root for advanced sandbox or demo use.",
+        "--source-root",
+        default=None,
+        help="Workspace source root for source-backed authoring, ingest, and writeback operations.",
     )
     args = parser.parse_args()
 
-    try:
-        application = app(
-            args.db,
-            args.source_root,
-            allow_noncanonical_source_root=args.allow_noncanonical_source_root,
-        )
-    except ValueError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+    application = app(args.db, args.source_root)
 
     with make_server(args.host, args.port, application) as server:
         print(f"Papyrus JSON API listening on http://{args.host}:{args.port}")

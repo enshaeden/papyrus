@@ -16,6 +16,7 @@ Outcome:
 - Canonical source validates cleanly.
 - The local runtime database is rebuilt in `build/knowledge.db`.
 - Any content created under `build/` remains local derived state and is not source of truth.
+- Read-only runtime can later start from `build/knowledge.db` plus retained derived artifacts without requiring repo-local `knowledge/` or `archive/knowledge/`.
 
 Failure signals:
 - `validate.py` reports schema, taxonomy, metadata, citation, or link errors.
@@ -26,6 +27,7 @@ Failure signals:
 For the default operator path:
 
 ```bash
+python3 scripts/build_index.py
 python3 scripts/run.py --operator
 ```
 
@@ -33,6 +35,7 @@ python3 scripts/run.py --operator
 - Local web root `/` is a convenience redirect to `/operator`, not a separate role-owned route.
 - API entrypoint: local API health route `/health`
 - Runtime DB: `build/knowledge.db`
+- Read-only startup does not require `knowledge/` or `archive/knowledge/` when the runtime DB and retained runtime artifacts are already present.
 
 What to expect:
 - Reader surfaces live under `/reader/*`.
@@ -65,10 +68,10 @@ python3 scripts/operator_view.py activity --db build/knowledge.db --format json
 For structured drafting and import from the terminal:
 
 ```bash
-python3 scripts/operator_view.py create-draft --type runbook --object-id kb-example --title "Example" --summary "Example" --owner it_operations --team "IT Operations" --canonical-path knowledge/examples/example.md
-python3 scripts/operator_view.py edit-section --object kb-example --revision <revision_id> --section purpose --field use_when="Use this when the blueprint applies."
-python3 scripts/operator_view.py show-progress --object kb-example --revision <revision_id>
-python3 scripts/ingest.py path/to/source.docx
+python3 scripts/operator_view.py create-draft --db build/knowledge.db --source-root . --type runbook --object-id kb-example --title "Example" --summary "Example" --owner it_operations --team "IT Operations" --canonical-path knowledge/examples/example.md
+python3 scripts/operator_view.py edit-section --db build/knowledge.db --source-root . --object kb-example --revision <revision_id> --section purpose --field use_when="Use this when the blueprint applies."
+python3 scripts/operator_view.py show-progress --db build/knowledge.db --source-root . --object kb-example --revision <revision_id>
+python3 scripts/ingest.py --source-root . path/to/source.docx
 python3 scripts/operator_view.py list-ingestions --db build/knowledge.db
 python3 scripts/operator_view.py review-ingestion <ingestion_id> --db build/knowledge.db
 ```
@@ -87,18 +90,18 @@ python3 scripts/operator_view.py health --db build/demo-knowledge.db
 For advanced surface-specific startup:
 
 ```bash
-python3 scripts/serve_web.py --db build/knowledge.db --source-root .
-python3 scripts/serve_api.py --db build/knowledge.db --source-root .
+python3 scripts/serve_web.py --db build/knowledge.db
+python3 scripts/serve_api.py --db build/knowledge.db
 ```
 
 Guardrail:
-- `python3 scripts/run.py --operator` only permits the canonical repository source root for governed writeback and draft validation. Use `--demo` for sandboxed writable source roots.
-- `python3 scripts/serve_web.py`, `python3 scripts/serve_api.py`, and `python3 scripts/operator_view.py` also reject non-canonical source roots unless you pass `--allow-noncanonical-source-root`.
-- Startup and governed mutation entry points run pending mutation recovery before they proceed. Papyrus rolls back or reclaims stale journals and stale locks when safe, and blocks the operation with an explicit error when recovery cannot prove a safe result.
+- `python3 scripts/run.py --operator`, `python3 scripts/serve_web.py`, and `python3 scripts/serve_api.py` can start read-only runtime surfaces without a workspace source root.
+- Source-backed commands and routes require `--source-root` or an equivalent workspace source root value when they author drafts, ingest for conversion, write back approved revisions, or restore canonical source.
+- Workspace-scoped mutation entry points run pending mutation recovery before they proceed. Papyrus rolls back or reclaims stale journals and stale locks when safe, and blocks the operation with an explicit error when recovery cannot prove a safe result.
 - Browser-submitted local path ingestion is off by default. Enable it only on a trusted local operator web surface with `python3 scripts/run.py --operator --allow-web-ingest-local-paths` or `python3 scripts/serve_web.py --allow-web-ingest-local-paths`.
 - When web local-path ingest is enabled, Papyrus reads an absolute path from the machine running Papyrus, not from the browser device.
 - Local-path ingest is still confined to allowlisted read roots from `schemas/repository_policy.yml`. The default read root is `build/local-ingest/`.
-- If you embed the WSGI apps directly in tests or local tooling, `papyrus.interfaces.web.app(...)` and `papyrus.interfaces.api.app(...)` enforce the same rule. Use `allow_noncanonical_source_root=True` only for sandboxed demo/test roots.
+- If you embed the WSGI apps directly in tests or local tooling, `papyrus.interfaces.web.app(...)` and `papyrus.interfaces.api.app(...)` can be initialized without a workspace source root for read-only use.
 - `papyrus.interfaces.api.app(...)` remains operator-oriented. It is not part of the role-scoped web experience contract.
 - Any future role-scoped API contract requires a separate decision and migration.
 
@@ -110,10 +113,11 @@ Guardrail:
 
 ## 4. Use The Right Source
 
-- Canonical knowledge lives in `knowledge/` and `archive/knowledge/`.
+- Canonical knowledge lives in workspace source trees such as `knowledge/` and `archive/knowledge/`.
 - Repository decisions live in `decisions/`.
 - Operator and reference docs live in `docs/`.
 - Derived output in `generated/` and `build/` is rebuildable and not authoritative.
+- Read-only runtime depends on `build/knowledge.db` plus retained runtime artifacts such as `generated/route-map.json` and `generated/route-map.md`.
 - Generated ingestion artifacts in `build/ingestions/` are reviewable runtime state, not source of truth.
 - Demo source created under `build/demo-source/` is disposable local state, not canonical repository content.
 - Approved revisions can become canonical Markdown through a governed source-sync mutation. Papyrus records a mutation journal under `build/mutations/`, persists explicit `source_sync_state`, and rejects root escapes or symlink traversal for governed source paths.

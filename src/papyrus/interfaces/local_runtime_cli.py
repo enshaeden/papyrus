@@ -3,17 +3,14 @@ from __future__ import annotations
 import argparse
 import logging
 import shutil
-import sys
 import threading
 from pathlib import Path
 from wsgiref.simple_server import make_server
 
-from papyrus.application.commands import build_projection_command
 from papyrus.application.demo_flow import DEMO_SOURCE_ROOT, build_operator_demo_runtime
 from papyrus.infrastructure.observability import get_logger, log_event
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.interfaces.api import app as api_app
-from papyrus.interfaces.startup_guard import resolve_operator_source_root
 from papyrus.interfaces.web.app import app as web_app
 
 LOGGER = get_logger(__name__)
@@ -61,7 +58,7 @@ def main() -> int:
     parser.add_argument(
         "--source-root",
         default=None,
-        help="Override the source root used for writeback and evidence snapshots.",
+        help="Workspace source root for source-backed authoring, ingest, and writeback operations.",
     )
     parser.add_argument(
         "--allow-web-ingest-local-paths",
@@ -83,21 +80,15 @@ def main() -> int:
         _reset_runtime_artifacts(database_path, source_root)
         build_operator_demo_runtime(database_path=database_path, source_root=source_root)
     else:
-        try:
-            database_path = Path(args.db or DB_PATH)
-            source_root = resolve_operator_source_root(args.source_root)
-            log_event(
-                LOGGER,
-                logging.INFO,
-                "runtime_cli_operator_started",
-                database_path=str(database_path),
-                source_root=str(source_root),
-            )
-            build_projection_command(database_path=database_path)
-        except ValueError as exc:
-            log_event(LOGGER, logging.ERROR, "runtime_cli_startup_failed", error=str(exc))
-            print(str(exc), file=sys.stderr)
-            return 1
+        database_path = Path(args.db or DB_PATH)
+        source_root = Path(args.source_root).resolve() if args.source_root else None
+        log_event(
+            LOGGER,
+            logging.INFO,
+            "runtime_cli_operator_started",
+            database_path=str(database_path),
+            source_root=str(source_root) if source_root is not None else None,
+        )
 
     web_server = make_server(
         args.host,
@@ -105,7 +96,6 @@ def main() -> int:
         web_app(
             database_path,
             source_root,
-            allow_noncanonical_source_root=args.demo,
             allow_web_ingest_local_paths=args.allow_web_ingest_local_paths,
         ),
     )
@@ -115,7 +105,6 @@ def main() -> int:
         api_app(
             database_path,
             source_root,
-            allow_noncanonical_source_root=args.demo,
         ),
     )
     web_thread = _serve_in_thread(web_server, "web")

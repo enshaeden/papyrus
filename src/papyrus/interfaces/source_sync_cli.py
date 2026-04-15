@@ -10,6 +10,7 @@ from papyrus.application.commands import (
 )
 from papyrus.application.queries import knowledge_object_detail
 from papyrus.infrastructure.paths import DB_PATH
+from papyrus.interfaces.startup_guard import prepare_workspace_source_root
 
 
 def main() -> int:
@@ -19,6 +20,11 @@ def main() -> int:
     parser.add_argument("--db", default=str(DB_PATH), help="Path to the runtime SQLite database.")
     parser.add_argument(
         "--actor", default="papyrus-source-sync", help="Actor to record in the audit trail."
+    )
+    parser.add_argument(
+        "--source-root",
+        default=None,
+        help="Workspace source root for source-backed writeback and restore operations.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -60,6 +66,10 @@ def main() -> int:
     )
 
     args = parser.parse_args()
+    source_root = prepare_workspace_source_root(
+        args.source_root,
+        operation="source sync",
+    )
 
     if args.command == "preview":
         revision_id = args.revision_id
@@ -73,6 +83,7 @@ def main() -> int:
             database_path=args.db,
             object_id=args.object_id,
             revision_id=revision_id,
+            source_root=source_root,
         )
         print(f"{result.object_id} | {result.revision_id} | {result.file_path}")
         print(f"conflict_detected={str(result.conflict_detected).lower()}")
@@ -88,7 +99,10 @@ def main() -> int:
 
     if args.command == "writeback":
         result = writeback_object_command(
-            database_path=args.db, object_id=args.object_id, actor=args.actor
+            database_path=args.db,
+            object_id=args.object_id,
+            actor=args.actor,
+            source_root=source_root,
         )
         print(f"{result.object_id} | {result.revision_id} | {result.file_path}")
         return 0
@@ -99,6 +113,7 @@ def main() -> int:
             object_id=args.object_id,
             revision_id=args.revision_id,
             actor=args.actor,
+            source_root=source_root,
         )
         print(
             f"{result.object_id} | {result.revision_id or 'unknown-revision'} | {result.file_path}"
@@ -109,7 +124,11 @@ def main() -> int:
             print(f"backup_path={result.backup_path}")
         return 0
 
-    results = writeback_all_command(database_path=args.db, actor=args.actor)
+    results = writeback_all_command(
+        database_path=args.db,
+        actor=args.actor,
+        source_root=source_root,
+    )
     print(f"writeback_count={len(results)}")
     for result in results:
         print(f"{result.object_id} | {result.revision_id} | {result.file_path}")

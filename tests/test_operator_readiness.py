@@ -75,7 +75,7 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
     def test_operator_cli_queue_matches_api_payload(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             api_payload = json.loads(call_wsgi(api_app(database_path), "/queue")[2])
             cli_result = run_script(
                 "scripts/operator_view.py", "queue", "--db", str(database_path), "--format", "json"
@@ -167,7 +167,7 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
     def test_governance_api_endpoints_require_actor_and_record_outcomes(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             workflow = GovernanceWorkflow(database_path)
             created = workflow.create_object(
                 object_id="kb-api-governance-object",
@@ -244,12 +244,12 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
             payload = json.loads(body)
             self.assertEqual(payload["run_id"], "api-validation-run")
 
-    def test_event_history_cli_matches_api_and_operator_run_rejects_noncanonical_source_root(
+    def test_event_history_cli_matches_api_and_read_only_surfaces_ignore_runtime_source_root(
         self,
     ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             application = api_app(database_path)
 
             status, _, body = call_wsgi(
@@ -292,33 +292,6 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
             )
             self.assertEqual(api_payload["events"][0]["event_id"], created_payload["event_id"])
 
-            invalid_root = Path(temp_dir) / "other-root"
-            invalid_root.mkdir()
-            run_result = run_script(
-                "scripts/run.py",
-                "--operator",
-                "--source-root",
-                str(invalid_root),
-            )
-            self.assertEqual(run_result.returncode, 1)
-            self.assertIn("operator mode requires the canonical source root", run_result.stderr)
-
-            web_result = run_script(
-                "scripts/serve_web.py",
-                "--source-root",
-                str(invalid_root),
-            )
-            self.assertEqual(web_result.returncode, 1)
-            self.assertIn("operator mode requires the canonical source root", web_result.stderr)
-
-            api_result = run_script(
-                "scripts/serve_api.py",
-                "--source-root",
-                str(invalid_root),
-            )
-            self.assertEqual(api_result.returncode, 1)
-            self.assertIn("operator mode requires the canonical source root", api_result.stderr)
-
             cli_result = run_script(
                 "scripts/operator_view.py",
                 "queue",
@@ -327,61 +300,82 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
                 "--format",
                 "json",
                 "--source-root",
-                str(invalid_root),
+                str(Path(temp_dir) / "other-root"),
             )
-            self.assertEqual(cli_result.returncode, 1)
-            self.assertIn("operator mode requires the canonical source root", cli_result.stderr)
-
-            cli_opt_in_result = run_script(
-                "scripts/operator_view.py",
-                "queue",
-                "--db",
-                str(database_path),
-                "--format",
-                "json",
-                "--source-root",
-                str(invalid_root),
-                "--allow-noncanonical-source-root",
-            )
-            self.assertEqual(cli_opt_in_result.returncode, 0, msg=cli_opt_in_result.stderr)
-            cli_payload = json.loads(cli_opt_in_result.stdout)
+            self.assertEqual(cli_result.returncode, 0, msg=cli_result.stderr)
+            cli_payload = json.loads(cli_result.stdout)
             self.assertIn("queue", cli_payload)
 
-    def test_programmatic_surfaces_reject_noncanonical_source_root_without_explicit_opt_in(
-        self,
-    ) -> None:
+    def test_programmatic_read_only_surfaces_start_without_workspace_source_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             sandbox_root = Path(temp_dir) / "sandbox-root"
             sandbox_root.mkdir()
 
-            with self.assertRaisesRegex(
-                ValueError, "operator mode requires the canonical source root"
-            ):
-                api_app(database_path, source_root=sandbox_root)
-
-            with self.assertRaisesRegex(
-                ValueError, "operator mode requires the canonical source root"
-            ):
-                web_app(database_path, source_root=sandbox_root)
-
-            api_application = api_app(
-                database_path,
-                source_root=sandbox_root,
-                allow_noncanonical_source_root=True,
-            )
-            web_application = web_app(
-                database_path,
-                source_root=sandbox_root,
-                allow_noncanonical_source_root=True,
-            )
+            api_application = api_app(database_path)
+            web_application = web_app(database_path)
 
             api_status, _, _ = call_wsgi(api_application, "/health")
             self.assertEqual(api_status, "200 OK")
             web_status, _, body = call_wsgi(web_application, "/operator/read")
             self.assertEqual(web_status, "200 OK")
             self.assert_surface(body, "read-queue")
+
+            api_with_workspace = api_app(database_path, source_root=sandbox_root)
+            web_with_workspace = web_app(database_path, source_root=sandbox_root)
+            api_status, _, _ = call_wsgi(api_with_workspace, "/health")
+            self.assertEqual(api_status, "200 OK")
+            web_status, _, body = call_wsgi(web_with_workspace, "/operator/read")
+            self.assertEqual(web_status, "200 OK")
+            self.assert_surface(body, "read-queue")
+
+    def test_source_backed_cli_requires_workspace_source_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            build_search_projection(database_path, workspace_root=ROOT)
+            connection = sqlite3.connect(database_path)
+            connection.row_factory = sqlite3.Row
+            try:
+                row = connection.execute(
+                    """
+                    SELECT object_id, current_revision_id
+                    FROM knowledge_objects
+                    WHERE current_revision_id IS NOT NULL
+                    ORDER BY object_id
+                    LIMIT 1
+                    """
+                ).fetchone()
+            finally:
+                connection.close()
+            self.assertIsNotNone(row)
+
+            no_workspace = run_script(
+                "scripts/operator_view.py",
+                "preview-source-sync",
+                "--db",
+                str(database_path),
+                "--object",
+                str(row["object_id"]),
+                "--revision",
+                str(row["current_revision_id"]),
+            )
+            self.assertEqual(no_workspace.returncode, 1)
+            self.assertIn("requires a workspace source root", no_workspace.stderr)
+
+            with_workspace = run_script(
+                "scripts/operator_view.py",
+                "preview-source-sync",
+                "--db",
+                str(database_path),
+                "--object",
+                str(row["object_id"]),
+                "--revision",
+                str(row["current_revision_id"]),
+                "--source-root",
+                str(ROOT),
+            )
+            self.assertEqual(with_workspace.returncode, 0, msg=with_workspace.stderr)
 
     def test_degraded_surfaces_return_actionable_runtime_unavailable_responses(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

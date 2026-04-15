@@ -15,6 +15,7 @@ from papyrus.application.runtime_projection import (
     service_id,
 )
 from papyrus.application.validation_flow import validate_knowledge_documents
+from papyrus.application.workspace import require_workspace_source_root
 from papyrus.domain.lifecycle import DraftProgressState, SourceSyncState
 from papyrus.domain.policies import bootstrap_revision_review_state, runtime_trust_state
 from papyrus.domain.value_objects import RevisionReviewStatus
@@ -111,12 +112,20 @@ def _seed_services(connection, taxonomies: dict[str, dict[str, object]]) -> dict
     return seeded_services
 
 
-def build_search_projection(database_path: Path) -> tuple[int, str]:
+def build_search_projection(
+    database_path: Path,
+    *,
+    workspace_root: Path | None = None,
+) -> tuple[int, str]:
     log_event(
         LOGGER, logging.INFO, "build_search_projection_started", database_path=str(database_path)
     )
+    resolved_workspace_root = require_workspace_source_root(
+        workspace_root,
+        operation="runtime projection build",
+    )
     policy = load_policy()
-    documents = load_knowledge_documents(policy)
+    documents = load_knowledge_documents(resolved_workspace_root, policy)
     object_schemas = load_object_schemas()
     legacy_schema = load_schema()
     taxonomies = load_taxonomies()

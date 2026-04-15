@@ -14,12 +14,13 @@ from papyrus.application.ui_projection import (
     build_ingestion_projection,
     workflow_projection_payload,
 )
+from papyrus.application.workspace import require_workspace_source_root
 from papyrus.domain.ingestion import IngestionStatus, has_mapping_result, truthful_ingestion_status
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.serializer import json_dump
 from papyrus.infrastructure.migrations import apply_runtime_schema
 from papyrus.infrastructure.parsers import parse_docx_bytes, parse_markdown_bytes, parse_pdf_bytes
-from papyrus.infrastructure.paths import BUILD_DIR, DB_PATH, ROOT
+from papyrus.infrastructure.paths import BUILD_DIR, DB_PATH
 from papyrus.infrastructure.repositories.ingestion_repo import (
     get_ingestion_job,
     insert_ingestion_artifact,
@@ -407,11 +408,14 @@ def ingest_file(
     file_path: str | Path,
     payload: bytes | None = None,
     database_path: Path = DB_PATH,
-    source_root: Path = ROOT,
+    source_root: Path | None = None,
     authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
     current_authority = _policy_authority(authority)
-    resolved_source_root = Path(source_root).resolve()
+    resolved_source_root = require_workspace_source_root(
+        source_root,
+        operation="ingestion",
+    )
     path = Path(file_path)
     safe_filename = _safe_ingestion_filename(file_path)
     if payload is None:

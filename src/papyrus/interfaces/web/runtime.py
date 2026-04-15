@@ -10,7 +10,7 @@ from papyrus.interfaces.web.rendering import PageRenderer
 @dataclass(frozen=True)
 class WebRuntime:
     database_path: Path
-    source_root: Path
+    source_root: Path | None
     allow_web_ingest_local_paths: bool
     page_renderer: PageRenderer
     taxonomies: dict[str, dict[str, Any]]

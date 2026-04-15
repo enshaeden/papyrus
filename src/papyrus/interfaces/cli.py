@@ -46,7 +46,10 @@ from papyrus.domain.policies import searchable_statuses
 from papyrus.infrastructure.markdown.serializer import parse_iso_date
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.infrastructure.repositories.knowledge_repo import load_policy
-from papyrus.interfaces.startup_guard import prepare_operator_source_root
+from papyrus.interfaces.startup_guard import (
+    prepare_workspace_source_root,
+    resolve_runtime_source_root,
+)
 
 
 def validate_main() -> int:
@@ -54,7 +57,7 @@ def validate_main() -> int:
     parser.parse_args()
 
     try:
-        result = validate_repository_command()
+        result = validate_repository_command(workspace_root=ROOT)
     except Exception as exc:  # pragma: no cover - exercised via CLI tests
         print(f"validation setup failed: {exc}", file=sys.stderr)
         return 1
@@ -171,7 +174,7 @@ def report_content_health_main() -> int:
 
 def build_index_main() -> int:
     try:
-        result = build_projection_command()
+        result = build_projection_command(workspace_root=ROOT)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -250,13 +253,8 @@ def operator_main() -> int:
     common.add_argument("--format", choices=("text", "json"), default=None, help=argparse.SUPPRESS)
     common.add_argument(
         "--source-root",
-        default=str(ROOT),
-        help="Canonical source root for governed writeback, previews, and draft validation.",
-    )
-    common.add_argument(
-        "--allow-noncanonical-source-root",
-        action="store_true",
-        help="Allow a non-repository source root for sandboxed authoring or test workflows.",
+        default=None,
+        help="Workspace source root for source-backed authoring, ingest, and writeback operations.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -548,14 +546,28 @@ def operator_main() -> int:
     args = parser.parse_args()
     database_path = args.db or str(DB_PATH)
     output_format = args.format or "text"
-    try:
-        source_root = prepare_operator_source_root(
-            args.source_root,
-            allow_noncanonical=args.allow_noncanonical_source_root,
-        )
-    except ValueError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+    workspace_required_commands = {
+        "create-draft",
+        "edit-section",
+        "show-progress",
+        "convert-ingestion",
+        "approve-review",
+        "preview-source-sync",
+        "apply-source-sync",
+        "restore-source-sync",
+        "archive-object",
+    }
+    if args.command in workspace_required_commands:
+        try:
+            source_root = prepare_workspace_source_root(
+                args.source_root,
+                operation=f"operator command '{args.command}'",
+            )
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    else:
+        source_root = resolve_runtime_source_root(args.source_root)
 
     if args.command == "queue":
         payload = knowledge_queue(limit=args.limit, database_path=database_path)

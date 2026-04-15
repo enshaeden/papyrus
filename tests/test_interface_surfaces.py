@@ -76,7 +76,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.database_path = Path(cls.temp_dir.name) / "runtime.db"
-        build_search_projection(cls.database_path)
+        build_search_projection(cls.database_path, workspace_root=ROOT)
         connection = sqlite3.connect(cls.database_path)
         connection.row_factory = sqlite3.Row
         try:
@@ -467,8 +467,9 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
     def test_api_write_endpoint_creates_object(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "workflow.db"
-            build_search_projection(database_path)
-            application = api_app(database_path)
+            source_root = Path(temp_dir) / "repo"
+            build_search_projection(database_path, workspace_root=ROOT)
+            application = api_app(database_path, source_root=source_root)
 
             status, _, body = call_wsgi(
                 application,

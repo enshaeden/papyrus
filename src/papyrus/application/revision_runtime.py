@@ -8,7 +8,6 @@ from typing import Any
 from papyrus.application.runtime_projection import refresh_current_object_projection
 from papyrus.domain.entities import KnowledgeDocument
 from papyrus.infrastructure.markdown.parser import normalize_object_metadata
-from papyrus.infrastructure.paths import ROOT
 from papyrus.infrastructure.repositories.knowledge_repo import (
     delete_search_document,
     get_knowledge_object,
@@ -22,10 +21,10 @@ class RevisionRuntimeServices:
     def __init__(
         self,
         *,
-        source_root: Path = ROOT,
+        source_root: Path | None = None,
         taxonomies: dict[str, dict[str, Any]] | None = None,
     ) -> None:
-        self.source_root = Path(source_root).resolve()
+        self.source_root = Path(source_root).resolve() if source_root is not None else None
         self._taxonomies = taxonomies
 
     def taxonomies(self) -> dict[str, dict[str, Any]]:
@@ -36,7 +35,11 @@ class RevisionRuntimeServices:
     def build_document(self, metadata: dict[str, Any], body_markdown: str) -> KnowledgeDocument:
         canonical_path = str(metadata.get("canonical_path") or "")
         return KnowledgeDocument(
-            source_path=self.source_root / canonical_path if canonical_path else self.source_root,
+            source_path=(
+                self.source_root / canonical_path
+                if self.source_root is not None and canonical_path
+                else Path(canonical_path or ".")
+            ),
             relative_path=canonical_path,
             metadata=dict(metadata),
             body=body_markdown,

@@ -67,7 +67,7 @@ def render_inline_list(values: list[str]) -> str:
 
 def load_existing_article_records(root: Path, policy: dict[str, object]) -> list[dict[str, object]]:
     records = []
-    for directory in policy["directories"]["canonical_article_roots"]:
+    for directory in policy["directories"]["workspace_canonical_article_roots"]:
         base = root / directory
         if not base.exists():
             continue

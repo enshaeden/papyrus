@@ -267,12 +267,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
     def test_write_and_manage_approval_flow_updates_runtime_state(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             source_root = Path(temp_dir) / "repo"
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
             )
 
             status, headers, _ = call_wsgi(
@@ -397,12 +396,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
     def test_rejection_flow_and_validation_messages_render(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             source_root = Path(temp_dir) / "repo"
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
             )
 
             status, _, body = call_wsgi(
@@ -524,12 +522,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
     def test_manage_forms_capture_suspect_and_validation_actions(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             source_root = Path(temp_dir) / "repo"
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
             )
 
             status, headers, _ = call_wsgi(
@@ -644,12 +641,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
     def test_role_scoped_evidence_revalidation_actions_use_role_owned_actor_ids(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             source_root = Path(temp_dir) / "repo"
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
             )
 
             status, headers, _ = call_wsgi(
@@ -778,7 +774,6 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
             )
             status, _, body = call_wsgi(
                 application, f"/admin/review/object/{archived.object_id}/archive"
@@ -851,7 +846,6 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
             )
 
             status, _, object_body = call_wsgi(
@@ -883,12 +877,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
     ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             source_root = Path(temp_dir) / "repo"
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
             )
 
             status, headers, _ = call_wsgi(application, "/")
@@ -993,12 +986,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
     def test_shell_only_object_is_searchable_and_routes_back_to_revision_draft(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             source_root = Path(temp_dir) / "repo"
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
             )
 
             status, headers, _ = call_wsgi(
@@ -1081,12 +1073,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
     def test_review_queue_exposes_next_governance_actions_for_shells_and_drafts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             source_root = Path(temp_dir) / "repo"
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
             )
 
             status, headers, _ = call_wsgi(
@@ -1151,7 +1142,6 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
             )
 
             status, headers, _ = call_wsgi(
@@ -1212,12 +1202,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
     ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             source_root = Path(temp_dir) / "repo"
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
             )
 
             status, headers, _ = call_wsgi(
@@ -1312,12 +1301,11 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
     def test_revision_multiselect_fields_render_search_controls_and_object_lookup(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
             source_root = Path(temp_dir) / "repo"
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
             )
 
             status, headers, _ = call_wsgi(

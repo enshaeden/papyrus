@@ -18,7 +18,7 @@ class EventFlowTests(unittest.TestCase):
     def test_service_change_event_is_stored_and_propagates_to_linked_objects(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
 
             result = ingest_event(
                 database_path=database_path,

@@ -13,6 +13,7 @@ from papyrus.application.impact_flow import (
     relationless_documents,
 )
 from papyrus.application.validation_flow import _uses_legacy_blueprint_fallback, orphaned_files
+from papyrus.application.workspace import repository_workspace_root
 from papyrus.domain.policies import ownership_rank, primary_object_type
 from papyrus.infrastructure.markdown.parser import (
     LEGACY_FIELD_NOTE_PREFIX,
@@ -128,7 +129,7 @@ def stale_projection(
 
     connection = runtime_connection(database_path)
     if connection is None:
-        documents = load_knowledge_documents(load_policy())
+        documents = load_knowledge_documents(repository_workspace_root(), load_policy())
         from papyrus.jobs.stale_scan import stale_documents
 
         return [
@@ -158,7 +159,8 @@ def collect_content_health_sections(
     database_path: str | Path = DB_PATH,
 ) -> dict[str, list[str]]:
     policy = load_policy()
-    source_documents = load_knowledge_documents(policy)
+    workspace_root = repository_workspace_root()
+    source_documents = load_knowledge_documents(workspace_root, policy)
     selected_sections = selected or list(CONTENT_HEALTH_SECTIONS)
     outputs: dict[str, list[str]] = {}
     connection = runtime_connection(database_path)
@@ -188,7 +190,7 @@ def collect_content_health_sections(
                 collect_root_markdown_paths()
                 + collect_docs_source_paths()
                 + collect_decision_paths()
-                + collect_source_paths(policy)
+                + collect_source_paths(workspace_root, policy)
             )
             broken_links = collect_broken_markdown_links(markdown_paths)
             outputs["broken-links"] = [

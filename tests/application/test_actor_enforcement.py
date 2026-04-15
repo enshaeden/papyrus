@@ -24,7 +24,7 @@ class ActorEnforcementTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
 
             with self.assertRaisesRegex(ValueError, "actor is required"):
                 create_object_command(
@@ -44,7 +44,7 @@ class ActorEnforcementTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
 
             created = create_object_command(
                 database_path=database_path,
@@ -139,7 +139,7 @@ class ActorEnforcementTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            build_search_projection(database_path)
+            build_search_projection(database_path, workspace_root=ROOT)
 
             create_object_command(
                 database_path=database_path,

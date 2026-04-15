@@ -4,8 +4,12 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-KNOWLEDGE_DIR = ROOT / "knowledge"
-ARCHIVE_KNOWLEDGE_DIR = ROOT / "archive" / "knowledge"
+WORKSPACE_CANONICAL_ROOTS = (
+    "knowledge",
+    "archive/knowledge",
+)
+KNOWLEDGE_DIR = ROOT / WORKSPACE_CANONICAL_ROOTS[0]
+ARCHIVE_KNOWLEDGE_DIR = ROOT / WORKSPACE_CANONICAL_ROOTS[1]
 DOCS_DIR = ROOT / "docs"
 DECISIONS_DIR = ROOT / "decisions"
 TEMPLATE_DIR = ROOT / "templates"

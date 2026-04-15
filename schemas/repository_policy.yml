@@ -1,7 +1,7 @@
 policy: repository_contract
 version: 1
 directories:
-  canonical_article_roots:
+  workspace_canonical_article_roots:
     - knowledge
     - archive/knowledge
   documentation_root: docs
@@ -10,6 +10,10 @@ directories:
   generated_roots:
     - generated
     - build
+  runtime_retained_artifacts:
+    - build/knowledge.db
+    - generated/route-map.json
+    - generated/route-map.md
   allowed_top_level_directories:
     - archive
     - build

@@ -122,9 +122,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             source_root = Path(temp_dir) / "repo"
             source_file = Path(temp_dir) / "import.md"
             source_file.write_text("# Import coverage\n", encoding="utf-8")
-            application = web_app(
-                database_path, source_root=source_root, allow_noncanonical_source_root=True
-            )
+            application = web_app(database_path, source_root=source_root)
 
             status, _, body = call_wsgi(application, "/operator/import")
             self.assertEqual(status, "200 OK")
@@ -152,7 +150,6 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
                 allow_web_ingest_local_paths=True,
             )
 
@@ -189,9 +186,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(
-                database_path, source_root=source_root, allow_noncanonical_source_root=True
-            )
+            application = web_app(database_path, source_root=source_root)
 
             status, _, body = call_wsgi(application, "/operator/import", method="POST", form={})
             self.assertEqual(status, "200 OK")
@@ -205,7 +200,6 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
                 allow_web_ingest_local_paths=True,
             )
 
@@ -238,7 +232,6 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
                 allow_web_ingest_local_paths=True,
             )
 
@@ -278,7 +271,6 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
                 allow_web_ingest_local_paths=True,
             )
 
@@ -316,7 +308,6 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
                 allow_web_ingest_local_paths=True,
             )
 
@@ -345,9 +336,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root = Path(temp_dir) / "repo"
-            application = web_app(
-                database_path, source_root=source_root, allow_noncanonical_source_root=True
-            )
+            application = web_app(database_path, source_root=source_root)
 
             status, headers, _ = call_wsgi_multipart(
                 application,
@@ -373,7 +362,6 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(
                 database_path,
                 source_root=source_root,
-                allow_noncanonical_source_root=True,
                 allow_web_ingest_local_paths=True,
             )
 

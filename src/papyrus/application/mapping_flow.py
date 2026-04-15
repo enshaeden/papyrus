@@ -18,9 +18,10 @@ from papyrus.application.ingestion_flow import (
 )
 from papyrus.application.policy_authority import PolicyAuthority
 from papyrus.application.review_flow import GovernanceWorkflow
+from papyrus.application.workspace import require_workspace_source_root
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.ingestion import has_mapping_result
-from papyrus.infrastructure.paths import DB_PATH, ROOT
+from papyrus.infrastructure.paths import DB_PATH
 
 SECTION_KEYWORDS = {
     "purpose": ("purpose", "overview", "summary", "use when"),
@@ -844,10 +845,14 @@ def convert_to_draft(
     audience: str,
     actor: str,
     database_path: Path = DB_PATH,
-    source_root: Path = ROOT,
+    source_root: Path | None = None,
     authority: PolicyAuthority | None = None,
 ) -> dict[str, Any]:
     actor = require_actor_id(actor)
+    workspace_root = require_workspace_source_root(
+        source_root,
+        operation="ingestion draft conversion",
+    )
     detail = ingestion_detail(ingestion_id=ingestion_id, database_path=database_path)
     if detail.get("converted_revision_id"):
         raise ValueError(f"ingestion {ingestion_id} has already been reviewed and converted")
@@ -862,7 +867,7 @@ def convert_to_draft(
     blueprint = get_blueprint(str(mapping_result["blueprint_id"]))
     workflow = GovernanceWorkflow(
         Path(database_path),
-        source_root=Path(source_root),
+        source_root=workspace_root,
         authority=authority,
     )
 
@@ -887,7 +892,7 @@ def convert_to_draft(
         blueprint_id=blueprint.blueprint_id,
         actor=actor,
         database_path=Path(database_path),
-        source_root=Path(source_root),
+        source_root=workspace_root,
     )
     revision_id = str(created["revision_id"])
     update_section(
@@ -909,7 +914,7 @@ def convert_to_draft(
         },
         actor=actor,
         database_path=Path(database_path),
-        source_root=Path(source_root),
+        source_root=workspace_root,
     )
     update_section(
         object_id=object_id,
@@ -971,7 +976,7 @@ def convert_to_draft(
         },
         actor=actor,
         database_path=Path(database_path),
-        source_root=Path(source_root),
+        source_root=workspace_root,
     )
     for section_id in blueprint.ordering:
         if section_id in {"identity", "stewardship"}:
@@ -992,13 +997,13 @@ def convert_to_draft(
             section_metadata=section_metadata,
             actor=actor,
             database_path=Path(database_path),
-            source_root=Path(source_root),
+            source_root=workspace_root,
         )
     converted = validate_draft_progress(
         object_id=object_id,
         revision_id=revision_id,
         database_path=Path(database_path),
-        source_root=Path(source_root),
+        source_root=workspace_root,
     )
     mark_ingestion_converted(
         ingestion_id=ingestion_id,

@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import re
 from collections.abc import Iterable
+from pathlib import Path
 from typing import Any
 
 from papyrus.application.authoring_flow import compute_completion_state, derive_section_content
@@ -13,6 +14,7 @@ from papyrus.application.substrate_checks import (
     validate_documented_web_routes,
     validate_static_asset_references,
 )
+from papyrus.application.workspace import require_workspace_source_root
 from papyrus.domain.actor import require_actor_id
 from papyrus.domain.entities import KnowledgeDocument, ValidationIssue
 from papyrus.domain.policies import ownership_rank
@@ -797,13 +799,30 @@ def validate_knowledge_documents(
     return issues
 
 
-def validate_repository() -> list[ValidationIssue]:
+def validate_runtime_artifacts() -> list[ValidationIssue]:
+    policy = load_policy()
+    issues: list[ValidationIssue] = []
+    for artifact_path in policy["directories"]["runtime_retained_artifacts"]:
+        candidate = ROOT / artifact_path
+        if not candidate.exists():
+            issues.append(
+                ValidationIssue(artifact_path, "required retained runtime artifact is missing")
+            )
+    return issues
+
+
+def validate_repository(*, workspace_root: Path) -> list[ValidationIssue]:
+    resolved_workspace_root = require_workspace_source_root(
+        workspace_root,
+        operation="workspace validation",
+    )
     policy = load_policy()
     object_schemas = load_object_schemas()
     legacy_schema = load_schema()
     taxonomies = load_taxonomies()
-    documents = load_knowledge_documents(policy)
+    documents = load_knowledge_documents(resolved_workspace_root, policy)
     issues: list[ValidationIssue] = []
+    issues.extend(validate_runtime_artifacts())
     issues.extend(validate_directory_contract(policy))
     issues.extend(
         validate_knowledge_documents(documents, object_schemas, legacy_schema, taxonomies, policy)
@@ -813,7 +832,7 @@ def validate_repository() -> list[ValidationIssue]:
         collect_root_markdown_paths()
         + collect_docs_source_paths()
         + collect_decision_paths()
-        + collect_article_paths(policy)
+        + collect_article_paths(resolved_workspace_root, policy)
     )
     documentation_paths = (
         collect_root_markdown_paths() + collect_docs_source_paths() + collect_decision_paths()
