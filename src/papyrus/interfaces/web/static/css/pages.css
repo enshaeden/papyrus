@@ -134,7 +134,7 @@
 }
 
 .next-action-row.is-primary .next-action-detail {
-  max-width: 40rem;
+  max-inline-size: var(--measure-panel-copy);
 }
 
 .work-area-row {
@@ -163,7 +163,7 @@
 
 .write-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 20rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--control-rail-width));
   gap: var(--space-3);
   align-items: start;
 }

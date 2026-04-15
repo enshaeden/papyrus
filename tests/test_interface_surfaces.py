@@ -303,19 +303,23 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         )
         self.assertIn("--font-serif: var(--font-sans);", body)
 
-    def test_static_layout_assets_keep_topbar_search_centered(self) -> None:
+    def test_static_layout_assets_use_fluid_topbar_and_docked_sidebar_shell(self) -> None:
         application = web_app(self.database_path)
 
         status, headers, body = call_wsgi(application, "/static/css/layout.css")
         self.assertEqual(status, "200 OK")
         self.assertEqual(headers["Content-Type"], "text/css")
-        self.assertIn(
-            "grid-template-columns: minmax(0, 1fr) minmax(18rem, 42rem) minmax(0, 1fr);", body
-        )
+        self.assertIn("grid-template-columns: max-content minmax(0, 1fr) max-content;", body)
+        self.assertIn("gap: var(--shell-gap);", body)
         self.assertIn(".topbar-shell-controls {", body)
         self.assertIn("grid-column: 3;", body)
         self.assertIn("justify-self: end;", body)
         self.assertIn("grid-column: 2;", body)
+        self.assertIn(".shell-columns.has-sidebar {", body)
+        self.assertIn("padding-inline-start: 0;", body)
+        self.assertIn(".sidebar {", body)
+        self.assertIn("border-left: 0;", body)
+        self.assertIn("border-radius: 0 var(--radius-lg) var(--radius-lg) 0;", body)
         self.assertIn("background: var(--color-topbar-bg);", body)
         self.assertNotIn("linear-gradient(135deg, var(--color-brand-hero)", body)
         self.assertEqual(body.count("box-shadow: var(--shadow-topbar);"), 1)
@@ -401,18 +405,21 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn(".service-pressure__metric {", services_body)
         self.assertIn("color: var(--color-accent-primary);", services_body)
 
-    def test_static_read_assets_protect_dense_admin_results_table_layout(self) -> None:
+    def test_static_read_assets_prefer_fluid_results_table_layout_before_overflow(self) -> None:
         application = web_app(self.database_path)
 
         status, headers, body = call_wsgi(application, "/static/css/read.css")
         self.assertEqual(status, "200 OK")
         self.assertEqual(headers["Content-Type"], "text/css")
         self.assertIn(".read-results-table .workbench-table {", body)
-        self.assertIn("min-width: 56rem;", body)
+        self.assertIn("min-width: 0;", body)
+        self.assertIn("table-layout: auto;", body)
+        self.assertNotIn("min-width: 56rem;", body)
         self.assertIn(".read-results-table .workbench-table th:nth-child(5),", body)
+        self.assertIn("width: 1%;", body)
         self.assertIn("white-space: nowrap;", body)
         self.assertIn(".read-results-table .button {", body)
-        self.assertIn("min-width: 5.5rem;", body)
+        self.assertIn("min-width: clamp(4.75rem, 8vw, 5.5rem);", body)
 
     def test_static_oversight_assets_prevent_stretched_empty_governance_columns(self) -> None:
         application = web_app(self.database_path)

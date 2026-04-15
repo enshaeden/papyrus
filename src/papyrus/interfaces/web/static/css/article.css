@@ -17,14 +17,14 @@
   display: grid;
   gap: 1.5rem;
   min-width: 0;
-  max-width: 48rem;
+  max-inline-size: var(--measure-prose);
 }
 
 .article-appendix {
   display: grid;
   gap: 1.15rem;
   min-width: 0;
-  max-width: 48rem;
+  max-inline-size: var(--measure-prose);
 }
 
 .article-section {
@@ -58,7 +58,7 @@
 .article-section li,
 .article-context-panel p,
 .article-context-panel li {
-  max-width: 70ch;
+  max-inline-size: var(--measure-prose);
   font-size: 1rem;
   line-height: 1.74;
 }

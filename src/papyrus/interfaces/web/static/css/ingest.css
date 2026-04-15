@@ -21,7 +21,7 @@
 }
 
 .page-ingest-review__body {
-  grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.95fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, var(--shell-aside-width));
 }
 
 .ingest-orchestration,
@@ -245,7 +245,7 @@
   margin: 0;
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 960px) {
   .page-ingest-review__body {
     grid-template-columns: 1fr;
   }

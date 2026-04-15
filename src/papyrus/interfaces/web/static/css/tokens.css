@@ -126,6 +126,17 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
   --space-7: 3rem;
+  --shell-gutter-inline: clamp(1rem, 2vw, 2rem);
+  --shell-gutter-inline-right: clamp(1rem, 2.5vw, 2.25rem);
+  --shell-gutter-inline-left: clamp(1rem, 1.5vw, 1.5rem);
+  --shell-gap: clamp(1rem, 1.8vw, 1.5rem);
+  --shell-nav-width: clamp(13rem, 17vw, 16rem);
+  --shell-nav-width-compact: clamp(12rem, 15vw, 14rem);
+  --shell-aside-width: clamp(16rem, 22vw, 22rem);
+  --control-rail-width: clamp(14rem, 24vw, 20rem);
+  --toolbar-search-width: clamp(18rem, 38vw, 46rem);
+  --measure-prose: 72ch;
+  --measure-panel-copy: 60ch;
   --font-sans: "Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
   --font-serif: var(--font-sans);
   --font-mono: "SFMono-Regular", Consolas, monospace;
