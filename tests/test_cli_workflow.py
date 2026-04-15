@@ -65,10 +65,6 @@ class CliWorkflowTests(unittest.TestCase):
     def test_new_article_cli(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
-            copytree(ROOT / "taxonomies", temp_root / "taxonomies")
-            copytree(ROOT / "schemas", temp_root / "schemas")
-            copytree(ROOT / "templates", temp_root / "templates")
-            (temp_root / "knowledge" / "runbooks").mkdir(parents=True)
             result = run_command(
                 "scripts/new_article.py",
                 "--root",
@@ -95,6 +91,18 @@ class CliWorkflowTests(unittest.TestCase):
             self.assertIn("services:\n- Remote Access", created_text)
             self.assertIn("systems:\n- <VPN_SERVICE>", created_text)
             self.assertIn("tags:\n- vpn", created_text)
+
+    def test_list_object_types_cli_with_external_source_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = run_command(
+                "scripts/new_article.py",
+                "--root",
+                temp_dir,
+                "--list-object-types",
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("[object_types]", result.stdout)
+            self.assertIn("service_record", result.stdout)
 
     def test_list_taxonomy_cli(self) -> None:
         result = run_command("scripts/new_article.py", "--list-taxonomy", "services")

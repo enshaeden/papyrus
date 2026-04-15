@@ -276,9 +276,8 @@ def main() -> int:
     args = parser.parse_args()
 
     root = Path(args.root).resolve() if args.root else None
-    policy_root = root or ROOT
-    policy = load_policy(policy_root / "schemas" / "repository_policy.yml")
-    taxonomies = load_taxonomies(policy_root / "taxonomies")
+    policy = load_policy(ROOT / "schemas" / "repository_policy.yml")
+    taxonomies = load_taxonomies(ROOT / "taxonomies")
     supported_types = scaffoldable_object_types(policy)
 
     if args.list_taxonomy:
@@ -346,7 +345,7 @@ def main() -> int:
             print(f"related knowledge object not found: {related_id}", file=sys.stderr)
             return 1
 
-    template_path = root / "templates" / f"{family}.md"
+    template_path = ROOT / "templates" / f"{family}.md"
     template_text = template_path.read_text(encoding="utf-8")
     today = dt.date.today().isoformat()
 
