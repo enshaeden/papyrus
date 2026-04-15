@@ -130,3 +130,123 @@
   font-family: var(--font-mono);
   font-size: 0.84rem;
 }
+
+.reader-object-tree {
+  inline-size: 100%;
+  border: 1px solid rgba(93, 55, 84, 0.12);
+  border-radius: 1.2rem;
+  background: rgba(252, 250, 246, 0.82);
+  box-shadow: none;
+}
+
+.reader-object-tree[open] {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.reader-object-tree__summary,
+.reader-object-tree__group {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.72rem 0.9rem;
+  cursor: pointer;
+  border-radius: 0.95rem;
+  color: var(--color-text-primary);
+  list-style: none;
+}
+
+.reader-object-tree__summary::-webkit-details-marker,
+.reader-object-tree__group::-webkit-details-marker {
+  display: none;
+}
+
+.reader-object-tree__summary {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-panel-governance-label);
+}
+
+.reader-object-tree__summary::before,
+.reader-object-tree__group::before {
+  content: "▸";
+  display: inline-block;
+  color: var(--color-panel-governance-label);
+  transition: transform 140ms ease;
+}
+
+.reader-object-tree[open] > .reader-object-tree__summary::before,
+.reader-object-tree__branch-disclosure[open] > .reader-object-tree__group::before {
+  transform: rotate(90deg);
+}
+
+.reader-object-tree__summary:hover,
+.reader-object-tree__group:hover {
+  background: rgba(240, 238, 241, 0.68);
+}
+
+.reader-object-tree__nav {
+  padding: 0 0.9rem 0.95rem;
+}
+
+.reader-object-tree__list {
+  display: grid;
+  gap: 0.18rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reader-object-tree__branch,
+.reader-object-tree__item {
+  margin: 0;
+}
+
+.reader-object-tree__branch-disclosure {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.reader-object-tree__branch-disclosure > .reader-object-tree__list {
+  margin-left: 0.55rem;
+  padding-left: 0.85rem;
+  border-left: 1px solid rgba(153, 145, 164, 0.3);
+}
+
+.reader-object-tree__branch.is-current-branch
+  > .reader-object-tree__branch-disclosure
+  > .reader-object-tree__group {
+  color: var(--color-nav-active);
+}
+
+.reader-object-tree__link {
+  display: block;
+  padding: 0.55rem 0.72rem;
+  border: 1px solid transparent;
+  border-radius: 0.85rem;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.reader-object-tree__link:hover {
+  background: var(--color-nav-hover-bg);
+  border-color: var(--color-nav-hover-border);
+  color: var(--color-nav-hover-text);
+  text-decoration: none;
+}
+
+.reader-object-tree__link.is-current {
+  background: var(--color-selected-fill);
+  border-color: var(--color-selected-border);
+  color: var(--color-nav-active);
+  font-weight: 700;
+  box-shadow: inset 0.2rem 0 0 var(--color-nav-active);
+}
+
+.reader-object-tree__link.is-current:hover {
+  background: var(--color-selected-fill);
+  border-color: var(--color-selected-border);
+  color: var(--color-nav-active);
+}

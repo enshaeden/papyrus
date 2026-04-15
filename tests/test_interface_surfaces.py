@@ -219,6 +219,8 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
             primary_surface="object-detail",
             components=("article-section", "article-context-panel"),
         )
+        self.assert_component(body, "reader-object-tree-nav")
+        self.assertIn('<aside class="context-column">', body)
         self.assertIn('class="sidebar"', body)
         self.assertIn('href="/reader/browse"', body)
         self.assertNotIn("/operator/review/object/", body)

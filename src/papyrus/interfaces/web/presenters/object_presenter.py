@@ -12,6 +12,7 @@ from papyrus.interfaces.web.view_helpers import escape, join_html, link
 from papyrus.interfaces.web.view_models.article_projection import build_article_projection
 
 from .article_content_presenter import render_article_block
+from .reader_object_tree_presenter import render_reader_object_tree_nav
 
 
 def render_article_section(*, section: dict[str, Any]) -> str:
@@ -54,7 +55,11 @@ def render_article_context_panel(*, section: dict[str, Any]) -> str:
 
 
 def present_object_detail(
-    renderer: TemplateRenderer, *, detail: dict[str, Any], experience: ExperienceContext
+    renderer: TemplateRenderer,
+    *,
+    detail: dict[str, Any],
+    experience: ExperienceContext,
+    reader_object_nav: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
     article = build_article_projection(
@@ -112,8 +117,12 @@ def present_object_detail(
     secondary_html = join_html(
         [render_article_context_panel(section=section) for section in article["secondary_sections"]]
     )
-    appendix_html = "" if article["show_context_rail"] else secondary_html
-    aside_html = secondary_html if article["show_context_rail"] else ""
+    if experience.role == READER_ROLE:
+        appendix_html = secondary_html
+        aside_html = render_reader_object_tree_nav(reader_object_nav)
+    else:
+        appendix_html = "" if article["show_context_rail"] else secondary_html
+        aside_html = secondary_html if article["show_context_rail"] else ""
     use_now = str(article["hero"].get("use_now") or "").strip()
     return {
         "page_template": "pages/object_detail.html",

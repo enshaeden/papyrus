@@ -17,6 +17,7 @@ from papyrus.application.read_models.queue_search import (
     search_knowledge_objects,
     search_projection,
 )
+from papyrus.application.read_models.reader_object_nav import reader_object_nav_tree
 from papyrus.application.read_models.review_manage import (
     audit_view,
     review_detail,
@@ -55,6 +56,7 @@ __all__ = [
     "knowledge_queue",
     "oversight_dashboard",
     "require_runtime_connection",
+    "reader_object_nav_tree",
     "review_queue",
     "review_detail",
     "revision_history",

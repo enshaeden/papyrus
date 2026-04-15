@@ -115,6 +115,34 @@ DETAIL = {
     ],
 }
 
+READER_OBJECT_NAV = {
+    "label": "Browse objects",
+    "nodes": [
+        {
+            "kind": "group",
+            "key": "runbooks",
+            "label": "Runbooks",
+            "expanded": True,
+            "contains_current": True,
+            "object": None,
+            "children": [
+                {
+                    "kind": "object",
+                    "object_id": "kb-neighbor",
+                    "label": "Neighbor object",
+                    "current": False,
+                },
+                {
+                    "kind": "object",
+                    "object_id": "kb-test",
+                    "label": "Test object",
+                    "current": True,
+                },
+            ],
+        }
+    ],
+}
+
 
 class ObjectDetailPresenterTests(SemanticHookAssertions, unittest.TestCase):
     def test_component_owners_render_article_markup_locally(self) -> None:
@@ -177,3 +205,41 @@ class ObjectDetailPresenterTests(SemanticHookAssertions, unittest.TestCase):
         article_html = page["page_context"]["article_html"] + page["page_context"]["appendix_html"]
         self.assertIn("Projection says stop and inspect", article_html)
         self.assertNotIn("Raw posture fallback should not render.", article_html)
+
+    def test_reader_object_detail_keeps_context_inline_and_renders_object_tree_nav(self) -> None:
+        page = present_object_detail(
+            TEMPLATE_RENDERER,
+            detail=DETAIL,
+            experience=experience_for_role("reader"),
+            reader_object_nav=READER_OBJECT_NAV,
+        )
+
+        article_html = page["page_context"]["article_html"] + page["page_context"]["appendix_html"]
+        self.assert_component(article_html, "article-section")
+        self.assert_component(article_html, "article-context-panel")
+        self.assert_component(page["aside_html"], "reader-object-tree-nav")
+        self.assertIn("Browse objects", page["aside_html"])
+        self.assertIn('href="/reader/object/kb-test"', page["aside_html"])
+        self.assertIn('href="/reader/object/kb-neighbor"', page["aside_html"])
+        self.assertIn('aria-current="page"', page["aside_html"])
+        self.assertIn(
+            '<details class="reader-object-tree__branch-disclosure" open>', page["aside_html"]
+        )
+        self.assertNotIn('href="#', page["aside_html"])
+
+    def test_non_reader_roles_do_not_render_reader_tree_nav(self) -> None:
+        operator_page = present_object_detail(
+            TEMPLATE_RENDERER,
+            detail=DETAIL,
+            experience=experience_for_role("operator"),
+            reader_object_nav=READER_OBJECT_NAV,
+        )
+        admin_page = present_object_detail(
+            TEMPLATE_RENDERER,
+            detail=DETAIL,
+            experience=experience_for_role("admin"),
+            reader_object_nav=READER_OBJECT_NAV,
+        )
+
+        self.assertNotIn("reader-object-tree-nav", operator_page["aside_html"])
+        self.assertNotIn("reader-object-tree-nav", admin_page["aside_html"])

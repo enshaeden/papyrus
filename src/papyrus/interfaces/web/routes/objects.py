@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from papyrus.application.queries import knowledge_object_detail, revision_history
+from papyrus.application.queries import (
+    knowledge_object_detail,
+    reader_object_nav_tree,
+    revision_history,
+)
+from papyrus.application.role_visibility import READER_ROLE
 from papyrus.interfaces.web.experience import require_experience
 from papyrus.interfaces.web.http import Request, html_response
 from papyrus.interfaces.web.presenters.object_presenter import present_object_detail
@@ -15,8 +20,21 @@ def register(router, runtime) -> None:
         detail = knowledge_object_detail(
             object_id, database_path=runtime.database_path, visibility_role=experience.role
         )
+        reader_object_nav = (
+            reader_object_nav_tree(
+                current_object_id=object_id,
+                current_path=str(detail["object"].get("path") or ""),
+                current_canonical_path=str(detail["object"].get("canonical_path") or ""),
+                database_path=runtime.database_path,
+            )
+            if experience.role == READER_ROLE
+            else None
+        )
         page = present_object_detail(
-            runtime.template_renderer, detail=detail, experience=experience
+            runtime.template_renderer,
+            detail=detail,
+            experience=experience,
+            reader_object_nav=reader_object_nav,
         )
         return html_response(
             runtime.page_renderer.render_page(
