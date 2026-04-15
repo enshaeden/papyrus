@@ -113,7 +113,7 @@ Guardrail:
 - Canonical knowledge lives in `knowledge/` and `archive/knowledge/`.
 - Repository decisions live in `decisions/`.
 - Operator and reference docs live in `docs/`.
-- Derived output in `generated/`, `build/`, and `site/` is rebuildable and not authoritative.
+- Derived output in `generated/` and `build/` is rebuildable and not authoritative.
 - Generated ingestion artifacts in `build/ingestions/` are reviewable runtime state, not source of truth.
 - Demo source created under `build/demo-source/` is disposable local state, not canonical repository content.
 - Approved revisions can become canonical Markdown through a governed source-sync mutation. Papyrus records a mutation journal under `build/mutations/`, persists explicit `source_sync_state`, and rejects root escapes or symlink traversal for governed source paths.
@@ -130,8 +130,8 @@ Guardrail:
 
 | Category | Scripts | Notes |
 | --- | --- | --- |
-| Bootstrap and build | `_bootstrap.py`, `bootstrap.sh`, `build.sh`, `build_index.py`, `build_route_map.py`, `build_site_docs.py`, `build_static_export.sh`, `validate.py` | Local environment setup, validation, route-map generation, runtime rebuild, and static/export build entrypoints. |
-| Serve and operator entrypoints | `run.py`, `serve.sh`, `serve_web.py`, `serve_api.py`, `serve_static_export.sh`, `operator_view.py`, `search.py` | Web, API, shell, and operator-facing read/manage entrypoints. |
+| Bootstrap and build | `_bootstrap.py`, `bootstrap.sh`, `build.sh`, `build_index.py`, `build_route_map.py`, `validate.py` | Local environment setup, validation, route-map generation, and runtime rebuild entrypoints. |
+| Serve and operator entrypoints | `run.py`, `serve.sh`, `serve_web.py`, `serve_api.py`, `operator_view.py`, `search.py` | Web, API, shell, and operator-facing read/manage entrypoints. |
 | Authoring, import, and source mutation | `new_article.py`, `ingest.py`, `ingest_event.py`, `source_sync.py` | Create or ingest knowledge, record events, and manage governed source synchronization. |
 | Engineering gate | `check.sh`, `format.sh`, `lint.sh`, `typecheck.sh` | Formatter, lint, type-check, and full engineering gate commands. |
 | Reporting, demo, and migration | `report_stale.py`, `report_content_health.py`, `demo_runtime.py`, `run_scenario.py`, `validate_migration.py` | Reporting, demo/runtime seeding, scenario exercises, and migration validation. |

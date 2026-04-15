@@ -16,7 +16,7 @@ Use this documentation set to operate Papyrus from the repository as it exists n
 
 ## System Model
 
-- [System model](reference/system-model.md): the object, revision, trust, citation, validation, runtime, and export rules in one place, including the primary template scope and advanced blueprint boundary.
+- [System model](reference/system-model.md): the object, revision, trust, citation, validation, and runtime/build rules in one place, including the primary template scope and advanced blueprint boundary.
  - [Operator web UI](reference/operator-web-ui.md): server-rendered operator shell for Home, Read, Write, Import, Review, and supporting health or audit workflows.
 - [Operator readiness](reference/operator-readiness.md): implementation hardening notes, demo/runtime path, operator CLI parity, and structured findings.
 - [Placeholder glossary](reference/placeholder-glossary.md): stable definitions for the sanitization placeholders still used across source and migration artifacts.

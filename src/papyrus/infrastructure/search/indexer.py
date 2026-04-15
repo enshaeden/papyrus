@@ -1,15 +1,9 @@
 from __future__ import annotations
 
 import sqlite3
-from pathlib import Path
 
 from papyrus.domain.entities import KnowledgeDocument
 from papyrus.infrastructure.markdown.serializer import normalize_whitespace
-from papyrus.infrastructure.paths import (
-    GENERATED_SITE_DOCS_DIR,
-    KNOWLEDGE_DIR,
-    SYSTEM_DESIGN_DOCS_SITE_ROOT,
-)
 
 
 def summarize_for_search(document: KnowledgeDocument) -> str:
@@ -37,27 +31,6 @@ def summarize_for_search(document: KnowledgeDocument) -> str:
         document.body,
     ]
     return normalize_whitespace(" ".join(str(value) for value in values if value))
-
-
-def site_relative_path_for_repo_path(repo_relative: str) -> Path | None:
-    candidate = Path(repo_relative)
-    if repo_relative.startswith("knowledge/"):
-        return candidate
-    if repo_relative.startswith("archive/knowledge/"):
-        return candidate
-    if repo_relative.startswith("docs/"):
-        return SYSTEM_DESIGN_DOCS_SITE_ROOT / candidate.relative_to("docs")
-    if repo_relative.startswith("decisions/"):
-        return candidate
-    return None
-
-
-def site_knowledge_output_path(document: KnowledgeDocument) -> Path:
-    if document.metadata.get("object_lifecycle_state") == "archived":
-        from papyrus.infrastructure.paths import ROOT
-
-        return GENERATED_SITE_DOCS_DIR / document.source_path.relative_to(ROOT)
-    return GENERATED_SITE_DOCS_DIR / "knowledge" / document.source_path.relative_to(KNOWLEDGE_DIR)
 
 
 def fts5_available(connection: sqlite3.Connection) -> bool:

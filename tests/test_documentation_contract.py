@@ -90,26 +90,6 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("data-component", component_contracts)
         self.assertIn("remove duplicated navigation", component_contracts)
 
-    def test_mkdocs_nav_lists_only_canonical_decision_records(self) -> None:
-        mkdocs = (ROOT / "mkdocs.yml").read_text(encoding="utf-8").lower()
-
-        self.assertIn("role-scoped experience architecture", mkdocs)
-        self.assertIn("layout contracts by role", mkdocs)
-        self.assertIn("knowledge workflows and lifecycle", mkdocs)
-        self.assertIn("web ui component contracts", mkdocs)
-        self.assertNotIn("experience principles: decisions/experience-principles.md", mkdocs)
-        self.assertNotIn(
-            "role and visibility matrix: decisions/role-experience-visibility-matrix.md", mkdocs
-        )
-        self.assertNotIn(
-            "route separation and experience boundaries: decisions/route-separation-and-experience-boundaries.md",
-            mkdocs,
-        )
-        self.assertNotIn(
-            "actor model to role model mapping: decisions/actor-model-to-role-model-mapping.md",
-            mkdocs,
-        )
-
     def test_docs_describe_operator_only_api_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()
         system_model = (
@@ -129,6 +109,25 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("json api remains an operator-oriented local surface", system_model)
         self.assertIn("not part of the role-scoped web route contract", system_model)
         self.assertIn("json api remains operator-oriented", read_playbook)
+
+    def test_docs_do_not_claim_a_separate_static_publication_surface(self) -> None:
+        for path in [
+            ROOT / "AGENTS.md",
+            ROOT / "README.md",
+            ROOT / "docs" / "index.md",
+            ROOT / "docs" / "getting-started.md",
+            ROOT / "docs" / "reference" / "system-model.md",
+        ]:
+            text = path.read_text(encoding="utf-8").lower()
+            self.assertNotIn(
+                "build_static_export.sh", text, msg=f"{path} still mentions export build"
+            )
+            self.assertNotIn(
+                "build_site_docs.py", text, msg=f"{path} still mentions site docs build"
+            )
+            self.assertNotIn(
+                "serve_static_export.sh", text, msg=f"{path} still mentions export serve wrapper"
+            )
 
     def test_lifecycle_decision_uses_explicit_state_machines(self) -> None:
         lifecycle = (

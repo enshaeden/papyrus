@@ -10,11 +10,11 @@ Papyrus keeps governed mutation meaning in shared backend contracts, rebuildable
 
 - Canonical source: Markdown knowledge under `knowledge/` and `archive/knowledge/`
 - Runtime derived state: rebuildable relational state and local workbench artifacts under `build/` used for validation, search, reporting, revision history, trust, governance views, ingestion review, and demo seeding
-- Export derived state: approved-content publication output under `generated/` and `site/`
+- Derived build outputs: rebuildable artifacts under `generated/` for retained runtime and build contracts such as the route map
 - Blueprint authoring flow: structured draft creation and revision driven by blueprint sections
 - Import flow: upload, parse with extraction warnings and quality signals, classify, generate and review mapping, and convert external files into the same structured draft model
 
-If these layers disagree, canonical source wins and the runtime or export must be rebuilt.
+If these layers disagree, canonical source wins and the runtime or derived build output must be rebuilt.
 
 ## Reference
 
@@ -35,8 +35,6 @@ If these layers disagree, canonical source wins and the runtime or export must b
 | Variant modeling | Shared procedures should live once, while site or room differences stay in overview pages, access pages, or narrowly scoped exceptions. | A single base procedure reduces drift and keeps local deltas visible without forking the workflow body. | Operators update one site copy and assume the family changed everywhere, leaving hidden divergence in sibling articles. |
 | Validation and reporting | Validation enforces schema, taxonomy, metadata, link, citation, and repository rules; reporting exposes stale, duplicate, broken, isolated, or suspect content. | Papyrus depends on controlled structure and visible drift signals. | Invalid or low-quality knowledge enters the corpus and governance problems stay hidden. |
 | Runtime versus source of truth | The runtime is a rebuildable projection of canonical source plus governance state. | Search, trust, queue, and impact views need relational state without making generated data authoritative. | People patch derived state by hand or trust stale runtime output over source. |
-| Export model | Static export is an approval-gated publication surface for approved knowledge only. | Publishing and browseability are useful, but they are not the operational control plane. | Draft or unreviewed material leaks into published output, or operators mistake export pages for the live governance surface. |
-
 ## Explicit State Machines
 
 - `object_lifecycle_state`: `draft -> active -> deprecated -> archived`
@@ -70,7 +68,6 @@ python3 scripts/run.py --operator
 python3 scripts/source_sync.py writeback-all
 python3 scripts/ingest_event.py --type service_change --entity Remote\\ Access --payload payload.json
 python3 scripts/operator_view.py events --db build/knowledge.db --format json
-./scripts/build_static_export.sh
 ```
 
 ## Practical Rules
@@ -85,7 +82,7 @@ python3 scripts/operator_view.py events --db build/knowledge.db --format json
 - Treat `build/ingestions/` and any demo source created under `build/` as disposable runtime artifacts, not repository source.
 - Use governed source sync rather than manual file sync when an approved runtime revision becomes canonical.
 - Prefer one canonical procedure plus linked site deltas over copy-based regional variants.
-- Do not patch generated files in `generated/`, `build/`, or `site/`.
+- Do not patch generated files in `generated/` or `build/`.
 - Validate before treating a revision as ready.
 - Use queue, trust, revision, service, event, evidence, and impact views to govern runtime posture.
-- Use the static export for approved publication, not for live review or trust decisions.
+- There is no separate MkDocs or static-export publication surface; Readers consume dependable content through the runtime product.

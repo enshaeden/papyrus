@@ -7,4 +7,3 @@ __pycache__/
 /generated/*
 !/generated/route-map.json
 !/generated/route-map.md
-/site/

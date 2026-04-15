@@ -18,12 +18,10 @@ from papyrus.application.impact_flow import (
     relationless_documents as relationless_articles,
 )
 from papyrus.application.validation_flow import (
-    expected_site_doc_paths,
     orphaned_files,
     validate_directory_contract,
     validate_docs_duplication,
     validate_field,
-    validate_generated_site_docs,
     validate_repository,
     validate_sanitization,
 )
@@ -42,12 +40,10 @@ from papyrus.domain.entities import (
 from papyrus.domain.policies import navigation_statuses, searchable_statuses, status_rank_map
 from papyrus.infrastructure.markdown.parser import (
     collect_broken_markdown_links,
-    collect_broken_rendered_site_links,
     extract_markdown_title,
     is_external_target,
     is_placeholder_target,
     resolve_local_link,
-    resolve_rendered_site_link,
 )
 from papyrus.infrastructure.markdown.parser import (
     parse_knowledge_document as parse_article,
@@ -80,10 +76,7 @@ from papyrus.infrastructure.paths import (
     EMAIL_PATTERN,
     FRONT_MATTER_PATTERN,
     GENERATED_DIR,
-    GENERATED_SITE_DOCS_DIR,
-    GENERATED_SITE_INDEX_PATHS,
     GENERIC_BRAND_ALLOWLIST,
-    HTML_HREF_PATTERN,
     IP_PATTERN,
     KNOWLEDGE_DIR,
     LEGACY_GENERATED_DOCS_DIR,
@@ -95,8 +88,6 @@ from papyrus.infrastructure.paths import (
     POLICY_PATH,
     REPORTS_DIR,
     ROOT,
-    SITE_DIR,
-    SYSTEM_DESIGN_DOCS_SITE_ROOT,
     TAXONOMY_DIR,
     TEMPLATE_DIR,
     relative_path,
@@ -122,11 +113,7 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
 )
 from papyrus.infrastructure.search.indexer import (
     fts5_available,
-    site_relative_path_for_repo_path,
     summarize_for_search,
-)
-from papyrus.infrastructure.search.indexer import (
-    site_knowledge_output_path as site_article_output_path,
 )
 from papyrus.jobs.stale_scan import cadence_to_days
 from papyrus.jobs.stale_scan import stale_documents as stale_articles

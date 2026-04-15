@@ -150,7 +150,7 @@ Use the repository’s canonical content verification entrypoints.
 
 - validate content: `python3 scripts/validate.py`
 - lint or schema check: `python3 scripts/report_content_health.py --section duplicates --section citation-health --section knowledge-like-docs`
-- rebuild derived artifacts if needed: `./scripts/build_static_export.sh`
+- rebuild derived artifacts if needed: `python3 scripts/build_route_map.py`
 
 For changes in this subtree, completion requires:
 

@@ -5,15 +5,14 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from papyrus.domain.entities import ValidationIssue
-from papyrus.infrastructure.paths import GENERATED_SITE_ASSET_PATHS, ROOT, relative_path
-from papyrus.infrastructure.repositories.knowledge_repo import load_yaml_file
+from papyrus.infrastructure.paths import ROOT, relative_path
 
 FENCED_CODE_BLOCK_PATTERN = re.compile(r"```.*?```", re.DOTALL)
 INLINE_CODE_PATTERN = re.compile(r"`([^`]+)`")
 REPO_PATH_TOKEN_PATTERN = re.compile(
     r"(?<![A-Za-z0-9_.-])"
     r"(?P<path>"
-    r"(?:README\.md|AGENTS\.md|mkdocs\.yml|pyproject\.toml|requirements(?:-dev)?\.txt|"
+    r"(?:README\.md|AGENTS\.md|pyproject\.toml|requirements(?:-dev)?\.txt|"
     r"\.github/workflows/[A-Za-z0-9_.-]+|"
     r"(?:archive|decisions|docs|knowledge|schemas|scripts|src|taxonomies|templates|tests)"
     r"(?:/[A-Za-z0-9_.-]+)*/?)"
@@ -185,34 +184,6 @@ def _validate_route_script_assets() -> list[ValidationIssue]:
     return issues
 
 
-def _validate_mkdocs_assets() -> list[ValidationIssue]:
-    issues: list[ValidationIssue] = []
-    mkdocs_path = ROOT / "mkdocs.yml"
-    mkdocs_config = load_yaml_file(mkdocs_path)
-    configured_assets = [
-        *(str(item) for item in mkdocs_config.get("extra_css", []) or []),
-        *(str(item) for item in mkdocs_config.get("extra_javascript", []) or []),
-    ]
-    for asset in configured_assets:
-        if asset not in GENERATED_SITE_ASSET_PATHS:
-            issues.append(
-                ValidationIssue(
-                    relative_path(mkdocs_path),
-                    f"mkdocs asset '{asset}' is not part of the expected generated site asset set",
-                )
-            )
-            continue
-        source_asset = ROOT / "docs" / "assets" / Path(asset).name
-        if not source_asset.exists():
-            issues.append(
-                ValidationIssue(
-                    relative_path(mkdocs_path),
-                    f"mkdocs asset source '{relative_path(source_asset)}' does not exist",
-                )
-            )
-    return issues
-
-
 def _clean_css_url_target(target: str) -> str:
     return target.strip().strip("'\"")
 
@@ -253,6 +224,5 @@ def validate_static_asset_references() -> list[ValidationIssue]:
     issues = []
     issues.extend(_validate_web_template_assets())
     issues.extend(_validate_route_script_assets())
-    issues.extend(_validate_mkdocs_assets())
     issues.extend(_validate_css_asset_urls())
     return issues

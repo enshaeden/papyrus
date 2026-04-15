@@ -6,7 +6,7 @@ This reference records the current operator-ready boundary for Papyrus and the r
 
 - Papyrus is a governed knowledge management database that provides end users with dependable content, while IT operators maintain backend authorship and oversight.
 - Canonical source remains Markdown under `knowledge/` and `archive/knowledge/`.
-- Runtime projections, reports, search indexes, and static exports are rebuildable and non-authoritative.
+- Runtime projections, reports, search indexes, and other derived runtime/build outputs are rebuildable and non-authoritative.
 - Content, authoring, review, and oversight surfaces rely on explicit lifecycle, review, trust, and next-action contracts rather than compatibility-era aliases.
 
 ## Supported Startup And Recovery Paths

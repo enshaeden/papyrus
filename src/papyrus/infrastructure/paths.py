@@ -10,7 +10,6 @@ DOCS_DIR = ROOT / "docs"
 DECISIONS_DIR = ROOT / "decisions"
 TEMPLATE_DIR = ROOT / "templates"
 GENERATED_DIR = ROOT / "generated"
-GENERATED_SITE_DOCS_DIR = GENERATED_DIR / "site_docs"
 GENERATED_ROUTE_MAP_JSON_PATH = GENERATED_DIR / "route-map.json"
 GENERATED_ROUTE_MAP_MARKDOWN_PATH = GENERATED_DIR / "route-map.md"
 LEGACY_GENERATED_DOCS_DIR = DOCS_DIR / "generated"
@@ -20,29 +19,7 @@ OBJECT_SCHEMA_DIR = ROOT / "schemas" / "knowledge_objects"
 POLICY_PATH = ROOT / "schemas" / "repository_policy.yml"
 TAXONOMY_DIR = ROOT / "taxonomies"
 BUILD_DIR = ROOT / "build"
-SITE_DIR = ROOT / "site"
 DB_PATH = BUILD_DIR / "knowledge.db"
-SYSTEM_DESIGN_DOCS_SITE_ROOT = Path("system-design-docs")
-GENERATED_SITE_INDEX_PATHS = (
-    "index.md",
-    "knowledge/index.md",
-    "knowledge/start-here.md",
-    "knowledge/support.md",
-    "knowledge/explorer.md",
-    "knowledge/tree.md",
-    "knowledge/by-type.md",
-    "knowledge/by-audience.md",
-    "knowledge/by-service.md",
-    "knowledge/by-system.md",
-    "knowledge/by-tag.md",
-    "knowledge/by-team.md",
-    "knowledge/by-lifecycle.md",
-    "archive/index.md",
-)
-GENERATED_SITE_ASSET_PATHS = (
-    "system-design-docs/assets/site.css",
-    "system-design-docs/assets/knowledge-explorer.js",
-)
 GENERATED_ROUTE_MAP_PATHS = (
     "generated/route-map.json",
     "generated/route-map.md",
@@ -52,7 +29,6 @@ DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 PLACEHOLDER_PATTERN = re.compile(r"^<[A-Z0-9_]+>$")
 BARE_PLACEHOLDER_PATTERN = re.compile(r"^[A-Z0-9_]+$")
-HTML_HREF_PATTERN = re.compile(r"""href=["']([^"']+)["']""", re.IGNORECASE)
 EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 PHONE_PATTERN = re.compile(r"\b(?:\+\d{1,3}[ -]?)?(?:\(\d{3}\)|\d{3})[ -]\d{3}[ -]\d{4}\b")
 IP_PATTERN = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?\b")

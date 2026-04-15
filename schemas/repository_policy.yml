@@ -10,8 +10,6 @@ directories:
   generated_roots:
     - generated
     - build
-    - site
-  generated_site_docs_root: generated/site_docs
   allowed_top_level_directories:
     - archive
     - build
@@ -22,7 +20,6 @@ directories:
     - reports
     - schemas
     - scripts
-    - site
     - src
     - taxonomies
     - templates
@@ -38,7 +35,6 @@ directories:
     - .gitignore
     - AGENTS.md
     - README.md
-    - mkdocs.yml
     - pyproject.toml
     - requirements-dev.txt
     - requirements.txt

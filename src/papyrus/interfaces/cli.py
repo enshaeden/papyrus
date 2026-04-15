@@ -50,18 +50,11 @@ from papyrus.interfaces.startup_guard import prepare_operator_source_root
 
 
 def validate_main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Validate repository source content and optional rendered site output."
-    )
-    parser.add_argument(
-        "--include-rendered-site",
-        action="store_true",
-        help="also validate built site/ HTML href targets",
-    )
-    args = parser.parse_args()
+    parser = argparse.ArgumentParser(description="Validate repository source content.")
+    parser.parse_args()
 
     try:
-        result = validate_repository_command(include_rendered_site=args.include_rendered_site)
+        result = validate_repository_command()
     except Exception as exc:  # pragma: no cover - exercised via CLI tests
         print(f"validation setup failed: {exc}", file=sys.stderr)
         return 1

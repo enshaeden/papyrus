@@ -33,7 +33,7 @@ When files or outputs disagree, use this order of authority unless a deeper `AGE
 5. `decisions/` for intentional deviations, design rationale, and governance records
 6. `src/` for application source code for system behaviour and interfaces
 7. `docs/` for explanatory and operational documentation
-8. `generated/`, `build/`, and `site/` for derived artifacts only
+8. `generated/` and `build/` for derived artifacts only
 
 Rendered, indexed, exported, copied, cached, or generated outputs are never authoritative.
 
@@ -51,7 +51,7 @@ Do not create shadow copies of knowledge objects in documentation, UI fixtures, 
 
 ## Derived Artifact Rules
 
-- Generated and build outputs must live only under `generated/`, `build/`, or `site/`.
+- Generated and build outputs must live only under `generated/` or `build/`.
 - Generated files are derived artifacts and must never be edited by hand.
 - If a generated file is wrong, fix the source or generator and rebuild.
 - Derived artifacts must remain reproducible from canonical source files and repository build scripts.
@@ -167,7 +167,7 @@ Replace placeholders with the exact repository commands and do not leave obsolet
 - route map: `python3 scripts/build_route_map.py`
 - engineering gate: `./scripts/check.sh`
 - validate content: `python3 scripts/validate.py`
-- regenerate derived artifacts: `./scripts/build_static_export.sh`
+- regenerate derived artifacts: `python3 scripts/build_route_map.py`
 
 Do not claim completion without running the relevant verification commands for the files changed.
 

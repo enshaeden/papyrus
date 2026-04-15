@@ -17,7 +17,7 @@ They must preserve canonical-versus-derived boundaries, reproducibility, and low
 ## Safety Rules
 
 - Jobs that delete or replace generated output must scope that deletion to the configured derived-artifact root only.
-- Avoid hidden writes outside `build/`, `generated/`, `site/`, or an explicitly requested temporary directory.
+- Avoid hidden writes outside `build/`, `generated/`, or an explicitly requested temporary directory.
 - Keep export behavior reproducible from repository source and declared runtime inputs.
 
 ## Maintenance Rules

@@ -234,9 +234,7 @@ def main() -> int:
     )
     parser.add_argument("--root", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--title", help="Object title")
-    parser.add_argument(
-        "--type", help="Knowledge object type from the approved scaffold templates"
-    )
+    parser.add_argument("--type", help="Knowledge object type from the approved scaffold templates")
     parser.add_argument("--slug", help="Optional explicit slug. Derived from title when omitted.")
     parser.add_argument("--owner", default="TBD", help="Object owner")
     parser.add_argument("--team", default="Service Desk", help="Responsible team")

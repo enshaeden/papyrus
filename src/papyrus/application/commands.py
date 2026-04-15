@@ -148,8 +148,8 @@ def governance_workflow(
     )
 
 
-def validate_repository_command(include_rendered_site: bool = False) -> ValidationCommandResult:
-    issues = validation_flow.validate_repository(include_rendered_site=include_rendered_site)
+def validate_repository_command() -> ValidationCommandResult:
+    issues = validation_flow.validate_repository()
     return ValidationCommandResult(
         issues=issues,
         document_count=len(load_knowledge_documents()),

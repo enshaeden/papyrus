@@ -9,7 +9,6 @@ SCRIPTS_DIR = ROOT / "scripts"
 INVENTORY_DOC = ROOT / "docs" / "getting-started.md"
 WRAPPER_IMPORTS = {
     "build_route_map.py": "from papyrus.jobs.route_map_build import main",
-    "build_site_docs.py": "from papyrus.jobs.site_docs_build import main",
     "demo_runtime.py": "from papyrus.jobs.demo_runtime_build import main",
     "ingest_event.py": "from papyrus.interfaces.ingest_event_cli import main",
     "new_article.py": "from papyrus.interfaces.new_article_cli import main",

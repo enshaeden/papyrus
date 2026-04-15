@@ -1,28 +1,16 @@
 from __future__ import annotations
 
-import copy
-import re
 import sqlite3
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-from shutil import copytree, which
-from types import SimpleNamespace
+from shutil import copytree
 
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
-
-from papyrus.application.review_flow import GovernanceWorkflow
-from papyrus.application.sync_flow import build_search_projection
-from papyrus.infrastructure.markdown.parser import parse_knowledge_document
-from papyrus.jobs.site_docs_build import visible_blueprint_type_order
-
-
-def mkdocs_available() -> bool:
-    return (ROOT / ".venv" / "bin" / "mkdocs").exists() or which("mkdocs") is not None
 
 
 def run_command(*args: str) -> subprocess.CompletedProcess[str]:
@@ -36,112 +24,6 @@ def run_command(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 class CliWorkflowTests(unittest.TestCase):
-    def test_build_site_docs_cli(self) -> None:
-        build_index = run_command("scripts/build_index.py")
-        self.assertEqual(build_index.returncode, 0, msg=build_index.stderr)
-        with tempfile.TemporaryDirectory() as temp_dir:
-            output_root = Path(temp_dir) / "site_docs"
-            result = run_command("scripts/build_site_docs.py", "--output-root", str(output_root))
-            self.assertEqual(result.returncode, 0, msg=result.stderr)
-            generated_home = output_root / "index.md"
-            generated_index = output_root / "knowledge" / "index.md"
-            generated_by_type = output_root / "knowledge" / "by-type.md"
-            generated_docs_index = output_root / "system-design-docs" / "index.md"
-            generated_explorer = output_root / "knowledge" / "explorer.md"
-            generated_access_index = output_root / "knowledge" / "access" / "index.md"
-            generated_runbooks_index = output_root / "knowledge" / "runbooks" / "index.md"
-            self.assertTrue(generated_home.exists())
-            self.assertTrue(generated_index.exists())
-            self.assertTrue(generated_by_type.exists())
-            self.assertTrue(generated_docs_index.exists())
-            self.assertTrue(generated_explorer.exists())
-            self.assertTrue(generated_access_index.exists())
-            self.assertTrue(generated_runbooks_index.exists())
-            generated_home_text = generated_home.read_text(encoding="utf-8")
-            generated_by_type_text = generated_by_type.read_text(encoding="utf-8")
-            generated_explorer_text = generated_explorer.read_text(encoding="utf-8")
-            generated_access_index_text = generated_access_index.read_text(encoding="utf-8")
-            generated_runbooks_index_text = generated_runbooks_index.read_text(encoding="utf-8")
-            self.assertIn("approved-content export", generated_home_text)
-            self.assertIn("backend authorship and oversight", generated_home_text)
-            self.assertIn('href="knowledge/"', generated_home_text)
-            self.assertNotIn('href="knowledge/index.md"', generated_home_text)
-            self.assertIn(
-                "Browse current knowledge grouped by primary templates first.",
-                generated_by_type_text,
-            )
-            self.assertNotIn("## policy", generated_by_type_text)
-            self.assertNotIn("## system_design", generated_by_type_text)
-            self.assertIn("Papyrus Docs", generated_docs_index.read_text(encoding="utf-8"))
-            self.assertIn("Knowledge Explorer", generated_explorer_text)
-            self.assertIn('"object_lifecycle_state"', generated_explorer_text)
-            self.assertNotIn('"status":', generated_explorer_text)
-            site_paths = re.findall(r'"site_path": "([^"]+)"', generated_explorer_text)
-            self.assertTrue(site_paths)
-            self.assertTrue(all(not path.endswith(".md") for path in site_paths))
-            self.assertIn("Access", generated_access_index_text)
-            self.assertIn("Runbooks", generated_runbooks_index_text)
-
-    def test_site_docs_type_order_keeps_primary_templates_first(self) -> None:
-        ordered = visible_blueprint_type_order(
-            [
-                SimpleNamespace(metadata={"knowledge_object_type": "policy"}),
-                SimpleNamespace(metadata={"knowledge_object_type": "service_record"}),
-                SimpleNamespace(metadata={"knowledge_object_type": "system_design"}),
-            ]
-        )
-        self.assertEqual(
-            ordered,
-            ["runbook", "known_error", "service_record", "policy", "system_design"],
-        )
-
-        without_advanced = visible_blueprint_type_order(
-            [SimpleNamespace(metadata={"knowledge_object_type": "service_record"})]
-        )
-        self.assertEqual(without_advanced, ["runbook", "known_error", "service_record"])
-
-    def test_build_site_docs_cli_exports_only_runtime_approved_objects(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            database_path = Path(temp_dir) / "workflow.db"
-            output_root = Path(temp_dir) / "site_docs"
-            generated_vpn_guide = (
-                output_root / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
-            )
-            build_search_projection(database_path)
-            workflow = GovernanceWorkflow(database_path)
-
-            document = parse_knowledge_document(
-                ROOT / "knowledge" / "troubleshooting" / "vpn-connectivity.md"
-            )
-            payload = copy.deepcopy(document.metadata)
-            payload["summary"] = "Draft export suppression test for VPN troubleshooting."
-            payload["change_log"] = [
-                *payload["change_log"],
-                {
-                    "date": "2026-04-07",
-                    "summary": "Draft export suppression test.",
-                    "author": "tests",
-                },
-            ]
-            workflow.create_revision(
-                object_id=payload["id"],
-                normalized_payload=payload,
-                body_markdown=f"{document.body}\n\nDraft export suppression test note.",
-                actor="tests",
-                legacy_metadata=document.metadata,
-                change_summary="Draft export suppression test.",
-            )
-
-            result = run_command(
-                "scripts/build_site_docs.py",
-                "--db",
-                str(database_path),
-                "--output-root",
-                str(output_root),
-            )
-            self.assertEqual(result.returncode, 0, msg=result.stderr)
-            self.assertFalse(generated_vpn_guide.exists())
-
     def test_build_route_map_cli(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             json_output = Path(temp_dir) / "route-map.json"
@@ -170,19 +52,6 @@ class CliWorkflowTests(unittest.TestCase):
             self.assertEqual(
                 check_result.returncode, 0, msg=check_result.stdout + check_result.stderr
             )
-
-    def test_build_site_docs_temp_output_root_does_not_break_validation(self) -> None:
-        validate_before = run_command("scripts/validate.py")
-        self.assertEqual(validate_before.returncode, 0, msg=validate_before.stderr)
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            output_root = Path(temp_dir) / "site_docs"
-            result = run_command("scripts/build_site_docs.py", "--output-root", str(output_root))
-            self.assertEqual(result.returncode, 0, msg=result.stderr)
-            self.assertTrue((output_root / "index.md").exists())
-
-        validate_after = run_command("scripts/validate.py")
-        self.assertEqual(validate_after.returncode, 0, msg=validate_after.stderr)
 
     def test_new_article_cli(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -246,18 +115,6 @@ class CliWorkflowTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("validated", result.stdout)
         self.assertIn("knowledge.db", result.stdout)
-
-    @unittest.skipUnless(mkdocs_available(), "mkdocs not installed")
-    def test_build_static_export_sh_runs_rendered_site_validation(self) -> None:
-        result = subprocess.run(
-            ["bash", "scripts/build_static_export.sh"],
-            cwd=ROOT,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        self.assertEqual(result.returncode, 0, msg=result.stderr)
-        self.assertIn("validated", result.stdout)
 
     def test_build_index_and_search_cli(self) -> None:
         build_result = run_command("scripts/build_index.py")

@@ -7,10 +7,6 @@ from typing import Any
 
 from papyrus.application.authoring_flow import compute_completion_state, derive_section_content
 from papyrus.application.blueprint_registry import get_blueprint
-from papyrus.application.export_flow import (
-    ExportRuntimeUnavailableError,
-    filter_approved_export_documents,
-)
 from papyrus.application.impact_flow import find_possible_duplicate_documents
 from papyrus.application.substrate_checks import (
     validate_documented_repository_paths,
@@ -24,7 +20,6 @@ from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_datab
 from papyrus.infrastructure.markdown.parser import (
     LEGACY_FIELD_NOTE_PREFIX,
     collect_broken_markdown_links,
-    collect_broken_rendered_site_links,
     extract_markdown_title,
     normalize_object_metadata,
 )
@@ -46,8 +41,6 @@ from papyrus.infrastructure.paths import (
     EMAIL_PATTERN,
     GENERATED_DIR,
     GENERATED_ROUTE_MAP_PATHS,
-    GENERATED_SITE_ASSET_PATHS,
-    GENERATED_SITE_DOCS_DIR,
     GENERIC_BRAND_ALLOWLIST,
     IP_PATTERN,
     LEGACY_GENERATED_DOCS_DIR,
@@ -55,7 +48,6 @@ from papyrus.infrastructure.paths import (
     PHONE_PATTERN,
     ROOT,
     SECRET_PATTERNS,
-    SITE_DIR,
     relative_path,
 )
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
@@ -72,11 +64,7 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     load_taxonomies,
 )
 from papyrus.infrastructure.repositories.validation_repo import insert_validation_run
-from papyrus.infrastructure.search.indexer import (
-    fts5_available,
-    site_knowledge_output_path,
-    site_relative_path_for_repo_path,
-)
+from papyrus.infrastructure.search.indexer import fts5_available
 
 MARKDOWN_SECTION_PATTERN = re.compile(
     r"^## (?P<title>.+?)\n+(?P<body>.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL
@@ -491,65 +479,13 @@ def validate_directory_contract(policy: dict[str, Any]) -> list[ValidationIssue]
             issues.append(ValidationIssue(item, "unexpected build artifact"))
 
     if GENERATED_DIR.exists():
-        allowed_generated_roots = {
-            relative_path(GENERATED_SITE_DOCS_DIR),
-            *GENERATED_ROUTE_MAP_PATHS,
-        }
+        allowed_generated_roots = set(GENERATED_ROUTE_MAP_PATHS)
         for path in GENERATED_DIR.iterdir():
             if relative_path(path) not in allowed_generated_roots:
                 issues.append(
                     ValidationIssue(relative_path(path), "unexpected generated artifact root")
                 )
 
-    return issues
-
-
-def expected_site_doc_paths(
-    documents: list[KnowledgeDocument],
-    database_path=DB_PATH,
-) -> set[str]:
-    expected: set[str] = set()
-
-    for path in collect_docs_source_paths():
-        site_relative = site_relative_path_for_repo_path(relative_path(path))
-        if site_relative is not None:
-            expected.add(relative_path(GENERATED_SITE_DOCS_DIR / site_relative))
-    for path in collect_decision_paths():
-        site_relative = site_relative_path_for_repo_path(relative_path(path))
-        if site_relative is not None:
-            expected.add(relative_path(GENERATED_SITE_DOCS_DIR / site_relative))
-
-    from papyrus.infrastructure.paths import GENERATED_SITE_INDEX_PATHS
-
-    expected.update(
-        relative_path(GENERATED_SITE_DOCS_DIR / path) for path in GENERATED_SITE_INDEX_PATHS
-    )
-    expected.update(
-        relative_path(GENERATED_SITE_DOCS_DIR / path) for path in GENERATED_SITE_ASSET_PATHS
-    )
-
-    for document in filter_approved_export_documents(documents, database_path):
-        expected.add(relative_path(site_knowledge_output_path(document)))
-
-    return expected
-
-
-def validate_generated_site_docs(
-    documents: list[KnowledgeDocument],
-    database_path=DB_PATH,
-) -> list[ValidationIssue]:
-    issues: list[ValidationIssue] = []
-    if not GENERATED_SITE_DOCS_DIR.exists():
-        return issues
-    try:
-        expected = expected_site_doc_paths(documents, database_path)
-    except ExportRuntimeUnavailableError as exc:
-        return [ValidationIssue(relative_path(GENERATED_SITE_DOCS_DIR), str(exc))]
-    actual = {relative_path(path) for path in GENERATED_SITE_DOCS_DIR.rglob("*") if path.is_file()}
-    for path in sorted(actual.difference(expected)):
-        issues.append(ValidationIssue(path, "unexpected generated site source file"))
-    for path in sorted(expected.difference(actual)):
-        issues.append(ValidationIssue(path, "missing generated site source file"))
     return issues
 
 
@@ -861,7 +797,7 @@ def validate_knowledge_documents(
     return issues
 
 
-def validate_repository(include_rendered_site: bool = False) -> list[ValidationIssue]:
+def validate_repository() -> list[ValidationIssue]:
     policy = load_policy()
     object_schemas = load_object_schemas()
     legacy_schema = load_schema()
@@ -873,8 +809,6 @@ def validate_repository(include_rendered_site: bool = False) -> list[ValidationI
         validate_knowledge_documents(documents, object_schemas, legacy_schema, taxonomies, policy)
     )
     issues.extend(validate_docs_duplication(documents, policy))
-    issues.extend(validate_generated_site_docs(documents))
-
     markdown_paths = (
         collect_root_markdown_paths()
         + collect_docs_source_paths()
@@ -891,23 +825,6 @@ def validate_repository(include_rendered_site: bool = False) -> list[ValidationI
                 f"broken link '{broken_link.target}': {broken_link.reason}",
             )
         )
-
-    if include_rendered_site:
-        if not SITE_DIR.exists():
-            issues.append(
-                ValidationIssue(
-                    relative_path(SITE_DIR),
-                    "rendered site validation requested but site/ does not exist; run mkdocs build first",
-                )
-            )
-        else:
-            for broken_link in collect_broken_rendered_site_links():
-                issues.append(
-                    ValidationIssue(
-                        broken_link.source_path,
-                        f"broken rendered link '{broken_link.target}': {broken_link.reason}",
-                    )
-                )
 
     issues.extend(validate_documented_repository_paths(documentation_paths))
     issues.extend(validate_documented_web_routes(documentation_paths))
@@ -985,15 +902,5 @@ def orphaned_files(policy: dict[str, Any], documents: list[KnowledgeDocument]) -
             and document.metadata.get("object_lifecycle_state") == "archived"
         ):
             findings.append(document.relative_path)
-
-    if GENERATED_SITE_DOCS_DIR.exists():
-        try:
-            expected = expected_site_doc_paths(documents)
-        except ExportRuntimeUnavailableError:
-            expected = set()
-        actual = {
-            relative_path(path) for path in GENERATED_SITE_DOCS_DIR.rglob("*") if path.is_file()
-        }
-        findings.extend(sorted(actual.difference(expected)))
 
     return sorted(set(findings))

@@ -9,7 +9,5 @@ if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
   PYTHON_BIN="$ROOT_DIR/.venv/bin/python"
 fi
 
-rm -rf "$ROOT_DIR/generated/site_docs" "$ROOT_DIR/site"
-
 "$PYTHON_BIN" scripts/validate.py
 "$PYTHON_BIN" scripts/build_index.py

@@ -176,7 +176,7 @@ Use `docs/guides/experience-conformance-checklist.md` as a review checklist when
 - lint: `./scripts/lint.sh`
 - typecheck: `./scripts/typecheck.sh`
 - test: `python3 -m unittest tests.test_web_presenters tests.test_web_operator_ui tests.test_web_semantic_hook_contract tests.interfaces.test_web_routing tests.interfaces.test_web_import_smoke tests.test_interface_surfaces tests.test_surface_conformance tests.test_operator_readiness`
-- build: `./scripts/build_static_export.sh`
+- build: `./scripts/build.sh`
 - route map: `python3 scripts/build_route_map.py`
 
 For UI work, completion requires all applicable checks plus direct verification of the affected routes and states.

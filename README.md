@@ -2,7 +2,7 @@
 
 Papyrus is a governed knowledge management database that provides end users with dependable content, while IT operators maintain backend authorship and oversight.
 
-Canonical knowledge remains in Markdown under `knowledge/` and `archive/knowledge/`; the runtime database, web surface, CLI, and exports are operator or derived surfaces, not source of truth.
+Canonical knowledge remains in Markdown under `knowledge/` and `archive/knowledge/`; the runtime database, web surface, CLI, and derived runtime/build outputs are operator or derived surfaces, not source of truth.
 
 ## Run It Now
 
@@ -43,7 +43,9 @@ python3 scripts/operator_view.py activity --db build/knowledge.db --format json
 - Templates: `templates/`
 - Governance and decisions: `decisions/`
 - Explanatory and operator docs: `docs/`
-- Derived artifacts only: `build/`, `generated/`, and `site/`
+- Derived artifacts only: `build/` and `generated/`
+
+There is no separate MkDocs or static-export publication surface. Readers consume dependable content through the runtime product, while Operators and Admins stay on the retained backend and runtime surfaces.
 
 `scripts/serve_api.py` remains an operator-oriented local API surface. It is not part of the role-scoped web experience contract, and any future role-scoped API contract requires a separate decision and migration.
 

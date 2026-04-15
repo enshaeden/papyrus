@@ -15,4 +15,3 @@ fi
 "$PYTHON_BIN" scripts/validate.py
 "$PYTHON_BIN" scripts/build_route_map.py --check
 "$PYTHON_BIN" -m unittest discover -s tests
-"$ROOT_DIR/scripts/build_static_export.sh"

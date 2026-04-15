@@ -5,8 +5,6 @@ exclude = [
   ".git",
   ".venv",
   "build",
-  "generated/site_docs",
-  "site",
 ]
 
 [tool.ruff.lint]
@@ -29,7 +27,7 @@ files = ["src", "tests", "scripts"]
 mypy_path = "src"
 namespace_packages = true
 explicit_package_bases = true
-exclude = '(^build/|^generated/site_docs/|^site/|^\.venv/)'
+exclude = '(^build/|^\.venv/)'
 check_untyped_defs = true
 warn_return_any = false
 warn_unused_ignores = true

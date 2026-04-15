@@ -19,11 +19,9 @@ from papyrus.infrastructure.markdown.serializer import normalize_whitespace, par
 from papyrus.infrastructure.paths import (
     BARE_PLACEHOLDER_PATTERN,
     FRONT_MATTER_PATTERN,
-    HTML_HREF_PATTERN,
     MARKDOWN_LINK_PATTERN,
     PLACEHOLDER_PATTERN,
     ROOT,
-    SITE_DIR,
     relative_path,
 )
 
@@ -111,61 +109,6 @@ def collect_broken_markdown_links(paths: Iterable[Path]) -> list[BrokenLink]:
                         source_path=relative_path(path),
                         target=target,
                         reason="target does not exist",
-                    )
-                )
-    return issues
-
-
-def resolve_rendered_site_link(
-    base_path: Path, target: str, site_root: Path
-) -> tuple[Path | None, str | None]:
-    clean_target = target.split("#", 1)[0].split("?", 1)[0].strip()
-    if not clean_target or is_external_target(clean_target):
-        return None, None
-
-    if clean_target.startswith("/"):
-        resolved = (site_root / clean_target.lstrip("/")).resolve()
-    else:
-        resolved = (base_path.parent / clean_target).resolve()
-
-    try:
-        resolved.relative_to(site_root)
-    except ValueError:
-        return None, "target escapes site root"
-    return resolved, None
-
-
-def collect_broken_rendered_site_links(site_dir: Path = SITE_DIR) -> list[BrokenLink]:
-    if not site_dir.exists():
-        return []
-
-    issues: list[BrokenLink] = []
-    site_root = site_dir.resolve()
-    html_paths = sorted(path for path in site_dir.rglob("*.html") if path.is_file())
-
-    for path in html_paths:
-        text = path.read_text(encoding="utf-8")
-        for target in HTML_HREF_PATTERN.findall(text):
-            resolved, resolution_issue = resolve_rendered_site_link(
-                path.resolve(), target, site_root
-            )
-            if resolution_issue:
-                issues.append(
-                    BrokenLink(
-                        source_path=relative_path(path),
-                        target=target,
-                        reason=resolution_issue,
-                    )
-                )
-                continue
-            if resolved is None:
-                continue
-            if not resolved.exists():
-                issues.append(
-                    BrokenLink(
-                        source_path=relative_path(path),
-                        target=target,
-                        reason="target does not exist in rendered site",
                     )
                 )
     return issues
