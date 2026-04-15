@@ -179,7 +179,7 @@ class ObjectDetailPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("The runtime contract marks this object safe for use.", article_html)
         self.assertEqual(page["page_header"]["headline"], "Test object")
         self.assertEqual(page["page_header"]["kicker"], "runbook · kb-test")
-        self.assertEqual(page["page_header"]["intro"], "Structured summary.")
+        self.assertNotIn("intro", page["page_header"])
         self.assertIn("See history", page["page_header"]["actions_html"])
 
     def test_object_presenter_prefers_projection_truth_over_raw_state_fallbacks(self) -> None:

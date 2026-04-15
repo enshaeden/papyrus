@@ -16,11 +16,12 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
     render_workflow_projection_panel,
 )
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
-from papyrus.interfaces.web.rendering import TemplateRenderer
+from papyrus.interfaces.web.rendering import PageRenderer, TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions
 
 
 TEMPLATE_RENDERER = TemplateRenderer(ROOT / "src" / "papyrus" / "interfaces" / "web" / "templates")
+PAGE_RENDERER = PageRenderer(ROOT / "src" / "papyrus" / "interfaces" / "web")
 
 
 class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
@@ -37,6 +38,7 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
             title="Context",
             eyebrow="Metadata",
             body_html="<p>Bordered support panel.</p>",
+            summary="Decorative summary",
             surface="test-surface",
         )
 
@@ -44,6 +46,20 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn('class="section-card context-panel', context_html)
         self.assert_component(content_html, "surface-panel")
         self.assert_component(context_html, "surface-panel")
+        self.assertNotIn("Decorative summary", context_html)
+
+    def test_component_presenter_collapses_duplicate_eyebrow_and_title(self) -> None:
+        components = ComponentPresenter(TEMPLATE_RENDERER)
+
+        html = components.content_section(
+            title="Continue",
+            eyebrow="Continue",
+            body_html="<p>Resume the active workflow.</p>",
+            surface="test-surface",
+        )
+
+        self.assertIn("<h2>Continue</h2>", html)
+        self.assertNotIn('class="panel-kicker"', html)
 
     def test_governed_panels_render_operator_message_and_acknowledgements(self) -> None:
         components = ComponentPresenter(TEMPLATE_RENDERER)
@@ -137,6 +153,47 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_surface(html, "posture")
         self.assertIn('class="section-card context-panel', html)
         self.assertIn("Safe to use now", html)
+
+    def test_page_renderer_does_not_emit_removed_header_or_sidebar_blurbs(self) -> None:
+        body = PAGE_RENDERER.render_page(
+            page_template="pages/home.html",
+            page_title="Home",
+            active_nav="read",
+            page_header={"headline": "Home", "intro": "Decorative page intro"},
+            role_id="operator",
+            current_path="/operator/read",
+            page_context={"home_launch_html": "", "home_activity_html": ""},
+            page_surface="home",
+        )
+
+        self.assertNotIn("Decorative page intro", body)
+        self.assertNotIn("page-intro", body)
+        self.assertNotIn("sidebar-copy", body)
+
+    def test_web_copy_contract_blocks_known_decorative_blurb_patterns(self) -> None:
+        web_root = ROOT / "src" / "papyrus" / "interfaces" / "web"
+        source_text = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted(web_root.rglob("*"))
+            if path.is_file() and "__pycache__" not in path.parts
+        )
+
+        forbidden_tokens = (
+            '"intro":',
+            "page-intro",
+            "sidebar-copy",
+            "home-launch-block__summary",
+            "home-board-links__summary",
+            "oversight-board__summary",
+            "ingest-stage-board__summary",
+            "ingest-mapping-gaps__summary",
+            "support-disclosure-summary",
+            "section-intro",
+            "table-support",
+        )
+
+        for token in forbidden_tokens:
+            self.assertNotIn(token, source_text, msg=f"forbidden decorative copy token found: {token}")
 
 
 if __name__ == "__main__":

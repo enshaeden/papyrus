@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import io
 import json
 import sqlite3
@@ -73,6 +74,49 @@ def run_script(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
+    def test_ingest_api_accepts_base64_payload_with_optional_content_type(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root = Path(temp_dir) / "repo"
+            source_root.mkdir(parents=True, exist_ok=True)
+            application = api_app(database_path, source_root=source_root)
+
+            status, _, body = call_wsgi(
+                application,
+                "/ingest",
+                method="POST",
+                json_payload={
+                    "filename": "sample.html",
+                    "content_type": "text/html",
+                    "content_base64": base64.b64encode(
+                        b"<html><body><h1>Imported HTML</h1><p>Review output.</p></body></html>"
+                    ).decode("ascii"),
+                },
+            )
+            self.assertEqual(status, "201 Created")
+            payload = json.loads(body)
+            self.assertIn("ingestion_id", payload)
+
+    def test_ingest_api_rejects_content_type_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root = Path(temp_dir) / "repo"
+            source_root.mkdir(parents=True, exist_ok=True)
+            application = api_app(database_path, source_root=source_root)
+
+            status, _, body = call_wsgi(
+                application,
+                "/ingest",
+                method="POST",
+                json_payload={
+                    "filename": "sample.docx",
+                    "content_type": "text/html",
+                    "content_base64": base64.b64encode(b"not-really-docx").decode("ascii"),
+                },
+            )
+            self.assertEqual(status, "400 Bad Request")
+            self.assertIn("does not match .docx", body)
+
     def test_operator_cli_queue_matches_api_payload(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"

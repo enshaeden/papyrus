@@ -131,9 +131,8 @@
   color: var(--color-panel-governance-label);
 }
 
-.home-launch-block__summary,
 .home-activity-block__head p,
-.home-board-links__summary {
+.home-board-links__details > p {
   margin: 0;
   color: var(--color-text-muted);
   line-height: 1.55;

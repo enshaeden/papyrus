@@ -53,3 +53,5 @@ class HomeActivityBlockPresenterTests(SemanticHookAssertions, unittest.TestCase)
 
         self.assert_component(html, "home-activity-block")
         self.assertIn("No consequential changes are active right now.", html)
+        self.assertNotIn("Only changes that materially alter today’s next move stay on Home.", html)
+        self.assertNotIn("Open the full activity surface for recent decisions", html)

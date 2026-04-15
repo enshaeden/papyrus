@@ -10,3 +10,5 @@ if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
 fi
 
 "$PYTHON_BIN" -m ruff check .
+PYTHONPATH="$ROOT_DIR/src${PYTHONPATH:+:$PYTHONPATH}" \
+  "$PYTHON_BIN" -m papyrus.jobs.web_copy_policy_lint

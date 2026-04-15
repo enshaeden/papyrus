@@ -49,6 +49,7 @@ class HealthPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component(html, "oversight-card")
         self.assertIn('class="oversight-board__grid"', html)
         self.assertIn("Review the decision.", html)
+        self.assertNotIn("oversight-board__summary", html)
 
     def test_dashboard_presenter_assembles_health_components(self) -> None:
         page = present_oversight_dashboard(
@@ -71,3 +72,4 @@ class HealthPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component(board_html, "oversight-board")
         self.assert_component(support_html, "oversight-cleanup-board")
         self.assert_component(support_html, "oversight-validation-board")
+        self.assertNotIn("intro", page["page_header"])

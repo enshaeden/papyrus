@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.view_helpers import (
+    distinct_heading_kicker,
     escape,
     join_html,
     render_definition_rows,
@@ -70,14 +71,14 @@ class ComponentPresenter:
     ) -> str:
         normalized_variant = _data_token(variant or tone)
         normalized_surface = _data_token(surface or eyebrow or title)
+        rendered_eyebrow = distinct_heading_kicker(eyebrow, title)
         return self.renderer.render(
             "partials/section_card.html",
             {
                 "title": escape(title),
-                "eyebrow": escape(eyebrow),
-                "summary_html": (
-                    f'<p class="governed-panel-summary">{escape(summary)}</p>'
-                    if str(summary).strip()
+                "eyebrow_html": (
+                    f'<p class="panel-kicker">{escape(rendered_eyebrow)}</p>'
+                    if rendered_eyebrow
                     else ""
                 ),
                 "body_html": body_html,
@@ -132,7 +133,6 @@ class ComponentPresenter:
             {
                 "title": escape(title),
                 "badges_html": join_html(list(badges), " "),
-                "summary": escape(summary),
                 "component_surface": escape(_data_token(surface or title)),
                 "component_variant": escape(_data_token(variant)),
             },
@@ -236,7 +236,6 @@ class ComponentPresenter:
             '<div class="decision-card-header">'
             '<div class="decision-card-heading">'
             f"<h3>{title_html}</h3>"
-            + (f'<p class="decision-card-summary">{escape(summary)}</p>' if summary else "")
             + "</div>"
             + (f'<div class="badge-row">{join_html(badge_items, " ")}</div>' if badge_items else "")
             + "</div>"
@@ -271,7 +270,6 @@ class ComponentPresenter:
         object_type: str,
         object_id: str,
         title: str,
-        summary: str,
         badges: Iterable[str],
         actions_html: str = "",
     ) -> str:
@@ -281,7 +279,6 @@ class ComponentPresenter:
                 "object_type": escape(object_type),
                 "object_id": escape(object_id),
                 "title": escape(title),
-                "summary": escape(summary),
                 "badges_html": join_html(list(badges), " "),
                 "actions_html": actions_html,
             },

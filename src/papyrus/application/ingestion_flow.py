@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-import mimetypes
 import sqlite3
 import uuid
 from pathlib import Path
@@ -19,7 +18,7 @@ from papyrus.domain.ingestion import IngestionStatus, has_mapping_result, truthf
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
 from papyrus.infrastructure.markdown.serializer import json_dump
 from papyrus.infrastructure.migrations import apply_runtime_schema
-from papyrus.infrastructure.parsers import parse_docx_bytes, parse_markdown_bytes, parse_pdf_bytes
+from papyrus.infrastructure.parsers import parse_import_document, table_text
 from papyrus.infrastructure.paths import BUILD_DIR, DB_PATH
 from papyrus.infrastructure.repositories.ingestion_repo import (
     get_ingestion_job,
@@ -86,17 +85,6 @@ def _ingestion_root() -> Path:
     return BUILD_DIR / "ingestions"
 
 
-def _guess_media_type(path: Path) -> str:
-    guessed, _ = mimetypes.guess_type(str(path))
-    if guessed:
-        return guessed
-    if path.suffix.lower() == ".docx":
-        return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    if path.suffix.lower() == ".pdf":
-        return "application/pdf"
-    return "text/markdown"
-
-
 def _safe_ingestion_filename(file_path: str | Path) -> str:
     raw_name = str(file_path).replace("\\", "/").rsplit("/", 1)[-1].strip()
     if not raw_name or raw_name in {".", ".."}:
@@ -106,173 +94,6 @@ def _safe_ingestion_filename(file_path: str | Path) -> str:
     if len(raw_name) > 255:
         raise ValueError("ingestion filename is too long")
     return raw_name
-
-
-def parse_file(*, file_path: Path, payload: bytes | None = None) -> tuple[str, str, dict[str, Any]]:
-    resolved_payload = payload if payload is not None else file_path.read_bytes()
-    suffix = file_path.suffix.lower()
-    if suffix in {".md", ".markdown"}:
-        return "markdown", _guess_media_type(file_path), parse_markdown_bytes(resolved_payload)
-    if suffix == ".docx":
-        return "docx", _guess_media_type(file_path), parse_docx_bytes(resolved_payload)
-    if suffix == ".pdf":
-        return "pdf", _guess_media_type(file_path), parse_pdf_bytes(resolved_payload)
-    raise ValueError(f"unsupported ingestion file type: {file_path.suffix}")
-
-
-def _table_text(rows: list[list[str]]) -> str:
-    return "\n".join(
-        " | ".join(cell for cell in row if cell) for row in rows if any(cell for cell in row)
-    )
-
-
-def _sanitize_elements(parsed_content: dict[str, Any]) -> list[dict[str, Any]]:
-    raw_elements = parsed_content.get("elements")
-    if not isinstance(raw_elements, list):
-        return []
-    sanitized: list[dict[str, Any]] = []
-    for element in raw_elements:
-        if not isinstance(element, dict):
-            continue
-        kind = str(element.get("kind") or "").strip()
-        if kind == "heading":
-            text = str(element.get("text") or "").strip()
-            if not text:
-                continue
-            try:
-                level = max(1, int(element.get("level") or 1))
-            except (TypeError, ValueError):
-                level = 1
-            sanitized.append({"kind": "heading", "level": level, "text": text})
-            continue
-        if kind == "paragraph":
-            text = str(element.get("text") or "").strip()
-            if text:
-                sanitized.append({"kind": "paragraph", "text": text})
-            continue
-        if kind == "list":
-            items = [str(item).strip() for item in element.get("items", []) if str(item).strip()]
-            if items:
-                sanitized.append({"kind": "list", "items": items, "text": "\n".join(items)})
-            continue
-        if kind == "table":
-            rows: list[list[str]] = []
-            for row in element.get("rows", []):
-                if isinstance(row, list):
-                    rows.append([str(cell).strip() for cell in row])
-            if rows:
-                sanitized.append({"kind": "table", "rows": rows, "text": _table_text(rows)})
-    return sanitized
-
-
-def _synthesized_elements(
-    *,
-    headings: list[dict[str, Any]],
-    paragraphs: list[str],
-    lists: list[list[str]],
-    tables: list[list[list[str]]],
-) -> list[dict[str, Any]]:
-    elements: list[dict[str, Any]] = []
-    for heading in headings:
-        text = str(heading.get("text") or "").strip()
-        if not text:
-            continue
-        try:
-            level = max(1, int(heading.get("level") or 1))
-        except (TypeError, ValueError):
-            level = 1
-        elements.append({"kind": "heading", "level": level, "text": text})
-    for paragraph in paragraphs:
-        text = str(paragraph).strip()
-        if text:
-            elements.append({"kind": "paragraph", "text": text})
-    for block in lists:
-        items = [str(item).strip() for item in block if str(item).strip()]
-        if items:
-            elements.append({"kind": "list", "items": items, "text": "\n".join(items)})
-    for table in tables:
-        elements.append({"kind": "table", "rows": table, "text": _table_text(table)})
-    return elements
-
-
-def normalize_content(parsed_content: dict[str, Any]) -> dict[str, Any]:
-    headings = (
-        parsed_content.get("headings") if isinstance(parsed_content.get("headings"), list) else []
-    )
-    paragraphs = (
-        parsed_content.get("paragraphs")
-        if isinstance(parsed_content.get("paragraphs"), list)
-        else []
-    )
-    lists = parsed_content.get("lists") if isinstance(parsed_content.get("lists"), list) else []
-    tables = parsed_content.get("tables") if isinstance(parsed_content.get("tables"), list) else []
-    links = parsed_content.get("links") if isinstance(parsed_content.get("links"), list) else []
-    parser_warnings = (
-        [
-            str(item).strip()
-            for item in parsed_content.get("parser_warnings", [])
-            if str(item).strip()
-        ]
-        if isinstance(parsed_content.get("parser_warnings"), list)
-        else []
-    )
-    degradation_notes = (
-        [
-            str(item).strip()
-            for item in parsed_content.get("degradation_notes", [])
-            if str(item).strip()
-        ]
-        if isinstance(parsed_content.get("degradation_notes"), list)
-        else []
-    )
-    extraction_quality = (
-        parsed_content.get("extraction_quality")
-        if isinstance(parsed_content.get("extraction_quality"), dict)
-        else {}
-    )
-    title = str(parsed_content.get("title") or "").strip()
-    if not title and headings:
-        title = str(headings[0].get("text") or "").strip()
-    sanitized_elements = _sanitize_elements(parsed_content)
-    if not sanitized_elements:
-        sanitized_elements = _synthesized_elements(
-            headings=headings,
-            paragraphs=[str(item).strip() for item in paragraphs if str(item).strip()],
-            lists=[[str(item).strip() for item in block if str(item).strip()] for block in lists],
-            tables=tables,
-        )
-    raw_text_parts = [title] if title else []
-    raw_text_parts.extend(
-        str(element.get("text") or "").strip()
-        for element in sanitized_elements
-        if str(element.get("text") or "").strip()
-    )
-    return {
-        "title": title,
-        "headings": headings,
-        "paragraphs": [str(item).strip() for item in paragraphs if str(item).strip()],
-        "lists": [[str(item).strip() for item in block if str(item).strip()] for block in lists],
-        "tables": tables,
-        "elements": sanitized_elements,
-        "links": links,
-        "raw_text": str(parsed_content.get("raw_text") or "\n".join(raw_text_parts)).strip(),
-        "parser_warnings": parser_warnings,
-        "degradation_notes": degradation_notes,
-        "extraction_quality": {
-            "state": str(
-                extraction_quality.get("state") or ("degraded" if parser_warnings else "clean")
-            ),
-            "score": float(extraction_quality.get("score") or (0.5 if parser_warnings else 1.0)),
-            "summary": str(
-                extraction_quality.get("summary")
-                or (
-                    "Extraction quality is degraded."
-                    if parser_warnings
-                    else "Extraction quality is clean."
-                )
-            ),
-        },
-    }
 
 
 def classify_document(normalized_content: dict[str, Any]) -> dict[str, Any]:
@@ -349,7 +170,7 @@ def extract_sections(normalized_content: dict[str, Any]) -> list[dict[str, Any]]
         if not isinstance(element, dict):
             continue
         kind = str(element.get("kind") or "").strip()
-        if kind not in {"heading", "paragraph", "list", "table"}:
+        if kind not in {"heading", "paragraph", "list", "table", "preformatted"}:
             continue
         if kind == "heading":
             text = str(element.get("text") or "").strip()
@@ -375,7 +196,7 @@ def extract_sections(normalized_content: dict[str, Any]) -> list[dict[str, Any]]
                 continue
             content = items
             text_value = "\n".join(items)
-        else:
+        elif kind == "table":
             rows: list[list[str]] = []
             for row in element.get("rows", []):
                 if isinstance(row, list):
@@ -383,7 +204,12 @@ def extract_sections(normalized_content: dict[str, Any]) -> list[dict[str, Any]]
             if not rows:
                 continue
             content = rows
-            text_value = _table_text(rows)
+            text_value = table_text(rows)
+        else:
+            text_value = str(element.get("text") or "").rstrip()
+            if not text_value.strip():
+                continue
+            content = text_value
         active_heading = str(heading_stack[-1]["text"]) if heading_stack else (title or "Document")
         extracted.append(
             {
@@ -407,6 +233,7 @@ def ingest_file(
     *,
     file_path: str | Path,
     payload: bytes | None = None,
+    declared_media_type: str | None = None,
     database_path: Path = DB_PATH,
     source_root: Path | None = None,
     authority: PolicyAuthority | None = None,
@@ -423,9 +250,16 @@ def ingest_file(
             source_root=resolved_source_root,
             candidate_path=path,
         )
+        resolved_payload = path.read_bytes()
+    else:
+        resolved_payload = payload
     parser_path = Path(safe_filename) if payload is not None else path
-    parser_name, media_type, parsed = parse_file(file_path=parser_path, payload=payload)
-    normalized = normalize_content(parsed)
+    parse_result = parse_import_document(
+        file_path=parser_path,
+        payload=resolved_payload,
+        declared_media_type=declared_media_type,
+    )
+    normalized = parse_result.normalized_document.to_payload()
     classification = classify_document(normalized)
     extracted = extract_sections(normalized)
     ingestion_id = _artifact_id("ingestion")
@@ -434,9 +268,9 @@ def ingest_file(
     storage_dir.mkdir(parents=True, exist_ok=True)
     stored_path = storage_dir / safe_filename
     if payload is not None:
-        stored_path.write_bytes(payload)
+        stored_path.write_bytes(resolved_payload)
     elif path.resolve() != stored_path.resolve():
-        stored_path.write_bytes(path.read_bytes())
+        stored_path.write_bytes(resolved_payload)
     connection = _connection(Path(database_path))
     try:
         insert_ingestion_job(
@@ -444,8 +278,8 @@ def ingest_file(
             ingestion_id=ingestion_id,
             filename=safe_filename,
             source_path=stored_path.as_posix(),
-            media_type=media_type,
-            parser_name=parser_name,
+            media_type=parse_result.media_type,
+            parser_name=parse_result.parser_name,
             status=IngestionStatus.CLASSIFIED.value,
             ingestion_state=IngestionStatus.CLASSIFIED.value,
             normalized_content_json=json_dump(normalized),
@@ -465,7 +299,9 @@ def ingest_file(
             content={
                 "filename": safe_filename,
                 "source_path": stored_path.as_posix(),
-                "media_type": media_type,
+                "media_type": parse_result.media_type,
+                "declared_media_type": parse_result.declared_media_type,
+                "detected_format": parse_result.format_label,
             },
             created_at=now.isoformat(),
         )
@@ -473,7 +309,7 @@ def ingest_file(
             connection,
             ingestion_id=ingestion_id,
             artifact_type="parsed",
-            content=parsed,
+            content=parse_result.parsed_content,
             created_at=now.isoformat(),
         )
         _record_artifact(
@@ -517,8 +353,8 @@ def ingest_file(
     return {
         "ingestion_id": ingestion_id,
         "filename": safe_filename,
-        "parser_name": parser_name,
-        "media_type": media_type,
+        "parser_name": parse_result.parser_name,
+        "media_type": parse_result.media_type,
         "normalized_content": normalized,
         "classification": classification,
         "sections": extracted,

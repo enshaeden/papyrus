@@ -55,6 +55,14 @@ def sanitize_display_text(value: str) -> str:
     return DISPLAY_PLACEHOLDER_PATTERN.sub(replacement, value)
 
 
+def distinct_heading_kicker(kicker: object, title: object) -> str:
+    normalized_kicker = re.sub(r"[_-]+", " ", str(kicker or "").strip().lower())
+    normalized_title = re.sub(r"[_-]+", " ", str(title or "").strip().lower())
+    normalized_kicker = re.sub(r"\s+", " ", normalized_kicker).strip(" :.!?")
+    normalized_title = re.sub(r"\s+", " ", normalized_title).strip(" :.!?")
+    return str(kicker or "").strip() if normalized_kicker and normalized_kicker != normalized_title else ""
+
+
 def slugify(value: str) -> str:
     normalized = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
     return re.sub(r"-{2,}", "-", normalized)

@@ -126,7 +126,9 @@ def render_read_filter_bar(
 
 def render_read_result_cards(*, role: str, items: list[dict[str, Any]]) -> str:
     if not items:
-        return '<section class="read-results-empty"><h2>No matching guidance</h2><p>Adjust the search or widen the filters.</p></section>'
+        return (
+            '<section class="read-results-empty"><h2>No matching guidance</h2></section>'
+        )
     return join_html(
         [
             (
@@ -134,7 +136,6 @@ def render_read_result_cards(*, role: str, items: list[dict[str, Any]]) -> str:
                 '<div class="read-result-card__copy">'
                 f'<p class="read-result-card__meta">{escape(read_status_line(item, role=role))}</p>'
                 f"<h2>{link(item['title'], queue_item_href(item, role=role))}</h2>"
-                f'<p class="read-result-card__summary">{escape(item.get("summary") or "No summary recorded.")}</p>'
                 f'<p class="read-result-card__guidance">{escape(str(projection_use_guidance(item.get("ui_projection")).get("summary") or "Open the article for the full procedure."))}</p>'
                 f'<p class="read-result-card__support">{escape(linked_services_text(item))}</p>'
                 "</div>"
@@ -163,7 +164,9 @@ def render_read_results_table(
     role: str,
 ) -> str:
     if not items:
-        return '<section class="read-results-empty"><h2>No matching guidance</h2><p>Adjust the search or widen the filters.</p></section>'
+        return (
+            '<section class="read-results-empty"><h2>No matching guidance</h2></section>'
+        )
     rows = []
     for item in items:
         object_id = str(item["object_id"])
@@ -178,7 +181,7 @@ def render_read_results_table(
         )
         rows.append(
             f"<tr{' class="is-selected"' if is_selected else ''}>"
-            f'<td><a class="selected-row-link" href="{escape(selection_href(query=query, selected_type=selected_type, selected_trust=selected_trust, selected_review_state=selected_review_state, object_id=object_id, revision_id=revision_id, role=role))}">{escape(item["title"])}</a><span class="table-support">{escape(item.get("summary") or "")}</span></td>'
+            f'<td><a class="selected-row-link" href="{escape(selection_href(query=query, selected_type=selected_type, selected_trust=selected_trust, selected_review_state=selected_review_state, object_id=object_id, revision_id=revision_id, role=role))}">{escape(item["title"])}</a></td>'
             f"<td>{escape(read_status_line(item, role=role))}</td>"
             f"<td>{escape(str(projection_use_guidance(item.get('ui_projection')).get('next_action') or 'Inspect article'))}</td>"
             f"<td>{escape(linked_services_text(item))}</td>"
@@ -201,7 +204,6 @@ def render_read_selected_context(*, role: str, item: dict[str, Any] | None) -> s
         '<section class="read-selected-context" data-component="read-selected-context" data-surface="read-queue">'
         '<p class="read-selected-context__kicker">Selected context</p>'
         f"<h2>{escape(item['title'])}</h2>"
-        f"<p>{escape(str(use_guidance.get('summary') or item.get('summary') or 'No summary recorded.'))}</p>"
         f'<dl class="read-selected-context__facts"><div><dt>Status</dt><dd>{escape(read_status_line(item, role=role))}</dd></div><div><dt>Owner</dt><dd>{escape(item.get("owner") or "Unowned")}</dd></div><div><dt>Path</dt><dd>{escape(item.get("path") or "")}</dd></div><div><dt>Services</dt><dd>{escape(linked_services_text(item))}</dd></div></dl>'
         f'<p class="read-selected-context__next"><strong>Next:</strong> {escape(str(use_guidance.get("next_action") or "Inspect the article."))}</p>'
         f"{link('Open article', queue_item_href(item, role=role), css_class='button button-primary', attrs={'data-action-id': 'open-primary-surface'})}"
@@ -244,17 +246,14 @@ def present_queue_page(
     )
     dense_mode = bool(behavior and behavior.show_context_rail)
     if role == READER_ROLE:
-        intro = "Reader surfaces stay content-first so you can open dependable guidance without governance-heavy framing."
         page_title = "Read"
         header_headline = "Read"
         active_nav = "read"
     elif role == ADMIN_ROLE:
-        intro = "Admin content stays dense so oversight, service impact, and next action remain in scan range."
         page_title = "Content"
         header_headline = "Inspect"
         active_nav = "inspect"
     else:
-        intro = "Operators start from the article, then pull governance context forward only when the current task needs a decision."
         page_title = "Read"
         header_headline = "Read"
         active_nav = "read"
@@ -264,7 +263,6 @@ def present_queue_page(
         "page_header": {
             "headline": header_headline,
             "kicker": experience.label,
-            "intro": intro,
         },
         "active_nav": active_nav,
         "aside_html": render_read_selected_context(role=role, item=selected) if dense_mode else "",

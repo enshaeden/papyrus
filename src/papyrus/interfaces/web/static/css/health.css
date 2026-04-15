@@ -80,10 +80,6 @@
   box-shadow: none;
 }
 
-.oversight-board__summary {
-  color: var(--color-text-muted);
-}
-
 .oversight-board__card {
   display: grid;
   gap: 0.45rem;

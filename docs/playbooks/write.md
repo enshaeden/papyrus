@@ -122,7 +122,7 @@ Failure signals:
 
 ## Import External Documents Through The Workbench
 
-Use the import workbench when the source starts as Markdown, DOCX, or a text-based PDF and must be normalized before it becomes Papyrus knowledge.
+Use the import workbench when the source starts as Markdown, plain text, reStructuredText, RTF, DOCX, ODT, HTML, CSV, or a text-based PDF and must be normalized before it becomes Papyrus knowledge.
 
 Web path:
 
@@ -153,7 +153,10 @@ Guardrails:
 
 - browser upload is the standard web ingest path
 - browser-submitted local file paths are disabled unless the local operator explicitly enables `--allow-web-ingest-local-paths`; when enabled, the path must be absolute and is read from the machine running Papyrus
-- Markdown and DOCX ingest locally; PDF import is limited to text-based PDFs, and scanned, image-only, encrypted, or heavily font-encoded PDFs require external OCR or preprocessing
+- Markdown, plain text, reStructuredText, RTF, DOCX, ODT, HTML, and CSV ingest locally through the same governed workbench
+- import preserves readable structure such as headings, paragraphs, lists, basic tables, and recoverable code blocks where possible
+- decorative styling, navigation chrome, rich layout, embedded media, and spreadsheet semantics are downgraded or dropped instead of being recreated
+- PDF import is limited to text-based PDFs, and scanned, image-only, encrypted, or heavily font-encoded PDFs require external OCR or preprocessing
 - import does not create canonical knowledge automatically
 - import does not bypass review
 - parser warnings and degraded extraction must stay visible before conversion

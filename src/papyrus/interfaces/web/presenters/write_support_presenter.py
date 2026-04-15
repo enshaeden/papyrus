@@ -25,10 +25,10 @@ from papyrus.interfaces.web.view_helpers import (
 def support_details_html(
     *, title: str, summary: str, body_html: str, open_by_default: bool = False
 ) -> str:
+    del summary
     return (
         f'<details class="support-disclosure"{" open" if open_by_default else ""}>'
-        f'<summary><span class="support-disclosure-title">{escape(title)}</span>'
-        f'<span class="support-disclosure-summary">{escape(summary)}</span></summary>'
+        f'<summary><span class="support-disclosure-title">{escape(title)}</span></summary>'
         f'<div class="support-disclosure-body">{body_html}</div>'
         "</details>"
     )

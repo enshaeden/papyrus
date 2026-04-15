@@ -8,6 +8,7 @@
 - [Layout contracts by role](layout-contracts-by-role.md)
 - [Knowledge workflows and lifecycle](knowledge-workflows-and-lifecycle.md)
 - [Web UI component contracts](web-ui-component-contracts.md)
+- [Remove non-essential explanatory UI copy](remove-nonessential-explanatory-ui-copy.md)
 
 Use these records when changing routing, visibility, layouts, workflow boundaries, or lifecycle behavior.
 

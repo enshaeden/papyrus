@@ -84,11 +84,6 @@ class PageRenderer:
                     (
                         '<section class="sidebar-group">'
                         f'<p class="sidebar-label">{escape(section.title)}</p>'
-                        + (
-                            f'<p class="sidebar-copy">{escape(section.description)}</p>'
-                            if section.description
-                            else ""
-                        )
                         + '<ul class="sidebar-nav">'
                         + join_html(
                             [
@@ -212,16 +207,14 @@ class PageRenderer:
     def _page_header_html(self, *, page_header: dict[str, object], header_variant: str) -> str:
         headline = str(page_header.get("headline") or "").strip()
         kicker = str(page_header.get("kicker") or "").strip()
-        intro = str(page_header.get("intro") or "").strip()
         context_html = str(page_header.get("context_html") or "").strip()
         detail_html = str(page_header.get("detail_html") or "").strip()
         actions_html = str(page_header.get("actions_html") or "").strip()
-        if not any((headline, kicker, intro, context_html, detail_html, actions_html)):
+        if not any((headline, kicker, context_html, detail_html, actions_html)):
             return ""
         fragments = [
             f'<p class="page-kicker">{escape(kicker)}</p>' if kicker else "",
             f"<h1>{escape(headline)}</h1>" if headline else "",
-            f'<p class="page-intro">{escape(intro)}</p>' if intro else "",
             context_html,
             detail_html,
             f'<div class="page-header-actions" data-component="action-cluster">{actions_html}</div>'

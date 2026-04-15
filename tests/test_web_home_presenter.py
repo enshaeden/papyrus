@@ -67,4 +67,4 @@ class HomePresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component(page["page_context"]["home_launch_html"], "home-launch-block")
         self.assert_component(page["page_context"]["home_activity_html"], "home-activity-block")
         self.assertEqual(page["page_header"]["headline"], "Home")
-        self.assertIn("Start from dependable guidance", page["page_header"]["intro"])
+        self.assertNotIn("intro", page["page_header"])

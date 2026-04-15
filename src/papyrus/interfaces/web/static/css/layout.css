@@ -75,11 +75,9 @@ a:hover {
 .page-kicker,
 .panel-kicker,
 .sidebar-label,
-.sidebar-summary,
 .cell-meta,
 .list-meta,
 .section-footer,
-.page-intro,
 .field-hint,
 .empty-state-copy {
   color: var(--color-text-muted);
@@ -362,12 +360,6 @@ a:hover {
   color: var(--color-panel-governance-label);
 }
 
-.sidebar-summary {
-  margin: 0;
-  font-size: 0.86rem;
-  line-height: 1.48;
-}
-
 .sidebar-group {
   display: grid;
   gap: 0.55rem;
@@ -386,13 +378,6 @@ a:hover {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-panel-governance-label);
-}
-
-.sidebar-copy {
-  margin: 0;
-  font-size: 0.86rem;
-  color: var(--color-text-muted);
-  line-height: 1.45;
 }
 
 .sidebar-nav {
@@ -476,12 +461,6 @@ a:hover {
   font-weight: 700;
   line-height: 1.08;
   letter-spacing: -0.018em;
-}
-
-.page-header .page-intro {
-  max-inline-size: var(--measure-panel-copy);
-  font-size: 0.98rem;
-  line-height: 1.55;
 }
 
 .page-header .metadata-list {

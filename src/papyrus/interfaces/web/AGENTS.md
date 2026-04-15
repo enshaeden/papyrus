@@ -91,6 +91,11 @@ For any route, shell, navigation, or role-related UI change, report:
 - Do not remove colour tokens, semantic states, or spacing rules without replacing them with a coherent alternative in the same change.
 - Prefer one strong primary action per area over many equal-weight actions.
 - Cards, tables, panels, and metadata blocks must have a clear reason to exist. Remove decorative or redundant containers.
+- Landing surfaces, section headers, navigation chrome, mode cards, context cards, dashboard blocks, empty states, and similar top-level UI containers must not include explanatory paragraph copy beneath headings by default.
+- Supporting prose is allowed only when it is task-critical, state-critical, safety-critical, or necessary to prevent user error.
+- Prefer terse headings plus actionable controls over descriptive blurbs.
+- If a visible paragraph can be removed without loss of task comprehension, it should not exist.
+- Do not stack a kicker, eyebrow, or overline above a heading when both labels resolve to the same visible text. Collapse the duplicate label at the owning component or presenter boundary.
 - Long-form content views must use readable line length, consistent heading rhythm, and visual separation between content and metadata.
 
 ## Component Ownership and Removal Rules

@@ -89,10 +89,7 @@ def present_service_catalog(
     return {
         "page_template": "pages/services.html",
         "page_title": "Services",
-        "page_header": {
-            "headline": "Services",
-            "intro": "Service entry map",
-        },
+        "page_header": {"headline": "Services"},
         "active_nav": "services",
         "aside_html": "",
         "page_context": {"services_html": render_service_map(role=role, services=services)},
@@ -126,7 +123,6 @@ def present_service_detail(
         "page_header": {
             "headline": service["service_name"],
             "kicker": f"{service['service_criticality']} · {service['status']}",
-            "intro": f"{service['owner'] or 'Unassigned'} · {service['team'] or 'No team'}",
             "detail_html": (
                 '<dl class="metadata-list">'
                 + render_definition_rows(

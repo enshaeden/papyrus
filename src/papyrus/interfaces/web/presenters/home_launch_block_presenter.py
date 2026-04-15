@@ -14,7 +14,7 @@ from papyrus.interfaces.web.urls import (
     service_catalog_url,
     write_new_url,
 )
-from papyrus.interfaces.web.view_helpers import escape, join_html, link
+from papyrus.interfaces.web.view_helpers import distinct_heading_kicker, escape, join_html, link
 
 _HOME_LAUNCH_ACTION_LABELS = {
     "do_now": "Open",
@@ -88,19 +88,22 @@ def _render_block_shell(
     *,
     block_id: str,
     title: str,
-    summary: str,
     tone: str,
     items_html: list[str],
     emphasis: str = "board",
     lead_action_html: str = "",
 ) -> str:
+    kicker = distinct_heading_kicker(_humanize_token(block_id), title)
     return (
         f'<section class="home-launch-block tone-{escape(tone)} is-{escape(emphasis)}" data-component="home-launch-block" data-surface="home" data-home-block="{escape(block_id)}">'
         + '<div class="home-launch-block__head">'
         + '<div class="home-launch-block__head-copy">'
-        + f'<p class="home-launch-block__kicker">{escape(block_id.replace("_", " "))}</p>'
+        + (
+            f'<p class="home-launch-block__kicker">{escape(kicker)}</p>'
+            if kicker
+            else ""
+        )
         + f"<h2>{escape(title)}</h2>"
-        + f'<p class="home-launch-block__summary">{escape(summary)}</p>'
         + "</div>"
         + (
             f'<div class="home-launch-block__head-action">{lead_action_html}</div>'
@@ -148,7 +151,6 @@ def _render_do_now_block(dashboard: dict[str, Any]) -> str:
     return _render_block_shell(
         block_id="do_now",
         title="Do now",
-        summary="Open the best current answer first. Leave the reading flow only when the article is missing, weak, or clearly needs work.",
         tone="approved",
         items_html=items_html,
         emphasis="primary",
@@ -187,7 +189,6 @@ def _render_continue_block(dashboard: dict[str, Any]) -> str:
     return _render_block_shell(
         block_id="continue",
         title="Continue",
-        summary="Keep governed drafting moving before you start a new template.",
         tone="brand",
         items_html=items_html,
         emphasis="supporting",
@@ -220,7 +221,6 @@ def _render_watch_block(dashboard: dict[str, Any]) -> str:
     return _render_block_shell(
         block_id="watch",
         title="Watch",
-        summary="These changes could alter whether the current guidance is still dependable.",
         tone="warning",
         items_html=items_html,
         emphasis="supporting",
@@ -259,7 +259,6 @@ def _render_queue_status_block(dashboard: dict[str, Any]) -> str:
     return _render_block_shell(
         block_id="queue_status",
         title="Queue status",
-        summary="See the shape of review pressure before opening an individual item.",
         tone="brand",
         items_html=items_html,
     )
@@ -290,7 +289,6 @@ def _render_pending_decisions_block(dashboard: dict[str, Any]) -> str:
     return _render_block_shell(
         block_id="pending_decisions",
         title="Pending decisions",
-        summary="Open the revisions that need a compact yes or no.",
         tone="warning",
         items_html=items_html,
     )
@@ -321,7 +319,6 @@ def _render_blocked_reviews_block(dashboard: dict[str, Any]) -> str:
     return _render_block_shell(
         block_id="blocked_reviews",
         title="Blocked reviews",
-        summary="Clear the items that cannot move cleanly into approval.",
         tone="danger",
         items_html=items_html,
     )
@@ -364,7 +361,6 @@ def _render_pressure_summary_block(dashboard: dict[str, Any]) -> str:
     return _render_block_shell(
         block_id="pressure_summary",
         title="Pressure summary",
-        summary="Use one compact pressure readout to decide whether the next move belongs in review, health, or service context.",
         tone="default",
         items_html=items_html,
     )
@@ -424,7 +420,6 @@ def _render_board_links_entry(*, dashboard: dict[str, Any]) -> str:
         '<section class="home-board-links" data-component="home-board-links" data-surface="home">'
         '<details class="home-board-links__details">'
         "<summary>View all boards</summary>"
-        '<p class="home-board-links__summary">Use the landing view for the next move. Open the broader work surfaces only when you need more scope than this page should carry.</p>'
         '<ul class="home-board-links__list">'
         + join_html(
             [

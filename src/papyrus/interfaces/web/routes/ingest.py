@@ -52,6 +52,7 @@ def register(router, runtime) -> None:
                         ingest_file(
                             file_path=upload.filename,
                             payload=upload.body,
+                            declared_media_type=upload.content_type,
                             database_path=runtime.database_path,
                             source_root=runtime.source_root,
                         )

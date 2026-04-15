@@ -46,9 +46,7 @@ def intervention_groups(queue: list[dict[str, Any]]) -> dict[str, list[dict[str,
     return groups
 
 
-def render_oversight_column(
-    title: str, summary: str, items: list[dict[str, Any]], *, role: str, tone: str
-) -> str:
+def render_oversight_column(title: str, items: list[dict[str, Any]], *, role: str, tone: str) -> str:
     count_label = f"{len(items)} item" if len(items) == 1 else f"{len(items)} items"
     body = (
         join_html(
@@ -57,7 +55,6 @@ def render_oversight_column(
                     '<article class="oversight-board__card" data-component="oversight-card" data-surface="oversight">'
                     f'<p class="oversight-board__card-kicker">{escape(str(item.get("object_type") or "").replace("_", " "))} · {escape(item["object_id"])}</p>'
                     f"<h3>{link(item['title'], item_href(item, role=role))}</h3>"
-                    f"<p>{escape(str(projection_use_guidance(item.get('ui_projection')).get('summary') or item.get('summary') or 'No summary recorded.'))}</p>"
                     f'<p class="oversight-board__card-next">{escape(str(projection_use_guidance(item.get("ui_projection")).get("next_action") or "Inspect article"))}</p>'
                     f"{link('Open', item_href(item, role=role), css_class='button button-ghost', attrs={'data-action-id': 'open-primary-surface'})}"
                     "</article>"
@@ -73,7 +70,6 @@ def render_oversight_column(
         '<div class="oversight-board__head">'
         + f'<p class="oversight-board__count">{escape(count_label)}</p>'
         + f"<h2>{escape(title)}</h2>"
-        + f'<p class="oversight-board__summary">{escape(summary)}</p>'
         + "</div>"
         f"{body}</section>"
     )
@@ -86,28 +82,24 @@ def render_oversight_board(*, role: str, queue: list[dict[str, Any]]) -> str:
         '<div class="oversight-board__grid">'
         + render_oversight_column(
             "Trust debt",
-            "Weak, stale, or suspect guidance that changes whether operators should trust the surface.",
             groups["trust_debt"],
             role=role,
             tone="danger",
         )
         + render_oversight_column(
             "Review backlog",
-            "Content waiting on explicit review decisions.",
             groups["review_backlog"],
             role=role,
             tone="warning",
         )
         + render_oversight_column(
             "Ownership gaps",
-            "Articles that need clearer ownership before they age into drift.",
             groups["ownership_gaps"],
             role=role,
             tone="brand",
         )
         + render_oversight_column(
             "Stable watch",
-            "Items worth monitoring without immediate intervention.",
             groups["stable_watch"],
             role=role,
             tone="default",
@@ -152,10 +144,7 @@ def present_oversight_dashboard(
     return {
         "page_template": "pages/dashboard_oversight.html",
         "page_title": "Oversight",
-        "page_header": {
-            "headline": "Oversight",
-            "intro": "See which content needs intervention, which items are simply worth watching, and where cleanup debt is accumulating.",
-        },
+        "page_header": {"headline": "Oversight"},
         "active_nav": "oversight",
         "aside_html": "",
         "page_context": {

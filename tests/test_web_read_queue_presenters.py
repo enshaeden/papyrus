@@ -82,6 +82,8 @@ class ReadQueuePresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component(page["aside_html"], "read-selected-context")
         self.assert_surface(workspace_html, "read-queue")
         self.assertEqual(page["page_header"]["headline"], "Inspect")
+        self.assertNotIn("intro", page["page_header"])
+        self.assertNotIn("table-support", workspace_html)
 
     def test_queue_presenter_prefers_projection_guidance_over_raw_status_copy(self) -> None:
         item = dict(QUEUE_ITEM)
@@ -108,6 +110,7 @@ class ReadQueuePresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("Projection summary wins", workspace_html)
         self.assert_component(workspace_html, "read-result-card")
         self.assertNotIn("Raw queue fallback should not render.", workspace_html)
+        self.assertNotIn("read-result-card__summary", workspace_html)
 
     def test_reader_queue_links_fail_closed_to_reader_object_surface(self) -> None:
         item = dict(QUEUE_ITEM)

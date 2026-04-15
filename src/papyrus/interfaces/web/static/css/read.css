@@ -74,20 +74,10 @@
   gap: 0.28rem;
 }
 
-.read-result-card__summary,
 .read-result-card__guidance,
 .read-result-card__support {
   margin: 0;
   overflow-wrap: anywhere;
-}
-
-.read-result-card__summary {
-  font-size: 1rem;
-  line-height: 1.58;
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
 }
 
 .read-result-card__guidance,

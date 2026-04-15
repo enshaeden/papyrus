@@ -84,7 +84,7 @@ The system must be built so a developer can remove a visible UI element by editi
 
 ## Remove duplicated navigation and controls at the source
 
-Remove duplicated navigation, duplicated filters, duplicated action bars, duplicated contextual actions, and duplicated status summaries at the source component, shell, or layout boundary that generates them.
+Remove duplicated navigation, duplicated filters, duplicated action bars, duplicated contextual actions, duplicated status summaries, and duplicated kicker-plus-heading label stacks at the source component, shell, or layout boundary that generates them.
 
 Page-level hiding or cosmetic patching is not a valid fix when duplication originates from shared structure.
 

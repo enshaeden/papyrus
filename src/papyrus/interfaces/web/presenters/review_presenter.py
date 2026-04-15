@@ -176,7 +176,7 @@ def render_review_lane(
         use_guidance = projection_use_guidance(item.get("ui_projection"))
         rows.append(
             f"<tr{' class="is-selected"' if is_selected else ''}{' aria-selected="true"' if is_selected else ''}>"
-            f'<td><a class="selected-row-link" href="{escape(review_queue_url(role))}?selected_object_id={escape(object_id)}&selected_revision_id={escape(revision_id)}">{escape(item["title"])}</a><span class="table-support">{escape(item.get("change_summary") or item.get("summary") or "")}</span></td>'
+            f'<td><a class="selected-row-link" href="{escape(review_queue_url(role))}?selected_object_id={escape(object_id)}&selected_revision_id={escape(revision_id)}">{escape(item["title"])}</a></td>'
             f"<td>{escape(str(use_guidance.get('summary') or 'Review item'))}</td>"
             f"<td>{escape(', '.join(projection_reasons(item.get('ui_projection'))) or 'No explicit reasons')}</td>"
             f"<td>{escape(str(item.get('owner') or 'Unowned'))}</td>"

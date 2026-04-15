@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from papyrus.infrastructure.parsers import supported_import_accept_attribute
 from papyrus.interfaces.web.presenters.ingest_presenter import (
     present_ingest_list_page,
     present_ingestion_detail_page,
@@ -28,13 +29,22 @@ DETAIL = {
     "parser_name": "markdown",
     "normalized_content": {
         "title": "VPN Guide",
-        "headings": ["Use"],
+        "headings": [{"level": 1, "text": "Use"}],
         "paragraphs": ["One"],
         "lists": [],
         "tables": [],
+        "preformatted_blocks": ["papyrus ingest vpn.md"],
         "links": [],
         "parser_warnings": ["Weak heading"],
         "degradation_notes": [],
+        "detected_format": "Markdown",
+        "declared_media_type": "text/markdown",
+        "media_type": "text/markdown",
+        "normalization_summary": {
+            "preserved": ["headings", "paragraphs", "code or preformatted blocks"],
+            "downgraded": ["inline styling"],
+            "dropped": ["render-only layout details"],
+        },
         "extraction_quality": {
             "state": "degraded",
             "score": 0.8,
@@ -97,6 +107,12 @@ class IngestPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component(page["page_context"]["journey_html"], "ingest-orchestration")
         self.assert_component(page["page_context"]["upload_html"], "ingest-upload")
         self.assert_component(page["page_context"]["ingestions_html"], "ingest-list")
+        self.assertIn(
+            f'accept="{supported_import_accept_attribute()}"',
+            page["page_context"]["upload_html"],
+        )
+        self.assertIn("Accepted file types", page["page_context"]["upload_html"])
+        self.assertNotIn("intro", page["page_header"])
 
     def test_ingestion_detail_presenter_assembles_progress_stage_and_parsed_content_components(
         self,
@@ -115,6 +131,11 @@ class IngestPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component(page_html, "ingest-stage-card")
         self.assert_component(page_html, "ingest-parsed-content")
         self.assert_component(page_html, "ingest-parser-assessment")
+        self.assertIn("Detected format", page_html)
+        self.assertIn("Declared upload media type", page_html)
+        self.assertIn("Preserved", page_html)
+        self.assertNotIn("ingest-stage-board__summary", page_html)
+        self.assertNotIn("intro", page["page_header"])
 
     def test_mapping_review_presenter_assembles_local_mapping_and_conversion_components(
         self,
@@ -139,3 +160,8 @@ class IngestPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component(page_html, "ingest-mapping-gaps")
         self.assert_component(page_html, "ingest-mapping-gap")
         self.assert_component(page_html, "ingest-convert-form")
+        self.assertIn("Detected format", page_html)
+        self.assertIn("Preserved", page_html)
+        self.assertNotIn("ingest-mapping-gaps__summary", page_html)
+        self.assertNotIn("section-intro", page_html)
+        self.assertNotIn("intro", page["page_header"])

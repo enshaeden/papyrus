@@ -78,6 +78,8 @@ class ServicePresenterTests(SemanticHookAssertions, unittest.TestCase):
         )
         self.assert_component(detail_html, "service-pressure")
         self.assert_component(detail_html, "service-path")
+        self.assertNotIn("intro", catalog_page["page_header"])
         self.assertEqual(detail_page["page_header"]["headline"], "Remote Access")
         self.assertEqual(detail_page["page_header"]["kicker"], "high · active")
+        self.assertNotIn("intro", detail_page["page_header"])
         self.assertIn("Support entrypoints", detail_page["page_header"]["detail_html"])

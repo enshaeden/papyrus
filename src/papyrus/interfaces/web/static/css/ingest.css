@@ -82,9 +82,7 @@
     var(--color-surface-panel);
 }
 
-.ingest-progress__summary,
-.ingest-stage-board__summary,
-.ingest-mapping-gaps__summary {
+.ingest-progress__summary {
   margin: 0;
   color: var(--color-text-muted);
   line-height: 1.52;

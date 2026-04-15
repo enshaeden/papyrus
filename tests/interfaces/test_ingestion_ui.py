@@ -10,6 +10,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
+from papyrus.infrastructure.parsers import supported_import_accept_attribute
 from papyrus.interfaces.web.app import app as web_app
 from tests.web_assertions import SemanticHookAssertions
 
@@ -129,6 +130,11 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertNotIn('name="source_path"', body)
             self.assertIn("Local source file unavailable", body)
             self.assertIn("This session accepts uploaded files only.", body)
+            self.assertIn(
+                f'accept="{supported_import_accept_attribute()}"',
+                body,
+            )
+            self.assertIn("Accepted file types", body)
             self.assert_component(body, "ingest-upload")
 
             status, _, body = call_wsgi(
@@ -165,6 +171,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             status, _, body = call_wsgi(application, detail_path)
             self.assertEqual(status, "200 OK")
             self.assertIn("Import started. Review the mapping before creating the draft.", body)
+            self.assertIn("Detected format", body)
             self.assert_surface(body, "workflow")
             self.assert_surface(body, "actions")
             self.assertIn("Open mapping review to generate section matches and inspect gaps.", body)
@@ -177,6 +184,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assert_surface(review_body, "workflow")
             self.assert_surface(review_body, "actions")
+            self.assertIn("Preserved", review_body)
             self.assertIn("Mapping review", review_body)
             self.assertIn("Missing required sections", review_body)
             self.assert_action_id(review_body, "convert_ingestion_to_draft")
@@ -224,7 +232,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Local source path not found.", missing_body)
 
-    def test_ingestion_detail_surfaces_parser_warnings_for_degraded_input(self) -> None:
+    def test_ingestion_entry_surfaces_error_for_empty_extraction(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"
             source_root, source_file = governed_ingest_path(temp_dir, "empty.md")
@@ -235,26 +243,29 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
                 allow_web_ingest_local_paths=True,
             )
 
-            status, headers, _ = call_wsgi(
+            status, _, body = call_wsgi(
                 application,
                 "/operator/import",
                 method="POST",
                 form={"source_path": str(source_file)},
             )
-            self.assertEqual(status, "303 See Other")
-            detail_path = headers["Location"]
-
-            status, _, body = call_wsgi(application, detail_path)
             self.assertEqual(status, "200 OK")
-            self.assertIn("Parser assessment", body)
-            self.assertIn("Markdown file is empty.", body)
-            self.assert_component(body, "ingest-parser-assessment")
+            self.assertIn("did not yield any readable text", body)
+            self.assert_primary_surface(body, "ingest")
 
-            review_path = detail_path.split("?", 1)[0].rstrip("/") + "/review"
-            status, _, review_body = call_wsgi(application, review_path)
+    def test_ingestion_entry_rejects_declared_media_type_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(database_path, source_root=source_root)
+
+            status, _, body = call_wsgi_multipart(
+                application,
+                "/operator/import",
+                files={"upload": ("import.docx", "text/html", b"not-really-docx")},
+            )
             self.assertEqual(status, "200 OK")
-            self.assertIn("Parser assessment", review_body)
-            self.assertIn("Markdown file is empty.", review_body)
+            self.assertIn("does not match .docx", body)
 
     def test_mapping_review_surfaces_conflicts_and_fragment_provenance(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -351,6 +362,7 @@ class IngestionUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn("unsafe-import.md", body)
             self.assertNotIn("..\\..\\unsafe-import.md", body)
             self.assertNotIn("..\\\\..\\\\unsafe-import.md", body)
+            self.assertIn("Declared upload media type", body)
             self.assert_primary_surface(body, "ingest-detail")
 
     def test_ingest_entry_rejects_mixed_upload_and_local_path_submission(self) -> None:

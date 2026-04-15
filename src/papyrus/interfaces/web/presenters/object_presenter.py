@@ -130,7 +130,6 @@ def present_object_detail(
         "page_header": {
             "headline": item["title"],
             "kicker": article["hero"]["eyebrow"],
-            "intro": article["hero"]["summary"],
             "context_html": f"<p><strong>Use now:</strong> {escape(use_now)}</p>"
             if use_now
             else "",

@@ -120,11 +120,6 @@
   font-weight: 700;
 }
 
-.object-summary {
-  margin-bottom: 0;
-  max-inline-size: var(--measure-panel-copy);
-}
-
 .object-header-side {
   display: grid;
   gap: var(--space-3);
@@ -317,7 +312,6 @@
   padding-left: 1.1rem;
 }
 
-.governed-panel-summary,
 .governed-summary {
   margin: 0 0 var(--space-3);
   overflow-wrap: anywhere;
@@ -572,11 +566,6 @@ textarea { resize: vertical; }
   color: var(--color-text-primary);
 }
 
-.support-disclosure-summary {
-  color: var(--color-text-muted);
-  font-size: 0.92rem;
-}
-
 .support-disclosure-body {
   padding: var(--space-2) 0 var(--space-1);
   border-top: 1px solid var(--color-border-default);
@@ -742,7 +731,6 @@ textarea { resize: vertical; }
   margin: 0;
 }
 
-.decision-card-summary,
 .decision-card-detail,
 .decision-group-summary {
   color: var(--color-text-muted);
@@ -914,15 +902,6 @@ textarea:focus-visible {
 
 .workbench-table tbody tr.is-selected td:first-child {
   box-shadow: inset 0.28rem 0 0 var(--color-selected-border);
-}
-
-.table-support {
-  display: block;
-  margin-top: 0.35rem;
-  color: var(--color-text-muted);
-  font-size: 0.88rem;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
 }
 
 .selected-row-link {

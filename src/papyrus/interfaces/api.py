@@ -356,6 +356,7 @@ def app(
                 _ = actor  # actor is kept for parity with other governed endpoints.
                 source_path = str(request_payload.get("source_path") or "").strip()
                 content_base64 = str(request_payload.get("content_base64") or "").strip()
+                content_type = str(request_payload.get("content_type") or "").strip()
                 filename = str(request_payload.get("filename") or "").strip()
                 if not source_path and not (content_base64 and filename):
                     raise ValueError(
@@ -371,6 +372,7 @@ def app(
                     else ingest_file(
                         file_path=filename,
                         payload=base64.b64decode(content_base64.encode("ascii")),
+                        declared_media_type=content_type,
                         database_path=resolved_database_path,
                         source_root=resolved_source_root,
                     )

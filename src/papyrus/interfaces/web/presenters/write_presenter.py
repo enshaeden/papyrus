@@ -77,9 +77,7 @@ def _blueprint_scope_list_html(blueprints: list[Blueprint]) -> str:
 def _primary_guidance_html() -> str:
     primary_blueprints = list_primary_authoring_blueprints()
     return (
-        "<p>Start with the strongest operational templates first.</p>"
-        + _blueprint_scope_list_html(primary_blueprints)
-        + "<p>Need an internal or deferred blueprint class?</p>"
+        _blueprint_scope_list_html(primary_blueprints)
         + "<p>"
         + link(
             "Open advanced authoring",
@@ -95,14 +93,11 @@ def _advanced_guidance_html() -> str:
     advanced_blueprints = list_advanced_authoring_blueprints()
     primary_blueprints = list_primary_authoring_blueprints()
     return (
-        "<p>This path keeps the full blueprint model available, including deferred classes.</p>"
-        + (
-            "<p><strong>Advanced targets</strong></p>"
-            + _blueprint_scope_list_html(advanced_blueprints)
+        (
+            _blueprint_scope_list_html(advanced_blueprints)
             if advanced_blueprints
             else ""
         )
-        + "<p><strong>Preferred primary templates</strong></p>"
         + _blueprint_scope_list_html(primary_blueprints)
         + "<p>"
         + link(
@@ -290,8 +285,7 @@ def present_object_setup_page(
                 if is_advanced_mode
                 else "Papyrus markets and organizes visible authoring around runbooks, known errors, and service records."
             ),
-            body_html=(_advanced_guidance_html() if is_advanced_mode else _primary_guidance_html())
-            + "<p>After setup, complete one required section at a time and then hand the revision to review.</p>",
+            body_html=_advanced_guidance_html() if is_advanced_mode else _primary_guidance_html(),
         ),
     }
 

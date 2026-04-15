@@ -5,6 +5,7 @@ import re
 HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.*)$")
 LIST_PATTERN = re.compile(r"^\s*(?:[-*]|\d+\.)\s+(.*)$")
 LINK_PATTERN = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+FENCE_PATTERN = re.compile(r"^\s*```")
 
 
 def parse_markdown_bytes(payload: bytes) -> dict[str, object]:
@@ -14,7 +15,7 @@ def parse_markdown_bytes(payload: bytes) -> dict[str, object]:
         text = ""
         warnings.append("Markdown file is empty.")
         degradation_notes.append(
-            "No headings, paragraphs, or list items were available to classify or map."
+            "No headings, paragraphs, list items, or code blocks were available to classify or map."
         )
     else:
         try:
@@ -30,11 +31,15 @@ def parse_markdown_bytes(payload: bytes) -> dict[str, object]:
     title = ""
     headings: list[dict[str, object]] = []
     paragraphs: list[str] = []
-    lists: list[list[str]] = []
+    lists: list[dict[str, object]] = []
+    preformatted_blocks: list[str] = []
     elements: list[dict[str, object]] = []
     links: list[dict[str, str]] = []
     current_list: list[str] = []
     current_paragraph: list[str] = []
+    current_preformatted: list[str] = []
+    current_list_is_ordered = False
+    in_fence = False
 
     def flush_paragraph() -> None:
         nonlocal current_paragraph
@@ -45,21 +50,58 @@ def parse_markdown_bytes(payload: bytes) -> dict[str, object]:
             current_paragraph = []
 
     def flush_list() -> None:
-        nonlocal current_list
+        nonlocal current_list, current_list_is_ordered
         if current_list:
             items = [item for item in current_list if item]
             if items:
-                lists.append(items)
-                elements.append({"kind": "list", "items": items, "text": "\n".join(items)})
+                lists.append({"items": items, "ordered": current_list_is_ordered})
+                elements.append(
+                    {
+                        "kind": "list",
+                        "items": items,
+                        "ordered": current_list_is_ordered,
+                        "text": "\n".join(items),
+                    }
+                )
             current_list = []
+            current_list_is_ordered = False
+
+    def flush_preformatted() -> None:
+        nonlocal current_preformatted
+        if current_preformatted:
+            block = "\n".join(current_preformatted).rstrip()
+            if block.strip():
+                preformatted_blocks.append(block)
+                elements.append({"kind": "preformatted", "text": block})
+            current_preformatted = []
 
     for raw_line in text.splitlines():
         line = raw_line.rstrip()
         stripped = line.strip()
+        if FENCE_PATTERN.match(line):
+            flush_list()
+            flush_paragraph()
+            if in_fence:
+                flush_preformatted()
+                in_fence = False
+            else:
+                flush_preformatted()
+                in_fence = True
+            continue
+        if in_fence:
+            current_preformatted.append(line)
+            continue
         if not stripped:
+            flush_preformatted()
             flush_list()
             flush_paragraph()
             continue
+        if line.startswith(("    ", "\t")):
+            flush_paragraph()
+            flush_list()
+            current_preformatted.append(line[4:] if line.startswith("    ") else line.lstrip("\t"))
+            continue
+        flush_preformatted()
         if heading_match := HEADING_PATTERN.match(line):
             flush_list()
             flush_paragraph()
@@ -77,6 +119,8 @@ def parse_markdown_bytes(payload: bytes) -> dict[str, object]:
         if list_match := LIST_PATTERN.match(line):
             flush_paragraph()
             current_list.append(list_match.group(1).strip())
+            if len(current_list) == 1:
+                current_list_is_ordered = bool(re.match(r"^\s*\d+\.\s+", line))
             links.extend(
                 {"label": label, "target": target}
                 for label, target in LINK_PATTERN.findall(current_list[-1])
@@ -89,9 +133,11 @@ def parse_markdown_bytes(payload: bytes) -> dict[str, object]:
         )
     flush_paragraph()
     flush_list()
+    flush_preformatted()
     raw_text_parts = [heading["text"] for heading in headings]
     raw_text_parts.extend(paragraphs)
-    raw_text_parts.extend(item for block in lists for item in block)
+    raw_text_parts.extend(item for block in lists for item in block["items"])
+    raw_text_parts.extend(preformatted_blocks)
     if not raw_text_parts:
         warnings.append("Markdown did not yield any extractable text.")
         degradation_notes.append(
@@ -113,10 +159,20 @@ def parse_markdown_bytes(payload: bytes) -> dict[str, object]:
         "paragraphs": paragraphs,
         "lists": lists,
         "tables": [],
+        "preformatted_blocks": preformatted_blocks,
         "elements": elements,
         "links": links,
         "raw_text": "\n".join(raw_text_parts),
         "parser_warnings": warnings,
         "degradation_notes": degradation_notes,
         "extraction_quality": extraction_quality,
+        "preserved_features": [
+            "headings" if headings else "",
+            "paragraphs" if paragraphs else "",
+            "lists" if lists else "",
+            "links" if links else "",
+            "code or preformatted blocks" if preformatted_blocks else "",
+        ],
+        "downgraded_features": ["inline styling"],
+        "dropped_features": ["render-only layout details"],
     }

@@ -21,6 +21,59 @@ def governed_ingest_path(temp_dir: str, filename: str) -> tuple[Path, Path]:
 
 
 class IngestionToAuthoringIntegrationTests(unittest.TestCase):
+    def test_imported_html_runbook_converts_into_the_same_structured_draft_model(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            source_root, source_path = governed_ingest_path(temp_dir, "runbook.html")
+            source_path.write_text(
+                "<html><body>"
+                "<h1>Access Recovery</h1>"
+                "<h2>Procedure</h2>"
+                "<ul><li>Confirm identity</li><li>Reset access</li></ul>"
+                "<h2>Verification</h2>"
+                "<ul><li>User can sign in</li></ul>"
+                "</body></html>",
+                encoding="utf-8",
+            )
+
+            ingested = ingest_file(
+                file_path=source_path, database_path=database_path, source_root=source_root
+            )
+            map_to_blueprint(
+                ingestion_id=ingested["ingestion_id"],
+                blueprint_id="runbook",
+                database_path=database_path,
+            )
+            converted = convert_to_draft(
+                ingestion_id=ingested["ingestion_id"],
+                object_id="kb-access-recovery-imported-html",
+                title="Access Recovery",
+                canonical_path="knowledge/imported/access-recovery-html.md",
+                owner="workflow_owner",
+                team="IT Operations",
+                review_cadence="quarterly",
+                object_lifecycle_state="draft",
+                audience="service_desk",
+                actor="local.operator",
+                database_path=database_path,
+                source_root=source_root,
+            )
+
+            detail = review_detail(
+                "kb-access-recovery-imported-html",
+                converted["revision_id"],
+                database_path=database_path,
+            )
+            self.assertEqual(detail["object"]["object_type"], "runbook")
+            self.assertEqual(
+                detail["revision"]["section_content"]["procedure"]["steps"],
+                ["Confirm identity", "Reset access"],
+            )
+            self.assertEqual(
+                detail["revision"]["section_content"]["verification"]["verification"],
+                ["User can sign in"],
+            )
+
     def test_imported_runbook_stays_honestly_partial_when_required_fields_are_unresolved(
         self,
     ) -> None:

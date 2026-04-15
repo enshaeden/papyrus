@@ -52,7 +52,9 @@ What to expect:
 - Guided draft creation is explicit: object setup creates the first draft before redirecting, and later entrypoints use a governed start action rather than relying on GET requests to create state.
 - `/operator/import` starts a guided upload, extract, map, review, and convert flow for external files before draft creation.
 - Browser upload is the normal web ingest path. Browser-submitted local file paths are disabled unless you explicitly enable `--allow-web-ingest-local-paths` on the local operator web surface.
-- Markdown and DOCX parse locally. PDF import is limited to text-based PDFs and may surface degraded extraction warnings.
+- Import accepts Markdown, plain text, reStructuredText, RTF, DOCX, ODT, HTML, CSV, and text-based PDFs through the same local workflow.
+- Papyrus preserves readable structure such as headings, paragraphs, lists, basic tables, and recoverable code blocks where possible. Rich styling, navigation chrome, decorative layout, and spreadsheet semantics are downgraded or dropped rather than reproduced.
+- PDF import is still limited to text-based PDFs and may surface degraded extraction warnings.
 - Import now keeps the end-to-end transformation visible: upload source, inspect extraction quality, inspect mapping output and gaps, create the draft, then continue in the same governed authoring and review lifecycle used by native drafting.
 - Read, write, import, review, and health screens consume backend projection and action contracts. If a screen needs governed truth that is missing, extend the backend contract layer rather than adding route-local lifecycle or acknowledgement logic.
 

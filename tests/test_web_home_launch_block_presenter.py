@@ -62,8 +62,12 @@ class HomeLaunchBlockPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("Open", html)
         self.assertIn("Start here", html)
         self.assertIn("View all boards", html)
+        self.assertNotIn("home-launch-block__summary", html)
         self.assertNotIn("Fallback summary", html)
         self.assertNotIn("runbook · kb-vpn", html)
+        self.assertNotIn('<p class="home-launch-block__kicker">Do now</p>', html)
+        self.assertNotIn('<p class="home-launch-block__kicker">Continue</p>', html)
+        self.assertNotIn('<p class="home-launch-block__kicker">Watch</p>', html)
 
     def test_admin_launch_blocks_keep_secondary_block_local_to_component_owner(self) -> None:
         html = render_home_launch_blocks(
@@ -103,4 +107,9 @@ class HomeLaunchBlockPresenterTests(SemanticHookAssertions, unittest.TestCase):
         self.assert_component(html, "home-board-links")
         self.assertIn("Pressure summary", html)
         self.assertIn("View all boards", html)
+        self.assertNotIn("home-board-links__summary", html)
         self.assertNotIn("Recent changes", html)
+        self.assertNotIn('<p class="home-launch-block__kicker">Queue status</p>', html)
+        self.assertNotIn('<p class="home-launch-block__kicker">Pending decisions</p>', html)
+        self.assertNotIn('<p class="home-launch-block__kicker">Blocked reviews</p>', html)
+        self.assertNotIn('<p class="home-launch-block__kicker">Pressure summary</p>', html)

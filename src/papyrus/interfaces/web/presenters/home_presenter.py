@@ -18,11 +18,6 @@ def present_home_page(renderer: TemplateRenderer, *, dashboard: dict[str, Any]) 
         "page_surface": "home",
         "page_header": {
             "headline": "Overview" if role == "admin" else "Home",
-            "intro": (
-                "Start with the boards that unblock review and approval work first."
-                if role == "admin"
-                else "Start from dependable guidance, then branch into drafting, review, or follow-up only when the content tells you to."
-            ),
         },
         "active_nav": "home",
         "aside_html": "",

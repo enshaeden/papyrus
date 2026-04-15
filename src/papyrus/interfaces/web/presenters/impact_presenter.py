@@ -23,7 +23,6 @@ def render_impact_summary(
     *,
     components: ComponentPresenter,
     title: str,
-    summary: str,
     impacted_count: int,
     recent_events_count: int,
     surface: str,
@@ -42,7 +41,6 @@ def render_impact_summary(
         '<div class="impact-summary__header">'
         '<p class="impact-summary__kicker">Impact</p>'
         f"<h2>{escape(title)}</h2>"
-        f"<p>{escape(summary)}</p>"
         "</div>"
         f'<div class="impact-summary__badges">{join_html(badges, " ")}</div>'
         "</section>"
@@ -235,7 +233,6 @@ def present_object_impact(
     summary_html = render_impact_summary(
         components=components,
         title="Change impact",
-        summary="Use the selected row to inspect the most important downstream effect.",
         impacted_count=len(impact["impacted_objects"]),
         recent_events_count=len(impact["recent_events"]),
         related_services_count=len(impact["related_services"]),
@@ -342,7 +339,6 @@ def present_service_impact(
     summary_html = render_impact_summary(
         components=components,
         title="Service impact",
-        summary="Track downstream knowledge before approving related change work.",
         impacted_count=len(impact["impacted_objects"]),
         recent_events_count=len(impact["recent_events"]),
         surface="impact-service",

@@ -51,9 +51,10 @@ FRAGMENT_KIND_WEIGHT = {
     "paragraph": 1.0,
     "list": 0.95,
     "table": 0.85,
+    "preformatted": 0.55,
     "heading": 0.6,
 }
-MAPPABLE_FRAGMENT_KINDS = {"paragraph", "list", "table"}
+MAPPABLE_FRAGMENT_KINDS = {"paragraph", "list", "table", "preformatted"}
 CONFLICT_CONFIDENCE_THRESHOLD = 0.55
 FIELD_IMPORT_CONFIDENCE_THRESHOLD = 0.7
 FIELD_IMPORT_RULES: dict[str, dict[str, dict[str, dict[str, Any]]]] = {
@@ -606,12 +607,16 @@ def _field_value_from_fragment(
             content = fragment.get("content")
             if isinstance(content, list):
                 return [str(item).strip() for item in content if str(item).strip()]
-        if rule.get("allow_paragraph_to_list") and fragment_kind in {"paragraph", "table"} and text:
+        if rule.get("allow_paragraph_to_list") and fragment_kind in {
+            "paragraph",
+            "table",
+            "preformatted",
+        } and text:
             return [line.strip() for line in text.splitlines() if line.strip()] or [text]
         return None
     if kind == "select":
         return None
-    if fragment_kind in {"paragraph", "heading", "table"} and text:
+    if fragment_kind in {"paragraph", "heading", "table", "preformatted"} and text:
         return text
     if fragment_kind == "list" and rule.get("allow_list_to_text"):
         return text

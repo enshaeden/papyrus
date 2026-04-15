@@ -9,6 +9,10 @@ from papyrus.application.blueprint_registry import (
     get_blueprint,
 )
 from papyrus.domain.ingestion import IngestionStatus, has_mapping_result
+from papyrus.infrastructure.parsers import (
+    supported_import_accept_attribute,
+    supported_import_labels,
+)
 from papyrus.interfaces.web.presenters.common import ComponentPresenter
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.presenters.governed_presenter import (
@@ -43,6 +47,36 @@ def _advanced_blueprint_notice(blueprint_id: str | None) -> str:
         "This document maps to an advanced/deferred blueprint target. "
         "The primary visible template set remains runbooks, known errors, and service records."
     )
+
+
+def _supported_import_label_text() -> str:
+    labels = [label for label in supported_import_labels() if label != "PDF"]
+    if not labels:
+        return "supported document formats"
+    if len(labels) == 1:
+        return labels[0]
+    return ", ".join(labels[:-1]) + f", and {labels[-1]}"
+
+
+def _normalization_summary_html(normalized: dict[str, object]) -> str:
+    summary = normalized.get("normalization_summary")
+    if not isinstance(summary, dict):
+        return ""
+    blocks: list[str] = []
+    for key, label in (
+        ("preserved", "Preserved"),
+        ("downgraded", "Downgraded"),
+        ("dropped", "Dropped"),
+    ):
+        values = summary.get(key)
+        if not isinstance(values, list) or not values:
+            blocks.append(f"<p><strong>{escape(label)}:</strong> None recorded.</p>")
+            continue
+        blocks.append(
+            f"<p><strong>{escape(label)}:</strong> "
+            f"{escape(', '.join(str(value) for value in values))}</p>"
+        )
+    return join_html(blocks)
 
 
 def render_ingest_upload(
@@ -85,13 +119,17 @@ def render_ingest_upload(
         '<section class="ingest-upload" data-component="ingest-upload" data-surface="ingest">'
         '<p class="ingest-upload__kicker">Import</p>'
         "<h2>Upload document for review</h2>"
+        f"<p><strong>Accepted file types:</strong> {escape(_supported_import_label_text())}, and text-based PDF.</p>"
         f"{error_html}"
         '<form class="governed-form" method="post" enctype="multipart/form-data">'
         + forms.field(
             field_id="upload",
             label="File upload",
-            control_html='<input id="upload" name="upload" type="file" accept=".md,.markdown,.docx,.pdf" data-component="form-control" data-control-type="file" />',
-            hint="Upload Markdown, DOCX, or PDF. Text-based PDFs work best and may still need cleanup after import.",
+            control_html=f'<input id="upload" name="upload" type="file" accept="{escape(supported_import_accept_attribute())}" data-component="form-control" data-control-type="file" />',
+            hint=(
+                f"Upload {_supported_import_label_text()}, or a text-based PDF. "
+                "Papyrus preserves readable structure and downgrades rich styling."
+            ),
         )
         + local_path_html
         + forms.button(label="Import document", action_id="start-ingestion")
@@ -107,7 +145,7 @@ def render_ingest_list(
 ) -> str:
     if not ingestions:
         description = (
-            "Upload a Markdown, DOCX, or PDF file to start import-to-draft review."
+            f"Upload {_supported_import_label_text()}, or a text-based PDF to start import-to-draft review."
             if not allow_web_ingest_local_paths
             else "Upload a file or point to a local source file to start import-to-draft review."
         )
@@ -155,7 +193,7 @@ def render_ingest_journey_overview(*, allow_web_ingest_local_paths: bool) -> str
     steps = [
         (
             "1. Bring in source",
-            f"Upload Markdown, DOCX, or a text-based PDF {local_source_line}.",
+            f"Upload {_supported_import_label_text()}, or a text-based PDF {local_source_line}.",
         ),
         (
             "2. Check extraction",
@@ -178,7 +216,6 @@ def render_ingest_journey_overview(*, allow_web_ingest_local_paths: bool) -> str
         '<section class="ingest-orchestration" data-component="ingest-orchestration" data-surface="ingest">'
         '<p class="ingest-orchestration__kicker">Import walkthrough</p>'
         "<h2>See the transformation before you commit to it</h2>"
-        "<p>Import is a governed transformation flow, not a blind file upload. Each step shows what Papyrus extracted, what it could map, and what still needs operator judgment.</p>"
         '<ol class="ingest-orchestration__list">'
         + join_html(
             [
@@ -381,9 +418,10 @@ def render_ingest_stage_board(*, detail: dict[str, object]) -> str:
             ),
             body_lines=[
                 f"<strong>Parser:</strong> {escape(detail['parser_name'])}",
+                f"<strong>Detected format:</strong> {escape(normalized.get('detected_format') or 'Unknown')}",
                 f"<strong>Extraction quality:</strong> {escape(extraction_quality.get('state') or 'unknown')}",
                 f"<strong>Parser warnings:</strong> {escape(len(parser_warnings))}",
-                f"<strong>Detected structure:</strong> {escape(len(normalized.get('headings', [])))} headings and {escape(len(normalized.get('paragraphs', [])))} paragraphs",
+                f"<strong>Detected structure:</strong> {escape(len(normalized.get('headings', [])))} headings, {escape(len(normalized.get('paragraphs', [])))} paragraphs, and {escape(len(normalized.get('preformatted_blocks', [])))} code blocks",
             ],
             href=detail_href,
             action_label="Inspect extraction",
@@ -459,7 +497,6 @@ def render_ingest_stage_board(*, detail: dict[str, object]) -> str:
         '<section class="ingest-stage-board" data-component="ingest-stage-board" data-surface="ingest-detail">'
         '<p class="ingest-stage-board__kicker">Import walkthrough</p>'
         "<h2>Move from source file to governed draft</h2>"
-        '<p class="ingest-stage-board__summary">Read the source, inspect what Papyrus extracted, confirm the mapping, then create a governed draft only when the transformation looks trustworthy.</p>'
         '<div class="ingest-stage-board__grid">' + join_html(cards) + "</div></section>"
     )
 
@@ -467,14 +504,19 @@ def render_ingest_stage_board(*, detail: dict[str, object]) -> str:
 def render_ingest_parsed_content(*, normalized: dict[str, object], surface: str) -> str:
     return (
         f'<section class="ingest-parsed-content" data-component="ingest-parsed-content" data-surface="{escape(surface)}">'
-        '<p class="ingest-parsed-content__kicker">Import</p>'
-        "<h2>Parsed content</h2>"
-        f"<p><strong>Title:</strong> {escape(normalized.get('title') or 'Untitled')}</p>"
-        f"<p><strong>Paragraphs:</strong> {escape(len(normalized.get('paragraphs', [])))}</p>"
-        f"<p><strong>Lists:</strong> {escape(len(normalized.get('lists', [])))}</p>"
-        f"<p><strong>Tables:</strong> {escape(len(normalized.get('tables', [])))}</p>"
-        f"<p><strong>Links:</strong> {escape(len(normalized.get('links', [])))}</p>"
-        "</section>"
+        + '<p class="ingest-parsed-content__kicker">Import</p>'
+        + "<h2>Parsed content</h2>"
+        + f"<p><strong>Detected format:</strong> {escape(normalized.get('detected_format') or 'Unknown')}</p>"
+        + f"<p><strong>Declared upload media type:</strong> {escape(normalized.get('declared_media_type') or 'Not provided')}</p>"
+        + f"<p><strong>Resolved media type:</strong> {escape(normalized.get('media_type') or 'Unknown')}</p>"
+        + f"<p><strong>Title:</strong> {escape(normalized.get('title') or 'Untitled')}</p>"
+        + f"<p><strong>Paragraphs:</strong> {escape(len(normalized.get('paragraphs', [])))}</p>"
+        + f"<p><strong>Lists:</strong> {escape(len(normalized.get('lists', [])))}</p>"
+        + f"<p><strong>Tables:</strong> {escape(len(normalized.get('tables', [])))}</p>"
+        + f"<p><strong>Code blocks:</strong> {escape(len(normalized.get('preformatted_blocks', [])))}</p>"
+        + f"<p><strong>Links:</strong> {escape(len(normalized.get('links', [])))}</p>"
+        + _normalization_summary_html(normalized)
+        + "</section>"
     )
 
 
@@ -489,11 +531,13 @@ def render_ingest_parser_assessment(*, detail: dict[str, object], surface: str) 
     tone = "warning" if quality_state == "degraded" or warnings or degradation_notes else "approved"
     return (
         f'<section class="ingest-parser-assessment tone-{escape(tone)}" data-component="ingest-parser-assessment" data-surface="{escape(surface)}">'
-        '<p class="ingest-parser-assessment__kicker">Import</p>'
-        "<h2>Parser assessment</h2>"
-        f"<p><strong>Extraction quality:</strong> {escape(quality_state)} ({escape(round(quality_score, 2))})</p>"
-        f"<p>{escape(summary)}</p>"
-        "<p><strong>Parser warnings</strong></p>"
+        + '<p class="ingest-parser-assessment__kicker">Import</p>'
+        + "<h2>Parser assessment</h2>"
+        + f"<p><strong>Detected format:</strong> {escape(normalized.get('detected_format') or 'Unknown')}</p>"
+        + f"<p><strong>Extraction quality:</strong> {escape(quality_state)} ({escape(round(quality_score, 2))})</p>"
+        + f"<p>{escape(summary)}</p>"
+        + _normalization_summary_html(normalized)
+        + "<p><strong>Parser warnings</strong></p>"
         + (
             render_list(warnings, css_class="validation-findings")
             or '<p class="empty-state-copy">No parser warnings were recorded.</p>'
@@ -572,7 +616,6 @@ def render_ingest_mapping_gaps(*, mapping: dict[str, object]) -> str:
         '<section class="ingest-mapping-gaps" data-component="ingest-mapping-gaps" data-surface="ingest-review">'
         '<p class="ingest-mapping-gaps__kicker">Review</p>'
         "<h2>Mapping gaps</h2>"
-        '<p class="ingest-mapping-gaps__summary">Anything unresolved here will carry risk into the converted draft. Clear the missing, weak, or ambiguous mappings before you convert.</p>'
         '<div class="ingest-mapping-gaps__grid">'
         + _gap_block(
             title="Missing required sections",
@@ -666,7 +709,6 @@ def render_ingest_convert_form(
         '<section class="ingest-convert-form" data-component="ingest-convert-form" data-surface="ingest-review">'
         + '<p class="ingest-convert-form__kicker">Import</p>'
         + "<h2>Create draft</h2>"
-        + "<p>Conversion is the handoff into Papyrus’s normal governed drafting flow. Set the identity once, then continue the draft in Write.</p>"
         + f"{error_html}"
         + f"<p><strong>Mapped target:</strong> {escape(target_blueprint_label)}</p>"
         + (f"<p>{escape(target_notice)}</p>" if target_notice else "")
@@ -725,7 +767,7 @@ def render_ingest_convert_form(
                 options=taxonomies["audiences"]["allowed_values"],
             ),
         )
-        + '<section class="form-section"><h3>Publishing details</h3><p class="section-intro">Keep the new draft traceable and ready to publish.</p>'
+        + '<section class="form-section"><h3>Publishing details</h3>'
         + forms.field(
             field_id="object_id",
             label="Reference code",
@@ -802,10 +844,7 @@ def present_ingest_list_page(
     return {
         "page_template": "pages/ingest_list.html",
         "page_title": "Import",
-        "page_header": {
-            "headline": "Import",
-            "intro": "Bring external source material into Papyrus, inspect what the parser extracted, review how it maps, then convert it into the normal governed draft flow.",
-        },
+        "page_header": {"headline": "Import"},
         "active_nav": "import",
         "aside_html": "",
         "page_context": {
@@ -835,10 +874,7 @@ def present_ingestion_detail_page(
     return {
         "page_template": "pages/ingest_detail.html",
         "page_title": f"Ingestion {detail['filename']}",
-        "page_header": {
-            "headline": detail["filename"],
-            "intro": "Check what Papyrus extracted from the source before you trust the mapping or create a draft.",
-        },
+        "page_header": {"headline": detail["filename"]},
         "active_nav": "import",
         "aside_html": _ingest_aside_html(components, detail=detail, surface="ingest-detail"),
         "page_context": {
@@ -870,10 +906,7 @@ def present_mapping_review_page(
     return {
         "page_template": "pages/ingest_mapping_review.html",
         "page_title": f"Review mapping for {detail['filename']}",
-        "page_header": {
-            "headline": f"Review mapping for {detail['filename']}",
-            "intro": "Confirm the extracted structure, inspect the mapped sections and gaps, then create a draft only when the transformation is readable and traceable.",
-        },
+        "page_header": {"headline": f"Review mapping for {detail['filename']}"},
         "active_nav": "import",
         "aside_html": _ingest_aside_html(components, detail=detail, surface="ingest-review"),
         "page_context": {

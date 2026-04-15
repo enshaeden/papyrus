@@ -59,3 +59,7 @@ warn_return_any = true
 [[tool.mypy.overrides]]
 module = ["_bootstrap", "lxml", "yaml"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["odf.*", "striprtf.*"]
+ignore_missing_imports = true

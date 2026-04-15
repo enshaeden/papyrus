@@ -1,2 +1,5 @@
 PyYAML>=6.0,<7.0
 lxml>=5.0,<6.0
+docutils>=0.21,<0.22
+odfpy>=1.4,<2.0
+striprtf>=0.0.26,<0.1
