@@ -115,7 +115,7 @@ class IngestionToAuthoringIntegrationTests(unittest.TestCase):
             )
             self.assertEqual(detail["object"]["object_type"], "runbook")
             self.assertEqual(detail["object"]["summary"], "")
-            self.assertEqual(detail["revision"]["revision_review_state"], "draft")
+            self.assertEqual(detail["revision"]["revision_review_state"], "in_progress")
             self.assertEqual(detail["revision"]["metadata"]["summary"], "")
             self.assertIn("section_content", detail["revision"])
             self.assertEqual(

@@ -11,7 +11,7 @@ from papyrus.infrastructure.paths import ROOT, relative_path
 FENCED_CODE_BLOCK_PATTERN = re.compile(r"```.*?```", re.DOTALL)
 INLINE_CODE_PATTERN = re.compile(r"`([^`]+)`")
 REPO_PATH_TOKEN_PATTERN = re.compile(
-    r"(?<![A-Za-z0-9_.-])"
+    r"(?<![A-Za-z0-9_.-/])"
     r"(?<!knowledge_engine/)"
     r"(?P<path>"
     r"(?:README\.md|AGENTS\.md|pyproject\.toml|requirements(?:-dev)?\.txt|"
@@ -21,7 +21,9 @@ REPO_PATH_TOKEN_PATTERN = re.compile(
     r"(?:/[A-Za-z0-9_.-]+)*/?)"
     r")"
 )
-WEB_ROUTE_TOKEN_PATTERN = re.compile(r"/(?:reader|operator|admin)(?:/[A-Za-z0-9{}:*._-]+)*(?:/\*)?")
+WEB_ROUTE_TOKEN_PATTERN = re.compile(
+    r"/(?:read|write|review|import|governance|admin)(?:/[A-Za-z0-9{}:*._-]+)*(?:/\*)?"
+)
 STATIC_ASSET_PATTERN = re.compile(
     r"""(?:href|src)=["'](?P<asset>/static/[^"']+)["']""", re.IGNORECASE
 )

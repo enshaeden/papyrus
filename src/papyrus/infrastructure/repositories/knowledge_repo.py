@@ -11,7 +11,6 @@ from papyrus.domain.entities import KnowledgeDocument
 from papyrus.domain.policies import relationship_direction_for, relationship_strength_for
 from papyrus.infrastructure.markdown.parser import parse_knowledge_document
 from papyrus.infrastructure.paths import (
-    ARTICLE_SCHEMA_PATH,
     DECISIONS_DIR,
     DOCS_DIR,
     KNOWLEDGE_DIR,
@@ -40,10 +39,6 @@ def load_yaml_file(path: Path) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise ValueError(f"{path} does not contain a YAML mapping")
     return data
-
-
-def load_schema(schema_path: Path = ARTICLE_SCHEMA_PATH) -> dict[str, Any]:
-    return load_yaml_file(schema_path)
 
 
 def load_object_schemas(schema_dir: Path = OBJECT_SCHEMA_DIR) -> dict[str, dict[str, Any]]:
@@ -80,7 +75,7 @@ def workspace_knowledge_source_roots(
     policy: dict[str, Any] | None = None,
 ) -> list[Path]:
     current_policy = policy or load_policy()
-    configured = current_policy["source_workspace"]["article_roots"]
+    configured = current_policy["source_workspace"]["knowledge_roots"]
     return [Path(workspace_root).resolve() / item for item in configured]
 
 
@@ -223,20 +218,6 @@ def collect_sanitization_paths(
     paths.extend(collect_root_markdown_paths())
     paths.extend(collect_repository_agent_paths())
     return sorted(set(paths))
-
-
-def collect_article_paths(
-    workspace_root: Path,
-    policy: dict[str, Any] | None = None,
-) -> list[Path]:
-    return collect_source_paths(workspace_root, policy)
-
-
-def load_articles(
-    workspace_root: Path,
-    policy: dict[str, Any] | None = None,
-) -> list[KnowledgeDocument]:
-    return load_knowledge_documents(workspace_root, policy)
 
 
 def load_current_runtime_documents(connection: sqlite3.Connection) -> list[KnowledgeDocument]:
@@ -421,7 +402,7 @@ def upsert_search_document(
     team: str,
     trust_state: str,
     revision_review_state: str,
-    draft_progress_state: str,
+    draft_progress_state: str | None,
     source_sync_state: str,
     freshness_rank: int,
     citation_health_rank: int,
@@ -740,7 +721,7 @@ def insert_knowledge_revision(
     revision_number: int,
     revision_review_state: str,
     blueprint_id: str = "",
-    draft_progress_state: str = "ready_for_review",
+    draft_progress_state: str | None = None,
     source_path: str,
     content_hash: str,
     body_markdown: str,
@@ -799,7 +780,7 @@ def update_knowledge_revision_content(
     body_markdown: str,
     normalized_payload_json: str,
     blueprint_id: str,
-    draft_progress_state: str,
+    draft_progress_state: str | None,
     section_content_json: str,
     section_completion_json: str,
     change_summary: str | None,

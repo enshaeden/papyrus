@@ -9,6 +9,7 @@ Authoritative constraints live in `decisions/`.
 
 - Does the route belong to the canonical shared route model rather than a role-owned duplicate?
 - Does the route declare and enforce the correct minimum visible role?
+- Does the request carry canonical role context from runtime or authenticated identity rather than from path shape?
 - Does the page show only actions, controls, panels, and links permitted for the current role?
 - Are hidden actions, controls, panels, and destinations absent rather than disabled?
 - Does search respect the same visibility rules as routes, navigation, related links, and command surfaces?
@@ -18,6 +19,7 @@ Authoritative constraints live in `decisions/`.
 
 - Does the left navigation show only destinations visible to the current role?
 - Is navigation derived from the shared route model plus visibility contracts?
+- Is role context resolved before routing and render rather than inferred from a route namespace?
 - Is the shell owner clear in code, without implying separate production shells by role?
 - Does the implementation avoid patching visibility downstream when the true source boundary is the shell, shared surface, or route contract?
 - Are shared primitives reused without obscuring ownership or creating parallel role-specific route structures?

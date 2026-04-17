@@ -139,7 +139,7 @@ def reader_object_nav_tree(
                 COALESCE(
                     d.revision_review_state,
                     r.revision_review_state,
-                    CASE WHEN o.current_revision_id IS NULL THEN 'draft' ELSE 'unknown' END
+                    CASE WHEN o.current_revision_id IS NULL THEN 'in_progress' ELSE 'unknown' END
                 ) AS revision_review_state
             FROM knowledge_objects AS o
             LEFT JOIN search_documents AS d ON d.object_id = o.object_id

@@ -127,7 +127,6 @@ def _revision_metadata_value(metadata: dict[str, Any], field_name: str) -> Any:
     aliases = {
         "object_id": ("id",),
         "related_services": ("services",),
-        "related_object_ids": ("related_articles",),
     }
     if field_name in metadata:
         return metadata[field_name]
@@ -353,7 +352,6 @@ def _base_payload(
         "canonical_path": identity.get("canonical_path") or str(object_row["canonical_path"]),
         "summary": stewardship.get("summary") or str(object_row["summary"]),
         "knowledge_object_type": blueprint.blueprint_id,
-        "legacy_article_type": metadata.get("legacy_article_type"),
         "object_lifecycle_state": (
             stewardship.get("object_lifecycle_state") or str(object_row["object_lifecycle_state"])
         ),
@@ -378,7 +376,6 @@ def _base_payload(
         "replaced_by": metadata.get("replaced_by"),
         "retirement_reason": metadata.get("retirement_reason"),
         "services": _list_value(stewardship.get("related_services", [])),
-        "related_articles": related_object_ids,
         "references": _references_for_payload(citations),
         "change_log": [
             *(metadata.get("change_log") if isinstance(metadata.get("change_log"), list) else []),
@@ -670,11 +667,11 @@ def compute_completion_state(
     completion_percentage = (
         int((completed_required / total_required) * 100) if total_required else 100
     )
-    draft_state = DraftProgressState.READY_FOR_REVIEW.value
-    if blockers:
-        draft_state = DraftProgressState.BLOCKED.value
-    elif completion_percentage < 100:
-        draft_state = DraftProgressState.IN_PROGRESS.value
+    draft_state = (
+        DraftProgressState.READY_FOR_REVIEW.value
+        if completion_percentage == 100 and not blockers
+        else DraftProgressState.BLOCKED.value
+    )
 
     if next_section_id is None:
         next_section_id = blueprint.ordering[-1] if blueprint.ordering else None
@@ -851,7 +848,7 @@ def _compatible_current_draft_revision(
     if revision_blueprint_id != blueprint.blueprint_id:
         return None
     if revision_review_state not in {
-        RevisionReviewStatus.DRAFT.value,
+        RevisionReviewStatus.IN_PROGRESS.value,
         RevisionReviewStatus.REJECTED.value,
     }:
         return None
@@ -923,7 +920,7 @@ def ensure_draft_revision(
             revision_id=revision_id,
             object_id=object_id,
             revision_number=revision_number,
-            revision_review_state=RevisionReviewState.DRAFT.value,
+            revision_review_state=RevisionReviewState.IN_PROGRESS.value,
             blueprint_id=blueprint.blueprint_id,
             draft_progress_state=artifacts.completion["draft_progress_state"],
             source_path=str(artifacts.parsed.metadata["canonical_path"]),
@@ -1018,11 +1015,11 @@ def load_draft_context(
                 )
             revision_review_state = str(revision_row["revision_review_state"] or "").strip()
             if revision_review_state not in {
-                RevisionReviewStatus.DRAFT.value,
+                RevisionReviewStatus.IN_PROGRESS.value,
                 RevisionReviewStatus.REJECTED.value,
             }:
                 raise ValueError(
-                    f"guided drafting can only load draft or rejected revisions; revision {revision_id} is {revision_review_state or 'unknown'}"
+                    f"guided drafting can only load in-progress or rejected revisions; revision {revision_id} is {revision_review_state or 'unknown'}"
                 )
 
         section_content = _build_initial_section_content(

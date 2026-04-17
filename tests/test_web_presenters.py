@@ -161,7 +161,7 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
             active_nav="read",
             page_header={"headline": "Home", "intro": "Decorative page intro"},
             role_id="operator",
-            current_path="/operator/read",
+            current_path="/read",
             page_context={"home_launch_html": "", "home_activity_html": ""},
             page_surface="home",
         )

@@ -14,7 +14,6 @@ def summarize_for_search(document: KnowledgeDocument) -> str:
         metadata.get("title", ""),
         metadata.get("summary", ""),
         object_type,
-        metadata.get("legacy_article_type", ""),
         metadata.get("object_lifecycle_state", ""),
         metadata.get("owner", ""),
         metadata.get("team", ""),

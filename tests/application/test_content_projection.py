@@ -9,12 +9,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from papyrus.interfaces.web.experience import experience_for_role
-from papyrus.interfaces.web.view_models.article_projection import build_article_projection
+from papyrus.interfaces.web.view_models.content_projection import build_content_projection
 
 
-class ArticleProjectionTests(unittest.TestCase):
-    def test_operator_projection_keeps_article_sections_ahead_of_governance_context(self) -> None:
-        projection = build_article_projection(
+class ContentProjectionTests(unittest.TestCase):
+    def test_operator_projection_keeps_content_sections_ahead_of_governance_context(self) -> None:
+        projection = build_content_projection(
             item={
                 "object_id": "kb-article",
                 "object_type": "runbook",
@@ -104,7 +104,7 @@ class ArticleProjectionTests(unittest.TestCase):
         self.assertFalse(projection["show_context_rail"])
 
     def test_admin_projection_keeps_audit_context_in_secondary_rail(self) -> None:
-        projection = build_article_projection(
+        projection = build_content_projection(
             item={
                 "object_id": "kb-review-article",
                 "object_type": "known_error",

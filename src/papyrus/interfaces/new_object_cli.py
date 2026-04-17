@@ -65,9 +65,9 @@ def render_inline_list(values: list[str]) -> str:
     return yaml.safe_dump(values, default_flow_style=True, sort_keys=False).strip()
 
 
-def load_existing_article_records(root: Path, policy: dict[str, object]) -> list[dict[str, object]]:
+def load_existing_object_records(root: Path, policy: dict[str, object]) -> list[dict[str, object]]:
     records = []
-    for directory in policy["source_workspace"]["article_roots"]:
+    for directory in policy["source_workspace"]["knowledge_roots"]:
         base = root / directory
         if not base.exists():
             continue
@@ -97,7 +97,7 @@ def services_for(metadata: dict[str, object]) -> list[str]:
     return [str(item) for item in values]
 
 
-def related_article_suggestions(
+def related_object_suggestions(
     destination: Path,
     draft_metadata: dict[str, object],
     existing_records: list[dict[str, object]],
@@ -257,12 +257,6 @@ def main() -> int:
         help="Existing knowledge object id to prefill in related_object_ids. Repeatable.",
     )
     parser.add_argument(
-        "--related-article",
-        action="append",
-        dest="related_object",
-        help=argparse.SUPPRESS,
-    )
-    parser.add_argument(
         "--list-taxonomy",
         action="append",
         choices=LISTABLE_TAXONOMIES,
@@ -328,7 +322,7 @@ def main() -> int:
         return 1
 
     slug = args.slug or slugify(args.title)
-    article_id = f"kb-{args.type.replace('_', '-')}-{slug}"
+    object_id = f"kb-{args.type.replace('_', '-')}-{slug}"
     directory = root / "knowledge" / TYPE_TO_DIRECTORY[args.type]
     directory.mkdir(parents=True, exist_ok=True)
     destination = directory / f"{slug}.md"
@@ -336,7 +330,7 @@ def main() -> int:
         print(f"refusing to overwrite existing file: {destination}", file=sys.stderr)
         return 1
 
-    existing_records = load_existing_article_records(root, policy)
+    existing_records = load_existing_object_records(root, policy)
     known_ids = {
         record["metadata"].get("id") for record in existing_records if record["metadata"].get("id")
     }
@@ -355,7 +349,7 @@ def main() -> int:
     related_objects = unique_preserving_order(args.related_object)
 
     draft_metadata = {
-        "id": article_id,
+        "id": object_id,
         "title": args.title,
         "knowledge_object_type": args.type,
         "team": args.team,
@@ -368,7 +362,7 @@ def main() -> int:
     rendered = render_template(
         template_text,
         {
-            "id": article_id,
+            "id": object_id,
             "title": args.title,
             "canonical_path": destination.relative_to(root).as_posix(),
             "object_lifecycle_state": args.object_lifecycle_state,
@@ -390,7 +384,7 @@ def main() -> int:
     emit_authoring_feedback(
         draft_metadata,
         related_objects,
-        related_article_suggestions(destination, draft_metadata, existing_records),
+        related_object_suggestions(destination, draft_metadata, existing_records),
     )
     return 0
 

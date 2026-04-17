@@ -80,5 +80,15 @@ def register(router, runtime) -> None:
             )
         return json_response({"items": items})
 
-    router.add(["GET"], "/operator/write/citations/search", citation_search_endpoint)
-    router.add(["GET"], "/operator/write/objects/search", related_object_search_endpoint)
+    router.add(
+        ["GET"],
+        "/write/citations/search",
+        citation_search_endpoint,
+        minimum_visible_role="operator",
+    )
+    router.add(
+        ["GET"],
+        "/write/objects/search",
+        related_object_search_endpoint,
+        minimum_visible_role="operator",
+    )

@@ -5,7 +5,7 @@ from _bootstrap import ensure_src_path
 
 ensure_src_path()
 
-from papyrus.interfaces.new_article_cli import main
+from papyrus.interfaces.new_object_cli import main
 
 
 if __name__ == "__main__":

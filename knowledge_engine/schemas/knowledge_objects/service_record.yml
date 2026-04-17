@@ -20,9 +20,6 @@ fields:
     kind: string
     required: true
     equals: service_record
-  legacy_article_type:
-    kind: string_or_null
-    required: true
   object_lifecycle_state:
     kind: string
     required: true
@@ -108,7 +105,7 @@ fields:
       - source_type
       - source_ref
     allowed_keys:
-      - article_id
+      - object_id
       - claim_anchor
       - source_title
       - source_type
@@ -155,14 +152,11 @@ fields:
     required_keys:
       - title
     allowed_keys:
-      - article_id
+      - object_id
       - title
       - path
       - url
       - note
-  related_articles:
-    kind: list[string]
-    required: false
   change_log:
     kind: list[object]
     required: true

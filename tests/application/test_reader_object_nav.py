@@ -15,6 +15,15 @@ from papyrus.application.review_flow import GovernanceWorkflow
 from papyrus.infrastructure.repositories.knowledge_repo import upsert_search_document
 
 
+def ready_runbook_body(summary: str) -> str:
+    return (
+        "## Use When\n\n"
+        + summary.strip()
+        + "\n\n## Boundaries And Escalation\n\n"
+        + "Escalate when the documented workflow does not restore the expected operator outcome."
+    )
+
+
 def runbook_payload(
     object_id: str,
     canonical_path: str,
@@ -28,7 +37,6 @@ def runbook_payload(
         "canonical_path": canonical_path,
         "summary": f"Reader tree payload for {title.lower()}",
         "knowledge_object_type": "runbook",
-        "legacy_article_type": None,
         "object_lifecycle_state": object_lifecycle_state,
         "owner": "workflow_owner",
         "source_type": "native",
@@ -47,13 +55,19 @@ def runbook_payload(
         "steps": ["Complete the task."],
         "verification": ["Confirm the outcome."],
         "rollback": ["Undo the change."],
-        "citations": [],
+        "citations": [
+            {
+                "source_title": "System model",
+                "source_type": "document",
+                "source_ref": "knowledge/system-model.md",
+                "note": "Reader navigation fixture evidence.",
+            }
+        ],
         "related_object_ids": [],
         "superseded_by": None,
         "retirement_reason": None,
         "services": [],
-        "related_articles": [],
-        "references": [],
+        "references": [{"title": "System model", "path": "knowledge/system-model.md"}],
         "change_log": [{"date": "2026-04-10", "summary": "Initial.", "author": "tests"}],
     }
 
@@ -103,7 +117,7 @@ class ReaderObjectNavReadModelTests(unittest.TestCase):
             normalized_payload=runbook_payload(
                 created.object_id, created.canonical_path, created.title
             ),
-            body_markdown="## Use When\n\nExercise reader tree coverage.\n",
+            body_markdown=ready_runbook_body("Exercise reader tree coverage."),
             actor="tests",
             change_summary="Initial reader tree revision.",
         )
@@ -258,7 +272,7 @@ class ReaderObjectNavReadModelTests(unittest.TestCase):
                 title=secret.title,
                 summary="Secret draft summary.",
                 path="accounts/secret",
-                revision_review_state="draft",
+                revision_review_state="in_progress",
             )
 
             tree = reader_object_nav_tree(

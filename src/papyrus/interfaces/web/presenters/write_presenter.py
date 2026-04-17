@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from papyrus.application.blueprint_registry import (
-    list_advanced_authoring_blueprints,
     list_primary_authoring_blueprints,
 )
 from papyrus.application.ui_projection import (
@@ -27,13 +26,8 @@ from papyrus.interfaces.web.presenters.write_support_presenter import (
     submit_evidence_posture_detail,
     support_details_html,
 )
-from papyrus.interfaces.web.urls import (
-    write_advanced_url,
-    write_new_url,
-    write_object_url,
-    write_submit_url,
-)
-from papyrus.interfaces.web.view_helpers import escape, join_html, link, render_list
+from papyrus.interfaces.web.urls import write_object_url, write_submit_url
+from papyrus.interfaces.web.view_helpers import escape, join_html, render_list
 
 
 def _blueprint_select_html(
@@ -76,38 +70,7 @@ def _blueprint_scope_list_html(blueprints: list[Blueprint]) -> str:
 
 def _primary_guidance_html() -> str:
     primary_blueprints = list_primary_authoring_blueprints()
-    return (
-        _blueprint_scope_list_html(primary_blueprints)
-        + "<p>"
-        + link(
-            "Open advanced authoring",
-            write_advanced_url(),
-            css_class="button button-secondary",
-            attrs={"data-action-id": "open-advanced-authoring"},
-        )
-        + "</p>"
-    )
-
-
-def _advanced_guidance_html() -> str:
-    advanced_blueprints = list_advanced_authoring_blueprints()
-    primary_blueprints = list_primary_authoring_blueprints()
-    return (
-        (
-            _blueprint_scope_list_html(advanced_blueprints)
-            if advanced_blueprints
-            else ""
-        )
-        + _blueprint_scope_list_html(primary_blueprints)
-        + "<p>"
-        + link(
-            "Return to primary templates",
-            write_new_url(),
-            css_class="button button-secondary",
-            attrs={"data-action-id": "open-primary-authoring"},
-        )
-        + "</p>"
-    )
+    return _blueprint_scope_list_html(primary_blueprints)
 
 
 def present_object_setup_page(
@@ -118,10 +81,9 @@ def present_object_setup_page(
     form_action: str,
     authoring_blueprints: list[Blueprint],
     authoring_mode: str,
-) -> dict[str, str]:
+    ) -> dict[str, str]:
     forms = FormPresenter(runtime.template_renderer)
     components = ComponentPresenter(runtime.template_renderer)
-    is_advanced_mode = authoring_mode == "advanced"
     primary_controls = [
         forms.field(
             field_id="object_type",
@@ -132,11 +94,7 @@ def present_object_setup_page(
                 value=values["object_type"],
                 blueprints=authoring_blueprints,
             ),
-            hint=(
-                "Choose the blueprint that best fits the guidance, including deferred classes."
-                if is_advanced_mode
-                else "Choose the primary template that best fits the guidance."
-            ),
+            hint="Choose the primary template that best fits the guidance.",
             errors=errors.get("object_type"),
         ),
         forms.field(
@@ -272,20 +230,14 @@ def present_object_setup_page(
         "validation_html": validation_html,
         "progress_html": render_object_progress_html(components, values=values, errors=errors),
         "form_html": components.content_section(
-            title="Start an advanced draft"
-            if is_advanced_mode
-            else "Start from a primary template",
+            title="Start from a primary template",
             eyebrow="Authoring",
             body_html=body_html,
         ),
         "guidance_html": support_details_html(
-            title="Advanced and deferred authoring" if is_advanced_mode else "Primary template set",
-            summary=(
-                "Use this path when the draft belongs to an internal or deferred blueprint class."
-                if is_advanced_mode
-                else "Papyrus markets and organizes visible authoring around runbooks, known errors, and service records."
-            ),
-            body_html=_advanced_guidance_html() if is_advanced_mode else _primary_guidance_html(),
+            title="Primary template set",
+            summary="Papyrus organizes visible authoring around runbooks, known errors, and service records.",
+            body_html=_primary_guidance_html(),
         ),
     }
 

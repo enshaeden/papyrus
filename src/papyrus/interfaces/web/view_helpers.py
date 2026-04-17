@@ -186,7 +186,7 @@ def tone_for_review_state(revision_review_state: str | None) -> str:
     return {
         "approved": "approved",
         "in_review": "pending",
-        "draft": "muted",
+        "in_progress": "muted",
         "rejected": "danger",
         "superseded": "muted",
     }.get(str(revision_review_state or ""), "pending")

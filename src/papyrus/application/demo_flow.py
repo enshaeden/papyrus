@@ -68,7 +68,6 @@ def _common_payload(
         "canonical_path": canonical_path,
         "summary": f"Operational guidance for {title.lower()}",
         "knowledge_object_type": object_type,
-        "legacy_article_type": None,
         "object_lifecycle_state": "active",
         "owner": owner,
         "source_type": "native",
@@ -87,7 +86,6 @@ def _common_payload(
         "superseded_by": None,
         "retirement_reason": None,
         "services": services,
-        "related_articles": [],
         "references": [
             {"title": item["source_title"], "path": item["source_ref"], "note": item["note"]}
             for item in citations
@@ -131,7 +129,6 @@ def _runbook_payload(
         {
             "related_services": services,
             "related_object_ids": related_object_ids,
-            "related_articles": related_object_ids,
             "prerequisites": ["Ticket is opened and scoped."],
             "steps": ["Execute the documented operator action."],
             "verification": ["Confirm the user-impact check passes."],
@@ -166,7 +163,6 @@ def _known_error_payload(
         {
             "related_services": services,
             "related_object_ids": related_object_ids,
-            "related_articles": related_object_ids,
             "symptoms": ["Users cannot refresh tokens after the upstream change."],
             "scope": "Identity workflows backed by cached refresh tokens.",
             "cause": "Upstream identity policy changed before downstream runbooks were reviewed.",
@@ -174,7 +170,7 @@ def _known_error_payload(
             "mitigations": [
                 "Force a fresh sign-in and route high-impact users to fallback support."
             ],
-            "permanent_fix_status": "planned",
+            "permanent_fix_status": "in_progress",
         }
     )
     return payload
@@ -216,6 +212,46 @@ def _service_record_payload(
     return payload
 
 
+def _revision_body_markdown(payload: dict[str, object], change_summary: str) -> str:
+    object_type = str(payload.get("knowledge_object_type") or "").strip()
+    summary = change_summary.strip() or "Operational update."
+    if object_type == "runbook":
+        return (
+            "## Use When\n\n"
+            + summary
+            + "\n\n## Boundaries And Escalation\n\n"
+            + "Escalate to the owning team when the documented operator steps do not restore service."
+        )
+    if object_type == "known_error":
+        return (
+            "## Detection Notes\n\n"
+            + "Watch for the documented failure pattern before applying this known-error guidance."
+            + "\n\n## Escalation Threshold\n\n"
+            + summary
+            + "\n\n## Evidence Notes\n\n"
+            + "Revalidate the supporting source when the upstream dependency changes."
+        )
+    if object_type == "service_record":
+        return (
+            "## Scope\n\n"
+            + summary
+            + "\n\n## Operational Notes\n\n"
+            + "Use this service record to anchor support ownership, dependencies, and escalation posture."
+            + "\n\n## Evidence Notes\n\n"
+            + "Reconfirm service metadata after major dependency or ownership changes."
+        )
+    if object_type == "policy":
+        return "## Policy Scope\n\n" + summary
+    if object_type == "system_design":
+        return (
+            "## Architecture\n\n"
+            + summary
+            + "\n\n## Operational Notes\n\n"
+            + "Review the operational caveats before using this design reference in support workflows."
+        )
+    return "## Revision Narrative\n\n" + summary
+
+
 def _approve_revision(
     database_path: Path,
     *,
@@ -231,7 +267,7 @@ def _approve_revision(
         source_root=source_root,
         object_id=object_id,
         normalized_payload=payload,
-        body_markdown=f"## Revision Narrative\n\n{change_summary}",
+        body_markdown=_revision_body_markdown(payload, change_summary),
         actor=actor,
         legacy_metadata=payload,
         change_summary=change_summary,
@@ -634,30 +670,34 @@ def build_operator_demo_runtime(
         source_root=source_root,
     )
 
+    password_reset_escalation_payload = _runbook_payload(
+        object_id="kb-password-reset-escalation",
+        title="Password Reset Escalation Runbook",
+        canonical_path="knowledge/runbooks/password-reset-escalation.md",
+        owner="identity_ops",
+        services=["Identity"],
+        citations=[
+            _citation(
+                title="Password reset checklist",
+                ref="knowledge/access/password-reset-account-lockout.md",
+                note="Ready for review.",
+                validity_status="verified",
+            )
+        ],
+        related_object_ids=[
+            "kb-identity-service-record",
+            "kb-access-password-reset-account-lockout",
+        ],
+    )
     pending_revision = create_revision_command(
         database_path=database_path,
         source_root=source_root,
         object_id="kb-password-reset-escalation",
-        normalized_payload=_runbook_payload(
-            object_id="kb-password-reset-escalation",
-            title="Password Reset Escalation Runbook",
-            canonical_path="knowledge/runbooks/password-reset-escalation.md",
-            owner="identity_ops",
-            services=["Identity"],
-            citations=[
-                _citation(
-                    title="Password reset checklist",
-                    ref="knowledge/access/password-reset-account-lockout.md",
-                    note="Ready for review.",
-                    validity_status="verified",
-                )
-            ],
-            related_object_ids=[
-                "kb-identity-service-record",
-                "kb-access-password-reset-account-lockout",
-            ],
+        normalized_payload=password_reset_escalation_payload,
+        body_markdown=_revision_body_markdown(
+            password_reset_escalation_payload,
+            "Pending review because the escalation threshold changed.",
         ),
-        body_markdown="## Revision Narrative\n\nPending review because the escalation threshold changed.",
         actor=actor,
         legacy_metadata={},
         change_summary="Submit password reset escalation changes for review.",
@@ -860,7 +900,7 @@ def run_operator_scenario(
         source_root=source_root,
         object_id="kb-remote-access-vpn-recovery",
         normalized_payload=payload,
-        body_markdown="## Revision Narrative\n\nScenario backlog revision waiting for review.",
+        body_markdown=_revision_body_markdown(payload, "Scenario backlog revision waiting for review."),
         actor=actor,
         legacy_metadata=detail["metadata"],
         change_summary="Queue another recovery update for review.",

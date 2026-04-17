@@ -4,7 +4,6 @@ title: Add productivity platform licenses
 canonical_path: knowledge/applications/access-and-license-management/add-productivity-platform-licenses.md
 summary: Legacy imported licensing workflow for <PRODUCTIVITY_PLATFORM> access requests.
 knowledge_object_type: runbook
-legacy_article_type: runbook
 object_lifecycle_state: active
 owner: licensing_ops
 source_type: imported
@@ -54,7 +53,7 @@ references:
 - title: System model
   path: knowledge/system-model.md
   note: Imported licensing note still needs structured cleanup.
-related_articles: []
+related_object_ids: []
 change_log:
 - date: 2026-04-08
   summary: Imported legacy fixture retained for coverage.

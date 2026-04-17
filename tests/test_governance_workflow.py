@@ -46,7 +46,6 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "canonical_path": canonical_path,
         "summary": f"Runbook for {title.lower()}",
         "knowledge_object_type": "runbook",
-        "legacy_article_type": None,
         "object_lifecycle_state": "active",
         "owner": "workflow_owner",
         "source_type": "native",
@@ -77,10 +76,23 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "superseded_by": None,
         "retirement_reason": None,
         "services": ["Remote Access"],
-        "related_articles": [],
         "references": [{"title": "System model", "path": "knowledge/system-model.md"}],
         "change_log": [{"date": "2026-04-07", "summary": "Initial draft.", "author": "tests"}],
     }
+
+
+def ready_runbook_body(
+    use_when: str,
+    *,
+    boundaries: str = "Stay within the documented workflow boundary and escalate when scope changes.",
+) -> str:
+    return (
+        "## Use When\n\n"
+        + use_when
+        + "\n\n## Boundaries And Escalation\n\n"
+        + boundaries
+        + "\n"
+    )
 
 
 class GovernanceWorkflowTests(unittest.TestCase):
@@ -134,7 +146,9 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 normalized_payload=runbook_payload(
                     created.object_id, created.canonical_path, created.title
                 ),
-                body_markdown="## Use When\n\nRecover pending review mutations before approval.\n",
+                body_markdown=ready_runbook_body(
+                    "Recover pending review mutations before approval."
+                ),
                 actor="tests",
                 change_summary="Governance recovery coverage.",
             )
@@ -282,7 +296,7 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 normalized_payload=runbook_payload(
                     object_a.object_id, object_a.canonical_path, object_a.title
                 ),
-                body_markdown="## Steps\n\n1. Execute workflow A.",
+                body_markdown=ready_runbook_body("Execute workflow A."),
                 actor="tests",
                 change_summary="Initial workflow A revision.",
             )
@@ -308,7 +322,7 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 normalized_payload=runbook_payload(
                     object_b.object_id, object_b.canonical_path, object_b.title
                 ),
-                body_markdown="## Steps\n\n1. Execute workflow B.",
+                body_markdown=ready_runbook_body("Execute workflow B."),
                 actor="tests",
                 change_summary="Initial workflow B revision.",
             )
@@ -442,7 +456,7 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 normalized_payload=runbook_payload(
                     created.object_id, created.canonical_path, created.title
                 ),
-                body_markdown="## Steps\n\n1. Exercise rollback.",
+                body_markdown=ready_runbook_body("Exercise rollback."),
                 actor="tests",
                 change_summary="Approval rollback coverage.",
             )

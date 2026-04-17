@@ -117,7 +117,7 @@ def render_read_filter_bar(
         + f'<option value=""{" selected" if not selected_review_state else ""}>Any</option>'
         + f'<option value="approved"{" selected" if selected_review_state == "approved" else ""}>Approved</option>'
         + f'<option value="in_review"{" selected" if selected_review_state == "in_review" else ""}>In review</option>'
-        + f'<option value="draft"{" selected" if selected_review_state == "draft" else ""}>Draft</option>'
+        + f'<option value="in_progress"{" selected" if selected_review_state == "in_progress" else ""}>In progress</option>'
         + f'<option value="rejected"{" selected" if selected_review_state == "rejected" else ""}>Rejected</option>'
         + "</select></label>"
         + "</div></form>"

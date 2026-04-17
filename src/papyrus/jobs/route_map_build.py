@@ -37,13 +37,15 @@ def render_route_map_markdown() -> str:
         "",
         "Derived from the registered Papyrus web routes. Do not edit by hand.",
         "",
-        "| Methods | Pattern | Role Group | Owner |",
+        "| Methods | Pattern | Minimum Role | Owner |",
         "| --- | --- | --- | --- |",
     ]
     for route in _normalized_registered_routes():
         methods = ", ".join(str(method) for method in route["methods"])
         owner = f"`{route['handler_module']}.{route['handler_name']}`"
-        lines.append(f"| `{methods}` | `{route['pattern']}` | `{route['role_group']}` | {owner} |")
+        lines.append(
+            f"| `{methods}` | `{route['pattern']}` | `{route['minimum_visible_role']}` | {owner} |"
+        )
     lines.append("")
     return "\n".join(lines)
 

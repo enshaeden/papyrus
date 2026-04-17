@@ -28,5 +28,4 @@ def register(router, runtime) -> None:
             )
         )
 
-    router.add(["GET"], "/operator/review/governance", oversight_dashboard_page)
-    router.add(["GET"], "/admin/governance", oversight_dashboard_page)
+    router.add(["GET"], "/governance", oversight_dashboard_page, minimum_visible_role="operator")

@@ -131,13 +131,13 @@ def _section_errors(
 
 def register(router, runtime) -> None:
     def start_revision(request: Request):
-        experience = require_experience(request, "operator")
+        require_experience(request, "operator")
         object_id = request.route_value("object_id")
         detail = knowledge_object_detail(object_id, database_path=runtime.database_path)
         draft = ensure_draft_revision(
             object_id=object_id,
             blueprint_id=str(detail["object"]["object_type"]),
-            actor=str(experience.audit_actor_id),
+            actor=request.actor_id,
             database_path=runtime.database_path,
             source_root=runtime.source_root,
         )
@@ -220,7 +220,7 @@ def register(router, runtime) -> None:
                 revision_id=revision_id,
                 section_id=section_id,
                 values=candidate_values,
-                actor=str(experience.audit_actor_id),
+                actor=request.actor_id,
                 database_path=runtime.database_path,
                 source_root=runtime.source_root,
             )
@@ -269,5 +269,15 @@ def register(router, runtime) -> None:
             )
         )
 
-    router.add(["POST"], "/operator/write/object/{object_id}/start", start_revision)
-    router.add(["GET", "POST"], "/operator/write/object/{object_id}", create_revision_page)
+    router.add(
+        ["POST"],
+        "/write/object/{object_id}/start",
+        start_revision,
+        minimum_visible_role="operator",
+    )
+    router.add(
+        ["GET", "POST"],
+        "/write/object/{object_id}",
+        create_revision_page,
+        minimum_visible_role="operator",
+    )

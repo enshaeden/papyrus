@@ -27,6 +27,8 @@ class Request:
     route_params: dict[str, str] = field(default_factory=dict)
     cookies: dict[str, str] = field(default_factory=dict)
     files: dict[str, UploadedFile] = field(default_factory=dict)
+    actor_id: str = ""
+    role_id: str = ""
 
     def query_value(self, name: str, default: str = "") -> str:
         values = self.query.get(name)
@@ -65,6 +67,22 @@ class Request:
             route_params=dict(route_params),
             cookies=self.cookies,
             files=self.files,
+            actor_id=self.actor_id,
+            role_id=self.role_id,
+        )
+
+    def with_identity(self, *, actor_id: str, role_id: str) -> Request:
+        return Request(
+            method=self.method,
+            path=self.path,
+            query=self.query,
+            form=self.form,
+            json_body=self.json_body,
+            route_params=self.route_params,
+            cookies=self.cookies,
+            files=self.files,
+            actor_id=actor_id,
+            role_id=role_id,
         )
 
 

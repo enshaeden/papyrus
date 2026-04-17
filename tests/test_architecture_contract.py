@@ -25,6 +25,8 @@ class ArchitectureContractTests(unittest.TestCase):
     def test_application_read_models_do_not_define_presenter_shaped_article_sections(self) -> None:
         article_projection_path = ROOT / "src/papyrus/application/read_models/article_projection.py"
         self.assertFalse(article_projection_path.exists())
+        legacy_web_projection_path = ROOT / "src/papyrus/interfaces/web/view_models/article_projection.py"
+        self.assertFalse(legacy_web_projection_path.exists())
 
         forbidden_tokens = ('"eyebrow"', '"blocks"', '"show_context_rail"', '"section_id"')
         for path in sorted((ROOT / "src/papyrus/application/read_models").glob("*.py")):

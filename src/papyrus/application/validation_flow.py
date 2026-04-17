@@ -54,14 +54,12 @@ from papyrus.infrastructure.paths import (
 )
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
 from papyrus.infrastructure.repositories.knowledge_repo import (
-    collect_article_paths,
     collect_docs_source_paths,
     collect_repository_contract_paths,
     collect_sanitization_paths,
     load_knowledge_documents,
     load_object_schemas,
     load_policy,
-    load_schema,
     load_taxonomies,
 )
 from papyrus.infrastructure.repositories.validation_repo import insert_validation_run
@@ -313,8 +311,6 @@ def _uses_legacy_blueprint_fallback(
     metadata: dict[str, Any],
     section_content: dict[str, dict[str, Any]],
 ) -> bool:
-    if str(metadata.get("legacy_article_type") or "").strip():
-        return True
     if str(metadata.get("source_type") or "").strip() in {"imported", "derived"}:
         return True
     return any(_contains_legacy_placeholder(values) for values in section_content.values())
@@ -517,7 +513,6 @@ def validate_docs_duplication(
 def validate_knowledge_documents(
     documents: list[KnowledgeDocument],
     object_schemas: dict[str, dict[str, Any]],
-    legacy_schema: dict[str, Any],
     taxonomies: dict[str, dict[str, Any]],
     policy: dict[str, Any],
 ) -> list[ValidationIssue]:
@@ -537,7 +532,7 @@ def validate_knowledge_documents(
             blueprint = get_blueprint(normalized.object_type)
         except Exception:
             metadata = document.metadata
-            schema = legacy_schema
+            schema = object_schemas.get(str(metadata.get("knowledge_object_type") or ""), {"fields": {}})
         fields = schema.get("fields", {})
 
         if not document.body:
@@ -669,9 +664,7 @@ def validate_knowledge_documents(
                     )
                 )
 
-        related_object_ids = metadata.get("related_object_ids") or metadata.get(
-            "related_articles", []
-        )
+        related_object_ids = metadata.get("related_object_ids") or []
         for related in related_object_ids:
             if related not in known_ids:
                 issues.append(
@@ -687,12 +680,12 @@ def validate_knowledge_documents(
             citations = metadata.get("references", [])
 
         for citation in citations:
-            article_ref = citation.get("article_id")
-            if article_ref and article_ref not in known_ids:
+            object_ref = citation.get("object_id")
+            if object_ref and object_ref not in known_ids:
                 issues.append(
                     ValidationIssue(
                         path,
-                        f"referenced knowledge object id not found: {article_ref}",
+                        f"referenced knowledge object id not found: {object_ref}",
                         "citations",
                     )
                 )
@@ -813,7 +806,6 @@ def validate_runtime_artifacts() -> list[ValidationIssue]:
 def validate_repository(*, source_workspace_root: Path | None = None) -> list[ValidationIssue]:
     policy = load_policy()
     object_schemas = load_object_schemas()
-    legacy_schema = load_schema()
     taxonomies = load_taxonomies()
     issues: list[ValidationIssue] = []
     issues.extend(validate_runtime_artifacts())
@@ -827,12 +819,10 @@ def validate_repository(*, source_workspace_root: Path | None = None) -> list[Va
             operation="source workspace validation",
         )
         documents = load_knowledge_documents(resolved_source_workspace_root, policy)
-        source_markdown_paths = collect_article_paths(resolved_source_workspace_root, policy)
-        issues.extend(
-            validate_knowledge_documents(
-                documents, object_schemas, legacy_schema, taxonomies, policy
-            )
-        )
+        source_markdown_paths = [
+            document.source_path for document in documents if document.source_path.is_file()
+        ]
+        issues.extend(validate_knowledge_documents(documents, object_schemas, taxonomies, policy))
         issues.extend(validate_docs_duplication(documents, policy))
     markdown_paths = collect_repository_contract_paths() + source_markdown_paths
     documentation_paths = collect_repository_contract_paths()

@@ -5,7 +5,6 @@ from papyrus.application.read_models.content_health import (
     collect_content_health_sections,
     stale_projection,
 )
-from papyrus.application.read_models.home_dashboard import home_dashboard
 from papyrus.application.read_models.impact_activity import (
     event_history,
     impact_view_for_object,
@@ -49,7 +48,6 @@ __all__ = [
     "build_status_filter_clause",
     "collect_content_health_sections",
     "event_history",
-    "home_dashboard",
     "impact_view_for_object",
     "impact_view_for_service",
     "knowledge_object_detail",

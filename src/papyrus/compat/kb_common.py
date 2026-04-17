@@ -2,41 +2,29 @@ from __future__ import annotations
 
 from papyrus.application.impact_flow import (
     docs_knowledge_like_warnings,
+    documents_missing_list_field,
+    find_possible_duplicate_documents,
     inverse_reference_graph,
+    missing_owner_documents,
     reference_graph,
-)
-from papyrus.application.impact_flow import (
-    documents_missing_list_field as articles_missing_list_field,
-)
-from papyrus.application.impact_flow import (
-    find_possible_duplicate_documents as find_possible_duplicate_articles,
-)
-from papyrus.application.impact_flow import (
-    missing_owner_documents as missing_owner_articles,
-)
-from papyrus.application.impact_flow import (
-    relationless_documents as relationless_articles,
+    relationless_documents,
 )
 from papyrus.application.validation_flow import (
     orphaned_files,
     validate_directory_contract,
     validate_docs_duplication,
     validate_field,
+    validate_knowledge_documents,
     validate_repository,
     validate_sanitization,
-)
-from papyrus.application.validation_flow import (
-    validate_knowledge_documents as validate_articles,
 )
 from papyrus.application.workspace import require_workspace_source_root
 from papyrus.domain.entities import (
     BrokenLink,
     DocsPlacementWarning,
     DuplicateCandidate,
+    KnowledgeDocument,
     ValidationIssue,
-)
-from papyrus.domain.entities import (
-    KnowledgeDocument as Article,
 )
 from papyrus.domain.policies import navigation_statuses, searchable_statuses, status_rank_map
 from papyrus.infrastructure.markdown.parser import (
@@ -44,10 +32,8 @@ from papyrus.infrastructure.markdown.parser import (
     extract_markdown_title,
     is_external_target,
     is_placeholder_target,
+    parse_knowledge_document,
     resolve_local_link,
-)
-from papyrus.infrastructure.markdown.parser import (
-    parse_knowledge_document as parse_article,
 )
 from papyrus.infrastructure.markdown.serializer import (
     date_to_iso,
@@ -91,19 +77,14 @@ from papyrus.infrastructure.paths import (
     TEMPLATE_DIR,
     relative_path,
 )
-from papyrus.infrastructure.paths import (
-    ARTICLE_SCHEMA_PATH as SCHEMA_PATH,
-)
 from papyrus.infrastructure.repositories.knowledge_repo import (
-    collect_article_paths,
     collect_decision_paths,
     collect_docs_source_paths,
     collect_root_markdown_paths,
     collect_sanitization_paths,
-    load_articles,
+    collect_source_paths,
     load_knowledge_documents,
     load_policy,
-    load_schema,
     load_taxonomies,
     load_yaml_file,
     workspace_knowledge_source_roots,
@@ -112,13 +93,12 @@ from papyrus.infrastructure.search.indexer import (
     fts5_available,
     summarize_for_search,
 )
-from papyrus.jobs.stale_scan import cadence_to_days
-from papyrus.jobs.stale_scan import stale_documents as stale_articles
+from papyrus.jobs.stale_scan import cadence_to_days, stale_documents
 
 
-def article_roots(workspace_root, policy=None):
+def knowledge_roots(workspace_root, policy=None):
     return workspace_knowledge_source_roots(
-        require_workspace_source_root(workspace_root, operation="legacy article root lookup"),
+        require_workspace_source_root(workspace_root, operation="knowledge root lookup"),
         policy,
     )
 

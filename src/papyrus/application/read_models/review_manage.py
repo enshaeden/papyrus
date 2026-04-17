@@ -64,7 +64,7 @@ def review_queue(
                 COALESCE(r.revision_id, '') AS revision_id,
                 COALESCE(r.revision_number, 0) AS revision_number,
                 COALESCE(r.revision_review_state, 'none') AS revision_review_state,
-                COALESCE(r.draft_progress_state, 'ready_for_review') AS draft_progress_state,
+                r.draft_progress_state AS draft_progress_state,
                 COALESCE(r.imported_at, '') AS imported_at,
                 COALESCE(r.change_summary, '') AS change_summary,
                 COALESCE(d.freshness_rank, 0) AS freshness_rank,
@@ -77,7 +77,7 @@ def review_queue(
             ORDER BY
                 CASE COALESCE(r.revision_review_state, 'none')
                     WHEN 'in_review' THEN 0
-                    WHEN 'draft' THEN 1
+                    WHEN 'in_progress' THEN 1
                     WHEN 'rejected' THEN 2
                     WHEN 'none' THEN 3
                     ELSE 4
@@ -148,7 +148,7 @@ def review_queue(
             }
             if item["current_revision_id"] is None:
                 item["reasons"].append("no_revision")
-            if item["revision_review_state"] in {"draft", "rejected"}:
+            if item["revision_review_state"] in {"in_progress", "rejected"}:
                 item["reasons"].append(f"revision:{item['revision_review_state']}")
             if item["revision_review_state"] == "in_review":
                 item["reasons"].append("awaiting_review")
@@ -209,7 +209,7 @@ def review_queue(
             item
             for item in items
             if item["current_revision_id"] is None
-            or item["revision_review_state"] in {"draft", "rejected"}
+            or item["revision_review_state"] in {"in_progress", "rejected"}
         ]
         suspect_items = [
             item

@@ -4,7 +4,6 @@ title: {{title}}
 canonical_path: {{canonical_path}}
 summary: Replace with a concise operational summary.
 knowledge_object_type: runbook
-legacy_article_type: null
 object_lifecycle_state: {{object_lifecycle_state}}
 owner: {{owner}}
 source_type: native
@@ -39,13 +38,13 @@ citations:
   captured_at: null
   integrity_hash: null
 services: {{related_services_inline}}
-related_articles: {{related_object_ids_inline}}
 references:
 - title: Replace with a supporting document, local path, or canonical knowledge-object reference.
+  object_id: null
 change_log:
 - date: {{today}}
-  summary: Initial article scaffold.
-  author: new_article.py
+  summary: Initial object scaffold.
+  author: new_object.py
 ---
 
 ## Use When
@@ -58,5 +57,5 @@ State exclusions, escalation boundaries, approval thresholds, or handoff points.
 
 ## Related Knowledge Notes
 
-- Note the prerequisite, follow-on, fallback, or sibling procedures that should also be linked in `related_articles` or `references`.
+- Note the prerequisite, follow-on, fallback, or sibling procedures that should also be linked in `related_object_ids` or `references`.
 - Replace `captured_at: null` and `integrity_hash: null` when you have real evidence capture details. Leaving them null keeps the citation in weak-evidence posture.

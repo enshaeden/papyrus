@@ -11,7 +11,7 @@ WRAPPER_IMPORTS = {
     "build_route_map.py": "from papyrus.jobs.route_map_build import main",
     "demo_runtime.py": "from papyrus.jobs.demo_runtime_build import main",
     "ingest_event.py": "from papyrus.interfaces.ingest_event_cli import main",
-    "new_article.py": "from papyrus.interfaces.new_article_cli import main",
+    "new_object.py": "from papyrus.interfaces.new_object_cli import main",
     "run.py": "from papyrus.interfaces.local_runtime_cli import main",
     "source_sync.py": "from papyrus.interfaces.source_sync_cli import main",
 }

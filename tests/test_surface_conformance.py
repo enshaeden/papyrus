@@ -95,7 +95,6 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "canonical_path": canonical_path,
         "summary": f"Surface conformance for {title.lower()}",
         "knowledge_object_type": "runbook",
-        "legacy_article_type": None,
         "object_lifecycle_state": "active",
         "owner": "workflow_owner",
         "source_type": "native",
@@ -126,12 +125,20 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "superseded_by": None,
         "retirement_reason": None,
         "services": ["Remote Access"],
-        "related_articles": [],
         "references": [{"title": "System model", "path": "knowledge/system-model.md"}],
         "change_log": [
             {"date": "2026-04-09", "summary": "Surface conformance draft.", "author": "tests"}
         ],
     }
+
+
+def ready_runbook_body(summary: str) -> str:
+    return (
+        "## Use When\n\n"
+        + summary.strip()
+        + "\n\n## Boundaries And Escalation\n\n"
+        + "Escalate when the documented workflow does not restore the expected operator outcome."
+    )
 
 
 def read_truth(
@@ -297,7 +304,9 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             normalized_payload=runbook_payload(
                 created.object_id, created.canonical_path, created.title
             ),
-            body_markdown="## Use When\n\nExercise the same review truth across surfaces.\n",
+            body_markdown=ready_runbook_body(
+                "Exercise the same review truth across surfaces."
+            ),
             actor="surface.author",
             change_summary="Surface conformance revision.",
         )
@@ -346,7 +355,9 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             normalized_payload=runbook_payload(
                 created.object_id, created.canonical_path, created.title
             ),
-            body_markdown=f"## Use When\n\nExercise {title.lower()} state rendering across surfaces.\n",
+            body_markdown=ready_runbook_body(
+                f"Exercise {title.lower()} state rendering across surfaces."
+            ),
             actor="surface.author",
             change_summary=f"{title} seed revision.",
         )
@@ -392,7 +403,9 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
         revision = workflow.create_revision(
             object_id=object_id,
             normalized_payload=updated_payload,
-            body_markdown="## Use When\n\nExercise conflicting writeback preview rendering.\n",
+            body_markdown=ready_runbook_body(
+                "Exercise conflicting writeback preview rendering."
+            ),
             actor="surface.author",
             change_summary="Surface preview revision.",
         )
@@ -429,7 +442,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
         second_revision = workflow.create_revision(
             object_id=object_id,
             normalized_payload=second_payload,
-            body_markdown="## Use When\n\nExercise restored state rendering.\n",
+            body_markdown=ready_runbook_body("Exercise restored state rendering."),
             actor="surface.author",
             change_summary="Surface restored revision.",
         )
@@ -504,7 +517,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertEqual(status, "200 OK")
         status, _, web_body = call_wsgi(
             web_app(database_path, source_root),
-            f"/operator/read/object/{object_id}",
+            f"/read/object/{object_id}",
         )
         self.assertEqual(status, "200 OK")
         return cli_payload, json.loads(api_body), web_body
@@ -609,14 +622,14 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(database_path, source_root)
             status, _, _ = call_wsgi(
                 application,
-                f"/operator/review/object/{object_id}/{revision_id}/assign",
+                f"/review/object/{object_id}/{revision_id}/assign",
                 method="POST",
                 form={"reviewer": reviewer, "notes": "", "due_at": ""},
             )
             self.assertIn(status, {"302 Found", "303 See Other"})
             status, _, _ = call_wsgi(
                 application,
-                f"/admin/review/object/{object_id}/{revision_id}",
+                f"/review/object/{object_id}/{revision_id}",
                 method="POST",
                 form={"reviewer": reviewer, "notes": "", "decision": "approve"},
             )
@@ -658,7 +671,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             normalized_payload=runbook_payload(
                 archived.object_id, archived.canonical_path, archived.title
             ),
-            body_markdown="## Use When\n\nArchive the same object across every surface.\n",
+            body_markdown=ready_runbook_body("Archive the same object across every surface."),
             actor="surface.author",
             change_summary="Archive conformance revision.",
         )
@@ -734,7 +747,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             application = web_app(database_path, source_root)
             status, _, _ = call_wsgi(
                 application,
-                f"/admin/review/object/{object_id}/archive",
+                f"/review/object/{object_id}/archive",
                 method="POST",
                 form={
                     "retirement_reason": "Retired through web archive conformance test.",
@@ -908,7 +921,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, web_body = call_wsgi(
                 web_app(database_path, source_root),
-                f"/admin/review/object/{object_id}/archive",
+                f"/review/object/{object_id}/archive",
             )
             self.assertEqual(status, "200 OK")
             self.assertIn(str(cli_archive_action["summary"]), web_body)
@@ -952,7 +965,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, web_body = call_wsgi(
                 web_app(database_path, source_root),
-                f"/operator/review/object/{object_id}/{revision_id}",
+                f"/review/object/{object_id}/{revision_id}",
             )
             self.assertEqual(status, "200 OK")
             self.assertIn(cli_preview["operator_message"], web_body)

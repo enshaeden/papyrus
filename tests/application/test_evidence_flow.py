@@ -25,7 +25,6 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "canonical_path": canonical_path,
         "summary": "Evidence lifecycle test payload.",
         "knowledge_object_type": "runbook",
-        "legacy_article_type": "runbook",
         "object_lifecycle_state": "active",
         "owner": "workflow_owner",
         "source_type": "native",
@@ -55,7 +54,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
                 "captured_at": None,
                 "validity_status": "unverified",
                 "integrity_hash": None,
-                "article_id": None,
+                "object_id": None,
                 "evidence_snapshot_path": None,
                 "evidence_expiry_at": None,
                 "evidence_last_validated_at": None,
@@ -66,10 +65,19 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "replaced_by": None,
         "retirement_reason": None,
         "services": ["Remote Access"],
-        "related_articles": [],
         "references": [{"title": "Evidence note", "path": "knowledge/system-model.md"}],
         "change_log": [{"date": "2026-04-08", "summary": "Initial draft.", "author": "tests"}],
     }
+
+
+def ready_runbook_body(use_when: str, *, boundaries: str = "Stay within the documented scope.") -> str:
+    return (
+        "## Use When\n\n"
+        + use_when
+        + "\n\n## Boundaries And Escalation\n\n"
+        + boundaries
+        + "\n"
+    )
 
 
 class EvidenceFlowTests(unittest.TestCase):
@@ -95,7 +103,7 @@ class EvidenceFlowTests(unittest.TestCase):
                 normalized_payload=runbook_payload(
                     created.object_id, created.canonical_path, created.title
                 ),
-                body_markdown="## Evidence\n\nLifecycle coverage.",
+                body_markdown=ready_runbook_body("Evidence lifecycle coverage."),
                 actor="tests",
                 change_summary="Evidence lifecycle coverage.",
             )

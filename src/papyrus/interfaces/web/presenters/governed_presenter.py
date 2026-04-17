@@ -103,7 +103,7 @@ def authoring_entry_label(
     revision_state = str(state.get("revision_review_state") or "").strip()
     if not str(current_revision_id or "").strip():
         return "Draft first revision"
-    if revision_state in {"draft", "rejected"}:
+    if revision_state in {"in_progress", "rejected"}:
         return "Continue draft"
     return None
 
@@ -117,7 +117,7 @@ def authoring_entry_href(
 ) -> str | None:
     state = projection_state(ui_projection)
     revision_state = str(state.get("revision_review_state") or "").strip()
-    if revision_state not in {"draft", "rejected"} or not str(current_revision_id or "").strip():
+    if revision_state not in {"in_progress", "rejected"} or not str(current_revision_id or "").strip():
         return None
     return write_object_url(object_id, revision_id=str(current_revision_id)) + "#revision-form"
 
@@ -149,7 +149,7 @@ def authoring_entry_html(
 ) -> str | None:
     state = projection_state(ui_projection)
     revision_state = str(state.get("revision_review_state") or "").strip()
-    if str(current_revision_id or "").strip() and revision_state in {"draft", "rejected"}:
+    if str(current_revision_id or "").strip() and revision_state in {"in_progress", "rejected"}:
         return link(
             label_override or "Continue draft",
             authoring_entry_href(

@@ -355,7 +355,7 @@ def _remote_object_picker_control(runtime, *, field, values: dict[str, str], obj
         placeholder=str(widget.get("placeholder") or f"Search {str(field['label']).lower()}"),
         singular_label=str(widget.get("singular_label") or "related guidance item"),
         manual_entry_label=str(widget.get("manual_entry_label") or "Manual reference entry"),
-        search_url=str(widget.get("search_url") or "/operator/write/objects/search"),
+        search_url=str(widget.get("search_url") or "/write/objects/search"),
         exclude_object_id=object_id,
     )
 
@@ -373,7 +373,7 @@ def render_section_fields_html(
     widget = _widget_config(section.fields[0]) if section.fields else {}
     if str(section.section_type.value) == "references":
         slots = int(widget.get("slots") or 3)
-        search_url = str(widget.get("search_url") or "/operator/write/citations/search")
+        search_url = str(widget.get("search_url") or "/write/citations/search")
         blocks: list[str] = []
         for index in range(1, slots + 1):
             blocks.append(

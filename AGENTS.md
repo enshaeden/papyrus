@@ -101,13 +101,16 @@ When changing product behaviour:
 ## Role-Scoped Experience Rules
 
 Papyrus must preserve strict separation between Reader, Operator, and Admin experiences.
+Papyrus uses one production shell and one shared route space for those experiences.
 
-- Do not implement cross-role UI by hiding or disabling shared controls inside one blended shell.
+- Do not collapse role visibility into shared-shell presentation without canonical route and access enforcement at shell, route, action, and data boundaries.
 - Do not expose navigation, routes, actions, metadata panels, or search results to roles not explicitly permitted to see them.
-- Treat route separation, visibility rules, and workflow boundaries as binding architecture.
+- Treat role-conditioned visibility, canonical shared-route ownership, and fail-closed workflow boundaries as binding architecture.
+- Canonical request-scoped role and access context must come from runtime or authenticated user identity, not from URL path prefixes.
 - When touching navigation, routing, layouts, object views, or workflow actions, consult:
   - `decisions/role-scoped-experience-architecture.md`
-  - `decisions/layout-contracts-by-role.md`
+  - `decisions/runtime-role-context-and-access-resolution.md`
+  - `decisions/layout-contracts.md`
   - `decisions/knowledge-workflows-and-lifecycle.md`
   - `decisions/web-ui-component-contracts.md`
 

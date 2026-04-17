@@ -4,7 +4,6 @@ title: Remote Access Service Record
 canonical_path: knowledge/services/remote-access-service-record.md
 summary: Support-facing service record for remote connectivity workflows.
 knowledge_object_type: service_record
-legacy_article_type: null
 object_lifecycle_state: active
 owner: remote_access_ops
 source_type: native
@@ -56,9 +55,10 @@ verification: []
 rollback: []
 references:
 - title: Operator system model
+  object_id: null
   path: knowledge/system-model.md
   note: Verified service model reference.
-related_articles:
+related_object_ids:
 - kb-troubleshooting-vpn-connectivity
 change_log:
 - date: 2026-04-08

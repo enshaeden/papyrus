@@ -53,7 +53,15 @@ def register(router, runtime) -> None:
             )
         )
 
-    router.add(["GET"], "/operator/review/impact/object/{object_id}", object_impact_page)
-    router.add(["GET"], "/operator/review/impact/service/{service_id}", service_impact_page)
-    router.add(["GET"], "/admin/impact/object/{object_id}", object_impact_page)
-    router.add(["GET"], "/admin/impact/service/{service_id}", service_impact_page)
+    router.add(
+        ["GET"],
+        "/review/impact/object/{object_id}",
+        object_impact_page,
+        minimum_visible_role="operator",
+    )
+    router.add(
+        ["GET"],
+        "/review/impact/service/{service_id}",
+        service_impact_page,
+        minimum_visible_role="operator",
+    )

@@ -78,8 +78,8 @@ def _links_for_object(object_id: str, revision_id: str | None = None) -> dict[st
     links = {
         "object": f"/objects/{object_id}",
         "revision_history": f"/objects/{object_id}/revisions",
-        "review_queue": "/review/queue",
-        "oversight_dashboard": "/dashboard/oversight",
+        "review_queue": "/reviews",
+        "oversight_dashboard": "/governance",
         "queue": "/queue",
     }
     if revision_id:
@@ -183,7 +183,7 @@ def app(
                     },
                 )
 
-            if method == "GET" and path == "/dashboard/oversight":
+            if method == "GET" and path == "/governance":
                 return _json_response(
                     start_response,
                     "200 OK",
@@ -197,7 +197,7 @@ def app(
                     {"services": service_catalog(database_path=resolved_database_path)},
                 )
 
-            if method == "GET" and path == "/review/queue":
+            if method == "GET" and path == "/reviews":
                 return _json_response(
                     start_response,
                     "200 OK",

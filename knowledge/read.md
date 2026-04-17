@@ -9,9 +9,11 @@ python3 scripts/build_index.py --source-root /path/to/workspace
 ```
 
 Outcome:
+
 - Search, queue, trust, service, and impact views reflect the current runtime DB plus the explicit source workspace that produced it.
 
 Failure signals:
+
 - The command cannot rebuild `build/knowledge.db`.
 - The web or API surfaces return runtime-unavailable errors.
 
@@ -33,26 +35,22 @@ python3 scripts/serve_web.py
 python3 scripts/serve_api.py
 ```
 
-- Web operator home route: `/operator`
-- Web read route: `/operator/read`
-- Web oversight route: `/operator/review/governance`
+- Shared entrypoint: `/`
+- Reader landing: `/read`
+- Operator landing: `/review`
+- Admin landing: `/admin/overview`
 - API queue route: `/queue`
 
-Use search when you know the topic. Use the home page, read workspace, service map, or health board when you need to browse by role, service context, or operational posture.
+Use search when you know the topic. Use the read workspace when you need to browse current guidance. Use governance or service views when service context or operational posture matters.
 
-Use the operator CLI when you need parity checks without opening the browser:
-
-- `python3 scripts/operator_view.py queue --db build/knowledge.db`
-- `python3 scripts/operator_view.py health --db build/knowledge.db`
-- `python3 scripts/operator_view.py object <object_id> --db build/knowledge.db`
-- `python3 scripts/operator_view.py activity --db build/knowledge.db`
+The JSON API remains operator-oriented. It is not part of the role-scoped web route contract.
 
 ## Use The Two-Step Content Flow
 
-1. Use `/operator/read` as the selection workspace.
-2. Open the object detail page to read the article in operational order.
+1. Use `/read` as the selection workspace.
+2. Open the object detail page to read the content in operational order.
 
-What the article surface prioritizes:
+What the content surface prioritizes:
 
 - title and short summary
 - when to use it
@@ -61,9 +59,8 @@ What the article surface prioritizes:
 - verification
 - rollback and recovery
 - escalation and boundaries
-- linked service context
 
-Governance, evidence posture, and raw revision source stay secondary so the article reads like dependable content first.
+Governance, evidence posture, and raw revision source stay secondary so the reading surface stays dependable first.
 
 ## Check Trust Posture Before Acting
 
@@ -81,45 +78,23 @@ python3 scripts/report_stale.py
 python3 scripts/report_content_health.py --section citation-health --section suspect-objects
 ```
 
-Failure signals:
-- Missing or weak citations.
-- Overdue review dates.
-- Suspect-object flags caused by upstream change.
-- No clear owner for escalation.
-
-## Use The Article, Then The Supporting Context
+## Use The Object, Then The Supporting Context
 
 From the runtime-backed surfaces, inspect:
 
-- Object detail for article guidance first, then safe-to-use posture, last review, service fit, and what changed recently.
-- Revision history for what changed and who approved it.
-- Supporting evidence for the claims behind the guidance.
-- Related objects, service detail, activity history, and impact views for dependencies and follow-on work.
+- object detail for current guidance first, then safe-to-use posture, last review, service fit, and what changed recently
+- revision history for what changed and who approved it
+- supporting evidence for the claims behind the guidance
+- related objects, service detail, activity history, and impact views for dependencies and follow-on work
 
 Useful routes:
 
-- Web object detail: `/operator/read/object/{object_id}`
-- Web revision history: `/operator/read/object/{object_id}/revisions`
-- Web service detail: `/operator/read/services/{service_id}`
-- Web activity history: `/operator/review/activity`
-- Web impact view: `/operator/review/impact/object/{object_id}`
+- Web object detail: `/read/object/{object_id}`
+- Web revision history: `/read/object/{object_id}/revisions`
+- Web governance services: `/governance/services/{service_id}`
+- Web activity history: `/review/activity`
+- Web impact view: `/review/impact/object/{object_id}`
 - The JSON API remains operator-oriented and uses its own non-role-prefixed operator routes such as `/queue`, `/objects/{object_id}`, `/services/{service_id}`, and `/impact/object/{object_id}`.
-
-## Follow Common Navigation Paths
-
-When starting from a service issue:
-
-1. Open the service detail view.
-2. Read the linked runbook for the operational procedure.
-3. Check related known errors for symptom-specific failures.
-4. Open activity or impact views if the issue may affect dependent objects or services.
-
-When starting from a known error:
-
-1. Read the symptom and evidence first.
-2. Follow linked runbooks for the approved operator action.
-3. Check revision history if the workaround or fix looks recent or disputed.
-4. If safety or freshness is degraded, move to review or knowledge health instead of relying on the guidance immediately.
 
 ## Flag Stale Or Suspect Knowledge
 
@@ -127,7 +102,7 @@ Escalate or avoid reliance when:
 
 - the object is overdue for review
 - the trust state is not `trusted`
-- citations are broken, missing, or obviously inherited from weak migration provenance
+- citations are broken, missing, or obviously inherited from weak provenance
 - related objects or services show recent change that may invalidate the current guidance
 
-Use the oversight playbook when you need to review the queue or audit why an object is suspect.
+Use the review and governance playbook when you need to inspect queue posture, audit why an object is suspect, or intervene on service-linked guidance.

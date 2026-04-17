@@ -5,7 +5,6 @@ from urllib.parse import quote_plus
 from papyrus.application.authoring_flow import ensure_draft_revision
 from papyrus.application.blueprint_registry import (
     list_advanced_authoring_blueprints,
-    list_blueprints,
     list_primary_authoring_blueprints,
 )
 from papyrus.application.commands import create_object_command
@@ -15,7 +14,7 @@ from papyrus.interfaces.web.http import Request, html_response, redirect_respons
 from papyrus.interfaces.web.presenters.form_presenter import FormPresenter
 from papyrus.interfaces.web.presenters.write_presenter import present_object_setup_page
 from papyrus.interfaces.web.route_utils import flash_html_for_request
-from papyrus.interfaces.web.urls import write_advanced_url, write_object_url
+from papyrus.interfaces.web.urls import write_object_url
 
 
 def _render_object_setup_page(
@@ -47,13 +46,13 @@ def _render_object_setup_page(
             created = create_object_command(
                 database_path=runtime.database_path,
                 source_root=runtime.source_root,
-                actor=str(experience.audit_actor_id),
+                actor=request.actor_id,
                 **result.cleaned_data,
             )
             draft = ensure_draft_revision(
                 object_id=created.object_id,
                 blueprint_id=str(result.cleaned_data["object_type"]),
-                actor=str(experience.audit_actor_id),
+                actor=request.actor_id,
                 database_path=runtime.database_path,
                 source_root=runtime.source_root,
             )
@@ -98,7 +97,9 @@ def _render_object_setup_page(
 
 def register(router, runtime) -> None:
     primary_authoring_blueprints = list_primary_authoring_blueprints()
-    advanced_authoring_blueprints = list_blueprints()
+    def write_landing_page(request: Request):
+        require_experience(request, "operator", "admin")
+        return redirect_response("/write/new")
 
     def create_primary_object_page(request: Request):
         return _render_object_setup_page(
@@ -110,15 +111,5 @@ def register(router, runtime) -> None:
             authoring_mode="primary",
         )
 
-    def create_advanced_object_page(request: Request):
-        return _render_object_setup_page(
-            runtime,
-            request,
-            authoring_blueprints=advanced_authoring_blueprints,
-            page_title="Advanced authoring",
-            page_headline="Advanced authoring",
-            authoring_mode="advanced",
-        )
-
-    router.add(["GET", "POST"], "/operator/write/new", create_primary_object_page)
-    router.add(["GET", "POST"], write_advanced_url(), create_advanced_object_page)
+    router.add(["GET"], "/write", write_landing_page, minimum_visible_role="operator")
+    router.add(["GET", "POST"], "/write/new", create_primary_object_page, minimum_visible_role="operator")

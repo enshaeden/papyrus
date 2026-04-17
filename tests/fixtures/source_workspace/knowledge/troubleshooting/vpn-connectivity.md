@@ -4,7 +4,6 @@ title: VPN Troubleshooting
 canonical_path: knowledge/troubleshooting/vpn-connectivity.md
 summary: Diagnose common remote-access failures and restore dependable access.
 knowledge_object_type: runbook
-legacy_article_type: null
 object_lifecycle_state: active
 owner: remote_access_ops
 source_type: native
@@ -50,9 +49,10 @@ services:
 - Remote Access
 references:
 - title: Read playbook
+  object_id: null
   path: knowledge/read.md
   note: Verified troubleshooting reference.
-related_articles:
+related_object_ids:
 - kb-remote-access-service-record
 change_log:
 - date: 2026-04-08

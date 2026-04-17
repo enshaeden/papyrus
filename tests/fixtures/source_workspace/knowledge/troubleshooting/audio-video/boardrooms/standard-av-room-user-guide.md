@@ -4,7 +4,6 @@ title: Standard AV Room User Guide
 canonical_path: knowledge/troubleshooting/audio-video/boardrooms/standard-av-room-user-guide.md
 summary: Recover a standard meeting-room issue without inventing a local workaround.
 knowledge_object_type: runbook
-legacy_article_type: null
 object_lifecycle_state: active
 owner: collaboration_ops
 source_type: native
@@ -50,7 +49,7 @@ references:
 - title: Operator web UI reference
   path: knowledge/operator-web-ui.md
   note: Imported note still needs direct room validation.
-related_articles: []
+related_object_ids: []
 change_log:
 - date: 2026-04-08
   summary: Fixture workspace baseline.

@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass
 from typing import Protocol
 
 from papyrus.interfaces.web.routes import (
+    admin,
     dashboard,
     home,
     impact,
@@ -23,7 +24,7 @@ class RegisteredRoute:
     pattern: str
     handler_module: str
     handler_name: str
-    role_group: str
+    minimum_visible_role: str
 
     def as_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -31,24 +32,18 @@ class RegisteredRoute:
 
 class RouteRegistrar(Protocol):
     def add(
-        self, methods: list[str], pattern: str, handler: Callable[[object], object]
+        self,
+        methods: list[str],
+        pattern: str,
+        handler: Callable[[object], object],
+        *,
+        minimum_visible_role: str,
     ) -> None: ...
-
-
-def role_group_for_pattern(pattern: str) -> str:
-    if pattern == "/":
-        return "shared"
-    if pattern == "/reader" or pattern.startswith("/reader/"):
-        return "reader"
-    if pattern == "/operator" or pattern.startswith("/operator/"):
-        return "operator"
-    if pattern == "/admin" or pattern.startswith("/admin/"):
-        return "admin"
-    return "shared"
 
 
 def register_all_routes(router: RouteRegistrar, runtime: object) -> None:
     home.register(router, runtime)
+    admin.register(router, runtime)
     queue.register(router, runtime)
     objects.register(router, runtime)
     services.register(router, runtime)
@@ -63,14 +58,21 @@ class _CatalogRouter:
     def __init__(self) -> None:
         self.routes: list[RegisteredRoute] = []
 
-    def add(self, methods: list[str], pattern: str, handler: Callable[[object], object]) -> None:
+    def add(
+        self,
+        methods: list[str],
+        pattern: str,
+        handler: Callable[[object], object],
+        *,
+        minimum_visible_role: str,
+    ) -> None:
         self.routes.append(
             RegisteredRoute(
                 methods=tuple(methods),
                 pattern=pattern,
                 handler_module=handler.__module__,
                 handler_name=handler.__name__,
-                role_group=role_group_for_pattern(pattern),
+                minimum_visible_role=minimum_visible_role,
             )
         )
 

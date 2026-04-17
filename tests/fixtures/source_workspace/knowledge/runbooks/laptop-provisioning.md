@@ -4,7 +4,6 @@ title: Laptop Provisioning
 canonical_path: knowledge/runbooks/laptop-provisioning.md
 summary: Prepare a standard laptop build and confirm the handoff is ready.
 knowledge_object_type: runbook
-legacy_article_type: null
 object_lifecycle_state: active
 owner: endpoint_ops
 source_type: native
@@ -51,7 +50,7 @@ references:
 - title: Write playbook
   path: knowledge/write.md
   note: Evidence must be revalidated after the next provisioning policy update.
-related_articles: []
+related_object_ids: []
 change_log:
 - date: 2026-04-08
   summary: Fixture workspace baseline.

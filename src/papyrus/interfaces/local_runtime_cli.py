@@ -8,10 +8,13 @@ from pathlib import Path
 from wsgiref.simple_server import make_server
 
 from papyrus.application.demo_flow import DEMO_SOURCE_ROOT, build_operator_demo_runtime
+from papyrus.application.role_visibility import normalize_role, role_from_actor_id
+from papyrus.domain.actor import default_actor_id, default_actor_id_for_role
 from papyrus.infrastructure.observability import get_logger, log_event
 from papyrus.infrastructure.paths import DB_PATH, ROOT
 from papyrus.interfaces.api import app as api_app
 from papyrus.interfaces.web.app import app as web_app
+from papyrus.interfaces.web.urls import home_url
 
 LOGGER = get_logger(__name__)
 
@@ -65,7 +68,20 @@ def main() -> int:
         action="store_true",
         help="Allow the /ingest web form to read an absolute local file path from the machine running Papyrus.",
     )
+    identity = parser.add_mutually_exclusive_group()
+    identity.add_argument(
+        "--actor",
+        default=None,
+        help="Local actor id for the web runtime role context. Defaults to the local operator actor.",
+    )
+    identity.add_argument(
+        "--role",
+        default=None,
+        help="Local role for the web runtime role context. Use reader, operator, or admin.",
+    )
     args = parser.parse_args()
+    selected_actor_id = args.actor or default_actor_id_for_role(args.role or "") or default_actor_id()
+    selected_role = normalize_role(args.role or role_from_actor_id(selected_actor_id))
 
     if args.demo:
         database_path = Path(args.db or ROOT / "build" / "demo-knowledge.db")
@@ -76,6 +92,8 @@ def main() -> int:
             "runtime_cli_demo_started",
             database_path=str(database_path),
             source_root=str(source_root),
+            actor_id=selected_actor_id,
+            role=selected_role,
         )
         _reset_runtime_artifacts(database_path, source_root)
         build_operator_demo_runtime(database_path=database_path, source_root=source_root)
@@ -88,6 +106,8 @@ def main() -> int:
             "runtime_cli_operator_started",
             database_path=str(database_path),
             source_root=str(source_root) if source_root is not None else None,
+            actor_id=selected_actor_id,
+            role=selected_role,
         )
 
     web_server = make_server(
@@ -97,6 +117,8 @@ def main() -> int:
             database_path,
             source_root,
             allow_web_ingest_local_paths=args.allow_web_ingest_local_paths,
+            default_actor_id=selected_actor_id,
+            default_role=selected_role,
         ),
     )
     api_server = make_server(
@@ -120,15 +142,18 @@ def main() -> int:
         api_url=f"http://{args.host}:{args.api_port}",
         database_path=str(database_path),
         source_root=str(source_root),
+        actor_id=selected_actor_id,
+        role=selected_role,
     )
     print(f"Papyrus {mode_name} mode is running.")
-    print(f"Home: http://{args.host}:{args.web_port}/operator")
+    print(f"Home: http://{args.host}:{args.web_port}{home_url(selected_role)}")
     print(f"Web: http://{args.host}:{args.web_port}")
     print(f"API: http://{args.host}:{args.api_port}")
     print(f"Runtime DB: {database_path}")
     print(f"Source root: {source_root}")
+    print(f"Web role context: {selected_role} ({selected_actor_id})")
     print(
-        "Local web root / redirects to /operator. Rebuild the runtime separately with `python3 scripts/build_index.py --source-root /path/to/workspace` when source-backed data must change."
+        f"Local web root / redirects to {home_url(selected_role)}. Rebuild the runtime separately with `python3 scripts/build_index.py --source-root /path/to/workspace` when source-backed data must change."
     )
     try:
         web_thread.join()
