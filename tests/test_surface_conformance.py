@@ -118,7 +118,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
             {
                 "source_title": "System model",
                 "source_type": "document",
-                "source_ref": "docs/reference/system-model.md",
+                "source_ref": "knowledge/system-model.md",
                 "note": "Surface conformance evidence.",
             }
         ],
@@ -127,7 +127,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "retirement_reason": None,
         "services": ["Remote Access"],
         "related_articles": [],
-        "references": [{"title": "System model", "path": "docs/reference/system-model.md"}],
+        "references": [{"title": "System model", "path": "knowledge/system-model.md"}],
         "change_log": [
             {"date": "2026-04-09", "summary": "Surface conformance draft.", "author": "tests"}
         ],

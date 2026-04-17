@@ -3,7 +3,7 @@ version: 2
 description: >
   Legacy compatibility schema for article-era content. Papyrus now validates
   canonical source primarily through typed knowledge-object schemas under
-  schemas/knowledge_objects/. This file remains only for migration fallback and
+  knowledge_engine/schemas/knowledge_objects/. This file remains only for migration fallback and
   legacy tooling bridges.
 fields:
   id:

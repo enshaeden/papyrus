@@ -14,6 +14,7 @@ from papyrus.infrastructure.paths import (
     ARTICLE_SCHEMA_PATH,
     DECISIONS_DIR,
     DOCS_DIR,
+    KNOWLEDGE_DIR,
     OBJECT_SCHEMA_DIR,
     POLICY_PATH,
     REPORTS_DIR,
@@ -21,6 +22,16 @@ from papyrus.infrastructure.paths import (
     TAXONOMY_DIR,
     TEMPLATE_DIR,
 )
+
+REPOSITORY_SCAN_IGNORED_PARTS = {
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "generated",
+}
 
 
 def load_yaml_file(path: Path) -> dict[str, Any]:
@@ -100,6 +111,31 @@ def load_knowledge_documents(
     ]
 
 
+def _collect_tree_files(
+    root: Path,
+    *,
+    suffixes: set[str] | None = None,
+    exclude_names: set[str] | None = None,
+) -> list[Path]:
+    if not root.exists():
+        return []
+    paths: list[Path] = []
+    excluded = exclude_names or set()
+    for path in sorted(root.rglob("*")):
+        if not path.is_file():
+            continue
+        if path.name in excluded:
+            continue
+        if suffixes is not None and path.suffix not in suffixes:
+            continue
+        paths.append(path)
+    return paths
+
+
+def collect_knowledge_base_paths() -> list[Path]:
+    return _collect_tree_files(KNOWLEDGE_DIR, suffixes={".md"}, exclude_names={"AGENTS.md"})
+
+
 def collect_docs_source_paths() -> list[Path]:
     if not DOCS_DIR.exists():
         return []
@@ -117,6 +153,10 @@ def collect_docs_source_paths() -> list[Path]:
     return paths
 
 
+def collect_docs_markdown_paths() -> list[Path]:
+    return [path for path in collect_docs_source_paths() if path.suffix == ".md"]
+
+
 def collect_decision_paths() -> list[Path]:
     if not DECISIONS_DIR.exists():
         return []
@@ -128,6 +168,31 @@ def collect_root_markdown_paths() -> list[Path]:
     return [path for path in candidates if path.exists()]
 
 
+def collect_repository_agent_paths() -> list[Path]:
+    paths: list[Path] = []
+    for path in sorted(ROOT.rglob("AGENTS.md")):
+        try:
+            relative = path.relative_to(ROOT)
+        except ValueError:
+            continue
+        if any(part in REPOSITORY_SCAN_IGNORED_PARTS for part in relative.parts):
+            continue
+        paths.append(path)
+    return paths
+
+
+def collect_repository_contract_paths() -> list[Path]:
+    return sorted(
+        set(
+            collect_root_markdown_paths()
+            + collect_knowledge_base_paths()
+            + collect_docs_markdown_paths()
+            + collect_decision_paths()
+            + collect_repository_agent_paths()
+        )
+    )
+
+
 def collect_sanitization_paths(
     policy: dict[str, Any] | None = None,
     *,
@@ -135,6 +200,7 @@ def collect_sanitization_paths(
 ) -> list[Path]:
     paths: list[Path] = []
     scan_roots = [
+        KNOWLEDGE_DIR,
         DOCS_DIR,
         DECISIONS_DIR,
         TEMPLATE_DIR,
@@ -155,6 +221,7 @@ def collect_sanitization_paths(
             if path.is_file() and path.suffix in {".md", ".yml", ".yaml"}
         )
     paths.extend(collect_root_markdown_paths())
+    paths.extend(collect_repository_agent_paths())
     return sorted(set(paths))
 
 

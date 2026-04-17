@@ -12,15 +12,15 @@ Restore controlled taxonomy values that are already used by canonical knowledge 
 
 The following values remain valid and supported:
 
-- `service_record` in `taxonomies/knowledge_object_types.yml`
-- `Workplace Engineering` and `Identity and Access` in `taxonomies/teams.yml`
-- `identity_admins` in `taxonomies/audiences.yml`
-- `Printing` in `taxonomies/services.yml`
-- `printer` in `taxonomies/tags.yml`
+- `service_record` in `knowledge_engine/taxonomies/knowledge_object_types.yml`
+- `Workplace Engineering` and `Identity and Access` in `knowledge_engine/taxonomies/teams.yml`
+- `identity_admins` in `knowledge_engine/taxonomies/audiences.yml`
+- `Printing` in `knowledge_engine/taxonomies/services.yml`
+- `printer` in `knowledge_engine/taxonomies/tags.yml`
 
 ## Rationale
 
-Canonical content under `knowledge/` still uses these values extensively, and `schemas/repository_policy.yml` plus `schemas/knowledge_objects/service_record.yml` still define `service_record` as part of the governed repository model.
+Source-backed knowledge content in explicit workspace trees such as `knowledge/` still uses these values extensively, and `knowledge_engine/schemas/repository_policy.yml` plus `knowledge_engine/schemas/knowledge_objects/service_record.yml` still define `service_record` as part of the governed repository model.
 
 Removing the vocabulary entries without a coordinated content migration created taxonomy drift that blocks:
 

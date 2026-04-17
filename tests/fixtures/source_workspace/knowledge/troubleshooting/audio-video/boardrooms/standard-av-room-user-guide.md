@@ -33,13 +33,13 @@ rollback:
 citations:
 - source_title: Operator web UI reference
   source_type: document
-  source_ref: docs/reference/operator-web-ui.md
+  source_ref: knowledge/operator-web-ui.md
   note: Imported note still needs direct room validation.
   claim_anchor: av-room
   excerpt: null
   captured_at: 2026-04-08T09:00:00+00:00
   validity_status: unverified
-  integrity_hash: standard-av-room
+  integrity_hash: 0e818349b6af22de
 related_object_ids: []
 superseded_by: null
 replaced_by: null
@@ -48,7 +48,7 @@ services:
 - Collaboration
 references:
 - title: Operator web UI reference
-  path: docs/reference/operator-web-ui.md
+  path: knowledge/operator-web-ui.md
   note: Imported note still needs direct room validation.
 related_articles: []
 change_log:

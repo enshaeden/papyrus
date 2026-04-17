@@ -55,9 +55,8 @@ from papyrus.infrastructure.paths import (
 from papyrus.infrastructure.repositories.audit_repo import insert_audit_event
 from papyrus.infrastructure.repositories.knowledge_repo import (
     collect_article_paths,
-    collect_decision_paths,
     collect_docs_source_paths,
-    collect_root_markdown_paths,
+    collect_repository_contract_paths,
     collect_sanitization_paths,
     load_knowledge_documents,
     load_object_schemas,
@@ -835,15 +834,8 @@ def validate_repository(*, source_workspace_root: Path | None = None) -> list[Va
             )
         )
         issues.extend(validate_docs_duplication(documents, policy))
-    markdown_paths = (
-        collect_root_markdown_paths()
-        + collect_docs_source_paths()
-        + collect_decision_paths()
-        + source_markdown_paths
-    )
-    documentation_paths = (
-        collect_root_markdown_paths() + collect_docs_source_paths() + collect_decision_paths()
-    )
+    markdown_paths = collect_repository_contract_paths() + source_markdown_paths
+    documentation_paths = collect_repository_contract_paths()
     for broken_link in collect_broken_markdown_links(markdown_paths):
         issues.append(
             ValidationIssue(

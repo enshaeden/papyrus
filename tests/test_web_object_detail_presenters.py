@@ -82,7 +82,7 @@ DETAIL = {
         {
             "source_title": "System model",
             "source_type": "document",
-            "source_ref": "docs/reference/system-model.md",
+            "source_ref": "knowledge/system-model.md",
             "note": "Evidence",
             "validity_status": "verified",
         }

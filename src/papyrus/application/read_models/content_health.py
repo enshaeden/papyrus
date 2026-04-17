@@ -21,9 +21,7 @@ from papyrus.infrastructure.markdown.parser import (
 )
 from papyrus.infrastructure.paths import DB_PATH
 from papyrus.infrastructure.repositories.knowledge_repo import (
-    collect_decision_paths,
-    collect_docs_source_paths,
-    collect_root_markdown_paths,
+    collect_repository_contract_paths,
     collect_source_paths,
     load_current_runtime_documents,
     load_knowledge_documents,
@@ -210,15 +208,10 @@ def collect_content_health_sections(
             outputs["orphaned-files"] = orphaned_files(policy, source_documents)
 
         if "broken-links" in selected_sections:
-            markdown_paths = (
-                collect_root_markdown_paths()
-                + collect_docs_source_paths()
-                + collect_decision_paths()
-                + (
-                    collect_source_paths(resolved_source_workspace_root, policy)
-                    if resolved_source_workspace_root is not None
-                    else []
-                )
+            markdown_paths = collect_repository_contract_paths() + (
+                collect_source_paths(resolved_source_workspace_root, policy)
+                if resolved_source_workspace_root is not None
+                else []
             )
             broken_links = collect_broken_markdown_links(markdown_paths)
             outputs["broken-links"] = [

@@ -81,9 +81,9 @@ def read_count(database_path: Path, query: str, parameters: tuple = ()) -> int:
 
 
 PRIMARY_SYSTEM = "Remote Access Gateway"
-PRIMARY_CITATION_TITLE = "Remote access gateway import record"
-PRIMARY_CITATION_REF = "records/remote-access-gateway-import-record.md"
-PRIMARY_CITATION_NOTE = "Captured from the initial repository bootstrap record."
+PRIMARY_CITATION_TITLE = "System model"
+PRIMARY_CITATION_REF = "knowledge/system-model.md"
+PRIMARY_CITATION_NOTE = "Repository system-knowledge reference used for citation coverage."
 
 
 def guided_runbook_section_forms(
@@ -243,9 +243,9 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "rollback": ["Undo the last remediation step."],
         "citations": [
             {
-                "source_title": "Remote access gateway import record",
+                "source_title": PRIMARY_CITATION_TITLE,
                 "source_type": "document",
-                "source_ref": "docs/reference/remote-access-gateway-import-record.md",
+                "source_ref": PRIMARY_CITATION_REF,
                 "note": "Archive acknowledgement rendering coverage.",
             }
         ],
@@ -256,8 +256,8 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "related_articles": [],
         "references": [
             {
-                "title": "Remote access gateway import record",
-                "path": "docs/reference/remote-access-gateway-import-record.md",
+                "title": PRIMARY_CITATION_TITLE,
+                "path": PRIMARY_CITATION_REF,
             }
         ],
         "change_log": [{"date": "2026-04-09", "summary": "Initial draft.", "author": "tests"}],

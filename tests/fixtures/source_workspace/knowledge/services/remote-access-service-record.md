@@ -36,13 +36,13 @@ related_known_errors: []
 citations:
 - source_title: Operator system model
   source_type: document
-  source_ref: docs/reference/system-model.md
+  source_ref: knowledge/system-model.md
   note: Verified service model reference.
   claim_anchor: service-profile
   excerpt: null
   captured_at: 2026-04-08T09:00:00+00:00
   validity_status: verified
-  integrity_hash: remote-access-service
+  integrity_hash: 70b6eb35c8a15d8a
 related_object_ids:
 - kb-troubleshooting-vpn-connectivity
 superseded_by: null
@@ -56,7 +56,7 @@ verification: []
 rollback: []
 references:
 - title: Operator system model
-  path: docs/reference/system-model.md
+  path: knowledge/system-model.md
   note: Verified service model reference.
 related_articles:
 - kb-troubleshooting-vpn-connectivity

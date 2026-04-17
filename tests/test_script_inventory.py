@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = ROOT / "scripts"
-INVENTORY_DOC = ROOT / "docs" / "getting-started.md"
+INVENTORY_DOC = ROOT / "knowledge" / "getting-started.md"
 WRAPPER_IMPORTS = {
     "build_route_map.py": "from papyrus.jobs.route_map_build import main",
     "demo_runtime.py": "from papyrus.jobs.demo_runtime_build import main",
@@ -26,7 +26,7 @@ class ScriptInventoryTests(unittest.TestCase):
             self.assertIn(
                 f"`{script_name}`",
                 inventory_text,
-                msg=f"{script_name} is missing from docs/getting-started.md",
+                msg=f"{script_name} is missing from knowledge/getting-started.md",
             )
 
     def test_curated_entrypoints_remain_wrappers(self) -> None:

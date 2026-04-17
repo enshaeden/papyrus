@@ -34,13 +34,13 @@ rollback:
 citations:
 - source_title: Write playbook
   source_type: document
-  source_ref: docs/playbooks/write.md
+  source_ref: knowledge/write.md
   note: Evidence must be revalidated after the next provisioning policy update.
   claim_anchor: provisioning
   excerpt: null
   captured_at: 2026-04-08T09:00:00+00:00
   validity_status: unverified
-  integrity_hash: laptop-provisioning
+  integrity_hash: 6a4a534b8bed95da
 related_object_ids: []
 superseded_by: null
 replaced_by: null
@@ -49,7 +49,7 @@ services:
 - Endpoint Provisioning
 references:
 - title: Write playbook
-  path: docs/playbooks/write.md
+  path: knowledge/write.md
   note: Evidence must be revalidated after the next provisioning policy update.
 related_articles: []
 change_log:

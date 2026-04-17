@@ -27,7 +27,7 @@ def _citation() -> list[dict[str, object]]:
             "article_id": None,
             "source_title": "Write playbook",
             "source_type": "document",
-            "source_ref": "docs/playbooks/write.md",
+            "source_ref": "knowledge/write.md",
             "note": "Local governed reference.",
             "excerpt": None,
             "captured_at": None,
@@ -84,7 +84,7 @@ class BlueprintValidationTests(unittest.TestCase):
                 "references": [
                     {
                         "title": "Write playbook",
-                        "path": "docs/playbooks/write.md",
+                        "path": "knowledge/write.md",
                         "note": "Local governed reference.",
                     }
                 ],
@@ -153,7 +153,7 @@ class BlueprintValidationTests(unittest.TestCase):
                 "references": [
                     {
                         "title": "Write playbook",
-                        "path": "docs/playbooks/write.md",
+                        "path": "knowledge/write.md",
                         "note": "Local governed reference.",
                     }
                 ],
@@ -214,7 +214,7 @@ class BlueprintValidationTests(unittest.TestCase):
                 "references": [
                     {
                         "title": "Write playbook",
-                        "path": "docs/playbooks/write.md",
+                        "path": "knowledge/write.md",
                         "note": "Local governed reference.",
                     }
                 ],
@@ -276,7 +276,7 @@ class BlueprintValidationTests(unittest.TestCase):
                 "references": [
                     {
                         "title": "Write playbook",
-                        "path": "docs/playbooks/write.md",
+                        "path": "knowledge/write.md",
                         "note": "Local governed reference.",
                     }
                 ],

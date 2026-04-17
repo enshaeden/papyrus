@@ -5,7 +5,7 @@ This file governs work under `knowledge_engine/`.
 ## Purpose
 
 `knowledge_engine/` contains the core knowledge-model material that Papyrus uses to author, validate, and govern knowledge objects.
-Knowledge object definition material resides here, including `schemas/`, `taxonomies/`, and `templates/`.
+Knowledge object definition material resides here, including `knowledge_engine/schemas/`, `knowledge_engine/taxonomies/`, and `knowledge_engine/templates/`.
 Use `knowledge_engine/` for structural, model-level content that defines how knowledge objects are shaped, classified, validated, and rendered.
 Do not use `knowledge_engine/` for repository commentary, Papyrus system knowledge articles, or published production knowledge content.
 
@@ -14,7 +14,7 @@ Use it to maintain the authoring and governance model behind Papyrus content, no
 ## Rules
 
 - Treat `knowledge_engine/` as the source of truth for knowledge object structure, classification, and authoring rules.
-- Keep published or publishable knowledge objects out of `knowledge_engine/`. They belong in `docs/` unless the repository model explicitly says otherwise.
+- Keep published or publishable knowledge objects out of `knowledge_engine/`. They belong in explicit workspace source trees, or in `docs/` only when the repository is intentionally operating as a live production authoring environment.
 - Keep Papyrus implementation notes, temporary migration logic, and developer scratch material out of `knowledge_engine/` unless they directly define the knowledge model.
 - Update the existing schema, taxonomy, or template instead of creating a parallel version when a valid source of truth already exists.
 - Do not create duplicate or conflicting definitions for the same object type, field, taxonomy term, or template behavior.

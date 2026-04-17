@@ -18,18 +18,14 @@ from papyrus.infrastructure.paths import (
     GENERATED_ROUTE_MAP_MARKDOWN_PATH,
 )
 from papyrus.infrastructure.repositories.knowledge_repo import (
-    collect_decision_paths,
-    collect_docs_source_paths,
-    collect_root_markdown_paths,
+    collect_repository_contract_paths,
 )
 from papyrus.jobs.route_map_build import check_route_map
 
 
 class EngineeringSubstrateContractTests(unittest.TestCase):
     def _documentation_paths(self) -> list[Path]:
-        return (
-            collect_root_markdown_paths() + collect_docs_source_paths() + collect_decision_paths()
-        )
+        return collect_repository_contract_paths()
 
     def test_documented_repository_paths_are_current(self) -> None:
         issues = validate_documented_repository_paths(self._documentation_paths())

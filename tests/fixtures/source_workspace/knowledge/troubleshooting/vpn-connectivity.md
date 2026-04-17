@@ -34,13 +34,13 @@ rollback:
 citations:
 - source_title: Read playbook
   source_type: document
-  source_ref: docs/playbooks/read.md
+  source_ref: knowledge/read.md
   note: Verified troubleshooting reference.
   claim_anchor: vpn-troubleshooting
   excerpt: null
   captured_at: 2026-04-08T09:00:00+00:00
   validity_status: verified
-  integrity_hash: vpn-troubleshooting
+  integrity_hash: c7623986eef3ee9e
 related_object_ids:
 - kb-remote-access-service-record
 superseded_by: null
@@ -50,7 +50,7 @@ services:
 - Remote Access
 references:
 - title: Read playbook
-  path: docs/playbooks/read.md
+  path: knowledge/read.md
   note: Verified troubleshooting reference.
 related_articles:
 - kb-remote-access-service-record
