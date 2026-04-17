@@ -434,7 +434,7 @@ def build_operator_demo_runtime(
             citations=[
                 _citation(
                     title="Remote access triage notes",
-                    ref="docs/playbooks/read.md",
+                    ref="knowledge/read.md",
                     note="Verified remote-access troubleshooting reference.",
                     validity_status="verified",
                 )
@@ -458,7 +458,7 @@ def build_operator_demo_runtime(
             citations=[
                 _citation(
                     title="Account recovery checklist",
-                    ref="docs/playbooks/write.md",
+                    ref="knowledge/write.md",
                     note="Verified account recovery reference.",
                     validity_status="verified",
                 )
@@ -483,7 +483,7 @@ def build_operator_demo_runtime(
             citations=[
                 _citation(
                     title="Remote Access ownership matrix",
-                    ref="docs/reference/system-model.md",
+                    ref="knowledge/system-model.md",
                     note="Verified ownership reference.",
                     validity_status="verified",
                 )
@@ -511,7 +511,7 @@ def build_operator_demo_runtime(
             citations=[
                 _citation(
                     title="VPN recovery validation",
-                    ref="docs/playbooks/read.md",
+                    ref="knowledge/read.md",
                     note="Verified recovery reference.",
                     validity_status="verified",
                 )
@@ -538,7 +538,7 @@ def build_operator_demo_runtime(
             citations=[
                 _citation(
                     title="Identity support model",
-                    ref="docs/playbooks/manage.md",
+                    ref="knowledge/manage.md",
                     note="Verified support reference.",
                     validity_status="verified",
                 )
@@ -563,7 +563,7 @@ def build_operator_demo_runtime(
             citations=[
                 _citation(
                     title="Fallback access SOP",
-                    ref="docs/playbooks/write.md",
+                    ref="knowledge/write.md",
                     note="Verified fallback reference.",
                     validity_status="verified",
                 )
@@ -589,7 +589,7 @@ def build_operator_demo_runtime(
             citations=[
                 _citation(
                     title="Identity change record",
-                    ref="docs/reference/operator-web-ui.md",
+                    ref="knowledge/operator-web-ui.md",
                     note="Verified change reference.",
                     validity_status="verified",
                 )
@@ -621,7 +621,7 @@ def build_operator_demo_runtime(
             citations=[
                 _citation(
                     title="Legacy split-tunnel notes",
-                    ref="docs/reference/operator-web-ui.md",
+                    ref="knowledge/operator-web-ui.md",
                     note="Imported note not yet re-verified.",
                     validity_status="unverified",
                 )
@@ -824,7 +824,7 @@ def run_operator_scenario(
             event_type="evidence_conflict",
             source="local",
             entity_type="evidence",
-            entity_id="docs/reference/system-model.md",
+            entity_id="knowledge/system-model.md",
             payload={
                 "summary": "Conflicting operator notes were recorded against the remote-access service evidence.",
                 "trust_state": "weak_evidence",

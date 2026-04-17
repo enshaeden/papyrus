@@ -12,10 +12,12 @@ FENCED_CODE_BLOCK_PATTERN = re.compile(r"```.*?```", re.DOTALL)
 INLINE_CODE_PATTERN = re.compile(r"`([^`]+)`")
 REPO_PATH_TOKEN_PATTERN = re.compile(
     r"(?<![A-Za-z0-9_.-])"
+    r"(?<!knowledge_engine/)"
     r"(?P<path>"
     r"(?:README\.md|AGENTS\.md|pyproject\.toml|requirements(?:-dev)?\.txt|"
     r"\.github/workflows/[A-Za-z0-9_.-]+|"
-    r"(?:decisions|docs|schemas|scripts|src|taxonomies|templates|tests)"
+    r"(?:decisions|docs|knowledge|knowledge_engine|reports|scripts|src|tests|"
+    r"schemas|taxonomies|templates)"
     r"(?:/[A-Za-z0-9_.-]+)*/?)"
     r")"
 )
@@ -103,6 +105,17 @@ def _normalized_registered_web_routes() -> set[str]:
     return normalized
 
 
+def _resolve_documented_path(source_path: Path, candidate: str) -> Path:
+    normalized = candidate.rstrip("/")
+    root_relative = ROOT / normalized
+    if root_relative.exists():
+        return root_relative
+    relative = (source_path.parent / normalized).resolve()
+    if relative.exists():
+        return relative
+    return root_relative
+
+
 def validate_documented_repository_paths(paths: Iterable[Path]) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     for path in paths:
@@ -111,7 +124,7 @@ def validate_documented_repository_paths(paths: Iterable[Path]) -> list[Validati
                 candidate = match.group("path").rstrip(".,:;")
                 if "{" in candidate or "}" in candidate:
                     continue
-                candidate_path = ROOT / candidate.rstrip("/")
+                candidate_path = _resolve_documented_path(path, candidate)
                 if (
                     candidate.endswith("/")
                     and candidate_path.exists()

@@ -37,13 +37,13 @@ rollback:
 citations:
 - source_title: System model
   source_type: document
-  source_ref: docs/reference/system-model.md
+  source_ref: knowledge/system-model.md
   note: Imported licensing note still needs structured cleanup.
   claim_anchor: productivity-licenses
   excerpt: null
   captured_at: 2026-04-08T09:00:00+00:00
   validity_status: verified
-  integrity_hash: productivity-licenses
+  integrity_hash: 70b6eb35c8a15d8a
 related_object_ids: []
 superseded_by: null
 replaced_by: null
@@ -52,7 +52,7 @@ services:
 - Access Management
 references:
 - title: System model
-  path: docs/reference/system-model.md
+  path: knowledge/system-model.md
   note: Imported licensing note still needs structured cleanup.
 related_articles: []
 change_log:

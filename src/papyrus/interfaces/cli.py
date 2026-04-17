@@ -57,7 +57,7 @@ def validate_main() -> int:
     parser.add_argument(
         "--source-root",
         default=None,
-        help="Optional workspace source root to validate in addition to repo docs, schemas, and runtime artifacts.",
+        help="Optional workspace source root to validate in addition to repo documentation, knowledge-model files, and runtime artifacts.",
     )
     args = parser.parse_args()
 

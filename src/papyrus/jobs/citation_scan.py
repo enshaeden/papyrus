@@ -46,7 +46,13 @@ def resolve_local_evidence_path(source_ref: str, *, root_path: Path = ROOT) -> P
     if not normalized.startswith(LOCAL_EVIDENCE_PREFIXES):
         return None
     if normalized.startswith(WORKSPACE_LOCAL_EVIDENCE_PREFIXES):
-        return (root_path / normalized).resolve()
+        workspace_candidate = (root_path / normalized).resolve()
+        if workspace_candidate.exists():
+            return workspace_candidate
+        repo_candidate = (ROOT / normalized).resolve()
+        if repo_candidate.exists():
+            return repo_candidate
+        return workspace_candidate
     if normalized.startswith(REPOSITORY_LOCAL_EVIDENCE_PREFIXES):
         return (ROOT / normalized).resolve()
     return None
@@ -77,6 +83,11 @@ def classify_citation(
     object_last_reviewed = parse_iso_date(row["object_last_reviewed"])
     cadence_days = cadence_to_days(str(row["object_review_cadence"]), taxonomies)
     local_path = resolve_local_evidence_path(source_ref, root_path=root_path)
+    workspace_local_path = (
+        (root_path / source_ref).resolve()
+        if source_ref.startswith(WORKSPACE_LOCAL_EVIDENCE_PREFIXES)
+        else None
+    )
     evidence_store = EvidenceStore(root_path=root_path)
 
     if evidence_snapshot_path:
@@ -104,7 +115,9 @@ def classify_citation(
             status = worse_citation_validity(status, "stale")
             reasons.append("local evidence changed since the stored integrity hash")
 
-        if source_ref.startswith(("knowledge/", "archive/knowledge/")):
+        if source_ref.startswith(("knowledge/", "archive/knowledge/")) and (
+            workspace_local_path is not None and workspace_local_path.exists()
+        ):
             target_object = get_knowledge_object_by_canonical_path(connection, source_ref)
             if target_object is None:
                 status = worse_citation_validity(status, "unverified")

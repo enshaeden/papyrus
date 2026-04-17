@@ -4,18 +4,20 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+KNOWLEDGE_DIR = ROOT / "knowledge"
+KNOWLEDGE_ENGINE_DIR = ROOT / "knowledge_engine"
 DOCS_DIR = ROOT / "docs"
 DECISIONS_DIR = ROOT / "decisions"
-TEMPLATE_DIR = ROOT / "templates"
+TEMPLATE_DIR = KNOWLEDGE_ENGINE_DIR / "templates"
 GENERATED_DIR = ROOT / "generated"
 GENERATED_ROUTE_MAP_JSON_PATH = GENERATED_DIR / "route-map.json"
 GENERATED_ROUTE_MAP_MARKDOWN_PATH = GENERATED_DIR / "route-map.md"
 LEGACY_GENERATED_DOCS_DIR = DOCS_DIR / "generated"
 REPORTS_DIR = ROOT / "reports"
-ARTICLE_SCHEMA_PATH = ROOT / "schemas" / "article.yml"
-OBJECT_SCHEMA_DIR = ROOT / "schemas" / "knowledge_objects"
-POLICY_PATH = ROOT / "schemas" / "repository_policy.yml"
-TAXONOMY_DIR = ROOT / "taxonomies"
+ARTICLE_SCHEMA_PATH = KNOWLEDGE_ENGINE_DIR / "schemas" / "article.yml"
+OBJECT_SCHEMA_DIR = KNOWLEDGE_ENGINE_DIR / "schemas" / "knowledge_objects"
+POLICY_PATH = KNOWLEDGE_ENGINE_DIR / "schemas" / "repository_policy.yml"
+TAXONOMY_DIR = KNOWLEDGE_ENGINE_DIR / "taxonomies"
 BUILD_DIR = ROOT / "build"
 DB_PATH = BUILD_DIR / "knowledge.db"
 GENERATED_ROUTE_MAP_PATHS = (

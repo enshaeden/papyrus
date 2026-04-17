@@ -14,7 +14,7 @@ from papyrus.compat.kb_common import (
     similarity_ratio,
     slugify,
 )
-from papyrus.infrastructure.paths import ROOT
+from papyrus.infrastructure.paths import POLICY_PATH, TAXONOMY_DIR, TEMPLATE_DIR
 
 TYPE_TO_DIRECTORY = {
     "runbook": "runbooks",
@@ -276,8 +276,8 @@ def main() -> int:
     args = parser.parse_args()
 
     root = Path(args.root).resolve() if args.root else None
-    policy = load_policy(ROOT / "schemas" / "repository_policy.yml")
-    taxonomies = load_taxonomies(ROOT / "taxonomies")
+    policy = load_policy(POLICY_PATH)
+    taxonomies = load_taxonomies(TAXONOMY_DIR)
     supported_types = scaffoldable_object_types(policy)
 
     if args.list_taxonomy:
@@ -345,7 +345,7 @@ def main() -> int:
             print(f"related knowledge object not found: {related_id}", file=sys.stderr)
             return 1
 
-    template_path = ROOT / "templates" / f"{family}.md"
+    template_path = TEMPLATE_DIR / f"{family}.md"
     template_text = template_path.read_text(encoding="utf-8")
     today = dt.date.today().isoformat()
 

@@ -14,7 +14,7 @@ Pattern:
 - `actor_banner_html`
 
 Result:
-- No matches under `src/`, `tests/`, `docs/`, or `README.md`.
+- No matches under `src/`, `tests/`, `knowledge/`, `docs/`, or `README.md`.
 
 Disposition:
 - Removed completely.
@@ -38,15 +38,15 @@ Pattern:
 - `/operator/write/object/{object_id}#revision-form`
 
 Matches and disposition:
-- [docs/reference/operator-web-ui.md](operator-web-ui.md): intentional.
+- [knowledge/operator-web-ui.md](operator-web-ui.md): intentional.
   - Documents the load-only GET route contract.
-- [tests/interfaces/test_write_ui.py](../../tests/interfaces/test_write_ui.py): intentional.
+- [tests/interfaces/test_write_ui.py](../tests/interfaces/test_write_ui.py): intentional.
   - Exercises the explicit `400 Bad Request` path for an invalid load-only request.
-- [src/papyrus/interfaces/web/routes/write_guided.py](../../src/papyrus/interfaces/web/routes/write_guided.py): intentional.
+- [src/papyrus/interfaces/web/routes/write_guided.py](../src/papyrus/interfaces/web/routes/write_guided.py): intentional.
   - Declares the load-only route and redirects to it only with `revision_id`.
-- [src/papyrus/interfaces/web/routes/write_object.py](../../src/papyrus/interfaces/web/routes/write_object.py): intentional.
+- [src/papyrus/interfaces/web/routes/write_object.py](../src/papyrus/interfaces/web/routes/write_object.py): intentional.
   - Redirect target always appends a concrete `revision_id`.
-- [src/papyrus/interfaces/web/presenters/ingest_presenter.py](../../src/papyrus/interfaces/web/presenters/ingest_presenter.py): intentional.
+- [src/papyrus/interfaces/web/presenters/ingest_presenter.py](../src/papyrus/interfaces/web/presenters/ingest_presenter.py): intentional.
   - Open-converted-draft link always appends a concrete `revision_id`.
 
 Disposition:
@@ -59,9 +59,9 @@ Pattern:
 - `Revise guidance`
 
 Matches and disposition:
-- [src/papyrus/interfaces/web/presenters/governed_presenter.py](../../src/papyrus/interfaces/web/presenters/governed_presenter.py): intentional.
+- [src/papyrus/interfaces/web/presenters/governed_presenter.py](../src/papyrus/interfaces/web/presenters/governed_presenter.py): intentional.
   - Label text is still used for an explicit POST start action, not a GET creation link.
-- [src/papyrus/interfaces/web/presenters/object_presenter.py](../../src/papyrus/interfaces/web/presenters/object_presenter.py): intentional.
+- [src/papyrus/interfaces/web/presenters/object_presenter.py](../src/papyrus/interfaces/web/presenters/object_presenter.py): intentional.
   - Label text remains, but the affordance now resolves through centralized governed authoring-entry logic and uses POST start when creation may be needed.
 
 Disposition:
@@ -76,11 +76,11 @@ Pattern:
 - `needs_revalidation`
 
 Matches and disposition:
-- [src/papyrus/application/read_models/home_dashboard.py](../../src/papyrus/application/read_models/home_dashboard.py): intentional.
+- [src/papyrus/application/read_models/home_dashboard.py](../src/papyrus/application/read_models/home_dashboard.py): intentional.
   - Application query owns the grouped counts and work-area derivation.
-- [src/papyrus/interfaces/web/presenters/home_presenter.py](../../src/papyrus/interfaces/web/presenters/home_presenter.py): intentional.
+- [src/papyrus/interfaces/web/presenters/home_presenter.py](../src/papyrus/interfaces/web/presenters/home_presenter.py): intentional.
   - Presenter only renders already-grouped query output.
-- [src/papyrus/interfaces/web/routes/write_search.py](../../src/papyrus/interfaces/web/routes/write_search.py): intentional and out of scope for the home-route phase.
+- [src/papyrus/interfaces/web/routes/write_search.py](../src/papyrus/interfaces/web/routes/write_search.py): intentional and out of scope for the home-route phase.
   - Route reads `ui_projection` guidance text from an existing backend contract; it does not derive governed meaning from raw lifecycle state.
 
 Disposition:
@@ -96,8 +96,8 @@ Pattern:
 
 Result:
 - Matches now describe the implemented contract in:
-  - [docs/reference/operator-web-ui.md](operator-web-ui.md)
-  - [tests/test_documentation_contract.py](../../tests/test_documentation_contract.py)
+  - [knowledge/operator-web-ui.md](operator-web-ui.md)
+  - [tests/test_documentation_contract.py](../tests/test_documentation_contract.py)
 
 Disposition:
 - Updated intentionally to match implementation.

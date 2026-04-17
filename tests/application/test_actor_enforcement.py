@@ -86,7 +86,7 @@ class ActorEnforcementTests(unittest.TestCase):
                         {
                             "source_title": "Operator note",
                             "source_type": "document",
-                            "source_ref": "docs/reference/system-model.md",
+                            "source_ref": "knowledge/system-model.md",
                             "note": "Seed evidence",
                             "claim_anchor": "actor-check",
                             "captured_at": "2026-04-08T00:00:00+00:00",
@@ -100,7 +100,7 @@ class ActorEnforcementTests(unittest.TestCase):
                     "references": [
                         {
                             "title": "Operator note",
-                            "path": "docs/reference/system-model.md",
+                            "path": "knowledge/system-model.md",
                             "note": "Seed evidence",
                         }
                     ],

@@ -1,8 +1,6 @@
 # Role-Scoped Experience Architecture
 
-Status: Approved
-Owner: Product / UX / Architecture
-Scope: Production role model, experience separation, visibility, route groups, shell ownership, actor transition, and tonal guidance
+Scope: Production role model, visibility, shared route space, shell ownership, actor transition, and tonal guidance
 
 ## Purpose
 
@@ -11,29 +9,56 @@ This record is the canonical authority for Papyrus role-scoped experience archit
 Use it when changing:
 
 - production role boundaries
-- route groups and route guards
+- route visibility and route guards
 - shell ownership
 - search visibility
-- role-specific navigation
+- role-conditioned navigation
 - actor-to-role transition rules
 
 Concrete shell composition rules live in `layout-contracts-by-role.md`.
 Knowledge lifecycle and workflow state machines live in `knowledge-workflows-and-lifecycle.md`.
 
+Papyrus uses one root interface, one production shell, and one shared route space.
+It does not create separate route trees or separate shells by role.
+
+Roles determine which routes, navigation items, actions, panels, and search results are present for the current user within that shared interface.
+
 ## Core rules
 
+- There is one root interface.
+- There is one production shell.
+- There is one shared route space.
+- There are three canonical production roles: `Reader`, `Operator`, and `Admin`.
+- Roles are hierarchical for access:
+  - `Operator` includes Reader-visible access.
+  - `Admin` includes Operator-visible and Reader-visible access.
 - Reader is for consumption.
+  - Readers can access only Reader-visible content and actions.
+  - Operator and Admin routes, navigation items, controls, and search results are absent.
 - Operator is for work.
+  - Operators can access Reader content.
+  - Operators can also access writing, review, governance, and management surfaces intended for operational work.
+  - Admin-only routes, navigation items, controls, and search results are absent.
 - Admin is for control.
+  - Admins can access Reader and Operator content.
+  - Admins can also access control surfaces that fundamentally change the Read and Operate experience for others.
+  - No routes, navigation items, controls, or search results are hidden from an Admin.
 - Hidden means absent, not merely disabled, for the current user.
+- Route visibility, navigation visibility, control visibility, related-link visibility, panel visibility, and search visibility MUST match.
 - Search visibility must match route visibility.
 - Global search is shell-owned and remains centered in the top bar.
-- Separate route groups and shells are mandatory.
-- Shared primitives are allowed. Shared blended experiences are not.
 - Production role switching is forbidden.
-- Context switches must materially change the information model, not only surrounding chrome.
-- Transitional development personas must not define permanent production information architecture.
-- The same knowledge object may reuse domain data across roles, but it must not force Reader, Operator, and Admin through one blended UI shape.
+- Granting a user a different production role is the sole discretion of an Admin.
+
+## Architectural stance
+
+Papyrus does not use role-owned route namespaces such as Reader routes, Operator routes, and Admin routes for the same underlying work.
+
+Papyrus uses canonical shared routes.
+Role changes what a user can see and do on those routes.
+Where a surface is not visible for a role, it is absent and direct access must fail closed.
+
+Admin is broader access over the same product, not a separate product mode.
 
 ## Role model and actor transition
 
@@ -41,20 +66,20 @@ The role model is the authority for production experience architecture.
 The actor model is a transitional development and testing mechanism.
 
 Actors may shape local defaults such as landing path, emphasis, density, and workflow priority in development.
-Actors must not be treated as authority for permanent route structure, navigation architecture, or production visibility boundaries.
+Actors must not be treated as authority for permanent route structure, navigation architecture, shell structure, or production visibility boundaries.
 
 ### Current mapping
 
 - `local.operator` maps to Operator.
-- `local.reviewer` maps to Operator with review-heavy defaults.
-- `local.manager` maps to Admin-adjacent development defaults. It does not establish a fourth production role.
+- `local.reviewer` maps to Operator with review-heavy development defaults.
+- `local.manager` maps to Admin-oriented development defaults. It does not establish a fourth production role.
 
 ### Transition rules
 
 - Do not treat `local.reviewer` as a separate permanent product experience unless a later decision creates one.
 - Do not treat `local.manager` as proof that Papyrus needs a fourth permanent experience.
-- Do not justify blended shells or shared navigation architecture by pointing to actor-shaped development behaviour.
-- Production architecture must converge on role-scoped experiences, not actor-shaped permutations.
+- Do not justify route duplication, shell duplication, or alternate production navigation architecture by pointing to actor-shaped development behaviour.
+- Production architecture must converge on one shared interface with role-conditioned visibility, not actor-shaped permutations.
 
 ## Visibility and experience matrix
 
@@ -63,101 +88,124 @@ Actors must not be treated as authority for permanent route structure, navigatio
 | Global search bar | Yes | Yes | Yes | Results filtered by role visibility |
 | Account/system menu | Yes | Yes | Yes | Menu entries may differ by role |
 | Dev-only role switcher | Dev only | Dev only | Dev only | Never in production |
-| Reader browse / content / object detail | Yes | Yes in Content | Optional inspect only | Admin inspection is not the primary framing |
-| Flag submission | Yes | Yes | Yes | Reader sees only the submission affordance |
+| Reader browse / content / object detail | Yes | Yes | Yes | Shared read surface |
+| Flag submission | Yes | Yes | Yes | Reader sees submission only |
 | Full flag details and resolution | No | Yes if authorised | Yes | Policy-controlled |
-| Operator Authoring workspace | No | Yes | Optional override | Admin access must be explicit |
-| Review queues and assignments | No | Yes | Yes | Admin uses oversight framing, not automatic workflow inheritance |
-| Templates | No | Use only if needed | Yes | Template administration is Admin-owned by default |
+| Writing workspace | No | Yes | Yes | Shared surface; hidden from Reader |
+| Review queues and assignments | No | Yes | Yes | Shared surface; hidden from Reader |
+| Governance workspace | No | Yes if allowed | Yes | Shared surface with stronger admin controls |
+| Templates | No | Use only if allowed | Yes | Template administration is Admin-owned by default |
 | Schemas | No | No or limited inspect | Yes | Strong admin boundary |
 | Users, roles, spaces, access, settings | No | No | Yes | Admin-only |
-| Audit log | No | Limited object history | Yes | Distinguish local history from full system audit |
+| Audit log | No | Limited object history | Yes | Distinguish object history from full system audit |
 
 ## Explicit role boundaries
 
 - Reader must never see Authoring, Review, Template, Schema, Admin, Publish, or User Management controls.
-- Operator must never see User Management, Access Management, Schema Administration, or System Settings unless explicitly elevated.
+- Operator must never see User Management, Access Management, Schema Administration, or System Settings unless explicitly elevated by role.
 - Admin owns access, schema, template, oversight policy, publishing policy, and audit controls.
-- Admin does not automatically inherit general writing or review workflows.
+- Admin access includes Reader and Operator surfaces.
 - Admin is not a catch-all for every advanced or inconvenient screen.
 
-## Route groups
+## Shared route model
 
-### Shared
+Papyrus uses a shared route model rather than role-owned route namespaces.
 
-- `/` (local entry shim redirecting to `/operator`; not a role-owned destination)
+Illustrative route families include:
 
-### Reader
+### Shared entry and read surfaces
 
-- `/reader`
-- `/reader/browse`
-- `/reader/object/{object_id}`
+- `/`
+- `/read`
+- `/read/object/{object_id}`
+- `/read/object/{object_id}/revisions`
+- `/read/services`
+- `/read/services/{service_id}`
 
-### Operator
+### Operator-visible work surfaces
 
-- `/operator`
-- `/operator/read`
-- `/operator/read/object/{object_id}`
-- `/operator/read/object/{object_id}/revisions`
-- `/operator/read/services`
-- `/operator/read/services/{service_id}`
-- `/operator/import`
-- `/operator/import/{ingestion_id}`
-- `/operator/import/{ingestion_id}/review`
-- `/operator/write/new`
-- `/operator/write/object/{object_id}/start`
-- `/operator/write/object/{object_id}`
-- `/operator/write/object/{object_id}/submit`
-- `/operator/write/citations/search`
-- `/operator/write/objects/search`
-- `/operator/review`
-- `/operator/review/governance`
-- `/operator/review/activity`
-- `/operator/review/impact/object/{object_id}`
-- `/operator/review/impact/service/{service_id}`
-- `/operator/review/object/{object_id}/{revision_id}`
-- `/operator/review/object/{object_id}/{revision_id}/assign`
-- `/operator/review/object/{object_id}/archive`
-- `/operator/review/object/{object_id}/suspect`
-- `/operator/review/object/{object_id}/supersede`
-- `/operator/review/object/{object_id}/evidence/revalidate`
-- `/operator/review/validation-runs`
-- `/operator/review/validation-runs/new`
+- `/import`
+- `/import/{ingestion_id}`
+- `/import/{ingestion_id}/review`
+- `/write`
+- `/write/new`
+- `/write/object/{object_id}/start`
+- `/write/object/{object_id}`
+- `/write/object/{object_id}/submit`
+- `/write/citations/search`
+- `/write/objects/search`
+- `/review`
+- `/review/activity`
+- `/review/object/{object_id}/{revision_id}`
+- `/review/object/{object_id}/{revision_id}/assign`
+- `/review/object/{object_id}/archive`
+- `/review/object/{object_id}/suspect`
+- `/review/object/{object_id}/supersede`
+- `/review/object/{object_id}/evidence/revalidate`
+- `/review/impact/object/{object_id}`
+- `/review/impact/service/{service_id}`
+- `/review/validation-runs`
+- `/review/validation-runs/new`
+- `/governance`
+- `/governance/services`
+- `/governance/services/{service_id}`
 
-### Admin
+### Admin-only control surfaces
 
 - `/admin`
 - `/admin/overview`
-- `/admin/inspect`
-- `/admin/inspect/object/{object_id}`
-- `/admin/inspect/object/{object_id}/revisions`
-- `/admin/services`
-- `/admin/services/{service_id}`
-- `/admin/governance`
-- `/admin/impact/object/{object_id}`
-- `/admin/impact/service/{service_id}`
-- `/admin/review`
-- `/admin/review/object/{object_id}/{revision_id}`
-- `/admin/review/object/{object_id}/{revision_id}/assign`
-- `/admin/review/object/{object_id}/archive`
-- `/admin/review/object/{object_id}/suspect`
-- `/admin/review/object/{object_id}/supersede`
-- `/admin/review/object/{object_id}/evidence/revalidate`
+- `/admin/users`
+- `/admin/access`
+- `/admin/spaces`
+- `/admin/templates`
+- `/admin/schemas`
+- `/admin/settings`
 - `/admin/audit`
-- `/admin/validation-runs`
-- `/admin/validation-runs/new`
+
+A route's presence in the product does not imply visibility to every role.
+Each route must declare its minimum visible role and must fail closed on direct access when the current user lacks permission.
+
+## Route semantics
+
+- A canonical route should represent a canonical surface.
+- The same domain action must not be duplicated under separate role-owned namespaces merely to reflect role.
+- If Reader, Operator, and Admin can all access the same underlying object or workflow surface, they should do so through the same canonical route, with role-conditioned visibility of controls and panels inside that surface.
+- Separate routes are justified only when the surface itself is materially different in purpose, not merely because a more privileged role can see more within it.
 
 ## Route and shell rules
 
 - Route guards must enforce role access before render.
-- Navigation must derive from role-scoped route definitions, not from one global list with runtime filtering.
 - Deep links must still respect role access and fail closed.
+- Navigation must derive from the shared route model plus role visibility rules, not from separate route trees per role.
 - Search results must link only to routes the current role can access.
+- Related links, recents, dashboards, queues, and command surfaces must include only destinations visible to the current user.
+- A shared route may render different controls, side panels, metadata density, and oversight affordances by role, but the route identity remains canonical.
 - Production must not expose a route or client control for manual role switching.
-- `/reader/*` uses the Reader shell.
-- `/operator/*` uses the Operator shell.
-- `/admin/*` uses the Admin shell.
-- Layout files, shell files, route definitions, and tests should mirror role ownership.
+- Layout files, shell files, route definitions, and tests should mirror the shared route model and its visibility contracts, not role-owned namespaces.
+
+## Entry and landing rules
+
+- `/` is the shared application entry point.
+- `/` is not a role-owned destination.
+- After authentication, the application may resolve `/` to a role-appropriate default landing experience within the shared route space.
+- That landing behaviour must not be treated as evidence for separate role route trees or separate production shells.
+
+## Search rules
+
+- Global search is shell-owned.
+- Global search must remain centered in the top bar.
+- Search indexing and search result projection must respect role visibility boundaries.
+- A user must not receive search hits, command suggestions, object links, service links, revision links, or administrative targets for destinations they cannot access.
+- Search filtering is a product rule, not merely a presentation choice.
+
+## Implementation rules
+
+- Each route definition MUST declare a minimum visible role.
+- Each action definition MUST declare a minimum visible role.
+- Each search result type MUST declare a minimum visible role.
+- Shared surfaces SHOULD use role-conditioned composition rather than role-specific route duplication.
+- Admin-only controls SHOULD appear as panels, sections, or actions within canonical shared surfaces when the underlying surface is the same.
+- Tests MUST verify that hidden destinations are absent from navigation, search, related links, command surfaces, and direct route access for the current role.
 
 ## Tonal guidance
 

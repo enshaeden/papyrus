@@ -38,7 +38,11 @@ python3 scripts/operator_view.py activity --db build/knowledge.db --format json
 
 ## Source Of Truth
 
-- Canonical repository assets: `schemas/`, `taxonomies/`, `templates/`, `decisions/`, `docs/`, and `src/`
+- Knowledge-model authority: `knowledge_engine/` for schemas, taxonomies, templates, and repository policy
+- Repository system knowledge: `knowledge/` for Papyrus guidance about Papyrus itself
+- Repository decisions and governance: `decisions/`
+- Reserved future in-repository production-content structure and guidance: `docs/`
+- Application and runtime behavior: `src/`
 - External source workspaces, when used for authoring or sync: `knowledge/` and `archive/knowledge/` inside the explicit workspace root
 - Derived artifacts only: `build/` and `generated/`
 
@@ -53,10 +57,10 @@ There is no separate MkDocs or static-export publication surface. Readers consum
 
 ## Read More
 
-- Start here: [docs/getting-started.md](docs/getting-started.md)
-- Content playbook: [docs/playbooks/read.md](docs/playbooks/read.md)
-- Authoring playbook: [docs/playbooks/write.md](docs/playbooks/write.md)
-- Oversight playbook: [docs/playbooks/manage.md](docs/playbooks/manage.md)
-- System model: [docs/reference/system-model.md](docs/reference/system-model.md)
-- Operator readiness: [docs/reference/operator-readiness.md](docs/reference/operator-readiness.md)
+- Start here: [knowledge/getting-started.md](knowledge/getting-started.md)
+- Content playbook: [knowledge/read.md](knowledge/read.md)
+- Authoring playbook: [knowledge/write.md](knowledge/write.md)
+- Oversight playbook: [knowledge/manage.md](knowledge/manage.md)
+- System model: [knowledge/system-model.md](knowledge/system-model.md)
+- Operator readiness: [knowledge/operator-readiness.md](knowledge/operator-readiness.md)
 - Governance and decisions: [decisions/index.md](decisions/index.md)

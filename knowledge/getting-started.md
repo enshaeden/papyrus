@@ -15,7 +15,7 @@ The committed seed corpus was removed from this repository. When you need source
 Outcome:
 - The environment is bootstrapped.
 - Formatter, lint, and type-check tooling are installed into `.venv/`.
-- Repository policy, schemas, docs, route-map artifacts, and runtime dependencies validate cleanly.
+- Repository policy, knowledge-model files, system knowledge docs, route-map artifacts, and runtime dependencies validate cleanly.
 - Any content created under `build/` remains local derived state and is not source of truth.
 - Read-only runtime can later start from `build/knowledge.db` plus retained derived artifacts without any repo-local knowledge corpus.
 
@@ -103,22 +103,24 @@ Guardrail:
 - Workspace-scoped mutation entry points run pending mutation recovery before they proceed. Papyrus rolls back or reclaims stale journals and stale locks when safe, and blocks the operation with an explicit error when recovery cannot prove a safe result.
 - Browser-submitted local path ingestion is off by default. Enable it only on a trusted local operator web surface with `python3 scripts/run.py --operator --allow-web-ingest-local-paths` or `python3 scripts/serve_web.py --allow-web-ingest-local-paths`.
 - When web local-path ingest is enabled, Papyrus reads an absolute path from the machine running Papyrus, not from the browser device.
-- Local-path ingest is still confined to allowlisted read roots from `schemas/repository_policy.yml`. The default read root is `build/local-ingest/`.
+- Local-path ingest is still confined to allowlisted read roots from `knowledge_engine/schemas/repository_policy.yml`. The default read root is `build/local-ingest/`.
 - If you embed the WSGI apps directly in tests or local tooling, `papyrus.interfaces.web.app(...)` and `papyrus.interfaces.api.app(...)` can be initialized without a workspace source root for read-only use.
 - `papyrus.interfaces.api.app(...)` remains operator-oriented. It is not part of the role-scoped web experience contract.
 - Any future role-scoped API contract requires a separate decision and migration.
 
 ## 3. Pick The Right Playbook
 
-- Need to find or verify current guidance safely: [Read](playbooks/read.md)
-- Need to create, import, or revise lifecycle-managed guidance: [Write](playbooks/write.md)
-- Need to make review or health decisions: [Review And Health](playbooks/manage.md)
+- Need to find or verify current guidance safely: [Read](read.md)
+- Need to create, import, or revise lifecycle-managed guidance: [Write](write.md)
+- Need to make review or health decisions: [Review And Health](manage.md)
 
 ## 4. Use The Right Source
 
 - Canonical knowledge is not committed to this repository. When source-backed workflows are in scope, it lives in the explicit workspace source root you pass to Papyrus.
+- Papyrus system knowledge in this repository lives under `knowledge/`.
+- `knowledge_engine/` is the repository authority for schemas, taxonomies, templates, and repository policy.
 - Repository decisions live in `decisions/`.
-- Operator and reference docs live in `docs/`.
+- `docs/` is reserved for future governed production-content structure, scaffolding, and guidance files in this repository state.
 - Derived output in `generated/` and `build/` is rebuildable and not authoritative.
 - Read-only runtime depends on `build/knowledge.db` plus retained runtime artifacts such as `generated/route-map.json` and `generated/route-map.md`.
 - Generated ingestion artifacts in `build/ingestions/` are reviewable runtime state, not source of truth.

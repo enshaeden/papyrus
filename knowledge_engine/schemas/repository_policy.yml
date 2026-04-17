@@ -2,8 +2,10 @@ policy: repository_contract
 version: 1
 directories:
   documentation_root: docs
+  system_knowledge_root: knowledge
+  knowledge_model_root: knowledge_engine
   decisions_root: decisions
-  template_root: templates
+  template_root: knowledge_engine/templates
   generated_roots:
     - generated
     - build
@@ -16,12 +18,11 @@ directories:
     - decisions
     - docs
     - generated
+    - knowledge
+    - knowledge_engine
     - reports
-    - schemas
     - scripts
     - src
-    - taxonomies
-    - templates
     - tests
   ignored_top_level_directories:
     - .git

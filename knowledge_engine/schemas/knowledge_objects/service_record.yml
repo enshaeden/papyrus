@@ -76,6 +76,9 @@ fields:
     kind: string
     required: true
     taxonomy: service_criticality
+  scope_notes:
+    kind: string
+    required: false
   dependencies:
     kind: list[string]
     required: true
@@ -85,12 +88,18 @@ fields:
   common_failure_modes:
     kind: list[string]
     required: true
+  operational_notes:
+    kind: string
+    required: false
+  evidence_notes:
+    kind: string
+    required: false
   related_runbooks:
     kind: list[string]
-    required: true
+    required: false
   related_known_errors:
     kind: list[string]
-    required: true
+    required: false
   citations:
     kind: list[object]
     required: true
@@ -126,7 +135,7 @@ fields:
     required: true
   services:
     kind: list[string]
-    required: false
+    required: true
     taxonomy: services
   prerequisites:
     kind: list[string]

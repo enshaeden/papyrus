@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 class DocumentationContractTests(unittest.TestCase):
     def test_reference_docs_describe_ui_boundary_and_semantic_hooks(self) -> None:
         operator_web_ui = (
-            (ROOT / "docs" / "reference" / "operator-web-ui.md").read_text(encoding="utf-8").lower()
+            (ROOT / "knowledge" / "operator-web-ui.md").read_text(encoding="utf-8").lower()
         )
         self.assertIn("routes should not emit html fragments", operator_web_ui)
         self.assertIn("data-surface", operator_web_ui)
@@ -40,9 +40,7 @@ class DocumentationContractTests(unittest.TestCase):
 
     def test_operator_readiness_records_recovery_and_cleanup_boundary(self) -> None:
         operator_readiness = (
-            (ROOT / "docs" / "reference" / "operator-readiness.md")
-            .read_text(encoding="utf-8")
-            .lower()
+            (ROOT / "knowledge" / "operator-readiness.md").read_text(encoding="utf-8").lower()
         )
         self.assertIn("pending mutation recovery", operator_readiness)
         self.assertIn("stale journals and stale locks", operator_readiness)
@@ -51,7 +49,9 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("remaining technical debt", operator_readiness)
 
     def test_getting_started_documents_explicit_source_workspace_boundary(self) -> None:
-        getting_started = (ROOT / "docs" / "getting-started.md").read_text(encoding="utf-8").lower()
+        getting_started = (
+            (ROOT / "knowledge" / "getting-started.md").read_text(encoding="utf-8").lower()
+        )
         self.assertIn("committed seed corpus was removed", getting_started)
         self.assertIn("--source-root /path/to/workspace", getting_started)
         self.assertIn("/operator", getting_started)
@@ -91,12 +91,8 @@ class DocumentationContractTests(unittest.TestCase):
 
     def test_docs_describe_operator_only_api_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()
-        system_model = (
-            (ROOT / "docs" / "reference" / "system-model.md").read_text(encoding="utf-8").lower()
-        )
-        read_playbook = (
-            (ROOT / "docs" / "playbooks" / "read.md").read_text(encoding="utf-8").lower()
-        )
+        system_model = (ROOT / "knowledge" / "system-model.md").read_text(encoding="utf-8").lower()
+        read_playbook = (ROOT / "knowledge" / "read.md").read_text(encoding="utf-8").lower()
 
         self.assertIn(
             "papyrus is a governed knowledge management database that provides end users with dependable content, while it operators maintain backend authorship and oversight.",
@@ -113,9 +109,9 @@ class DocumentationContractTests(unittest.TestCase):
         for path in [
             ROOT / "AGENTS.md",
             ROOT / "README.md",
-            ROOT / "docs" / "index.md",
-            ROOT / "docs" / "getting-started.md",
-            ROOT / "docs" / "reference" / "system-model.md",
+            ROOT / "knowledge" / "index.md",
+            ROOT / "knowledge" / "getting-started.md",
+            ROOT / "knowledge" / "system-model.md",
         ]:
             text = path.read_text(encoding="utf-8").lower()
             self.assertNotIn(
@@ -149,10 +145,10 @@ class DocumentationContractTests(unittest.TestCase):
         )
         for path in [
             ROOT / "README.md",
-            ROOT / "docs" / "getting-started.md",
-            ROOT / "docs" / "reference" / "system-model.md",
-            ROOT / "docs" / "reference" / "operator-readiness.md",
-            ROOT / "docs" / "reference" / "operator-web-ui.md",
+            ROOT / "knowledge" / "getting-started.md",
+            ROOT / "knowledge" / "system-model.md",
+            ROOT / "knowledge" / "operator-readiness.md",
+            ROOT / "knowledge" / "operator-web-ui.md",
         ]:
             text = path.read_text(encoding="utf-8").lower()
             for phrase in forbidden:
@@ -163,8 +159,8 @@ class DocumentationContractTests(unittest.TestCase):
             ROOT / "README.md",
             ROOT / "AGENTS.md",
             ROOT / "docs" / "AGENTS.md",
-            ROOT / "docs" / "index.md",
-            ROOT / "docs" / "getting-started.md",
+            ROOT / "knowledge" / "index.md",
+            ROOT / "knowledge" / "getting-started.md",
             ROOT / "src" / "papyrus" / "interfaces" / "web" / "AGENTS.md",
         ]:
             text = path.read_text(encoding="utf-8")
