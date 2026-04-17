@@ -14,6 +14,8 @@ from papyrus.application.queries import (
     ServiceNotFoundError,
 )
 from papyrus.application.role_visibility import (
+    ADMIN_ROLE,
+    OPERATOR_ROLE,
     normalize_role,
     role_from_actor_id,
     role_meets_minimum,
@@ -43,6 +45,28 @@ from papyrus.interfaces.web.route_catalog import register_all_routes
 from papyrus.interfaces.web.runtime import WebRuntime
 
 LOGGER = get_logger(__name__)
+
+
+def _capabilities_for_role(role: str) -> tuple[str, ...]:
+    normalized_role = normalize_role(role)
+    if normalized_role == ADMIN_ROLE:
+        return ("read", "operate", "admin")
+    if normalized_role == OPERATOR_ROLE:
+        return ("read", "operate")
+    return ("read",)
+
+
+def _resolve_request_identity(request: Request, runtime: WebRuntime) -> Request:
+    resolved_role = normalize_role(runtime.default_role)
+    principal_id = runtime.default_actor_id or runtime.default_role
+    return request.with_identity(
+        actor_id=runtime.default_actor_id,
+        role_id=resolved_role,
+        principal_id=principal_id,
+        capabilities=_capabilities_for_role(resolved_role),
+        is_dev_switchable=False,
+        role_source="config_default",
+    )
 
 
 @dataclass(frozen=True)
@@ -156,10 +180,7 @@ def app(
     register_all_routes(router, runtime)
 
     def application(environ, start_response):
-        request = request_from_environ(environ).with_identity(
-            actor_id=runtime.default_actor_id,
-            role_id=runtime.default_role,
-        )
+        request = _resolve_request_identity(request_from_environ(environ), runtime)
         try:
             if request.path.startswith("/static/"):
                 relative_path = request.path.removeprefix("/static/")

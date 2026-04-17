@@ -221,7 +221,7 @@ def evidence_guidance_body_html(
     if include_action and object_id:
         action_html = (
             "<p><strong>Next step:</strong> request evidence follow-up for any source that still needs stronger verification.</p>"
-            + f"<p>{link('Request evidence revalidation', evidence_revalidation_url(role, object_id), css_class='button button-secondary', attrs={'data-component': 'action-link', 'data-action-id': 'request_evidence_revalidation'})}</p>"
+            + f"<p>{link('Request evidence revalidation', evidence_revalidation_url(object_id), css_class='button button-secondary', attrs={'data-component': 'action-link', 'data-action-id': 'request_evidence_revalidation'})}</p>"
         )
     return (
         "<p>Link existing guidance or record a source title, reference, and note.</p>"

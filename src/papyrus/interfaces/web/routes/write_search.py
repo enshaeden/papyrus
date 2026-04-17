@@ -11,13 +11,13 @@ from papyrus.interfaces.web.presenters.governed_presenter import (
 
 def register(router, runtime) -> None:
     def citation_search_endpoint(request: Request):
-        require_experience(request, "operator")
+        experience = require_experience(request, "operator")
         query = request.query_value("query").strip()
         exclude_object_id = request.query_value("exclude_object_id").strip()
         if len(query) < 2:
             return json_response({"items": []})
         candidates = search_knowledge_objects(
-            query, limit=12, database_path=runtime.database_path, role="operator"
+            query, limit=12, database_path=runtime.database_path, role=experience.role
         )
         items: list[dict[str, str]] = []
         for candidate in candidates:
@@ -26,7 +26,9 @@ def register(router, runtime) -> None:
             if candidate.get("current_revision_id") is None:
                 continue
             detail = knowledge_object_detail(
-                str(candidate["object_id"]), database_path=runtime.database_path
+                str(candidate["object_id"]),
+                database_path=runtime.database_path,
+                visibility_role=experience.role,
             )
             reference_projection = detail.get("reference_projection") or {}
             if not bool(reference_projection.get("eligible")):
@@ -52,13 +54,13 @@ def register(router, runtime) -> None:
         return json_response({"items": items})
 
     def related_object_search_endpoint(request: Request):
-        require_experience(request, "operator")
+        experience = require_experience(request, "operator")
         query = request.query_value("query").strip()
         exclude_object_id = request.query_value("exclude_object_id").strip()
         if len(query) < 2:
             return json_response({"items": []})
         candidates = search_knowledge_objects(
-            query, limit=12, database_path=runtime.database_path, role="operator"
+            query, limit=12, database_path=runtime.database_path, role=experience.role
         )
         items: list[dict[str, str]] = []
         for candidate in candidates:

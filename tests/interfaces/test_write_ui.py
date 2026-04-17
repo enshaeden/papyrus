@@ -171,6 +171,31 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(status, "200 OK")
             self.assertIn("Remote Access Service Record", body)
 
+    def test_admin_inherits_shared_write_routes_and_search_helpers(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "runtime.db"
+            build_search_projection(database_path, workspace_root=fixture_source_root())
+            source_root = Path(temp_dir) / "repo"
+            application = web_app(database_path, source_root=source_root, default_role="admin")
+
+            status, _, write_body = call_wsgi(application, "/write/new")
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Start draft", write_body)
+            self.assertIn('data-role="admin"', write_body)
+
+            status, _, citations_body = call_wsgi(
+                application, "/write/citations/search?query=kb-troubleshooting-vpn-connectivity"
+            )
+            self.assertEqual(status, "200 OK")
+            self.assertIn("kb-troubleshooting-vpn-connectivity", citations_body)
+
+            status, _, objects_body = call_wsgi(
+                application,
+                "/write/objects/search?query=VPN&exclude_object_id=kb-troubleshooting-vpn-connectivity",
+            )
+            self.assertEqual(status, "200 OK")
+            self.assertIn("Remote Access Service Record", objects_body)
+
     def test_read_surface_does_not_offer_deferred_blueprints(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "runtime.db"

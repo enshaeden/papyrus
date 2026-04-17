@@ -142,7 +142,7 @@ def render_read_result_cards(*, role: str, items: list[dict[str, Any]]) -> str:
                 '<div class="read-result-card__actions">'
                 f"{link('Open article', queue_item_href(item, role=role), css_class='button button-primary', attrs={'data-action-id': 'open-primary-surface'})}"
                 + (
-                    f"{link('Open service', service_url(role, str(item['linked_services'][0]['service_id'])), css_class='button button-ghost')}"
+                    f"{link('Open service', service_url(str(item['linked_services'][0]['service_id'])), css_class='button button-ghost')}"
                     if item.get("linked_services") and role != READER_ROLE
                     else ""
                 )

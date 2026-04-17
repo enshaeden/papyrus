@@ -55,7 +55,7 @@ def register(router, runtime) -> None:
                     notes=result.cleaned_data["notes"],
                 )
                 return redirect_response(
-                    review_assignment_url(experience.role, object_id, revision_id)
+                    review_assignment_url(object_id, revision_id)
                     + f"?notice={quote_plus('Revision submitted for review')}"
                 )
             form_errors = result.errors

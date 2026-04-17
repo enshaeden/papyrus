@@ -130,7 +130,7 @@ def render_impact_selected_item(*, item: dict[str, Any], role: str, surface: str
                 f"<p><strong>Revalidate:</strong> {escape(' | '.join(item['revalidate']))}</p>",
             ]
         )
-        + f'<div class="impact-selected-item__footer">{link("Open guidance", object_url(role, str(item["object_id"])), css_class="button button-secondary")}</div>'
+        + f'<div class="impact-selected-item__footer">{link("Open guidance", object_url(str(item["object_id"])), css_class="button button-secondary")}</div>'
         + "</section>"
     )
 
@@ -183,7 +183,7 @@ def render_impact_trace(
             f"<td>{components.decision_cell(title_html=link(str(item['title']), _impact_selection_href(base_path, object_id=object_id, revision_id=revision_id), css_class='selected-row-link'), supporting_html=escape(item['reason']), meta=[escape(item['trust_state'])])}</td>"
             f"<td>{components.decision_cell(title_html=escape(item['what_changed']), supporting_html=escape(' -> '.join(item['propagation_path'])))}</td>"
             f"<td>{components.decision_cell(title_html=escape(' | '.join(item['revalidate'])))}</td>"
-            f"<td>{link('Open', object_url(role, object_id), css_class='button button-secondary')}</td>"
+            f"<td>{link('Open', object_url(object_id), css_class='button button-secondary')}</td>"
             "</tr>"
         )
     return (
@@ -243,7 +243,7 @@ def present_object_impact(
         role=role,
         title="Impacted guidance",
         items=impact["impacted_objects"],
-        base_path=impact_object_url(role, str(entity["object_id"])),
+        base_path=impact_object_url(str(entity["object_id"])),
         selected_item=selected_item,
         surface="impact-object",
         empty_label="No downstream knowledge objects were linked to this change.",
@@ -260,7 +260,7 @@ def present_object_impact(
                 ],
                 footer_html=link(
                     "Return to guidance",
-                    object_url(role, str(entity["object_id"])),
+                    object_url(str(entity["object_id"])),
                     css_class="button button-primary",
                 ),
                 surface="impact-object",
@@ -278,7 +278,7 @@ def present_object_impact(
                 title="Inbound relationships",
                 eyebrow="Relationships",
                 items_html=[
-                    f"{escape(item['relationship_type'])}: {link(item['title'], object_url(role, str(item['object_id'])))}"
+                    f"{escape(item['relationship_type'])}: {link(item['title'], object_url(str(item['object_id'])))}"
                     for item in impact["inbound_relationships"]
                 ],
                 empty_label="No inbound relationships were found.",
@@ -288,7 +288,7 @@ def present_object_impact(
                 title="Citation dependents",
                 eyebrow="Evidence",
                 items_html=[
-                    f'{link(item["title"], object_url(role, str(item["object_id"])))}<span class="list-meta">{escape(item["citation_status"])}</span>'
+                    f'{link(item["title"], object_url(str(item["object_id"])))}<span class="list-meta">{escape(item["citation_status"])}</span>'
                     for item in impact["citation_dependents"]
                 ],
                 empty_label="No citation dependents were found.",
@@ -298,7 +298,7 @@ def present_object_impact(
                 title="Related services",
                 eyebrow="Relationships",
                 items_html=[
-                    link(item["service_name"], service_url(role, str(item["service_id"])))
+                    link(item["service_name"], service_url(str(item["service_id"])))
                     for item in impact["related_services"]
                 ],
                 empty_label="No related services were linked.",
@@ -348,7 +348,7 @@ def present_service_impact(
         role=role,
         title="Impacted guidance",
         items=impact["impacted_objects"],
-        base_path=impact_service_url(role, str(entity["service_id"])),
+        base_path=impact_service_url(str(entity["service_id"])),
         selected_item=selected_item,
         surface="impact-service",
         empty_label="No downstream knowledge objects were linked to this service change.",
@@ -365,7 +365,7 @@ def present_service_impact(
                 ],
                 footer_html=link(
                     "Return to service",
-                    service_url(role, str(entity["service_id"])),
+                    service_url(str(entity["service_id"])),
                     css_class="button button-primary",
                 ),
                 surface="impact-service",

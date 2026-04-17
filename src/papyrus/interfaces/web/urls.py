@@ -24,15 +24,13 @@ def search_url(role: str | None = None) -> str:
     return "/read"
 
 
-def object_url(role: str | None, object_id: str) -> str:
+def object_url(object_id: str) -> str:
     encoded_object_id = quoted_path(object_id)
-    del role
     return f"/read/object/{encoded_object_id}"
 
 
-def object_history_url(role: str | None, object_id: str) -> str:
+def object_history_url(object_id: str) -> str:
     encoded_object_id = quoted_path(object_id)
-    del role
     return f"/read/object/{encoded_object_id}/revisions"
 
 
@@ -77,74 +75,61 @@ def import_review_url(ingestion_id: str) -> str:
     return f"/import/{quoted_path(ingestion_id)}/review"
 
 
-def review_queue_url(role: str | None = None) -> str:
-    del role
+def review_queue_url() -> str:
     return "/review"
 
 
-def review_decision_url(role: str | None, object_id: str, revision_id: str) -> str:
-    del role
+def review_decision_url(object_id: str, revision_id: str) -> str:
     return f"/review/object/{quoted_path(object_id)}/{quoted_path(revision_id)}"
 
 
-def review_assignment_url(role: str | None, object_id: str, revision_id: str) -> str:
-    return review_decision_url(role, object_id, revision_id) + "/assign"
+def review_assignment_url(object_id: str, revision_id: str) -> str:
+    return review_decision_url(object_id, revision_id) + "/assign"
 
 
-def supersede_url(role: str | None, object_id: str) -> str:
-    del role
+def supersede_url(object_id: str) -> str:
     return f"/review/object/{quoted_path(object_id)}/supersede"
 
 
-def archive_url(role: str | None, object_id: str) -> str:
-    del role
+def archive_url(object_id: str) -> str:
     return f"/review/object/{quoted_path(object_id)}/archive"
 
 
-def suspect_url(role: str | None, object_id: str) -> str:
-    del role
+def suspect_url(object_id: str) -> str:
     return f"/review/object/{quoted_path(object_id)}/suspect"
 
 
-def evidence_revalidation_url(role: str | None, object_id: str) -> str:
-    del role
+def evidence_revalidation_url(object_id: str) -> str:
     return f"/review/object/{quoted_path(object_id)}/evidence/revalidate"
 
 
-def oversight_url(role: str | None = None) -> str:
-    del role
+def oversight_url() -> str:
     return "/governance"
 
 
-def activity_url(role: str | None = None) -> str:
-    if normalize_role(role) == ADMIN_ROLE:
-        return "/admin/audit"
+def activity_url() -> str:
     return "/review/activity"
 
 
-def validation_runs_url(role: str | None = None) -> str:
-    del role
+def validation_runs_url() -> str:
     return "/review/validation-runs"
 
 
-def validation_run_new_url(role: str | None = None) -> str:
-    return validation_runs_url(role) + "/new"
+def validation_run_new_url() -> str:
+    return validation_runs_url() + "/new"
 
 
-def service_catalog_url(role: str | None = None) -> str:
-    del role
+def service_catalog_url() -> str:
     return "/governance/services"
 
 
-def service_url(role: str | None, service_id: str) -> str:
-    return f"{service_catalog_url(role)}/{quoted_path(service_id)}"
+def service_url(service_id: str) -> str:
+    return f"{service_catalog_url()}/{quoted_path(service_id)}"
 
 
-def impact_object_url(role: str | None, object_id: str) -> str:
-    del role
+def impact_object_url(object_id: str) -> str:
     return f"/review/impact/object/{quoted_path(object_id)}"
 
 
-def impact_service_url(role: str | None, service_id: str) -> str:
-    del role
+def impact_service_url(service_id: str) -> str:
     return f"/review/impact/service/{quoted_path(service_id)}"

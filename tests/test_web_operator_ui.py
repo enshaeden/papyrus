@@ -989,6 +989,14 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 governance_body,
             )
 
+            status, headers, _ = call_wsgi(admin_app, "/admin/audit")
+            self.assertEqual(status, "303 See Other")
+            self.assertEqual(headers["Location"], "/review/activity")
+
+            status, _, shared_audit_body = call_wsgi(admin_app, "/review/activity")
+            self.assertEqual(status, "200 OK")
+            self.assertIn('class="sidebar-link is-active" href="/admin/audit">Audit</a>', shared_audit_body)
+
             status, headers, _ = call_wsgi(
                 operator_app,
                 "/write/new",

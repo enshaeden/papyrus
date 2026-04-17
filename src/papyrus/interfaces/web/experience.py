@@ -7,6 +7,7 @@ from papyrus.application.role_visibility import (
     OPERATOR_ROLE,
     READER_ROLE,
     normalize_role,
+    role_meets_minimum,
 )
 
 
@@ -226,7 +227,10 @@ ADMIN_EXPERIENCE = ExperienceContext(
                     match_prefixes=("/governance/services",),
                 ),
                 ShellLink(
-                    "audit", "Audit", "/admin/audit", match_prefixes=("/admin/audit",)
+                    "activity",
+                    "Audit",
+                    "/admin/audit",
+                    match_prefixes=("/admin/audit", "/review/activity", "/review/validation-runs"),
                 ),
             ),
         ),
@@ -317,6 +321,8 @@ def experience_for_request(request) -> ExperienceContext:
 def require_experience(request, *allowed_roles: str) -> ExperienceContext:
     experience = experience_for_request(request)
     normalized_allowed = {normalize_role(role) for role in allowed_roles}
-    if normalized_allowed and experience.role not in normalized_allowed:
+    if normalized_allowed and not any(
+        role_meets_minimum(experience.role, role) for role in normalized_allowed
+    ):
         raise RoleAccessDeniedError(f"route denied for role {experience.role}")
     return experience

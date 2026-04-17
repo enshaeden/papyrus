@@ -51,6 +51,7 @@ from papyrus.interfaces.web.presenters.review_presenter import (
 )
 from papyrus.interfaces.web.route_utils import flash_html_for_request
 from papyrus.interfaces.web.urls import (
+    activity_url,
     object_url,
     review_decision_url,
     validation_runs_url,
@@ -109,7 +110,7 @@ def register(router, runtime) -> None:
                     notes=str(result.cleaned_data["notes"]),
                 )
                 return redirect_response(
-                    object_url(experience.role, object_id)
+                    object_url(object_id)
                     + f"?notice={quote_plus('Object superseded and audit trail recorded')}"
                 )
             errors = result.errors
@@ -146,7 +147,7 @@ def register(router, runtime) -> None:
                     changed_entity_id=result.cleaned_data["changed_entity_id"],
                 )
                 return redirect_response(
-                    object_url(experience.role, object_id)
+                    object_url(object_id)
                     + f"?notice={quote_plus('Object marked suspect with explicit rationale')}"
                 )
             errors = result.errors
@@ -195,7 +196,7 @@ def register(router, runtime) -> None:
                     acknowledgements=result.cleaned_data["acknowledgements"],
                 )
                 return redirect_response(
-                    object_url(experience.role, object_id)
+                    object_url(object_id)
                     + f"?notice={quote_plus('Object archived and canonical path moved under archive/knowledge/')}"
                 )
             errors = result.errors
@@ -224,7 +225,7 @@ def register(router, runtime) -> None:
                 notes=values["notes"] or None,
             )
             return redirect_response(
-                object_url(experience.role, object_id)
+                object_url(object_id)
                 + f"?notice={quote_plus('Evidence revalidation requested')}"
             )
         page = present_evidence_revalidation_page(
@@ -260,7 +261,7 @@ def register(router, runtime) -> None:
                     notes=result.cleaned_data["notes"],
                 )
                 return redirect_response(
-                    review_decision_url(experience.role, object_id, revision_id)
+                    review_decision_url(object_id, revision_id)
                     + f"?notice={quote_plus('Reviewer assigned')}"
                 )
             errors = result.errors
@@ -314,7 +315,7 @@ def register(router, runtime) -> None:
                             notes=result.cleaned_data["notes"],
                         )
                         return redirect_response(
-                            object_url(experience.role, object_id)
+                            object_url(object_id)
                             + f"?notice={quote_plus('Revision approved')}"
                         )
                     reject_revision_command(
@@ -327,7 +328,7 @@ def register(router, runtime) -> None:
                         notes=str(result.cleaned_data["notes"]),
                     )
                     return redirect_response(
-                        review_decision_url(experience.role, object_id, revision_id)
+                        review_decision_url(object_id, revision_id)
                         + f"?notice={quote_plus('Revision rejected')}"
                     )
                 except ValueError as exc:
@@ -386,7 +387,7 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page=page)
 
     def validation_run_new_page(request: Request):
-        experience = require_experience(request, "operator", "admin")
+        require_experience(request, "operator", "admin")
         values = {
             "run_id": request.form_value("run_id"),
             "run_type": request.form_value("run_type"),
@@ -409,7 +410,7 @@ def register(router, runtime) -> None:
                     actor=request.actor_id,
                 )
                 return redirect_response(
-                    validation_runs_url(experience.role)
+                    validation_runs_url()
                     + "?notice="
                     + quote_plus("Validation run recorded with audit evidence")
                 )
@@ -459,7 +460,12 @@ def register(router, runtime) -> None:
         minimum_visible_role="operator",
     )
     router.add(["GET"], "/review/activity", audit_page, minimum_visible_role="operator")
-    router.add(["GET"], "/admin/audit", audit_page, minimum_visible_role="admin")
+    router.add(
+        ["GET"],
+        "/admin/audit",
+        lambda request: redirect_response(activity_url()),
+        minimum_visible_role="admin",
+    )
     router.add(
         ["GET"],
         "/review/validation-runs",

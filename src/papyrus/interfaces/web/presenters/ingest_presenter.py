@@ -748,11 +748,11 @@ def render_ingest_convert_form(
             ),
         )
         + forms.field(
-            field_id="status",
-            label="Status",
+            field_id="object_lifecycle_state",
+            label="Lifecycle state",
             control_html=forms.select(
-                field_id="status",
-                name="status",
+                field_id="object_lifecycle_state",
+                name="object_lifecycle_state",
                 value="draft",
                 options=taxonomies["statuses"]["allowed_values"],
             ),

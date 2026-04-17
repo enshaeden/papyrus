@@ -82,7 +82,7 @@ def present_object_detail(
             [
                 link(
                     "See history",
-                    object_history_url(experience.role, str(item["object_id"])),
+                    object_history_url(str(item["object_id"])),
                     css_class="button button-ghost",
                 ),
                 compact_action_menu_html(
@@ -95,7 +95,7 @@ def present_object_detail(
                 ),
                 link(
                     "See impact",
-                    impact_object_url(experience.role, str(item["object_id"])),
+                    impact_object_url(str(item["object_id"])),
                     css_class="button button-ghost",
                 ),
             ]
@@ -105,9 +105,7 @@ def present_object_detail(
             0,
             link(
                 "Open review context",
-                review_decision_url(
-                    experience.role, str(item["object_id"]), str(revision["revision_id"])
-                ),
+                review_decision_url(str(item["object_id"]), str(revision["revision_id"])),
                 css_class="button button-primary",
             ),
         )
