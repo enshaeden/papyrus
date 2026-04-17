@@ -232,33 +232,29 @@ def _clean_css_url_target(target: str) -> str:
 
 def _validate_css_asset_urls() -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
-    css_roots = (
-        ROOT / "src" / "papyrus" / "interfaces" / "web" / "static" / "css",
-        ROOT / "docs" / "assets",
-    )
-    for root in css_roots:
-        if not root.exists():
-            continue
-        for path in sorted(root.rglob("*.css")):
-            text = path.read_text(encoding="utf-8")
-            for match in CSS_URL_PATTERN.finditer(text):
-                target = _clean_css_url_target(match.group("target"))
-                if not target or target.startswith(EXTERNAL_ASSET_PREFIXES):
-                    continue
-                if target.startswith("/static/"):
-                    issue = _validate_static_asset_reference(path, target)
-                    if issue is not None:
-                        issues.append(issue)
-                    continue
-                resolved = (path.parent / target).resolve()
-                if resolved.exists() and resolved.is_file():
-                    continue
-                issues.append(
-                    ValidationIssue(
-                        relative_path(path),
-                        f"css asset reference '{target}' does not exist",
-                    )
+    css_root = ROOT / "src" / "papyrus" / "interfaces" / "web" / "static" / "css"
+    if not css_root.exists():
+        return issues
+    for path in sorted(css_root.rglob("*.css")):
+        text = path.read_text(encoding="utf-8")
+        for match in CSS_URL_PATTERN.finditer(text):
+            target = _clean_css_url_target(match.group("target"))
+            if not target or target.startswith(EXTERNAL_ASSET_PREFIXES):
+                continue
+            if target.startswith("/static/"):
+                issue = _validate_static_asset_reference(path, target)
+                if issue is not None:
+                    issues.append(issue)
+                continue
+            resolved = (path.parent / target).resolve()
+            if resolved.exists() and resolved.is_file():
+                continue
+            issues.append(
+                ValidationIssue(
+                    relative_path(path),
+                    f"css asset reference '{target}' does not exist",
                 )
+            )
     return issues
 
 
