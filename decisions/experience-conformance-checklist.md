@@ -320,11 +320,11 @@ For each shared route above:
 
 Confirm these retired paths fail closed:
 
-- `/operator/read`
-- `/reader/object/{object_id}`
-- `/admin/inspect`
-- `/dashboard/oversight`
-- `/review/queue`
-- `/operator/import`
-- `/operator/write/new`
-- `/write/advanced`
+- legacy operator read route
+- legacy reader object route
+- legacy admin inspect route
+- legacy dashboard oversight route
+- legacy review queue route
+- legacy operator import route
+- legacy operator write-new route
+- retired advanced write route

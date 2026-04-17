@@ -7,7 +7,7 @@ Derived from the registered Papyrus web routes. Do not edit by hand.
 | `GET` | `/` | `reader` | `papyrus.interfaces.web.routes.home.root_landing` |
 | `GET` | `/admin` | `admin` | `papyrus.interfaces.web.routes.admin.admin_landing` |
 | `GET` | `/admin/access` | `admin` | `papyrus.interfaces.web.routes.admin.access_page` |
-| `GET` | `/admin/audit` | `admin` | `papyrus.interfaces.web.routes.manage.audit_page` |
+| `GET` | `/admin/audit` | `admin` | `papyrus.interfaces.web.routes.manage.<lambda>` |
 | `GET` | `/admin/overview` | `admin` | `papyrus.interfaces.web.routes.admin.overview_page` |
 | `GET` | `/admin/schemas` | `admin` | `papyrus.interfaces.web.routes.admin.schemas_page` |
 | `GET` | `/admin/settings` | `admin` | `papyrus.interfaces.web.routes.admin.settings_page` |

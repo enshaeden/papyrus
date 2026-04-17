@@ -9,7 +9,7 @@ This pass closed highest-risk shared-route drift:
 - Request bootstrap now resolves request identity before route handling through `_resolve_request_identity`. `src/papyrus/interfaces/web/app.py:182-183`
 - Root landing now keys off request role instead of app-global runtime default. `src/papyrus/interfaces/web/routes/home.py:7-10`
 - Shared-route access now honors role hierarchy through `role_meets_minimum` instead of exact-role matching. `src/papyrus/interfaces/web/experience.py:321-327`
-- Shared Admin access now reaches `/write/new`, `/import`, and `/write/*/search` through canonical Operator-owned routes. `src/papyrus/interfaces/web/routes/write_search.py:13-63`
+- Shared Admin access now reaches `/write/new`, `/import`, `/write/citations/search`, and `/write/objects/search` through canonical Operator-owned routes. `src/papyrus/interfaces/web/routes/write_search.py:13-63`
 - Admin audit path is reduced to redirect compatibility instead of duplicate page ownership. `src/papyrus/interfaces/web/routes/manage.py:462-468`
 - Ingest mapping review now renders canonical field name `object_lifecycle_state`. `src/papyrus/interfaces/web/routes/ingest.py:108-156`, `src/papyrus/interfaces/web/presenters/ingest_presenter.py:751-755`
 - Role-shaped URL helper shims that no longer changed output were removed from canonical helper signatures. `src/papyrus/interfaces/web/urls.py:27-135`
@@ -119,14 +119,14 @@ This pass closed highest-risk shared-route drift:
 ### High urgency
 
 - Update bookmarks, links, scripts, and browser tests away from retired role-shaped routes:
-  `/operator/read`
-  `/reader/object/{object_id}`
-  `/admin/inspect`
-  `/dashboard/oversight`
-  `/review/queue`
-  `/operator/import`
-  `/operator/write/new`
-  `/write/advanced`
+  legacy /operator/read path
+  legacy /reader/object/{object_id} path
+  legacy admin inspect path
+  legacy /dashboard/oversight path
+  legacy review queue path
+  legacy /operator/import path
+  legacy /operator/write/new path
+  retired advanced write route copy
 - Update all external ingest form automation from `status` to `object_lifecycle_state`.
 - Update any schema consumers that still look for retired outward lifecycle labels:
   `revision_state`
@@ -140,9 +140,7 @@ This pass closed highest-risk shared-route drift:
 - Replace outward dev actor defaults that still name:
   `local.reviewer`
   `local.manager`
-- Confirm no external runbooks still reference removed migration scripts:
-  `scripts/import_knowledge_portal.py`
-  `scripts/validate_migration.py`
+- Confirm no external runbooks still reference removed migration scripts from the old migration pass.
 
 ### Low urgency
 

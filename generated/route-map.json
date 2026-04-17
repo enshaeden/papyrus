@@ -29,7 +29,7 @@
     },
     {
       "handler_module": "papyrus.interfaces.web.routes.manage",
-      "handler_name": "audit_page",
+      "handler_name": "<lambda>",
       "methods": [
         "GET"
       ],
