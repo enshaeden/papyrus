@@ -13,7 +13,7 @@ When a deeper `AGENTS.md` exists in a subdirectory, the deeper file governs work
 When making trade-offs, prioritise in this order:
 
 1. Canonical source integrity
-2. Schema and taxonomy consistency
+2. Knowledge-model consistency across schemas, taxonomies, and templates
 3. Reproducible generation and build behaviour
 4. Clear information architecture
 5. UX clarity for operators and readers
@@ -26,32 +26,33 @@ Do not sacrifice structural correctness for visual polish or speed.
 
 When files or outputs disagree, use this order of authority unless a deeper `AGENTS.md` explicitly narrows it:
 
-1. `schemas/` for field definitions, validation rules, and repository policy definitions
-2. `taxonomies/` for controlled vocabularies and classification structures
-3. `templates/` for approved content structures and authoring patterns
-4. explicit external workspace source trees such as `knowledge/` and `archive/knowledge/` when a task includes source-backed content
-5. `decisions/` for intentional deviations, design rationale, and governance records
-6. `src/` for application source code for system behaviour and interfaces
-7. `docs/` for explanatory and operational documentation
-8. `generated/` and `build/` for derived artifacts only
+1. `knowledge_engine/` for knowledge-object schemas, taxonomies, templates, and related model rules
+2. explicit external workspace source trees such as `knowledge/` and `archive/knowledge/` when a task includes source-backed content
+3. `decisions/` for intentional deviations, design rationale, and governance records
+4. `src/` for application source code for system behaviour and interfaces
+5. `docs/` for reserved production-content structure and guidance, and for governed production knowledge content when the repository is used as a live production authoring environment
+6. `generated/` and `build/` for derived artifacts only
 
 Rendered, indexed, exported, copied, cached, or generated outputs are never authoritative.
 
 ## Runtime Boundary
 
-- This repository does not ship a canonical knowledge corpus. Source-backed work uses explicit workspace source trees such as `knowledge/` and `archive/knowledge/`.
+- This repository does not ship a canonical knowledge corpus.
+- Canonical knowledge articles and objects are not committed to this repository.
+- `docs/` is reserved as the in-repository location for governed production knowledge content if and when Papyrus is used as an active production authoring environment, but it should not contain committed knowledge corpus content beyond initial structure folders or guidance files.
 - Shipped and read-only runtime surfaces must boot from the runtime database plus retained derived artifacts. They must not universally require repo-local source Markdown.
 - Source-backed authoring, writeback, sync, ingest conversion, and similar source-dependent mutations are workspace-only operations.
 - Runtime packaging may exclude workspace source trees as long as the runtime database and retained derived artifacts required by read-only surfaces are present.
 
 ## Canonical Content Rules
 
-- Canonical knowledge articles and objects are not committed to this repository. When source-backed operations are in scope, they live only under explicit workspace roots such as `knowledge/` and `archive/knowledge/`.
-- Canonical explanatory documentation lives only under `docs/`.
+- `docs/` is reserved as the repository location for governed production knowledge content in a live production deployment.
+- In this repository state, `docs/` should contain only initial structure folders, scaffolding, or guidance files, not a committed production knowledge corpus.
+- Papyrus system knowledge and repository-explanatory material may live under explicit source trees such as `knowledge/` when that subtree is intentionally in scope.
 - Architectural and governance decisions live under `decisions/`.
-- Controlled vocabularies live only under `taxonomies/`.
-- Field definitions and repository policy definitions live only under `schemas/`.
-- Approved authoring and content templates live only under `templates/`.
+- Controlled vocabularies live only under `knowledge_engine/taxonomies/`.
+- Field definitions and repository policy definitions live only under `knowledge_engine/schemas/`.
+- Approved authoring and content templates live only under `knowledge_engine/templates/`.
 
 Do not duplicate canonical content across directories.
 Do not create shadow copies of knowledge objects in documentation, UI fixtures, or test helpers unless the task explicitly requires a controlled fixture.
@@ -69,9 +70,9 @@ Do not create shadow copies of knowledge objects in documentation, UI fixtures, 
 ## Anti-Sprawl Rules
 
 - Do not add new top-level folders without recorded rationale in `decisions/`.
-- Do not create duplicate templates, parallel schemas, parallel taxonomies, or alternate content pipelines.
+- Do not create duplicate templates, parallel schemas, parallel taxonomies, or alternate model definitions outside `knowledge_engine/`.
 - Reuse existing schema, taxonomy, and approved template structures instead of forking them.
-- Do not copy canonical article content into `docs/`.
+- Do not populate `docs/` with migrated, duplicate, or placeholder knowledge corpus content beyond its initial structure folders or guidance files until the repository is intentionally operating as a production content environment.
 - Archive retired content instead of silently replacing or overwriting it.
 - Prefer consolidation over expansion when resolving drift or inconsistency.
 
@@ -117,9 +118,9 @@ Interface-specific execution rules belong in subtree `AGENTS.md` files for the r
 
 ## Canonical Content Governance
 
-Canonical knowledge content must comply with the governing schemas, taxonomies, templates, and lifecycle policy.
-Detailed knowledge-object and metadata rules are defined by the repository schemas, templates, and lifecycle policy.
-Changes to schemas or taxonomies require rationale recorded in `decisions/`.
+Canonical knowledge content, when present in scope, must comply with the governing knowledge model, including schemas, taxonomies, templates, and lifecycle policy.
+Detailed knowledge-object and metadata rules are defined under `knowledge_engine/` and related repository policy.
+Changes to schemas, taxonomies, or templates require rationale recorded in `decisions/`.
 
 ## Ingestion and Transformation Rules
 
@@ -137,7 +138,7 @@ When working on importers, parsers, ingestion flows, or transformation pipelines
 
 ## Documentation Rules
 
-Documentation must explain the system that exists now, not the system that used to exist and not the system hoped for later.
+Repository documentation in `knowledge/` and guidance material in `docs/` must describe the system or subject matter that exists now, not preserve stale implementation language or aspirational behaviour as fact.
 
 When code, content model, generation flows, UX flows, or CLI commands change:
 
@@ -154,7 +155,7 @@ If documentation and implementation conflict, correct the documentation or fix t
 - Do not patch derived artifacts to simulate a fix.
 - Do not perform broad rewrites when a targeted structural change will solve the problem cleanly.
 - Do not rename, move, or split canonical content without updating references, generation flows, and rationale where required.
-- When a task affects shared primitives, schemas, taxonomies, templates, or navigation architecture, plan first before editing.
+- When a task affects shared knowledge-model primitives in `knowledge_engine/`, navigation architecture, or other cross-cutting contracts, plan first before editing.
 - When touching UI, verify the affected route or flow directly instead of assuming a shared component change solved it everywhere.
 - When touching generators or importers, verify both source correctness and regenerated output correctness.
 - When touching documentation, verify that file paths, commands, and screenshots or examples still match the current repo.
@@ -193,7 +194,7 @@ Minimum completion bar:
 - no canonical-versus-derived drift remains
 - affected documentation is updated or explicitly confirmed current
 - affected routes, views, or flows are manually checked for obvious regressions
-- schema or taxonomy changes include rationale in `decisions/`
+- schema, taxonomy, or template changes include rationale in `decisions/`
 
 ## Reporting Format
 
@@ -211,7 +212,7 @@ Do not state or imply success without this evidence.
 Create a written plan before editing when the task:
 
 - touches multiple top-level directories
-- changes shared schemas, taxonomies, or templates
+- changes shared knowledge-model material such as schemas, taxonomies, or templates in `knowledge_engine/`
 - changes ingestion or transformation behaviour
 - restructures canonical content
 - modifies generators, build flows, or publishing flows
@@ -226,7 +227,7 @@ Strong candidates include:
 
 - `apps/web/` for layout, navigation, reading mode, and design-system rules
 - `apps/cli/` for command behaviour and output expectations
-- `docs/` for documentation drift and evidence standards
-- generator or importer directories for transformation-specific guardrails
+- `docs/` for reserved production-content structure, guidance-file rules, and future governed-content expectations
+- `knowledge_engine/` for schema, taxonomy, template, and model-integrity rules
 
 The deeper file must narrow or extend these rules, not contradict them without explicit rationale.
