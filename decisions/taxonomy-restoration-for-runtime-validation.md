@@ -1,7 +1,5 @@
 # Taxonomy Restoration For Runtime Validation
 
-Status: Approved
-Owner: Repository Governance
 Scope: Controlled vocabulary values required by canonical knowledge content and runtime projection validation
 
 ## Purpose
