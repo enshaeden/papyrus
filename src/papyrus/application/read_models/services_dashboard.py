@@ -51,7 +51,7 @@ def service_detail(
                     o.canonical_path,
                     o.object_lifecycle_state,
                     o.trust_state,
-                    COALESCE(d.revision_review_state, CASE WHEN o.current_revision_id IS NULL THEN 'draft' ELSE 'unknown' END) AS revision_review_state,
+                    COALESCE(d.revision_review_state, CASE WHEN o.current_revision_id IS NULL THEN 'in_progress' ELSE 'unknown' END) AS revision_review_state,
                     d.citation_health_rank,
                     d.freshness_rank,
                     r.relationship_type

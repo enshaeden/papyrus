@@ -15,7 +15,7 @@ Use it when changing:
 - role-conditioned navigation
 - actor-to-role transition rules
 
-Concrete shell composition rules live in `layout-contracts-by-role.md`.
+Concrete shell composition rules live in `layout-contracts.md`.
 Knowledge lifecycle and workflow state machines live in `knowledge-workflows-and-lifecycle.md`.
 
 Papyrus uses one root interface, one production shell, and one shared route space.
@@ -68,8 +68,28 @@ The actor model is a transitional development and testing mechanism.
 Actors may shape local defaults such as landing path, emphasis, density, and workflow priority in development.
 Actors must not be treated as authority for permanent route structure, navigation architecture, shell structure, or production visibility boundaries.
 
+## Canonical request identity
+
+Papyrus must resolve the current request role from canonical request identity, not from URL shape.
+
+The local runtime uses runtime configuration to set a default actor for incoming requests.
+The current role is then derived from that actor mapping for route guards, navigation, and layout composition.
+
+Rules:
+
+- URL path prefixes are not role authority.
+- Query parameters and cookies are not role authority unless a later decision explicitly defines them.
+- Each request must carry canonical `actor_id` and `role_id` before route dispatch.
+- Route visibility, action visibility, navigation visibility, search visibility, and layout composition must all consume that same request-scoped identity.
+- `/` may resolve to a role-appropriate landing path after the request role is known.
+- Local runtime defaults are:
+  - Reader -> `/read`
+  - Operator -> `/review`
+  - Admin -> `/admin/overview`
+
 ### Current mapping
 
+- `local.reader` maps to Reader.
 - `local.operator` maps to Operator.
 - `local.reviewer` maps to Operator with review-heavy development defaults.
 - `local.manager` maps to Admin-oriented development defaults. It does not establish a fourth production role.
@@ -119,8 +139,6 @@ Illustrative route families include:
 - `/read`
 - `/read/object/{object_id}`
 - `/read/object/{object_id}/revisions`
-- `/read/services`
-- `/read/services/{service_id}`
 
 ### Operator-visible work surfaces
 

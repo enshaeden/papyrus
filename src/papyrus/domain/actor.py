@@ -18,6 +18,12 @@ class ActorIdentity:
             raise ValueError("role_hint is required")
 
 
+LOCAL_READER_ACTOR = ActorIdentity(
+    actor_id="local.reader",
+    display_name="Local Reader",
+    role_hint="reader",
+)
+
 DEFAULT_LOCAL_ACTOR = ActorIdentity(
     actor_id="local.operator",
     display_name="Local Operator",
@@ -25,6 +31,7 @@ DEFAULT_LOCAL_ACTOR = ActorIdentity(
 )
 
 LOCAL_ACTORS: tuple[ActorIdentity, ...] = (
+    LOCAL_READER_ACTOR,
     DEFAULT_LOCAL_ACTOR,
     ActorIdentity(
         actor_id="local.reviewer",
@@ -39,6 +46,11 @@ LOCAL_ACTORS: tuple[ActorIdentity, ...] = (
 )
 
 _ACTORS_BY_ID = {actor.actor_id: actor for actor in LOCAL_ACTORS}
+_DEFAULT_ACTOR_BY_ROLE = {
+    "reader": LOCAL_READER_ACTOR,
+    "operator": DEFAULT_LOCAL_ACTOR,
+    "admin": _ACTORS_BY_ID["local.manager"],
+}
 
 
 def resolve_actor(actor_id: str | None = None) -> ActorIdentity:
@@ -50,6 +62,12 @@ def resolve_actor(actor_id: str | None = None) -> ActorIdentity:
 
 def default_actor_id() -> str:
     return DEFAULT_LOCAL_ACTOR.actor_id
+
+
+def default_actor_id_for_role(role: str | None = None) -> str:
+    normalized = str(role or "").strip().lower()
+    actor = _DEFAULT_ACTOR_BY_ROLE.get(normalized, DEFAULT_LOCAL_ACTOR)
+    return actor.actor_id
 
 
 def actor_registry() -> tuple[ActorIdentity, ...]:

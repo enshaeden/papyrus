@@ -14,6 +14,8 @@ class WebRuntime:
     allow_web_ingest_local_paths: bool
     page_renderer: PageRenderer
     taxonomies: dict[str, dict[str, Any]]
+    default_actor_id: str
+    default_role: str
 
     @property
     def template_renderer(self):

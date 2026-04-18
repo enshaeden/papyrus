@@ -47,7 +47,7 @@ class CliWorkflowTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             self.assertTrue(json_output.exists())
             self.assertTrue(markdown_output.exists())
-            self.assertIn("/operator/read", json_output.read_text(encoding="utf-8"))
+            self.assertIn("/read", json_output.read_text(encoding="utf-8"))
             self.assertIn("Route Map", markdown_output.read_text(encoding="utf-8"))
 
             check_result = run_command(
@@ -62,11 +62,11 @@ class CliWorkflowTests(unittest.TestCase):
                 check_result.returncode, 0, msg=check_result.stdout + check_result.stderr
             )
 
-    def test_new_article_cli(self) -> None:
+    def test_new_object_cli(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
             result = run_command(
-                "scripts/new_article.py",
+                "scripts/new_object.py",
                 "--root",
                 str(temp_root),
                 "--type",
@@ -95,7 +95,7 @@ class CliWorkflowTests(unittest.TestCase):
     def test_list_object_types_cli_with_external_source_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             result = run_command(
-                "scripts/new_article.py",
+                "scripts/new_object.py",
                 "--root",
                 temp_dir,
                 "--list-object-types",
@@ -105,13 +105,13 @@ class CliWorkflowTests(unittest.TestCase):
             self.assertIn("service_record", result.stdout)
 
     def test_list_taxonomy_cli(self) -> None:
-        result = run_command("scripts/new_article.py", "--list-taxonomy", "services")
+        result = run_command("scripts/new_object.py", "--list-taxonomy", "services")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("[services]", result.stdout)
         self.assertIn("Remote Access", result.stdout)
 
     def test_list_object_types_cli(self) -> None:
-        result = run_command("scripts/new_article.py", "--list-object-types")
+        result = run_command("scripts/new_object.py", "--list-object-types")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("[object_types]", result.stdout)
         self.assertIn("service_record", result.stdout)

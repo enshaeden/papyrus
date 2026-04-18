@@ -26,7 +26,7 @@ def render_service_map(*, role: str, services: list[dict[str, Any]]) -> str:
                 (
                     '<article class="service-map__card" data-component="service-map-card" data-surface="services">'
                     f'<p class="service-map__kicker">{escape(service["service_criticality"])} · {escape(service["status"])}</p>'
-                    f"<h2>{link(service['service_name'], service_url(role, str(service['service_id'])))}</h2>"
+                    f"<h2>{link(service['service_name'], service_url(str(service['service_id'])))}</h2>"
                     f'<p class="service-map__summary">{escape(service_status(service))}</p>'
                     '<dl class="service-map__facts">'
                     f"<div><dt>Owner</dt><dd>{escape(service['owner'] or 'Unassigned')}</dd></div>"
@@ -34,7 +34,7 @@ def render_service_map(*, role: str, services: list[dict[str, Any]]) -> str:
                     f"<div><dt>Linked guidance</dt><dd>{escape(service['linked_object_count'])}</dd></div>"
                     "</dl>"
                     '<div class="service-map__actions">'
-                    f"{link('Open service path', service_url(role, str(service['service_id'])), css_class='button button-primary', attrs={'data-action-id': 'open-service-path'})}"
+                    f"{link('Open service path', service_url(str(service['service_id'])), css_class='button button-primary', attrs={'data-action-id': 'open-service-path'})}"
                     "</div></article>"
                 )
                 for service in services
@@ -70,9 +70,9 @@ def render_service_path(*, role: str, linked_objects: list[dict[str, Any]]) -> s
                 (
                     '<article class="service-path__item" data-component="service-path-item" data-surface="services">'
                     f'<p class="service-path__meta">{escape(item["relationship_type"])} · {escape(item["trust_state"])} · {escape(item["revision_review_state"] or "unknown")}</p>'
-                    f"<h3>{link(item['title'], object_url(role, str(item['object_id'])))}</h3>"
+                    f"<h3>{link(item['title'], object_url(str(item['object_id'])))}</h3>"
                     f"<p>{escape(item['path'])}</p>"
-                    f"{link('Open content', object_url(role, str(item['object_id'])), css_class='button button-ghost', attrs={'data-action-id': 'open-primary-surface'})}"
+                    f"{link('Open content', object_url(str(item['object_id'])), css_class='button button-ghost', attrs={'data-action-id': 'open-primary-surface'})}"
                     "</article>"
                 )
                 for item in linked_objects
@@ -105,7 +105,7 @@ def present_service_detail(
     actions = [
         link(
             "Review service impact",
-            impact_service_url(role, str(service["service_id"])),
+            impact_service_url(str(service["service_id"])),
             css_class="button button-primary",
         ),
     ]
@@ -113,7 +113,7 @@ def present_service_detail(
         actions.append(
             link(
                 "Open canonical record",
-                object_url(role, str(detail["canonical_object"]["object_id"])),
+                object_url(str(detail["canonical_object"]["object_id"])),
                 css_class="button button-ghost",
             )
         )

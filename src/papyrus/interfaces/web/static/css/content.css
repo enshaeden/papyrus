@@ -1,10 +1,10 @@
-.page-article {
+.page-content {
   display: grid;
   gap: 1.4rem;
 }
 
-.article-section__kicker,
-.article-context-panel__kicker {
+.content-section__kicker,
+.context-panel__kicker {
   margin: 0 0 0.35rem;
   font-size: 0.72rem;
   font-weight: 800;
@@ -13,28 +13,28 @@
   color: var(--color-panel-governance-label);
 }
 
-.article-flow {
+.content-flow {
   display: grid;
   gap: 1.5rem;
   min-width: 0;
   max-inline-size: var(--measure-prose);
 }
 
-.article-appendix {
+.context-flow {
   display: grid;
   gap: 1.15rem;
   min-width: 0;
   max-inline-size: var(--measure-prose);
 }
 
-.article-section {
+.content-section {
   display: grid;
   gap: 0.7rem;
   padding: 0 0 1.6rem;
   border-bottom: 1px solid var(--color-border-default);
 }
 
-.article-section h2 {
+.content-section h2 {
   margin: 0;
   font-family: var(--font-sans);
   font-size: clamp(1.3rem, 2vw, 1.65rem);
@@ -44,42 +44,42 @@
   overflow-wrap: anywhere;
 }
 
-.article-block + .article-block {
+.content-block + .content-block {
   margin-top: 1rem;
 }
 
-.article-block-title {
+.content-block-title {
   margin: 0 0 0.45rem;
   font-weight: 700;
   color: var(--color-panel-governance-label);
 }
 
-.article-section p,
-.article-section li,
-.article-context-panel p,
-.article-context-panel li {
+.content-section p,
+.content-section li,
+.context-panel p,
+.context-panel li {
   max-inline-size: var(--measure-prose);
   font-size: 1rem;
   line-height: 1.74;
 }
 
-.article-list {
+.content-list {
   margin: 0;
   padding-left: 1.15rem;
 }
 
-.article-facts {
+.content-facts {
   display: grid;
   gap: 0.65rem;
   margin: 1rem 0 0;
 }
 
-.article-facts div {
+.content-facts div {
   display: grid;
   gap: 0.2rem;
 }
 
-.article-facts dt {
+.content-facts dt {
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -87,17 +87,17 @@
   color: var(--color-panel-governance-label);
 }
 
-.article-facts dd {
+.content-facts dd {
   margin: 0;
   overflow-wrap: anywhere;
 }
 
-.article-empty {
+.content-empty {
   margin: 0;
   color: var(--color-text-muted);
 }
 
-.article-context-panel {
+.context-panel {
   display: grid;
   gap: 0.7rem;
   padding: 1rem 1.05rem;
@@ -107,13 +107,13 @@
   box-shadow: none;
 }
 
-.article-appendix .article-context-panel {
+.context-flow .context-panel {
   padding: 1rem 1.05rem;
   border-color: rgba(93, 55, 84, 0.1);
   background: rgba(255, 255, 255, 0.74);
 }
 
-.article-context-panel__source summary {
+.context-panel__source summary {
   cursor: pointer;
   font-weight: 700;
   color: var(--color-panel-governance-label);

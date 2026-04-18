@@ -66,8 +66,10 @@ def register(router, runtime) -> None:
             )
         )
 
-    router.add(["GET"], "/reader/object/{object_id}", object_detail_page)
-    router.add(["GET"], "/operator/read/object/{object_id}", object_detail_page)
-    router.add(["GET"], "/admin/inspect/object/{object_id}", object_detail_page)
-    router.add(["GET"], "/operator/read/object/{object_id}/revisions", object_revision_history_page)
-    router.add(["GET"], "/admin/inspect/object/{object_id}/revisions", object_revision_history_page)
+    router.add(["GET"], "/read/object/{object_id}", object_detail_page, minimum_visible_role="reader")
+    router.add(
+        ["GET"],
+        "/read/object/{object_id}/revisions",
+        object_revision_history_page,
+        minimum_visible_role="operator",
+    )

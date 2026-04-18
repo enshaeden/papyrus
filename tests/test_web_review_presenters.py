@@ -45,7 +45,7 @@ class ReviewPresenterTests(SemanticHookAssertions, unittest.TestCase):
             active_object_id="kb-review",
             active_revision_id="kb-review-r1",
             action_html_resolver=lambda item: (
-                f'<a href="/operator/read/object/{item["object_id"]}">Open</a>'
+                f'<a href="/read/object/{item["object_id"]}">Open</a>'
             ),
         )
 

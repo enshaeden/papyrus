@@ -25,7 +25,6 @@ MODULES = (
     "papyrus.interfaces.web.routes.write_object",
     "papyrus.interfaces.web.routes.ingest",
     "papyrus.interfaces.web.presenters.governed_presenter",
-    "papyrus.interfaces.web.presenters.home_presenter",
     "papyrus.interfaces.web.presenters.ingest_presenter",
     "papyrus.interfaces.web.presenters.object_presenter",
     "papyrus.interfaces.web.presenters.dashboard_presenter",

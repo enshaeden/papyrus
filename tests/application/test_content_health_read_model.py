@@ -54,7 +54,7 @@ class ContentHealthReadModelTests(unittest.TestCase):
             any(
                 "kb-applications-access-and-license-management-add-productivity-platform-licenses"
                 in line
-                and "legacy_article_type" in line
+                and "source_type=imported" in line
                 for line in fallback_lines
             )
         )

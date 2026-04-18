@@ -14,6 +14,15 @@ from papyrus.application.queries import knowledge_object_detail, review_detail
 from papyrus.application.review_flow import GovernanceWorkflow
 
 
+def ready_runbook_body(summary: str) -> str:
+    return (
+        "## Use When\n\n"
+        + summary.strip()
+        + "\n\n## Boundaries And Escalation\n\n"
+        + "Escalate when the documented workflow does not restore the expected operator outcome."
+    )
+
+
 def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str, object]:
     return {
         "id": object_id,
@@ -21,7 +30,6 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "canonical_path": canonical_path,
         "summary": f"Contract projection for {title.lower()}",
         "knowledge_object_type": "runbook",
-        "legacy_article_type": None,
         "object_lifecycle_state": "active",
         "owner": "workflow_owner",
         "source_type": "native",
@@ -52,7 +60,6 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "superseded_by": None,
         "retirement_reason": None,
         "services": ["Remote Access"],
-        "related_articles": [],
         "references": [{"title": "System model", "path": "knowledge/system-model.md"}],
         "change_log": [
             {"date": "2026-04-09", "summary": "Contract projection draft.", "author": "tests"}
@@ -82,7 +89,7 @@ class QueryContractTests(unittest.TestCase):
                 normalized_payload=runbook_payload(
                     created.object_id, created.canonical_path, created.title
                 ),
-                body_markdown="## Use When\n\nExercise query contract coverage.\n",
+                body_markdown=ready_runbook_body("Exercise query contract coverage."),
                 actor="tests",
                 change_summary="Initial contract revision.",
             )
@@ -145,7 +152,7 @@ class QueryContractTests(unittest.TestCase):
                 normalized_payload=runbook_payload(
                     created.object_id, created.canonical_path, created.title
                 ),
-                body_markdown="## Use When\n\nExercise source sync contract coverage.\n",
+                body_markdown=ready_runbook_body("Exercise source sync contract coverage."),
                 actor="tests",
                 change_summary="Source sync contract revision.",
             )

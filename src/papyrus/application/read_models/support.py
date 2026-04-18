@@ -86,11 +86,11 @@ def _object_lifecycle_value(row: sqlite3.Row) -> str:
 
 
 def _revision_review_value(row: sqlite3.Row) -> str:
-    return str(row["revision_review_state"] or "draft")
+    return str(row["revision_review_state"] or "in_progress")
 
 
-def _draft_progress_value(row: sqlite3.Row) -> str:
-    return str(row["draft_progress_state"] or "ready_for_review")
+def _draft_progress_value(row: sqlite3.Row) -> str | None:
+    return str(row["draft_progress_state"]) if row["draft_progress_state"] is not None else None
 
 
 def _source_sync_value(row: sqlite3.Row) -> str:

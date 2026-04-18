@@ -41,7 +41,7 @@ def _page_definition(
 
 def render_activity_filter_bar(*, role: str, object_id: str | None, selected_group: str) -> str:
     return (
-        f'<form class="activity-filter-bar" method="get" action="{escape(activity_url(role))}" data-component="activity-filter-bar" data-surface="activity">'
+        f'<form class="activity-filter-bar" method="get" action="{escape(activity_url())}" data-component="activity-filter-bar" data-surface="activity">'
         f'<input type="text" name="object_id" placeholder="Filter object ID" value="{escape(object_id or "")}" />'
         '<select name="group">'
         f'<option value=""{" selected" if not selected_group else ""}>All activity groups</option>'
@@ -159,7 +159,7 @@ def present_validation_runs_page(
         items=[
             link(
                 "Record validation run",
-                validation_run_new_url(role),
+                validation_run_new_url(),
                 css_class="button button-primary",
             )
         ]

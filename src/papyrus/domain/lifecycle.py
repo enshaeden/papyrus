@@ -12,7 +12,7 @@ class ObjectLifecycleState(StrEnum):
 
 
 class RevisionReviewState(StrEnum):
-    DRAFT = "draft"
+    IN_PROGRESS = "in_progress"
     IN_REVIEW = "in_review"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -21,7 +21,6 @@ class RevisionReviewState(StrEnum):
 
 class DraftProgressState(StrEnum):
     BLOCKED = "blocked"
-    IN_PROGRESS = "in_progress"
     READY_FOR_REVIEW = "ready_for_review"
 
 
@@ -49,29 +48,19 @@ OBJECT_LIFECYCLE_TRANSITIONS: dict[ObjectLifecycleState, tuple[ObjectLifecycleSt
 }
 
 REVISION_REVIEW_TRANSITIONS: dict[RevisionReviewState, tuple[RevisionReviewState, ...]] = {
-    RevisionReviewState.DRAFT: (RevisionReviewState.IN_REVIEW,),
+    RevisionReviewState.IN_PROGRESS: (RevisionReviewState.IN_REVIEW,),
     RevisionReviewState.IN_REVIEW: (
         RevisionReviewState.APPROVED,
         RevisionReviewState.REJECTED,
     ),
     RevisionReviewState.APPROVED: (RevisionReviewState.SUPERSEDED,),
-    RevisionReviewState.REJECTED: (RevisionReviewState.DRAFT,),
+    RevisionReviewState.REJECTED: (RevisionReviewState.IN_PROGRESS,),
     RevisionReviewState.SUPERSEDED: (),
 }
 
 DRAFT_PROGRESS_TRANSITIONS: dict[DraftProgressState, tuple[DraftProgressState, ...]] = {
-    DraftProgressState.BLOCKED: (
-        DraftProgressState.IN_PROGRESS,
-        DraftProgressState.READY_FOR_REVIEW,
-    ),
-    DraftProgressState.IN_PROGRESS: (
-        DraftProgressState.BLOCKED,
-        DraftProgressState.READY_FOR_REVIEW,
-    ),
-    DraftProgressState.READY_FOR_REVIEW: (
-        DraftProgressState.BLOCKED,
-        DraftProgressState.IN_PROGRESS,
-    ),
+    DraftProgressState.BLOCKED: (DraftProgressState.READY_FOR_REVIEW,),
+    DraftProgressState.READY_FOR_REVIEW: (DraftProgressState.BLOCKED,),
 }
 
 INGESTION_LIFECYCLE_TRANSITIONS: dict[

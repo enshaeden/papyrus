@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const response = await fetch(
           buildSearchUrl(
-            picker.dataset.searchUrl || "/operator/write/citations/search",
+            picker.dataset.searchUrl || "/write/citations/search",
             query,
             picker.dataset.excludeObjectId || "",
           ),

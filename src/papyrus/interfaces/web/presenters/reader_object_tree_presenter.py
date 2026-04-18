@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from papyrus.application.role_visibility import READER_ROLE
 from papyrus.interfaces.web.urls import object_url
 from papyrus.interfaces.web.view_helpers import escape, join_html, link
 
@@ -13,7 +12,7 @@ def _render_object_item(*, node: dict[str, Any]) -> str:
         '<li class="reader-object-tree__item">'
         + link(
             str(node["label"]),
-            object_url(READER_ROLE, str(node["object_id"])),
+            object_url(str(node["object_id"])),
             css_class="reader-object-tree__link is-current"
             if is_current
             else "reader-object-tree__link",

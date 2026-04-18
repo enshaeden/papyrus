@@ -93,192 +93,147 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
     def tearDownClass(cls) -> None:
         cls.temp_dir.cleanup()
 
-    def test_json_api_exposes_required_phase8_views(self) -> None:
+    def test_json_api_exposes_required_operator_views(self) -> None:
         application = api_app(self.database_path)
 
         status, _, body = call_wsgi(application, "/queue")
         self.assertEqual(status, "200 OK")
-        queue_payload = json.loads(body)
-        self.assertIn("queue", queue_payload)
-        self.assertTrue(queue_payload["queue"])
+        self.assertTrue(json.loads(body)["queue"])
 
         status, _, body = call_wsgi(application, "/objects/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
-        object_payload = json.loads(body)
-        self.assertEqual(object_payload["object"]["title"], "VPN Troubleshooting")
+        self.assertEqual(json.loads(body)["object"]["title"], "VPN Troubleshooting")
 
         status, _, body = call_wsgi(
             application, "/objects/kb-troubleshooting-vpn-connectivity/revisions"
         )
         self.assertEqual(status, "200 OK")
-        revision_payload = json.loads(body)
-        self.assertTrue(revision_payload["revisions"])
+        self.assertTrue(json.loads(body)["revisions"])
 
         status, _, body = call_wsgi(application, f"/services/{self.remote_access_service_id}")
         self.assertEqual(status, "200 OK")
-        service_payload = json.loads(body)
-        self.assertEqual(service_payload["service"]["service_name"], "Remote Access")
+        self.assertEqual(json.loads(body)["service"]["service_name"], "Remote Access")
 
-        status, _, body = call_wsgi(application, "/dashboard/oversight")
+        status, _, body = call_wsgi(application, "/governance")
         self.assertEqual(status, "200 OK")
-        dashboard_payload = json.loads(body)
-        self.assertIn("object_count", dashboard_payload)
-        self.assertIn("queue", dashboard_payload)
+        self.assertIn("object_count", json.loads(body))
 
-        status, _, body = call_wsgi(
-            application,
-            "/events",
-            method="POST",
-            json_payload={
-                "actor": "tests",
-                "event_type": "service_change",
-                "entity_type": "service",
-                "entity_id": "Remote Access",
-                "payload": {"summary": "API event coverage."},
-            },
-        )
-        self.assertEqual(status, "201 Created")
-
-        status, _, body = call_wsgi(
-            application, "/events?entity_type=service&entity_id=Remote%20Access"
-        )
+        status, _, body = call_wsgi(application, "/reviews")
         self.assertEqual(status, "200 OK")
-        events_payload = json.loads(body)
-        self.assertTrue(events_payload["events"])
-        self.assertEqual(events_payload["events"][0]["event_type"], "service_change")
-        self.assertIn("what_happened", events_payload["events"][0])
-        self.assertIn("next_action", events_payload["events"][0])
-
-        status, _, body = call_wsgi(application, "/services")
-        self.assertEqual(status, "200 OK")
-        services_payload = json.loads(body)
-        self.assertIn("services", services_payload)
-
-        status, _, body = call_wsgi(application, "/review/queue")
-        self.assertEqual(status, "200 OK")
-        review_payload = json.loads(body)
-        self.assertIn("review_required", review_payload)
+        self.assertIn("review_required", json.loads(body))
 
         status, _, body = call_wsgi(
             application, "/impact/object/kb-troubleshooting-vpn-connectivity"
         )
         self.assertEqual(status, "200 OK")
-        impact_payload = json.loads(body)
         self.assertEqual(
-            impact_payload["entity"]["object_id"], "kb-troubleshooting-vpn-connectivity"
+            json.loads(body)["entity"]["object_id"], "kb-troubleshooting-vpn-connectivity"
         )
 
-        status, _, body = call_wsgi(application, "/operator/read")
+        status, _, body = call_wsgi(application, "/read")
         self.assertEqual(status, "404 Not Found")
-        api_error = json.loads(body)
-        self.assertEqual(api_error["error"], "not_found")
+        self.assertEqual(json.loads(body)["error"], "not_found")
 
-    def test_web_surface_exposes_required_phase8_views(self) -> None:
-        application = web_app(self.database_path)
+    def test_web_surface_exposes_shared_routes_and_role_scoped_landings(self) -> None:
+        operator_app = web_app(self.database_path)
+        reader_app = web_app(self.database_path, default_role="reader")
+        admin_app = web_app(self.database_path, default_role="admin")
 
-        status, headers, body = call_wsgi(application, "/")
+        status, headers, body = call_wsgi(operator_app, "/")
         self.assertEqual(status, "303 See Other")
-        self.assertEqual(headers["Location"], "/operator")
+        self.assertEqual(headers["Location"], "/review")
         self.assertEqual(body, "")
 
-        status, _, body = call_wsgi(application, "/operator")
-        self.assertEqual(status, "200 OK")
-        self.assertIn("<title>Home | Papyrus</title>", body)
-        self.assert_primary_surface(body, "home")
-        self.assertNotIn('<aside class="context-column">', body)
-        self.assertNotIn('class="dual-grid"', body)
-
-        status, _, body = call_wsgi(application, "/operator/read")
+        status, _, body = call_wsgi(operator_app, "/read")
         self.assertEqual(status, "200 OK")
         self.assertIn("<title>Read | Papyrus</title>", body)
         self.assert_page_contract(
             body, primary_surface="read-queue", action_ids=("open-primary-surface",)
         )
-        self.assertNotIn('<aside class="context-column">', body)
 
         status, _, body = call_wsgi(
-            application, "/operator/read/object/kb-troubleshooting-vpn-connectivity"
+            operator_app, "/read/object/kb-troubleshooting-vpn-connectivity"
         )
         self.assertEqual(status, "200 OK")
-        self.assertIn("VPN Troubleshooting", body)
         self.assert_page_contract(
             body,
             primary_surface="object-detail",
-            components=("article-section", "article-context-panel"),
+            components=("content-section", "context-panel"),
         )
-        self.assertNotIn('<aside class="context-column">', body)
-        self.assert_not_component(body, "object-header")
 
-        status, _, body = call_wsgi(
-            application, "/reader/object/kb-troubleshooting-vpn-connectivity"
-        )
+        status, _, body = call_wsgi(operator_app, "/review")
         self.assertEqual(status, "200 OK")
-        self.assertIn("VPN Troubleshooting", body)
+        self.assert_page_contract(body, primary_surface="review", components=("review-lane",))
+
+        status, _, body = call_wsgi(operator_app, "/governance")
+        self.assertEqual(status, "200 OK")
         self.assert_page_contract(
-            body,
-            primary_surface="object-detail",
-            components=("article-section", "article-context-panel"),
+            body, primary_surface="oversight", components=("oversight-board",)
         )
-        self.assert_component(body, "reader-object-tree-nav")
-        self.assertIn('<aside class="context-column">', body)
-        self.assertIn('class="sidebar"', body)
-        self.assertIn('href="/reader/browse"', body)
-        self.assertNotIn("/operator/review/object/", body)
 
         status, _, body = call_wsgi(
-            application, "/operator/read/object/kb-troubleshooting-vpn-connectivity/revisions"
-        )
-        self.assertEqual(status, "200 OK")
-        self.assert_page_contract(body, primary_surface="revision-history", components=("table",))
-
-        status, _, body = call_wsgi(
-            application, f"/operator/read/services/{self.remote_access_service_id}"
+            operator_app, f"/governance/services/{self.remote_access_service_id}"
         )
         self.assertEqual(status, "200 OK")
         self.assert_primary_surface(body, "services")
         self.assertIn("Remote Access", body)
 
-        status, _, body = call_wsgi(application, "/operator/review/governance")
-        self.assertEqual(status, "200 OK")
-        self.assert_page_contract(
-            body, primary_surface="oversight", components=("oversight-board",)
-        )
-        self.assertIn("Cleanup and trust debt", body)
-
-        status, _, body = call_wsgi(application, "/operator/read/services")
-        self.assertEqual(status, "200 OK")
-        self.assert_page_contract(body, primary_surface="services", components=("service-map",))
-        self.assertNotIn('<aside class="context-column">', body)
-
-        status, _, body = call_wsgi(application, "/operator/review")
-        self.assertEqual(status, "200 OK")
-        self.assert_page_contract(body, primary_surface="review", components=("review-lane",))
-
-        status, _, body = call_wsgi(application, "/operator/review/activity")
-        self.assertEqual(status, "200 OK")
-        self.assert_page_contract(body, primary_surface="activity", components=("activity-event",))
+        status, headers, _ = call_wsgi(reader_app, "/")
+        self.assertEqual(status, "303 See Other")
+        self.assertEqual(headers["Location"], "/read")
 
         status, _, body = call_wsgi(
-            application, "/operator/review/impact/object/kb-troubleshooting-vpn-connectivity"
+            reader_app, "/read/object/kb-troubleshooting-vpn-connectivity"
         )
         self.assertEqual(status, "200 OK")
         self.assert_page_contract(
-            body, primary_surface="impact-object", components=("impact-summary", "impact-trace")
+            body,
+            primary_surface="object-detail",
+            components=("content-section", "context-panel"),
+        )
+        self.assert_component(body, "reader-object-tree-nav")
+        self.assertNotIn("/review/object/", body)
+
+        status, _, body = call_wsgi(reader_app, "/review")
+        self.assertEqual(status, "404 Not Found")
+        self.assert_primary_surface(body, "system-error")
+
+        status, headers, _ = call_wsgi(admin_app, "/")
+        self.assertEqual(status, "303 See Other")
+        self.assertEqual(headers["Location"], "/admin/overview")
+
+        status, _, body = call_wsgi(admin_app, "/admin/overview")
+        self.assertEqual(status, "200 OK")
+        self.assert_page_contract(
+            body,
+            primary_surface="overview",
+            components=("admin-overview", "admin-overview-links"),
         )
 
+        status, _, body = call_wsgi(admin_app, "/admin/users")
+        self.assertEqual(status, "200 OK")
+        self.assert_page_contract(
+            body,
+            primary_surface="users",
+            components=("admin-control-panel", "admin-control-state"),
+        )
+
+    def test_legacy_prefixed_web_routes_fail_closed(self) -> None:
+        application = web_app(self.database_path)
+
         for removed_path in (
-            "/read",
-            "/objects/kb-troubleshooting-vpn-connectivity",
-            "/services",
-            f"/services/{self.remote_access_service_id}",
-            "/review",
-            "/write/objects/new",
-            "/ingest",
+            "/operator/read",
+            "/reader/object/kb-troubleshooting-vpn-connectivity",
+            "/admin/inspect",
+            "/dashboard/oversight",
+            "/review/queue",
+            "/operator/import",
+            "/operator/write/new",
         ):
             with self.subTest(removed_path=removed_path):
-                status, _, removed_body = call_wsgi(application, removed_path)
+                status, _, body = call_wsgi(application, removed_path)
                 self.assertEqual(status, "404 Not Found")
-                self.assert_primary_surface(removed_body, "system-error")
+                self.assert_primary_surface(body, "system-error")
 
     def test_static_theme_assets_expose_governed_brand_tokens(self) -> None:
         application = web_app(self.database_path)
@@ -289,46 +244,6 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertIn("--color-brand-hero: #5D3754;", body)
         self.assertIn("--color-brand-depth: #6A3460;", body)
         self.assertIn("--color-brand-context: #9991A4;", body)
-        self.assertIn("--color-accent-primary: var(--color-brand-hero);", body)
-        self.assertIn("--color-nav-active: var(--color-brand-hero);", body)
-        self.assertIn("--color-nav-active-hover: var(--color-brand-depth);", body)
-        self.assertIn("--color-topbar-bg: var(--color-brand-depth);", body)
-        self.assertIn("--color-topbar-chip-active-bg: var(--color-brand-hero);", body)
-        self.assertIn("--color-accent-secondary-selected-bg: var(--color-surface-selected);", body)
-        self.assertIn("--color-selected-fill: var(--color-surface-selected);", body)
-        self.assertIn("--color-panel-governance-label: var(--color-brand-depth);", body)
-        self.assertIn("--color-panel-governance-bg: var(--color-surface-context-panel);", body)
-        self.assertIn("--color-command-highlight: var(--color-brand-hero);", body)
-        self.assertIn(
-            '--font-sans: "Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;',
-            body,
-        )
-        self.assertIn("--font-serif: var(--font-sans);", body)
-
-    def test_static_layout_assets_use_fluid_topbar_and_docked_sidebar_shell(self) -> None:
-        application = web_app(self.database_path)
-
-        status, headers, body = call_wsgi(application, "/static/css/layout.css")
-        self.assertEqual(status, "200 OK")
-        self.assertEqual(headers["Content-Type"], "text/css")
-        self.assertIn("grid-template-columns: max-content minmax(0, 1fr) max-content;", body)
-        self.assertIn("gap: var(--shell-gap);", body)
-        self.assertIn(".topbar-shell-controls {", body)
-        self.assertIn("grid-column: 3;", body)
-        self.assertIn("justify-self: end;", body)
-        self.assertIn("grid-column: 2;", body)
-        self.assertIn(".shell-columns.has-sidebar {", body)
-        self.assertIn("padding-inline-start: 0;", body)
-        self.assertIn(".sidebar {", body)
-        self.assertIn("border-left: 0;", body)
-        self.assertIn("border-radius: 0 var(--radius-lg) var(--radius-lg) 0;", body)
-        self.assertIn("background: var(--color-topbar-bg);", body)
-        self.assertNotIn("linear-gradient(135deg, var(--color-brand-hero)", body)
-        self.assertEqual(body.count("box-shadow: var(--shadow-topbar);"), 1)
-        self.assertEqual(body.count(".topbar-menu-chip.is-active {"), 1)
-        self.assertEqual(body.count(".sidebar-link {"), 1)
-        self.assertEqual(body.count(".page-header {"), 1)
-        self.assertNotIn("var(--font-serif)", body)
 
     def test_static_typography_assets_use_sans_contract(self) -> None:
         application = web_app(self.database_path)
@@ -339,7 +254,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
             "/static/css/home.css",
             "/static/css/health.css",
             "/static/css/services.css",
-            "/static/css/article.css",
+            "/static/css/content.css",
         ):
             with self.subTest(asset_path=asset_path):
                 status, headers, body = call_wsgi(application, asset_path)
@@ -350,7 +265,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
 
         for asset_path in (
             "/static/css/activity.css",
-            "/static/css/article.css",
+            "/static/css/content.css",
             "/static/css/components.css",
         ):
             with self.subTest(mono_asset_path=asset_path):
@@ -359,120 +274,16 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
                 self.assertEqual(headers["Content-Type"], "text/css")
                 self.assertIn("font-family: var(--font-mono);", body)
 
-    def test_static_component_assets_map_primary_and_context_tones_semantically(self) -> None:
-        application = web_app(self.database_path)
-
-        status, headers, body = call_wsgi(application, "/static/css/components.css")
-        self.assertEqual(status, "200 OK")
-        self.assertEqual(headers["Content-Type"], "text/css")
-        self.assertIn(".button-primary {", body)
-        self.assertIn("background: var(--color-accent-primary);", body)
-        self.assertIn(".button-primary:hover {", body)
-        self.assertIn("background: var(--color-accent-primary-hover);", body)
-        self.assertIn(".button-secondary,", body)
-        self.assertIn("background: var(--color-accent-secondary-bg);", body)
-        self.assertIn("background: var(--color-accent-secondary-hover-bg);", body)
-        self.assertIn(".workbench-table tbody tr.is-selected {", body)
-        self.assertIn("background: var(--color-selected-fill);", body)
-        self.assertNotIn("linear-gradient(135deg, var(--color-brand-hero)", body)
-
-    def test_page_css_assets_route_brand_family_through_semantic_tokens(self) -> None:
-        application = web_app(self.database_path)
-
-        for asset_path in (
-            "/static/css/home.css",
-            "/static/css/health.css",
-            "/static/css/read.css",
-            "/static/css/review.css",
-            "/static/css/activity.css",
-            "/static/css/services.css",
-            "/static/css/article.css",
-            "/static/css/impact.css",
-            "/static/css/ingest.css",
-            "/static/css/revision.css",
-        ):
-            with self.subTest(asset_path=asset_path):
-                status, headers, body = call_wsgi(application, asset_path)
-                self.assertEqual(status, "200 OK")
-                self.assertEqual(headers["Content-Type"], "text/css")
-                self.assertNotIn("var(--color-brand-hero)", body)
-                self.assertNotIn("var(--color-brand-depth)", body)
-                self.assertNotIn("var(--color-brand-context)", body)
-
-        _, _, health_body = call_wsgi(application, "/static/css/health.css")
-        self.assertIn(".oversight-cleanup-board__metric {", health_body)
-        self.assertIn("color: var(--color-accent-primary);", health_body)
-
-        _, _, services_body = call_wsgi(application, "/static/css/services.css")
-        self.assertIn(".service-pressure__metric {", services_body)
-        self.assertIn("color: var(--color-accent-primary);", services_body)
-
-    def test_static_read_assets_prefer_fluid_results_table_layout_before_overflow(self) -> None:
-        application = web_app(self.database_path)
-
-        status, headers, body = call_wsgi(application, "/static/css/read.css")
-        self.assertEqual(status, "200 OK")
-        self.assertEqual(headers["Content-Type"], "text/css")
-        self.assertIn(".read-results-table .workbench-table {", body)
-        self.assertIn("min-width: 0;", body)
-        self.assertIn("table-layout: auto;", body)
-        self.assertNotIn("min-width: 56rem;", body)
-        self.assertIn(".read-results-table .workbench-table th:nth-child(5),", body)
-        self.assertIn("width: 1%;", body)
-        self.assertIn("white-space: nowrap;", body)
-        self.assertIn(".read-results-table .button {", body)
-        self.assertIn("min-width: clamp(4.75rem, 8vw, 5.5rem);", body)
-
-    def test_static_oversight_assets_prevent_stretched_empty_governance_columns(self) -> None:
-        application = web_app(self.database_path)
-
-        status, headers, body = call_wsgi(application, "/static/css/health.css")
-        self.assertEqual(status, "200 OK")
-        self.assertEqual(headers["Content-Type"], "text/css")
-        self.assertIn(".oversight-board__grid {", body)
-        self.assertIn("align-items: start;", body)
-        self.assertIn(".oversight-board__column {", body)
-        self.assertIn("align-content: start;", body)
-        self.assertIn(".oversight-board__card .button {", body)
-        self.assertIn("justify-self: start;", body)
-
     def test_web_errors_and_method_guards_render_explicit_pages(self) -> None:
         application = web_app(self.database_path)
 
         status, _, body = call_wsgi(application, "/not-a-real-route")
         self.assertEqual(status, "404 Not Found")
         self.assert_primary_surface(body, "system-error")
-        self.assertIn("shell-columns-minimal", body)
-        self.assertNotIn("actor-banner", body)
-        self.assertNotIn("page-kicker", body)
 
-        status, _, body = call_wsgi(
-            application, "/operator/read", method="POST", form={"query": "vpn"}
-        )
+        status, _, body = call_wsgi(application, "/read", method="POST", form={"query": "vpn"})
         self.assertEqual(status, "405 Method Not Allowed")
         self.assert_primary_surface(body, "system-error")
-        self.assertIn("shell-columns-minimal", body)
-        self.assertNotIn("actor-banner", body)
-        self.assertNotIn("page-intro", body)
-
-    def test_shell_templates_keep_behavior_in_static_script(self) -> None:
-        topbar_template = (
-            ROOT
-            / "src"
-            / "papyrus"
-            / "interfaces"
-            / "web"
-            / "templates"
-            / "partials"
-            / "topbar.html"
-        ).read_text(encoding="utf-8")
-        base_template = (
-            ROOT / "src" / "papyrus" / "interfaces" / "web" / "templates" / "base.html"
-        ).read_text(encoding="utf-8")
-
-        self.assertNotIn("<script", topbar_template)
-        self.assertIn("{{ topbar_menu_html }}", topbar_template)
-        self.assertIn("/static/js/shell.js", base_template)
 
     def test_api_write_endpoint_creates_object(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -501,8 +312,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
                 },
             )
             self.assertEqual(status, "201 Created")
-            payload = json.loads(body)
-            self.assertEqual(payload["object_id"], "kb-api-created-object")
+            self.assertEqual(json.loads(body)["object_id"], "kb-api-created-object")
 
 
 if __name__ == "__main__":

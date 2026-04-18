@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from papyrus.application import writeback_flow
+from papyrus.application.authoring_flow import compute_completion_state, derive_section_content
+from papyrus.application.blueprint_registry import get_blueprint
 from papyrus.application.policy_authority import PolicyAuthority, policy_decision_payload
 from papyrus.application.revision_runtime import RevisionRuntimeServices
 from papyrus.application.runtime_projection import persist_revision_artifacts
@@ -38,6 +40,7 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     get_knowledge_object,
     get_knowledge_revision,
     insert_knowledge_revision,
+    load_taxonomies,
     next_revision_number,
     update_knowledge_object_runtime_state,
     update_knowledge_revision_content,
@@ -96,7 +99,7 @@ def _revision_review_state(row: sqlite3.Row) -> str:
 
 
 def _draft_progress_state(row: sqlite3.Row) -> str:
-    return str(row["draft_progress_state"] or DraftProgressState.READY_FOR_REVIEW.value)
+    return str(row["draft_progress_state"] or DraftProgressState.BLOCKED.value)
 
 
 def _source_sync_state(row: sqlite3.Row) -> str:
@@ -363,13 +366,24 @@ class GovernanceWorkflow:
 
             revision_number = next_revision_number(connection, object_id)
             revision_id = f"{object_id}-rev-{content_hash[:12]}"
+            blueprint = get_blueprint(parsed.object_type)
+            section_content = derive_section_content(
+                blueprint_id=parsed.object_type,
+                metadata=parsed.metadata,
+                body_markdown=body_markdown,
+            )
+            completion = compute_completion_state(
+                blueprint=blueprint,
+                section_content=section_content,
+                taxonomies=load_taxonomies(),
+            )
             insert_knowledge_revision(
                 connection,
                 revision_id=revision_id,
                 object_id=object_id,
                 revision_number=revision_number,
-                revision_review_state=RevisionReviewState.DRAFT.value,
-                draft_progress_state=DraftProgressState.READY_FOR_REVIEW.value,
+                revision_review_state=RevisionReviewState.IN_PROGRESS.value,
+                draft_progress_state=completion["draft_progress_state"],
                 source_path=str(parsed.metadata["canonical_path"]),
                 content_hash=content_hash,
                 body_markdown=body_markdown,

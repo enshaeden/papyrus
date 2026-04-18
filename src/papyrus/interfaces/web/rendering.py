@@ -5,7 +5,7 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
-from papyrus.interfaces.web.experience import experience_for_path, experience_for_role
+from papyrus.interfaces.web.experience import experience_for_role
 from papyrus.interfaces.web.urls import home_url, search_url
 from papyrus.interfaces.web.view_helpers import escape, join_html, link
 
@@ -50,7 +50,7 @@ class PageRenderer:
         shell_variant: str = "normal",
         page_surface: str = "",
     ) -> str:
-        role_config = experience_for_role(role_id or experience_for_path(current_path).role)
+        role_config = experience_for_role(role_id or "operator")
         surface_id = str(page_surface or active_nav or page_title).strip()
         page_config = role_config.page_config(surface_id)
         page_behavior = role_config.page_behavior(surface_id)
@@ -88,15 +88,9 @@ class PageRenderer:
                         + join_html(
                             [
                                 '<li class="sidebar-item">'
-                                + link(
-                                    item.label,
-                                    item.href,
-                                    css_class="sidebar-link is-active"
-                                    if self._nav_item_is_active(
-                                        item, active_nav=active_nav, current_path=current_path
-                                    )
-                                    else "sidebar-link",
-                                )
+                                + f'<a href="{escape(item.href)}" class="{"sidebar-link is-active" if self._nav_item_is_active(item, active_nav=active_nav, current_path=current_path) else "sidebar-link"}">'
+                                + f'<i data-lucide="chevron-right" style="width: 16px; height: 16px; margin-right: 0.5rem; vertical-align: text-bottom;"></i>{escape(item.label)}'
+                                + '</a>'
                                 + "</li>"
                                 for item in section.items
                             ]

@@ -448,7 +448,6 @@ def validate_revision_form(
         "canonical_path": object_detail["object"]["canonical_path"],
         "summary": values["summary"].strip(),
         "knowledge_object_type": object_type,
-        "legacy_article_type": metadata.get("legacy_article_type"),
         "object_lifecycle_state": values["object_lifecycle_state"].strip(),
         "owner": values["owner"].strip(),
         "source_type": str(metadata.get("source_type") or "native"),
@@ -468,7 +467,6 @@ def validate_revision_form(
         "replaced_by": metadata.get("replaced_by"),
         "retirement_reason": metadata.get("retirement_reason"),
         "services": related_services,
-        "related_articles": related_object_ids,
         "references": [
             {
                 "title": citation["source_title"],

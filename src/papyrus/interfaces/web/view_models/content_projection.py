@@ -649,7 +649,7 @@ def _article_sections(
     return _system_design_sections(section_content, metadata)
 
 
-def build_article_projection(
+def build_content_projection(
     *,
     item: dict[str, Any],
     revision: dict[str, Any] | None,

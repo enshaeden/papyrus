@@ -117,7 +117,7 @@ def render_read_filter_bar(
         + f'<option value=""{" selected" if not selected_review_state else ""}>Any</option>'
         + f'<option value="approved"{" selected" if selected_review_state == "approved" else ""}>Approved</option>'
         + f'<option value="in_review"{" selected" if selected_review_state == "in_review" else ""}>In review</option>'
-        + f'<option value="draft"{" selected" if selected_review_state == "draft" else ""}>Draft</option>'
+        + f'<option value="in_progress"{" selected" if selected_review_state == "in_progress" else ""}>In progress</option>'
         + f'<option value="rejected"{" selected" if selected_review_state == "rejected" else ""}>Rejected</option>'
         + "</select></label>"
         + "</div></form>"
@@ -142,7 +142,7 @@ def render_read_result_cards(*, role: str, items: list[dict[str, Any]]) -> str:
                 '<div class="read-result-card__actions">'
                 f"{link('Open article', queue_item_href(item, role=role), css_class='button button-primary', attrs={'data-action-id': 'open-primary-surface'})}"
                 + (
-                    f"{link('Open service', service_url(role, str(item['linked_services'][0]['service_id'])), css_class='button button-ghost')}"
+                    f"{link('Open service', service_url(str(item['linked_services'][0]['service_id'])), css_class='button button-ghost')}"
                     if item.get("linked_services") and role != READER_ROLE
                     else ""
                 )

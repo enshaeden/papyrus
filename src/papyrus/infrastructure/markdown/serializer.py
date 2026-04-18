@@ -102,8 +102,8 @@ def render_list(items: list[str]) -> str:
 
 def render_reference(reference: dict[str, Any]) -> str:
     parts = [reference["title"]]
-    if reference.get("article_id"):
-        parts.append(f"article_id: {reference['article_id']}")
+    if reference.get("object_id"):
+        parts.append(f"object_id: {reference['object_id']}")
     if reference.get("path"):
         parts.append(f"path: `{reference['path']}`")
     if reference.get("url"):

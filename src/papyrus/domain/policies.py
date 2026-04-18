@@ -12,21 +12,6 @@ SUPPORTED_KNOWLEDGE_OBJECT_TYPES = (
     KnowledgeObjectType.SERVICE_RECORD.value,
 )
 
-LEGACY_ARTICLE_TYPE_TO_OBJECT_TYPE = {
-    "runbook": KnowledgeObjectType.RUNBOOK.value,
-    "SOP": KnowledgeObjectType.RUNBOOK.value,
-    "access": KnowledgeObjectType.RUNBOOK.value,
-    "onboarding": KnowledgeObjectType.RUNBOOK.value,
-    "offboarding": KnowledgeObjectType.RUNBOOK.value,
-    "asset": KnowledgeObjectType.RUNBOOK.value,
-    "incident": KnowledgeObjectType.RUNBOOK.value,
-    "troubleshooting": KnowledgeObjectType.KNOWN_ERROR.value,
-    "postmortem": KnowledgeObjectType.KNOWN_ERROR.value,
-    "reference": KnowledgeObjectType.SERVICE_RECORD.value,
-    "policy": KnowledgeObjectType.SERVICE_RECORD.value,
-    "FAQ": KnowledgeObjectType.SERVICE_RECORD.value,
-}
-
 PLACEHOLDER_OWNER_VALUES = {"", "TBD", "service_owner"}
 TRUST_STATE_RANKS = {
     TrustState.TRUSTED.value: 0,
@@ -53,9 +38,6 @@ def primary_object_type(metadata: dict[str, Any]) -> str | None:
     explicit = metadata.get("knowledge_object_type")
     if isinstance(explicit, str) and explicit.strip():
         return explicit
-    legacy_type = metadata.get("legacy_article_type")
-    if isinstance(legacy_type, str):
-        return LEGACY_ARTICLE_TYPE_TO_OBJECT_TYPE.get(legacy_type)
     return None
 
 
@@ -68,7 +50,7 @@ def bootstrap_revision_review_state(object_lifecycle_state: str) -> str:
             ObjectLifecycleState.DEPRECATED.value,
             ObjectLifecycleState.ARCHIVED.value,
         }
-        else RevisionReviewState.DRAFT.value
+        else RevisionReviewState.IN_PROGRESS.value
     )
 
 

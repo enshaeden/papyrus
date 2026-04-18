@@ -15,7 +15,6 @@ from papyrus.domain.entities import KnowledgeDocument
 from papyrus.infrastructure.repositories.knowledge_repo import (
     load_object_schemas,
     load_policy,
-    load_schema,
     load_taxonomies,
 )
 from tests.source_workspace import fixture_source_root
@@ -24,7 +23,7 @@ from tests.source_workspace import fixture_source_root
 def _citation() -> list[dict[str, object]]:
     return [
         {
-            "article_id": None,
+            "object_id": None,
             "source_title": "Write playbook",
             "source_type": "document",
             "source_ref": "knowledge/write.md",
@@ -40,7 +39,6 @@ def _citation() -> list[dict[str, object]]:
 class BlueprintValidationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.object_schemas = load_object_schemas()
-        self.legacy_schema = load_schema()
         self.taxonomies = load_taxonomies()
         self.policy = load_policy()
         self.fixture_root = fixture_source_root()
@@ -55,7 +53,6 @@ class BlueprintValidationTests(unittest.TestCase):
                 "canonical_path": "knowledge/tests/legacy-runbook.md",
                 "summary": "Guide operators through a legacy but still governed procedure.",
                 "knowledge_object_type": "runbook",
-                "legacy_article_type": "runbook",
                 "object_lifecycle_state": "active",
                 "owner": "workflow_owner",
                 "source_type": "imported",
@@ -80,7 +77,6 @@ class BlueprintValidationTests(unittest.TestCase):
                 "replaced_by": None,
                 "retirement_reason": None,
                 "services": ["Remote Access"],
-                "related_articles": [],
                 "references": [
                     {
                         "title": "Write playbook",
@@ -104,7 +100,6 @@ class BlueprintValidationTests(unittest.TestCase):
         issues = validate_knowledge_documents(
             [document],
             self.object_schemas,
-            self.legacy_schema,
             self.taxonomies,
             self.policy,
         )
@@ -124,7 +119,6 @@ class BlueprintValidationTests(unittest.TestCase):
                 "canonical_path": "knowledge/tests/native-runbook.md",
                 "summary": "Guide operators through a native runbook.",
                 "knowledge_object_type": "runbook",
-                "legacy_article_type": None,
                 "object_lifecycle_state": "active",
                 "owner": "workflow_owner",
                 "source_type": "native",
@@ -149,7 +143,6 @@ class BlueprintValidationTests(unittest.TestCase):
                 "replaced_by": None,
                 "retirement_reason": None,
                 "services": ["Remote Access"],
-                "related_articles": [],
                 "references": [
                     {
                         "title": "Write playbook",
@@ -167,7 +160,6 @@ class BlueprintValidationTests(unittest.TestCase):
         issues = validate_knowledge_documents(
             [document],
             self.object_schemas,
-            self.legacy_schema,
             self.taxonomies,
             self.policy,
         )
@@ -187,7 +179,6 @@ class BlueprintValidationTests(unittest.TestCase):
                 "canonical_path": "knowledge/tests/native-policy.md",
                 "summary": "Govern remote access changes.",
                 "knowledge_object_type": "policy",
-                "legacy_article_type": None,
                 "object_lifecycle_state": "active",
                 "owner": "workflow_owner",
                 "source_type": "native",
@@ -210,7 +201,6 @@ class BlueprintValidationTests(unittest.TestCase):
                 "replaced_by": None,
                 "retirement_reason": None,
                 "services": [],
-                "related_articles": [],
                 "references": [
                     {
                         "title": "Write playbook",
@@ -228,7 +218,6 @@ class BlueprintValidationTests(unittest.TestCase):
         issues = validate_knowledge_documents(
             [document],
             self.object_schemas,
-            self.legacy_schema,
             self.taxonomies,
             self.policy,
         )
@@ -247,7 +236,6 @@ class BlueprintValidationTests(unittest.TestCase):
                 "canonical_path": "knowledge/tests/native-system-design.md",
                 "summary": "Describe the identity platform architecture.",
                 "knowledge_object_type": "system_design",
-                "legacy_article_type": None,
                 "object_lifecycle_state": "active",
                 "owner": "workflow_owner",
                 "source_type": "native",
@@ -272,7 +260,6 @@ class BlueprintValidationTests(unittest.TestCase):
                 "replaced_by": None,
                 "retirement_reason": None,
                 "services": [],
-                "related_articles": [],
                 "references": [
                     {
                         "title": "Write playbook",
@@ -294,7 +281,6 @@ class BlueprintValidationTests(unittest.TestCase):
         issues = validate_knowledge_documents(
             [document],
             self.object_schemas,
-            self.legacy_schema,
             self.taxonomies,
             self.policy,
         )

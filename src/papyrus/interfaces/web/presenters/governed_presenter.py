@@ -103,7 +103,7 @@ def authoring_entry_label(
     revision_state = str(state.get("revision_review_state") or "").strip()
     if not str(current_revision_id or "").strip():
         return "Draft first revision"
-    if revision_state in {"draft", "rejected"}:
+    if revision_state in {"in_progress", "rejected"}:
         return "Continue draft"
     return None
 
@@ -117,7 +117,7 @@ def authoring_entry_href(
 ) -> str | None:
     state = projection_state(ui_projection)
     revision_state = str(state.get("revision_review_state") or "").strip()
-    if revision_state not in {"draft", "rejected"} or not str(current_revision_id or "").strip():
+    if revision_state not in {"in_progress", "rejected"} or not str(current_revision_id or "").strip():
         return None
     return write_object_url(object_id, revision_id=str(current_revision_id)) + "#revision-form"
 
@@ -149,7 +149,7 @@ def authoring_entry_html(
 ) -> str | None:
     state = projection_state(ui_projection)
     revision_state = str(state.get("revision_review_state") or "").strip()
-    if str(current_revision_id or "").strip() and revision_state in {"draft", "rejected"}:
+    if str(current_revision_id or "").strip() and revision_state in {"in_progress", "rejected"}:
         return link(
             label_override or "Continue draft",
             authoring_entry_href(
@@ -189,17 +189,17 @@ def action_href(
     if action_id == "submit_for_review" and revision_id:
         return write_submit_url(object_id, revision_id)
     if action_id == "assign_reviewer" and revision_id:
-        return review_assignment_url(role, object_id, revision_id)
+        return review_assignment_url(object_id, revision_id)
     if action_id == "review_decision" and revision_id:
-        return review_decision_url(role, object_id, revision_id)
+        return review_decision_url(object_id, revision_id)
     if action_id == "mark_suspect":
-        return suspect_url(role, object_id)
+        return suspect_url(object_id)
     if action_id == "supersede_object":
-        return supersede_url(role, object_id)
+        return supersede_url(object_id)
     if action_id == "archive_object":
-        return archive_url(role, object_id)
+        return archive_url(object_id)
     if action_id == "request_evidence_revalidation":
-        return evidence_revalidation_url(role, object_id)
+        return evidence_revalidation_url(object_id)
     return None
 
 
@@ -212,7 +212,7 @@ def primary_surface_href(
     ui_projection: dict[str, Any] | None,
 ) -> str:
     if role == READER_ROLE:
-        return object_url(role, object_id)
+        return object_url(object_id)
     authoring_href = authoring_entry_href(
         role=role,
         object_id=object_id,
@@ -232,7 +232,7 @@ def primary_surface_href(
         )
         if href is not None:
             return href
-    return object_url(role, object_id)
+    return object_url(object_id)
 
 
 def compact_action_menu_html(

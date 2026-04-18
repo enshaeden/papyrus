@@ -51,11 +51,11 @@ def register(router, runtime) -> None:
                     source_root=runtime.source_root,
                     object_id=object_id,
                     revision_id=revision_id,
-                    actor=str(experience.audit_actor_id),
+                    actor=request.actor_id,
                     notes=result.cleaned_data["notes"],
                 )
                 return redirect_response(
-                    review_assignment_url(experience.role, object_id, revision_id)
+                    review_assignment_url(object_id, revision_id)
                     + f"?notice={quote_plus('Revision submitted for review')}"
                 )
             form_errors = result.errors
@@ -89,4 +89,9 @@ def register(router, runtime) -> None:
             )
         )
 
-    router.add(["GET", "POST"], "/operator/write/object/{object_id}/submit", submit_revision_page)
+    router.add(
+        ["GET", "POST"],
+        "/write/object/{object_id}/submit",
+        submit_revision_page,
+        minimum_visible_role="operator",
+    )

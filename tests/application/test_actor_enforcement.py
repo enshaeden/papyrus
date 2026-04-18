@@ -20,6 +20,15 @@ from papyrus.application.sync_flow import build_search_projection
 from tests.source_workspace import fixture_source_root
 
 
+def ready_runbook_body(summary: str) -> str:
+    return (
+        "## Use When\n\n"
+        + summary.strip()
+        + "\n\n## Boundaries And Escalation\n\n"
+        + "Escalate when the documented workflow does not restore the expected operator outcome."
+    )
+
+
 class ActorEnforcementTests(unittest.TestCase):
     def test_mutating_commands_reject_missing_actor(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -96,7 +105,6 @@ class ActorEnforcementTests(unittest.TestCase):
                     ],
                     "related_object_ids": [],
                     "services": ["Remote Access"],
-                    "related_articles": [],
                     "references": [
                         {
                             "title": "Operator note",
@@ -113,7 +121,7 @@ class ActorEnforcementTests(unittest.TestCase):
                     "verification": ["Confirm the outcome."],
                     "rollback": ["Undo the change."],
                 },
-                body_markdown="## Procedure\n\nRun the procedure.",
+                body_markdown=ready_runbook_body("Seed approval actor enforcement coverage."),
                 actor="tests",
                 legacy_metadata={},
                 change_summary="Seed revision.",

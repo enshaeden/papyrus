@@ -31,19 +31,14 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     collect_docs_source_paths,
     get_knowledge_object,
     load_object_schemas,
-    load_schema,
     load_taxonomies,
     update_knowledge_object_runtime_state,
 )
 
 
 def explicitly_linked(left: KnowledgeDocument, right: KnowledgeDocument) -> bool:
-    left_related = set(
-        left.metadata.get("related_object_ids", []) or left.metadata.get("related_articles", [])
-    )
-    right_related = set(
-        right.metadata.get("related_object_ids", []) or right.metadata.get("related_articles", [])
-    )
+    left_related = set(left.metadata.get("related_object_ids", []))
+    right_related = set(right.metadata.get("related_object_ids", []))
     replacements = {
         left.metadata.get("superseded_by") or left.metadata.get("replaced_by"),
         right.metadata.get("superseded_by") or right.metadata.get("replaced_by"),
@@ -84,18 +79,15 @@ def find_possible_duplicate_documents(
 def reference_graph(documents: list[KnowledgeDocument]) -> dict[str, set[str]]:
     graph: dict[str, set[str]] = {}
     for document in documents:
-        links = set(
-            document.metadata.get("related_object_ids", [])
-            or document.metadata.get("related_articles", [])
-        )
+        links = set(document.metadata.get("related_object_ids", []))
         replaced_by = document.metadata.get("superseded_by") or document.metadata.get("replaced_by")
         if replaced_by:
             links.add(replaced_by)
         references = document.metadata.get("citations") or document.metadata.get("references", [])
         for reference in references:
-            article_id = reference.get("article_id")
-            if article_id:
-                links.add(article_id)
+            object_id = reference.get("object_id")
+            if object_id:
+                links.add(object_id)
         graph[document.knowledge_object_id] = links
     return graph
 
@@ -112,11 +104,11 @@ def docs_knowledge_like_warnings(
     schema: dict[str, Any] | None = None,
 ) -> list[DocsPlacementWarning]:
     if schema is None:
-        article_fields = set(load_schema().get("fields", {}))
+        object_fields: set[str] = set()
         for object_schema in load_object_schemas().values():
-            article_fields.update(object_schema.get("fields", {}))
+            object_fields.update(object_schema.get("fields", {}))
     else:
-        article_fields = set(schema.get("fields", {}))
+        object_fields = set(schema.get("fields", {}))
     warnings: list[DocsPlacementWarning] = []
 
     for path in collect_docs_source_paths():
@@ -134,7 +126,7 @@ def docs_knowledge_like_warnings(
             metadata = yaml.safe_load(match.group(1)) or {}
             body = match.group(2)
             if isinstance(metadata, dict):
-                overlapping_fields = sorted(set(metadata).intersection(article_fields))
+                overlapping_fields = sorted(set(metadata).intersection(object_fields))
                 strong_fields = [
                     field
                     for field in overlapping_fields

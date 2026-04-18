@@ -45,11 +45,11 @@ def _review_summary(revision_review_state: str | None) -> dict[str, str]:
             "detail": "The current revision was rejected and requires author follow-up before it can be trusted or approved.",
             "action": "Inspect the rejection rationale and update the revision before resubmission.",
         }
-    if state == "draft":
+    if state == "in_progress":
         return {
             "state": state,
-            "summary": "Draft only",
-            "detail": "The current revision is still a draft and is not approved for production operator use.",
+            "summary": "Revision still in progress",
+            "detail": "The current revision is still in progress and is not approved for production operator use.",
             "action": "Complete validation and submit the revision for review.",
         }
     if state == "superseded":

@@ -51,6 +51,7 @@ from papyrus.interfaces.web.presenters.review_presenter import (
 )
 from papyrus.interfaces.web.route_utils import flash_html_for_request
 from papyrus.interfaces.web.urls import (
+    activity_url,
     object_url,
     review_decision_url,
     validation_runs_url,
@@ -105,11 +106,11 @@ def register(router, runtime) -> None:
                     source_root=runtime.source_root,
                     object_id=object_id,
                     replacement_object_id=str(result.cleaned_data["replacement_object_id"]),
-                    actor=str(experience.audit_actor_id),
+                    actor=request.actor_id,
                     notes=str(result.cleaned_data["notes"]),
                 )
                 return redirect_response(
-                    object_url(experience.role, object_id)
+                    object_url(object_id)
                     + f"?notice={quote_plus('Object superseded and audit trail recorded')}"
                 )
             errors = result.errors
@@ -140,13 +141,13 @@ def register(router, runtime) -> None:
                 mark_object_suspect_due_to_change_command(
                     database_path=runtime.database_path,
                     object_id=object_id,
-                    actor=str(experience.audit_actor_id),
+                    actor=request.actor_id,
                     reason=str(result.cleaned_data["reason"]),
                     changed_entity_type=str(result.cleaned_data["changed_entity_type"]),
                     changed_entity_id=result.cleaned_data["changed_entity_id"],
                 )
                 return redirect_response(
-                    object_url(experience.role, object_id)
+                    object_url(object_id)
                     + f"?notice={quote_plus('Object marked suspect with explicit rationale')}"
                 )
             errors = result.errors
@@ -189,13 +190,13 @@ def register(router, runtime) -> None:
                     database_path=runtime.database_path,
                     source_root=runtime.source_root,
                     object_id=object_id,
-                    actor=str(experience.audit_actor_id),
+                    actor=request.actor_id,
                     retirement_reason=str(result.cleaned_data["retirement_reason"]),
                     notes=result.cleaned_data["notes"],
                     acknowledgements=result.cleaned_data["acknowledgements"],
                 )
                 return redirect_response(
-                    object_url(experience.role, object_id)
+                    object_url(object_id)
                     + f"?notice={quote_plus('Object archived and canonical path moved under archive/knowledge/')}"
                 )
             errors = result.errors
@@ -220,11 +221,11 @@ def register(router, runtime) -> None:
             request_evidence_revalidation_command(
                 database_path=runtime.database_path,
                 object_id=object_id,
-                actor=str(experience.audit_actor_id),
+                actor=request.actor_id,
                 notes=values["notes"] or None,
             )
             return redirect_response(
-                object_url(experience.role, object_id)
+                object_url(object_id)
                 + f"?notice={quote_plus('Evidence revalidation requested')}"
             )
         page = present_evidence_revalidation_page(
@@ -255,12 +256,12 @@ def register(router, runtime) -> None:
                     object_id=object_id,
                     revision_id=revision_id,
                     reviewer=str(result.cleaned_data["reviewer"]),
-                    actor=str(experience.audit_actor_id),
+                    actor=request.actor_id,
                     due_at=result.cleaned_data["due_at"],
                     notes=result.cleaned_data["notes"],
                 )
                 return redirect_response(
-                    review_decision_url(experience.role, object_id, revision_id)
+                    review_decision_url(object_id, revision_id)
                     + f"?notice={quote_plus('Reviewer assigned')}"
                 )
             errors = result.errors
@@ -310,11 +311,11 @@ def register(router, runtime) -> None:
                             object_id=object_id,
                             revision_id=revision_id,
                             reviewer=str(result.cleaned_data["reviewer"]),
-                            actor=str(experience.audit_actor_id),
+                            actor=request.actor_id,
                             notes=result.cleaned_data["notes"],
                         )
                         return redirect_response(
-                            object_url(experience.role, object_id)
+                            object_url(object_id)
                             + f"?notice={quote_plus('Revision approved')}"
                         )
                     reject_revision_command(
@@ -323,11 +324,11 @@ def register(router, runtime) -> None:
                         object_id=object_id,
                         revision_id=revision_id,
                         reviewer=str(result.cleaned_data["reviewer"]),
-                        actor=str(experience.audit_actor_id),
+                        actor=request.actor_id,
                         notes=str(result.cleaned_data["notes"]),
                     )
                     return redirect_response(
-                        review_decision_url(experience.role, object_id, revision_id)
+                        review_decision_url(object_id, revision_id)
                         + f"?notice={quote_plus('Revision rejected')}"
                     )
                 except ValueError as exc:
@@ -386,7 +387,7 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page=page)
 
     def validation_run_new_page(request: Request):
-        experience = require_experience(request, "operator", "admin")
+        require_experience(request, "operator", "admin")
         values = {
             "run_id": request.form_value("run_id"),
             "run_type": request.form_value("run_type"),
@@ -406,10 +407,10 @@ def register(router, runtime) -> None:
                     status=str(result.cleaned_data["status"]),
                     finding_count=int(result.cleaned_data["finding_count"]),
                     details={"summary": details_text} if details_text else {},
-                    actor=str(experience.audit_actor_id),
+                    actor=request.actor_id,
                 )
                 return redirect_response(
-                    validation_runs_url(experience.role)
+                    validation_runs_url()
                     + "?notice="
                     + quote_plus("Validation run recorded with audit evidence")
                 )
@@ -421,45 +422,59 @@ def register(router, runtime) -> None:
         )
         return _render_page(runtime, request, page=page)
 
-    router.add(["GET"], "/operator/review", review_queue_page)
-    router.add(["GET"], "/admin/review", review_queue_page)
-    router.add(
-        ["GET", "POST"], "/operator/review/object/{object_id}/supersede", object_supersede_page
-    )
-    router.add(["GET", "POST"], "/admin/review/object/{object_id}/supersede", object_supersede_page)
-    router.add(["GET", "POST"], "/operator/review/object/{object_id}/archive", object_archive_page)
-    router.add(["GET", "POST"], "/admin/review/object/{object_id}/archive", object_archive_page)
-    router.add(["GET", "POST"], "/operator/review/object/{object_id}/suspect", object_suspect_page)
-    router.add(["GET", "POST"], "/admin/review/object/{object_id}/suspect", object_suspect_page)
+    router.add(["GET"], "/review", review_queue_page, minimum_visible_role="operator")
     router.add(
         ["GET", "POST"],
-        "/operator/review/object/{object_id}/evidence/revalidate",
+        "/review/object/{object_id}/supersede",
+        object_supersede_page,
+        minimum_visible_role="operator",
+    )
+    router.add(
+        ["GET", "POST"],
+        "/review/object/{object_id}/archive",
+        object_archive_page,
+        minimum_visible_role="operator",
+    )
+    router.add(
+        ["GET", "POST"],
+        "/review/object/{object_id}/suspect",
+        object_suspect_page,
+        minimum_visible_role="operator",
+    )
+    router.add(
+        ["GET", "POST"],
+        "/review/object/{object_id}/evidence/revalidate",
         evidence_revalidation_page,
+        minimum_visible_role="operator",
     )
     router.add(
         ["GET", "POST"],
-        "/admin/review/object/{object_id}/evidence/revalidate",
-        evidence_revalidation_page,
-    )
-    router.add(
-        ["GET", "POST"],
-        "/operator/review/object/{object_id}/{revision_id}/assign",
+        "/review/object/{object_id}/{revision_id}/assign",
         review_assignment_page,
+        minimum_visible_role="operator",
     )
     router.add(
         ["GET", "POST"],
-        "/admin/review/object/{object_id}/{revision_id}/assign",
-        review_assignment_page,
+        "/review/object/{object_id}/{revision_id}",
+        review_decision_page,
+        minimum_visible_role="operator",
+    )
+    router.add(["GET"], "/review/activity", audit_page, minimum_visible_role="operator")
+    router.add(
+        ["GET"],
+        "/admin/audit",
+        lambda request: redirect_response(activity_url()),
+        minimum_visible_role="admin",
     )
     router.add(
-        ["GET", "POST"], "/operator/review/object/{object_id}/{revision_id}", review_decision_page
+        ["GET"],
+        "/review/validation-runs",
+        validation_runs_page,
+        minimum_visible_role="operator",
     )
     router.add(
-        ["GET", "POST"], "/admin/review/object/{object_id}/{revision_id}", review_decision_page
+        ["GET", "POST"],
+        "/review/validation-runs/new",
+        validation_run_new_page,
+        minimum_visible_role="operator",
     )
-    router.add(["GET"], "/operator/review/activity", audit_page)
-    router.add(["GET"], "/admin/audit", audit_page)
-    router.add(["GET"], "/operator/review/validation-runs", validation_runs_page)
-    router.add(["GET"], "/admin/validation-runs", validation_runs_page)
-    router.add(["GET", "POST"], "/operator/review/validation-runs/new", validation_run_new_page)
-    router.add(["GET", "POST"], "/admin/validation-runs/new", validation_run_new_page)

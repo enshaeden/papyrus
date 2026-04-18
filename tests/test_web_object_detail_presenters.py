@@ -11,8 +11,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from papyrus.interfaces.web.experience import experience_for_role
 from papyrus.interfaces.web.presenters.object_presenter import (
     present_object_detail,
-    render_article_context_panel,
-    render_article_section,
+    render_content_section,
+    render_context_panel,
 )
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from tests.web_assertions import SemanticHookAssertions
@@ -145,15 +145,15 @@ READER_OBJECT_NAV = {
 
 
 class ObjectDetailPresenterTests(SemanticHookAssertions, unittest.TestCase):
-    def test_component_owners_render_article_markup_locally(self) -> None:
-        section_html = render_article_section(
+    def test_component_owners_render_content_markup_locally(self) -> None:
+        section_html = render_content_section(
             section={
                 "eyebrow": "Use",
                 "title": "Procedure",
                 "blocks": [{"kind": "paragraph", "text": "Follow the procedure."}],
             }
         )
-        context_html = render_article_context_panel(
+        context_html = render_context_panel(
             section={
                 "section_id": "governance",
                 "eyebrow": "Context",
@@ -163,20 +163,20 @@ class ObjectDetailPresenterTests(SemanticHookAssertions, unittest.TestCase):
             }
         )
 
-        self.assert_component(section_html, "article-section")
-        self.assert_component(context_html, "article-context-panel")
+        self.assert_component(section_html, "content-section")
+        self.assert_component(context_html, "context-panel")
         self.assertIn("View revision source", context_html)
 
-    def test_object_presenter_assembles_article_surface_from_local_components(self) -> None:
+    def test_object_presenter_assembles_content_surface_from_local_components(self) -> None:
         page = present_object_detail(
             TEMPLATE_RENDERER, detail=DETAIL, experience=experience_for_role("operator")
         )
 
-        article_html = page["page_context"]["article_html"] + page["page_context"]["appendix_html"]
-        self.assert_component(article_html, "article-section")
-        self.assert_component(article_html, "article-context-panel")
-        self.assertIn("Linked service context", article_html)
-        self.assertIn("The runtime contract marks this object safe for use.", article_html)
+        content_html = page["page_context"]["content_html"] + page["page_context"]["context_html"]
+        self.assert_component(content_html, "content-section")
+        self.assert_component(content_html, "context-panel")
+        self.assertIn("Linked service context", content_html)
+        self.assertIn("The runtime contract marks this object safe for use.", content_html)
         self.assertEqual(page["page_header"]["headline"], "Test object")
         self.assertEqual(page["page_header"]["kicker"], "runbook · kb-test")
         self.assertNotIn("intro", page["page_header"])
@@ -202,9 +202,9 @@ class ObjectDetailPresenterTests(SemanticHookAssertions, unittest.TestCase):
             TEMPLATE_RENDERER, detail=detail, experience=experience_for_role("operator")
         )
 
-        article_html = page["page_context"]["article_html"] + page["page_context"]["appendix_html"]
-        self.assertIn("Projection says stop and inspect", article_html)
-        self.assertNotIn("Raw posture fallback should not render.", article_html)
+        content_html = page["page_context"]["content_html"] + page["page_context"]["context_html"]
+        self.assertIn("Projection says stop and inspect", content_html)
+        self.assertNotIn("Raw posture fallback should not render.", content_html)
 
     def test_reader_object_detail_keeps_context_inline_and_renders_object_tree_nav(self) -> None:
         page = present_object_detail(
@@ -214,13 +214,13 @@ class ObjectDetailPresenterTests(SemanticHookAssertions, unittest.TestCase):
             reader_object_nav=READER_OBJECT_NAV,
         )
 
-        article_html = page["page_context"]["article_html"] + page["page_context"]["appendix_html"]
-        self.assert_component(article_html, "article-section")
-        self.assert_component(article_html, "article-context-panel")
+        content_html = page["page_context"]["content_html"] + page["page_context"]["context_html"]
+        self.assert_component(content_html, "content-section")
+        self.assert_component(content_html, "context-panel")
         self.assert_component(page["aside_html"], "reader-object-tree-nav")
         self.assertIn("Browse objects", page["aside_html"])
-        self.assertIn('href="/reader/object/kb-test"', page["aside_html"])
-        self.assertIn('href="/reader/object/kb-neighbor"', page["aside_html"])
+        self.assertIn('href="/read/object/kb-test"', page["aside_html"])
+        self.assertIn('href="/read/object/kb-neighbor"', page["aside_html"])
         self.assertIn('aria-current="page"', page["aside_html"])
         self.assertIn(
             '<details class="reader-object-tree__branch-disclosure" open>', page["aside_html"]

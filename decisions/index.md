@@ -5,6 +5,7 @@
 ## Canonical Decisions
 
 - [Role-scoped experience architecture](role-scoped-experience-architecture.md)
+- [Runtime role context and access resolution](runtime-role-context-and-access-resolution.md)
 - [Layout contracts by surface](layout-contracts.md)
 - [Knowledge workflows and lifecycle](knowledge-workflows-and-lifecycle.md)
 - [Web UI component contracts](web-ui-component-contracts.md)
@@ -16,6 +17,12 @@ Use these records when changing:
 - shared surface composition
 - workflow and lifecycle boundaries
 - visible UI ownership and presentation contracts
+
+## Conformance And Follow-up Records
+
+- [Experience conformance checklist](experience-conformance-checklist.md)
+- [Governance language stabilization and conformance pass](governance-language-stabilization-and-conformance-pass.md)
+- [Advanced blueprint product scope](advanced-blueprint-product-scope.md)
 
 ## Current Repository Contract Notes
 

@@ -221,7 +221,7 @@ def evidence_guidance_body_html(
     if include_action and object_id:
         action_html = (
             "<p><strong>Next step:</strong> request evidence follow-up for any source that still needs stronger verification.</p>"
-            + f"<p>{link('Request evidence revalidation', evidence_revalidation_url(role, object_id), css_class='button button-secondary', attrs={'data-component': 'action-link', 'data-action-id': 'request_evidence_revalidation'})}</p>"
+            + f"<p>{link('Request evidence revalidation', evidence_revalidation_url(object_id), css_class='button button-secondary', attrs={'data-component': 'action-link', 'data-action-id': 'request_evidence_revalidation'})}</p>"
         )
     return (
         "<p>Link existing guidance or record a source title, reference, and note.</p>"
@@ -355,7 +355,7 @@ def _remote_object_picker_control(runtime, *, field, values: dict[str, str], obj
         placeholder=str(widget.get("placeholder") or f"Search {str(field['label']).lower()}"),
         singular_label=str(widget.get("singular_label") or "related guidance item"),
         manual_entry_label=str(widget.get("manual_entry_label") or "Manual reference entry"),
-        search_url=str(widget.get("search_url") or "/operator/write/objects/search"),
+        search_url=str(widget.get("search_url") or "/write/objects/search"),
         exclude_object_id=object_id,
     )
 
@@ -373,7 +373,7 @@ def render_section_fields_html(
     widget = _widget_config(section.fields[0]) if section.fields else {}
     if str(section.section_type.value) == "references":
         slots = int(widget.get("slots") or 3)
-        search_url = str(widget.get("search_url") or "/operator/write/citations/search")
+        search_url = str(widget.get("search_url") or "/write/citations/search")
         blocks: list[str] = []
         for index in range(1, slots + 1):
             blocks.append(

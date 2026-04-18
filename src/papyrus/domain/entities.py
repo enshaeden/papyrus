@@ -18,10 +18,6 @@ class KnowledgeDocument:
         return str(self.metadata.get("id", ""))
 
     @property
-    def article_id(self) -> str:
-        return self.knowledge_object_id
-
-    @property
     def object_type(self) -> str:
         value = self.metadata.get("knowledge_object_type")
         return str(value or "")

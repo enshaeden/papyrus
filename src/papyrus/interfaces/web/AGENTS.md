@@ -41,15 +41,18 @@ Do not preserve a visually attractive UI if it still communicates the wrong stru
 - Prefer focused views with strong hierarchy over dense screens with many competing panels.
 - Avoid mixing unrelated concerns on the same page when those concerns belong to different workflows.
 
-## Role-Separated Web Architecture
+## Shared-Route Web Architecture
 
 - When changing layouts, routes, or object pages, follow:
   - `decisions/role-scoped-experience-architecture.md`
-  - `decisions/layout-contracts-by-role.md`
+  - `decisions/runtime-role-context-and-access-resolution.md`
+  - `decisions/layout-contracts.md`
   - `decisions/knowledge-workflows-and-lifecycle.md`
   - `decisions/web-ui-component-contracts.md`
-- Maintain separate route groups and layout ownership for Reader, Operator, and Admin.
-- Left navigation must be generated from role-scoped route definitions.
+- Maintain one shared production shell and one canonical shared route space with explicit role-conditioned visibility rules.
+- Request-scoped role and access context must come from runtime or authenticated identity, not URL namespaces.
+- Route guards, deep links, navigation, search, and related discovery must enforce that context fail closed.
+- Left navigation must be generated from the canonical shared route set plus resolved visibility.
 - Reader object views must remain content-first.
 - Operator surfaces must remain task-first.
 - Admin surfaces must remain control-plane-first.
@@ -57,9 +60,10 @@ Do not preserve a visually attractive UI if it still communicates the wrong stru
 ## Forbidden Web Patterns
 
 Reject changes that:
-- add cross-role navigation into a shared shell
+- add role authority through path prefixes, query parameters, or template-local branching
 - expose unauthorised actions as disabled instead of absent
-- preserve one global nav model and filter it at render time
+- preserve duplicate route trees for the same canonical work
+- imply separate production shells for permanent role experiences
 - add page-local policy logic that should live in backend contracts
 - reintroduce dashboard-style mixed panels into Reader surfaces
 - add placeholder production content to fill empty states
@@ -67,7 +71,7 @@ Reject changes that:
 ## Required Architecture Evidence
 
 For any route, shell, navigation, or role-related UI change, report:
-- route group touched
+- canonical route family touched
 - shell owner
 - role visibility impact
 - navigation source of truth
@@ -78,7 +82,7 @@ For any route, shell, navigation, or role-related UI change, report:
 - Remove duplicated navigation, duplicated filters, duplicated action bars, and duplicated status summaries at the generating component or layout boundary defined in `decisions/web-ui-component-contracts.md`.
 - Navigation must reflect user intent and current context.
 - Global navigation should be stable.
-- Local navigation should narrow to the current object, workflow, or role.
+- Local navigation should narrow to the current object, workflow, and resolved access context.
 - Do not expose every possible control in every context.
 - Use progressive disclosure when a full control set would overload the user.
 

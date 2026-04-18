@@ -7,6 +7,7 @@ from papyrus.application.role_visibility import (
     OPERATOR_ROLE,
     READER_ROLE,
     normalize_role,
+    role_meets_minimum,
 )
 
 
@@ -51,10 +52,8 @@ class ShellPageConfig:
 class ExperienceContext:
     role: str
     label: str
-    route_prefix: str
     home_path: str
     shell_summary: str
-    audit_actor_id: str | None
     nav_sections: tuple[ShellSection, ...]
     page_behaviors: tuple[ExperiencePageBehavior, ...]
     page_configs: tuple[ShellPageConfig, ...]
@@ -91,15 +90,13 @@ def _page_configs(
 READER_EXPERIENCE = ExperienceContext(
     role=READER_ROLE,
     label="Reader",
-    route_prefix="/reader",
-    home_path="/reader/browse",
+    home_path="/read",
     shell_summary="Open dependable content without operator controls.",
-    audit_actor_id=None,
     nav_sections=(
         ShellSection(
             title="Knowledge",
             description="Open dependable content and content-first object views.",
-            items=(ShellLink("read", "Read", "/reader/browse", match_prefixes=("/reader",)),),
+            items=(ShellLink("read", "Read", "/read", match_prefixes=("/read",)),),
         ),
     ),
     page_behaviors=(
@@ -120,29 +117,17 @@ READER_EXPERIENCE = ExperienceContext(
 OPERATOR_EXPERIENCE = ExperienceContext(
     role=OPERATOR_ROLE,
     label="Operator",
-    route_prefix="/operator",
-    home_path="/operator",
+    home_path="/review",
     shell_summary="Use dependable content first, then author, review, and oversee backend knowledge work.",
-    audit_actor_id="local.operator",
     nav_sections=(
         ShellSection(
             title="Core modes",
             description="Read dependable guidance first, then move into writing, import, or review only when the work truly branches.",
             items=(
-                ShellLink("home", "Home", "/operator", match_prefixes=()),
-                ShellLink("read", "Read", "/operator/read", match_prefixes=("/operator/read",)),
-                ShellLink(
-                    "write", "Write", "/operator/write/new", match_prefixes=("/operator/write",)
-                ),
-                ShellLink(
-                    "import", "Import", "/operator/import", match_prefixes=("/operator/import",)
-                ),
-                ShellLink(
-                    "review",
-                    "Review",
-                    "/operator/review",
-                    match_prefixes=("/operator/review",),
-                ),
+                ShellLink("read", "Read", "/read", match_prefixes=("/read",)),
+                ShellLink("write", "Write", "/write/new", match_prefixes=("/write",)),
+                ShellLink("import", "Import", "/import", match_prefixes=("/import",)),
+                ShellLink("review", "Review", "/review", match_prefixes=("/review",)),
             ),
         ),
         ShellSection(
@@ -150,31 +135,30 @@ OPERATOR_EXPERIENCE = ExperienceContext(
             description="Open broader portfolio context only when the active mode needs a wider health, service, or activity view.",
             items=(
                 ShellLink(
-                    "oversight",
-                    "Health",
-                    "/operator/review/governance",
-                    match_prefixes=("/operator/review/governance", "/operator/review/impact"),
+                    "governance",
+                    "Governance",
+                    "/governance",
+                    match_prefixes=("/governance",),
                 ),
                 ShellLink(
                     "services",
                     "Services",
-                    "/operator/read/services",
-                    match_prefixes=("/operator/read/services",),
+                    "/governance/services",
+                    match_prefixes=("/governance/services",),
                 ),
                 ShellLink(
                     "activity",
                     "Activity",
-                    "/operator/review/activity",
+                    "/review/activity",
                     match_prefixes=(
-                        "/operator/review/activity",
-                        "/operator/review/validation-runs",
+                        "/review/activity",
+                        "/review/validation-runs",
                     ),
                 ),
             ),
         ),
     ),
     page_behaviors=(
-        ExperiencePageBehavior("home", mode="launchpad", density="comfortable", columns="single"),
         ExperiencePageBehavior(
             "read-queue", mode="article-first", density="comfortable", columns="single"
         ),
@@ -193,7 +177,7 @@ OPERATOR_EXPERIENCE = ExperienceContext(
             show_context_rail=True,
         ),
         ExperiencePageBehavior(
-            "oversight",
+            "governance",
             mode="review-oversight",
             density="dense",
             columns="wide",
@@ -204,12 +188,11 @@ OPERATOR_EXPERIENCE = ExperienceContext(
     ),
     page_configs=(
         *_page_configs(
-            "home",
             "read-queue",
             "object-detail",
             "services",
             "review",
-            "oversight",
+            "governance",
             "activity",
         ),
         *_page_configs("impact-object", "impact-service"),
@@ -220,40 +203,55 @@ OPERATOR_EXPERIENCE = ExperienceContext(
 ADMIN_EXPERIENCE = ExperienceContext(
     role=ADMIN_ROLE,
     label="Admin",
-    route_prefix="/admin",
     home_path="/admin/overview",
     shell_summary="Use the control-plane subset for content oversight, service impact, and audit inspection.",
-    audit_actor_id="local.manager",
     nav_sections=(
         ShellSection(
-            title="Admin control plane",
-            description="Inspect content, review, oversight, service impact, and audit history without blending in operator authoring routes.",
+            title="Shared work",
+            description="Admin sees the shared product routes plus stronger control surfaces.",
             items=(
-                ShellLink("home", "Overview", "/admin/overview", match_prefixes=()),
+                ShellLink("read", "Read", "/read", match_prefixes=("/read",)),
+                ShellLink("write", "Write", "/write/new", match_prefixes=("/write",)),
+                ShellLink("import", "Import", "/import", match_prefixes=("/import",)),
+                ShellLink("review", "Review", "/review", match_prefixes=("/review",)),
                 ShellLink(
-                    "inspect", "Content", "/admin/inspect", match_prefixes=("/admin/inspect",)
+                    "governance",
+                    "Governance",
+                    "/governance",
+                    match_prefixes=("/governance",),
                 ),
-                ShellLink("review", "Review", "/admin/review", match_prefixes=("/admin/review",)),
                 ShellLink(
-                    "oversight",
-                    "Oversight",
-                    "/admin/governance",
-                    match_prefixes=("/admin/governance", "/admin/impact"),
-                ),
-                ShellLink(
-                    "services", "Services", "/admin/services", match_prefixes=("/admin/services",)
+                    "services",
+                    "Services",
+                    "/governance/services",
+                    match_prefixes=("/governance/services",),
                 ),
                 ShellLink(
                     "activity",
                     "Audit",
                     "/admin/audit",
-                    match_prefixes=("/admin/audit", "/admin/validation-runs"),
+                    match_prefixes=("/admin/audit", "/review/activity", "/review/validation-runs"),
                 ),
+            ),
+        ),
+        ShellSection(
+            title="Admin control plane",
+            description="Control access, spaces, governed definitions, and system settings.",
+            items=(
+                ShellLink("overview", "Overview", "/admin/overview", match_prefixes=("/admin/overview",)),
+                ShellLink("users", "Users", "/admin/users", match_prefixes=("/admin/users",)),
+                ShellLink("access", "Access", "/admin/access", match_prefixes=("/admin/access",)),
+                ShellLink("spaces", "Spaces", "/admin/spaces", match_prefixes=("/admin/spaces",)),
+                ShellLink(
+                    "templates", "Templates", "/admin/templates", match_prefixes=("/admin/templates",)
+                ),
+                ShellLink("schemas", "Schemas", "/admin/schemas", match_prefixes=("/admin/schemas",)),
+                ShellLink("settings", "Settings", "/admin/settings", match_prefixes=("/admin/settings",)),
             ),
         ),
     ),
     page_behaviors=(
-        ExperiencePageBehavior("home", mode="control-room", density="dense", columns="wide"),
+        ExperiencePageBehavior("overview", mode="control-room", density="dense", columns="wide"),
         ExperiencePageBehavior(
             "read-queue",
             mode="triage-workbench",
@@ -273,7 +271,7 @@ ADMIN_EXPERIENCE = ExperienceContext(
             "review", mode="control-review", density="dense", columns="wide", show_context_rail=True
         ),
         ExperiencePageBehavior(
-            "oversight",
+            "governance",
             mode="control-oversight",
             density="dense",
             columns="wide",
@@ -286,13 +284,19 @@ ADMIN_EXPERIENCE = ExperienceContext(
     ),
     page_configs=(
         *_page_configs(
-            "home",
+            "overview",
             "read-queue",
             "object-detail",
             "services",
             "review",
-            "oversight",
+            "governance",
             "activity",
+            "users",
+            "access",
+            "spaces",
+            "templates",
+            "schemas",
+            "settings",
         ),
         *_page_configs("impact-object", "impact-service"),
         *_page_configs("revision-history", header_variant="compact"),
@@ -310,22 +314,15 @@ def experience_for_role(role: str | None = None) -> ExperienceContext:
     return _EXPERIENCES_BY_ROLE[normalize_role(role)]
 
 
-def experience_for_path(path: str) -> ExperienceContext:
-    normalized_path = str(path or "/").strip() or "/"
-    if normalized_path == "/reader" or normalized_path.startswith("/reader/"):
-        return READER_EXPERIENCE
-    if normalized_path == "/admin" or normalized_path.startswith("/admin/"):
-        return ADMIN_EXPERIENCE
-    return OPERATOR_EXPERIENCE
-
-
 def experience_for_request(request) -> ExperienceContext:
-    return experience_for_path(request.path)
+    return experience_for_role(request.role_id)
 
 
 def require_experience(request, *allowed_roles: str) -> ExperienceContext:
     experience = experience_for_request(request)
     normalized_allowed = {normalize_role(role) for role in allowed_roles}
-    if normalized_allowed and experience.role not in normalized_allowed:
+    if normalized_allowed and not any(
+        role_meets_minimum(experience.role, role) for role in normalized_allowed
+    ):
         raise RoleAccessDeniedError(f"route denied for role {experience.role}")
     return experience

@@ -7,7 +7,7 @@ import sqlite3
 from dataclasses import dataclass
 
 from papyrus.domain.entities import KnowledgeDocument
-from papyrus.domain.lifecycle import DraftProgressState, SourceSyncState
+from papyrus.domain.lifecycle import SourceSyncState
 from papyrus.domain.policies import (
     citation_health_rank_for_counts,
     freshness_rank,
@@ -280,8 +280,10 @@ def refresh_current_object_projection(
     owner_rank_value = ownership_rank(str(metadata.get("owner", "")))
     object_lifecycle_state = str(object_row["object_lifecycle_state"])
     revision_review_state = str(revision_row["revision_review_state"])
-    draft_progress_state = str(
-        revision_row["draft_progress_state"] or DraftProgressState.READY_FOR_REVIEW.value
+    draft_progress_state = (
+        str(revision_row["draft_progress_state"])
+        if revision_row["draft_progress_state"] is not None
+        else None
     )
     source_sync_state = str(object_row["source_sync_state"] or SourceSyncState.NOT_REQUIRED.value)
     fresh_rank = freshness_rank(

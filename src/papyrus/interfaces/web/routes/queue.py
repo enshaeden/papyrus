@@ -78,6 +78,4 @@ def register(router, runtime) -> None:
             )
         )
 
-    router.add(["GET"], "/reader/browse", queue_page)
-    router.add(["GET"], "/operator/read", queue_page)
-    router.add(["GET"], "/admin/inspect", queue_page)
+    router.add(["GET"], "/read", queue_page, minimum_visible_role="reader")

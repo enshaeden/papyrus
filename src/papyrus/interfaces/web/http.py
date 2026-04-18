@@ -27,6 +27,12 @@ class Request:
     route_params: dict[str, str] = field(default_factory=dict)
     cookies: dict[str, str] = field(default_factory=dict)
     files: dict[str, UploadedFile] = field(default_factory=dict)
+    actor_id: str = ""
+    role_id: str = ""
+    principal_id: str = ""
+    capabilities: tuple[str, ...] = ()
+    is_dev_switchable: bool = False
+    role_source: str = ""
 
     def query_value(self, name: str, default: str = "") -> str:
         values = self.query.get(name)
@@ -65,6 +71,39 @@ class Request:
             route_params=dict(route_params),
             cookies=self.cookies,
             files=self.files,
+            actor_id=self.actor_id,
+            role_id=self.role_id,
+            principal_id=self.principal_id,
+            capabilities=self.capabilities,
+            is_dev_switchable=self.is_dev_switchable,
+            role_source=self.role_source,
+        )
+
+    def with_identity(
+        self,
+        *,
+        actor_id: str,
+        role_id: str,
+        principal_id: str = "",
+        capabilities: tuple[str, ...] = (),
+        is_dev_switchable: bool = False,
+        role_source: str = "",
+    ) -> Request:
+        return Request(
+            method=self.method,
+            path=self.path,
+            query=self.query,
+            form=self.form,
+            json_body=self.json_body,
+            route_params=self.route_params,
+            cookies=self.cookies,
+            files=self.files,
+            actor_id=actor_id,
+            role_id=role_id,
+            principal_id=principal_id,
+            capabilities=capabilities,
+            is_dev_switchable=is_dev_switchable,
+            role_source=role_source,
         )
 
 

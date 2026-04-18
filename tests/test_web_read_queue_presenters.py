@@ -125,7 +125,7 @@ class ReadQueuePresenterTests(SemanticHookAssertions, unittest.TestCase):
             ]
         }
 
-        self.assertEqual(queue_item_href(item, role="reader"), "/reader/object/kb-test")
+        self.assertEqual(queue_item_href(item, role="reader"), "/read/object/kb-test")
         reader_html = render_read_result_cards(role="reader", items=[item])
-        self.assertIn('href="/reader/object/kb-test"', reader_html)
-        self.assertNotIn("/operator/review/object/kb-test/suspect", reader_html)
+        self.assertIn('href="/read/object/kb-test"', reader_html)
+        self.assertNotIn("/review/object/kb-test/suspect", reader_html)

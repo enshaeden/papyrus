@@ -5,10 +5,16 @@ OPERATOR_ROLE = "operator"
 ADMIN_ROLE = "admin"
 
 ROLE_IDS = {READER_ROLE, OPERATOR_ROLE, ADMIN_ROLE}
+ROLE_RANKS = {
+    READER_ROLE: 0,
+    OPERATOR_ROLE: 1,
+    ADMIN_ROLE: 2,
+}
 READER_VISIBLE_LIFECYCLE_STATES = {"active"}
 READER_VISIBLE_REVIEW_STATES = {"approved"}
 
 _ACTOR_ROLE_MAP = {
+    "local.reader": READER_ROLE,
     "local.operator": OPERATOR_ROLE,
     "local.reviewer": OPERATOR_ROLE,
     "local.manager": ADMIN_ROLE,
@@ -27,6 +33,12 @@ def role_from_actor_id(actor_id: str | None = None) -> str:
     if normalized in _ACTOR_ROLE_MAP:
         return _ACTOR_ROLE_MAP[normalized]
     return normalize_role(normalized)
+
+
+def role_meets_minimum(role: str | None, minimum_role: str | None) -> bool:
+    normalized_role = normalize_role(role)
+    normalized_minimum = normalize_role(minimum_role)
+    return ROLE_RANKS[normalized_role] >= ROLE_RANKS[normalized_minimum]
 
 
 def queue_ranking_for_role(role: str | None = None) -> str:

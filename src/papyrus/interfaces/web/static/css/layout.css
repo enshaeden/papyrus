@@ -24,6 +24,7 @@ a:hover {
 
 .app-shell {
   min-height: 100vh;
+  transition: grid-template-columns 0.3s ease;
 }
 
 .topbar {
@@ -40,7 +41,6 @@ a:hover {
     max(var(--shell-gutter-inline-right), env(safe-area-inset-right));
   border-bottom: 1px solid var(--color-topbar-border);
   background: var(--color-topbar-bg);
-  box-shadow: var(--shadow-topbar);
 }
 
 .topbar-identity {
@@ -288,6 +288,7 @@ a:hover {
     max(var(--shell-gutter-inline-left), env(safe-area-inset-left))
     max(var(--shell-gutter-inline-right), env(safe-area-inset-right));
   align-items: start;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .shell-columns.has-sidebar {
@@ -301,6 +302,22 @@ a:hover {
 
 .shell-columns.has-sidebar.has-aside {
   grid-template-columns: var(--shell-nav-width) minmax(0, 1fr) var(--shell-aside-width);
+}
+
+.app-shell.nav-collapsed .shell-columns.has-sidebar {
+  grid-template-columns: 0px minmax(0, 1fr);
+}
+.app-shell.nav-collapsed .shell-columns.has-sidebar.has-aside {
+  grid-template-columns: 0px minmax(0, 1fr) var(--shell-aside-width);
+}
+.app-shell.aside-collapsed .shell-columns.has-aside {
+  grid-template-columns: minmax(0, 1fr) 0px;
+}
+.app-shell.aside-collapsed .shell-columns.has-sidebar.has-aside {
+  grid-template-columns: var(--shell-nav-width) minmax(0, 1fr) 0px;
+}
+.app-shell.nav-collapsed.aside-collapsed .shell-columns.has-sidebar.has-aside {
+  grid-template-columns: 0px minmax(0, 1fr) 0px;
 }
 
 .app-shell.role-reader .shell-columns.has-aside:has(.reader-object-tree) {
@@ -337,11 +354,17 @@ a:hover {
   gap: 0.95rem;
   align-self: start;
   padding: 0.95rem 0.95rem 0.95rem max(0.95rem, env(safe-area-inset-left));
-  border: 1px solid var(--color-panel-governance-border);
-  border-left: 0;
-  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-  background: var(--color-panel-governance-bg);
-  box-shadow: var(--shadow-panel);
+  border-right: 1px solid var(--color-border-default);
+  background: var(--color-surface-panel);
+  transition: opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.app-shell.nav-collapsed .sidebar {
+  opacity: 0;
+  pointer-events: none;
+  padding-inline: 0;
+  border: none;
 }
 
 .sidebar-intro {
@@ -396,8 +419,7 @@ a:hover {
   display: block;
   min-height: 2.2rem;
   padding: 0.7rem 0.85rem;
-  border: 1px solid transparent;
-  border-radius: 0.9rem;
+  border-left: 3px solid transparent;
   color: var(--color-text-primary);
   text-decoration: none;
   transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
@@ -405,22 +427,21 @@ a:hover {
 
 .sidebar-link:hover {
   background: var(--color-nav-hover-bg);
-  border-color: var(--color-nav-hover-border);
+  border-left-color: var(--color-nav-hover-border);
   color: var(--color-nav-hover-text);
   text-decoration: none;
 }
 
 .sidebar-link.is-active {
   background: var(--color-selected-fill);
-  border-color: var(--color-selected-border);
+  border-left-color: var(--color-nav-active);
   color: var(--color-nav-active);
   font-weight: 700;
-  box-shadow: inset 0.24rem 0 0 var(--color-nav-active);
 }
 
 .sidebar-link.is-active:hover {
   background: var(--color-selected-fill);
-  border-color: var(--color-nav-active-hover);
+  border-left-color: var(--color-nav-active-hover);
   color: var(--color-nav-active-hover);
 }
 
@@ -442,6 +463,14 @@ a:hover {
 .context-column {
   position: sticky;
   top: 5.15rem;
+  transition: opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.app-shell.aside-collapsed .context-column {
+  opacity: 0;
+  pointer-events: none;
+  padding-inline: 0;
 }
 
 .app-shell.role-reader .context-column:has(.reader-object-tree) {

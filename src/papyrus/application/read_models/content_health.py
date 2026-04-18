@@ -41,7 +41,7 @@ CONTENT_HEALTH_SECTIONS = (
     "missing-services",
     "missing-systems",
     "missing-tags",
-    "isolated-articles",
+    "isolated-objects",
     "citation-health",
     "weak-evidence",
     "suspect-objects",
@@ -82,8 +82,6 @@ def _legacy_fallback_details(document) -> tuple[bool, list[str]]:
     ):
         return False, []
     reasons: list[str] = []
-    if str(document.metadata.get("legacy_article_type") or "").strip():
-        reasons.append("legacy_article_type")
     if str(document.metadata.get("source_type") or "").strip() in {"imported", "derived"}:
         reasons.append(f"source_type={document.metadata.get('source_type')}")
     if LEGACY_FIELD_NOTE_PREFIX in json.dumps(

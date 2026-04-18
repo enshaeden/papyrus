@@ -37,7 +37,7 @@ def intervention_groups(queue: list[dict[str, Any]]) -> dict[str, list[dict[str,
         )
         if trust_state in {"suspect", "stale", "weak_evidence"}:
             groups["trust_debt"].append(item)
-        elif review_state in {"in_review", "rejected", "draft"}:
+        elif review_state in {"in_review", "rejected", "in_progress"}:
             groups["review_backlog"].append(item)
         elif not str(item.get("owner") or "").strip() or int(item.get("ownership_rank") or 0) > 0:
             groups["ownership_gaps"].append(item)

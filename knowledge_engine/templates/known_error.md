@@ -4,7 +4,6 @@ title: {{title}}
 canonical_path: {{canonical_path}}
 summary: Replace with a concise statement of the failure pattern and impact.
 knowledge_object_type: known_error
-legacy_article_type: null
 object_lifecycle_state: {{object_lifecycle_state}}
 owner: {{owner}}
 source_type: native
@@ -40,13 +39,13 @@ citations:
 superseded_by: null
 retirement_reason: null
 services: {{related_services_inline}}
-related_articles: {{related_object_ids_inline}}
 references:
 - title: Replace with a supporting document, local path, or canonical knowledge-object reference.
+  object_id: null
 change_log:
 - date: {{today}}
   summary: Initial object scaffold.
-  author: new_article.py
+  author: new_object.py
 ---
 
 ## Detection Notes

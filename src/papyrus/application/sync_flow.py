@@ -15,7 +15,7 @@ from papyrus.application.runtime_projection import (
 )
 from papyrus.application.validation_flow import validate_knowledge_documents
 from papyrus.application.workspace import require_workspace_source_root
-from papyrus.domain.lifecycle import DraftProgressState, SourceSyncState
+from papyrus.domain.lifecycle import SourceSyncState
 from papyrus.domain.policies import bootstrap_revision_review_state, runtime_trust_state
 from papyrus.domain.value_objects import RevisionReviewStatus
 from papyrus.infrastructure.db import RUNTIME_SCHEMA_VERSION, open_runtime_database
@@ -31,7 +31,6 @@ from papyrus.infrastructure.repositories.knowledge_repo import (
     load_knowledge_documents,
     load_object_schemas,
     load_policy,
-    load_schema,
     load_taxonomies,
     next_revision_number,
     replace_fts_document,
@@ -66,7 +65,7 @@ def _sync_revision_state(
         return str(existing_revision["revision_review_state"])
     if existing_object is None:
         return bootstrap_revision_review_state(object_lifecycle_state)
-    return RevisionReviewStatus.DRAFT.value
+    return RevisionReviewStatus.IN_PROGRESS.value
 
 
 def _sync_trust_state(
@@ -126,11 +125,8 @@ def build_search_projection(
     policy = load_policy()
     documents = load_knowledge_documents(resolved_workspace_root, policy)
     object_schemas = load_object_schemas()
-    legacy_schema = load_schema()
     taxonomies = load_taxonomies()
-    issues = validate_knowledge_documents(
-        documents, object_schemas, legacy_schema, taxonomies, policy
-    )
+    issues = validate_knowledge_documents(documents, object_schemas, taxonomies, policy)
     if issues:
         log_event(
             LOGGER,
@@ -242,8 +238,8 @@ def build_search_projection(
             if existing_revision is None:
                 draft_progress_state = (
                     section_completion["draft_progress_state"]
-                    if revision_state == RevisionReviewStatus.DRAFT.value
-                    else DraftProgressState.READY_FOR_REVIEW.value
+                    if revision_state == RevisionReviewStatus.IN_PROGRESS.value
+                    else None
                 )
                 insert_knowledge_revision(
                     connection,
@@ -287,8 +283,8 @@ def build_search_projection(
                 revision_review_state=revision_state,
                 draft_progress_state=(
                     section_completion["draft_progress_state"]
-                    if revision_state == RevisionReviewStatus.DRAFT.value
-                    else DraftProgressState.READY_FOR_REVIEW.value
+                    if revision_state == RevisionReviewStatus.IN_PROGRESS.value
+                    else None
                 ),
                 source_sync_state=SourceSyncState.APPLIED.value,
                 freshness_rank=parsed.freshness_rank,

@@ -9,28 +9,28 @@ from papyrus.interfaces.web.presenters.governed_presenter import compact_action_
 from papyrus.interfaces.web.rendering import TemplateRenderer
 from papyrus.interfaces.web.urls import impact_object_url, object_history_url, review_decision_url
 from papyrus.interfaces.web.view_helpers import escape, join_html, link
-from papyrus.interfaces.web.view_models.article_projection import build_article_projection
+from papyrus.interfaces.web.view_models.content_projection import build_content_projection
 
 from .article_content_presenter import render_article_block
 from .reader_object_tree_presenter import render_reader_object_tree_nav
 
 
-def render_article_section(*, section: dict[str, Any]) -> str:
+def render_content_section(*, section: dict[str, Any]) -> str:
     blocks = [block for block in section.get("blocks") or [] if block]
     body_html = (
         join_html([render_article_block(block) for block in blocks])
         if blocks
-        else f'<p class="article-empty">{escape(section.get("empty") or "No article content recorded.")}</p>'
+        else f'<p class="content-empty">{escape(section.get("empty") or "No content recorded.")}</p>'
     )
     return (
-        '<section class="article-section" data-component="article-section" data-surface="object-detail">'
-        f'<p class="article-section__kicker">{escape(section["eyebrow"])}</p>'
+        '<section class="content-section" data-component="content-section" data-surface="object-detail">'
+        f'<p class="content-section__kicker">{escape(section["eyebrow"])}</p>'
         f"<h2>{escape(section['title'])}</h2>"
         f"{body_html}</section>"
     )
 
 
-def render_article_context_panel(*, section: dict[str, Any]) -> str:
+def render_context_panel(*, section: dict[str, Any]) -> str:
     blocks = [block for block in section.get("blocks") or [] if block]
     raw_markdown = str(section.get("raw_markdown") or "").strip()
     section_surface = (
@@ -39,16 +39,16 @@ def render_article_context_panel(*, section: dict[str, Any]) -> str:
     body_html = join_html([render_article_block(block) for block in blocks]) if blocks else ""
     if raw_markdown:
         body_html += (
-            '<details class="article-context-panel__source" data-component="inline-disclosure">'
+            '<details class="context-panel__source" data-component="inline-disclosure">'
             "<summary>View revision source</summary>"
             f'<pre class="source-markdown">{escape(raw_markdown)}</pre>'
             "</details>"
         )
     if not body_html:
-        body_html = f'<p class="article-empty">{escape(section.get("empty") or "No supporting context recorded.")}</p>'
+        body_html = f'<p class="content-empty">{escape(section.get("empty") or "No supporting context recorded.")}</p>'
     return (
-        f'<section class="article-context-panel" data-component="article-context-panel" data-surface="{section_surface}">'
-        f'<p class="article-context-panel__kicker">{escape(section["eyebrow"])}</p>'
+        f'<section class="context-panel" data-component="context-panel" data-surface="{section_surface}">'
+        f'<p class="context-panel__kicker">{escape(section["eyebrow"])}</p>'
         f"<h3>{escape(section['title'])}</h3>"
         f"{body_html}</section>"
     )
@@ -62,7 +62,7 @@ def present_object_detail(
     reader_object_nav: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     components = ComponentPresenter(renderer)
-    article = build_article_projection(
+    content = build_content_projection(
         item=detail["object"],
         revision=detail.get("current_revision"),
         metadata=detail.get("metadata") or {},
@@ -82,7 +82,7 @@ def present_object_detail(
             [
                 link(
                     "See history",
-                    object_history_url(experience.role, str(item["object_id"])),
+                    object_history_url(str(item["object_id"])),
                     css_class="button button-ghost",
                 ),
                 compact_action_menu_html(
@@ -95,7 +95,7 @@ def present_object_detail(
                 ),
                 link(
                     "See impact",
-                    impact_object_url(experience.role, str(item["object_id"])),
+                    impact_object_url(str(item["object_id"])),
                     css_class="button button-ghost",
                 ),
             ]
@@ -105,31 +105,29 @@ def present_object_detail(
             0,
             link(
                 "Open review context",
-                review_decision_url(
-                    experience.role, str(item["object_id"]), str(revision["revision_id"])
-                ),
+                review_decision_url(str(item["object_id"]), str(revision["revision_id"])),
                 css_class="button button-primary",
             ),
         )
     primary_html = join_html(
-        [render_article_section(section=section) for section in article["sections"]]
+        [render_content_section(section=section) for section in content["sections"]]
     )
     secondary_html = join_html(
-        [render_article_context_panel(section=section) for section in article["secondary_sections"]]
+        [render_context_panel(section=section) for section in content["secondary_sections"]]
     )
     if experience.role == READER_ROLE:
         appendix_html = secondary_html
         aside_html = render_reader_object_tree_nav(reader_object_nav)
     else:
-        appendix_html = "" if article["show_context_rail"] else secondary_html
-        aside_html = secondary_html if article["show_context_rail"] else ""
-    use_now = str(article["hero"].get("use_now") or "").strip()
+        appendix_html = "" if content["show_context_rail"] else secondary_html
+        aside_html = secondary_html if content["show_context_rail"] else ""
+    use_now = str(content["hero"].get("use_now") or "").strip()
     return {
         "page_template": "pages/object_detail.html",
         "page_title": item["title"],
         "page_header": {
             "headline": item["title"],
-            "kicker": article["hero"]["eyebrow"],
+            "kicker": content["hero"]["eyebrow"],
             "context_html": f"<p><strong>Use now:</strong> {escape(use_now)}</p>"
             if use_now
             else "",
@@ -138,8 +136,8 @@ def present_object_detail(
         "active_nav": "inspect" if experience.role == ADMIN_ROLE else "read",
         "aside_html": aside_html,
         "page_context": {
-            "article_html": primary_html,
-            "appendix_html": appendix_html,
+            "content_html": primary_html,
+            "context_html": appendix_html,
         },
         "page_surface": "object-detail",
     }

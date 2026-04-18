@@ -24,7 +24,7 @@ class KnowledgeRepoTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             workspace_root = Path(temp_dir) / "workspace"
             policy = load_policy()
-            for root in policy["source_workspace"]["article_roots"]:
+            for root in policy["source_workspace"]["knowledge_roots"]:
                 (workspace_root / root).mkdir(parents=True, exist_ok=True)
             (workspace_root / "knowledge" / "AGENTS.md").write_text("ignored", encoding="utf-8")
             document_path = workspace_root / "knowledge" / "runbooks" / "test.md"

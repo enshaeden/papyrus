@@ -13,7 +13,21 @@ from papyrus.application.queries import (
     RuntimeUnavailableError,
     ServiceNotFoundError,
 )
+from papyrus.application.role_visibility import (
+    ADMIN_ROLE,
+    OPERATOR_ROLE,
+    normalize_role,
+    role_from_actor_id,
+    role_meets_minimum,
+)
 from papyrus.application.workspace import WorkspaceSourceRequiredError
+from papyrus.domain.actor import (
+    default_actor_id as runtime_default_actor_id,
+)
+from papyrus.domain.actor import (
+    default_actor_id_for_role,
+    resolve_actor,
+)
 from papyrus.infrastructure.observability import get_logger, log_event
 from papyrus.infrastructure.paths import DB_PATH
 from papyrus.infrastructure.repositories.knowledge_repo import load_taxonomies
@@ -33,11 +47,34 @@ from papyrus.interfaces.web.runtime import WebRuntime
 LOGGER = get_logger(__name__)
 
 
+def _capabilities_for_role(role: str) -> tuple[str, ...]:
+    normalized_role = normalize_role(role)
+    if normalized_role == ADMIN_ROLE:
+        return ("read", "operate", "admin")
+    if normalized_role == OPERATOR_ROLE:
+        return ("read", "operate")
+    return ("read",)
+
+
+def _resolve_request_identity(request: Request, runtime: WebRuntime) -> Request:
+    resolved_role = normalize_role(runtime.default_role)
+    principal_id = runtime.default_actor_id or runtime.default_role
+    return request.with_identity(
+        actor_id=runtime.default_actor_id,
+        role_id=resolved_role,
+        principal_id=principal_id,
+        capabilities=_capabilities_for_role(resolved_role),
+        is_dev_switchable=False,
+        role_source="config_default",
+    )
+
+
 @dataclass(frozen=True)
 class Route:
     methods: tuple[str, ...]
     pattern: str
     handler: Callable[[Request], object]
+    minimum_visible_role: str
 
 
 @dataclass(frozen=True)
@@ -50,8 +87,15 @@ class Router:
     def __init__(self):
         self._routes: list[Route] = []
 
-    def add(self, methods: list[str], pattern: str, handler: Callable[[Request], object]) -> None:
-        self._routes.append(Route(tuple(methods), pattern, handler))
+    def add(
+        self,
+        methods: list[str],
+        pattern: str,
+        handler: Callable[[Request], object],
+        *,
+        minimum_visible_role: str,
+    ) -> None:
+        self._routes.append(Route(tuple(methods), pattern, handler, minimum_visible_role))
 
     def match(self, request: Request) -> RouteMatch | None:
         for route in self._routes:
@@ -61,7 +105,13 @@ class Router:
             routed_request = request.with_route_params(params)
             if request.method not in route.methods:
                 return RouteMatch(
-                    Route(("__method_not_allowed__",), route.pattern, route.handler), routed_request
+                    Route(
+                        ("__method_not_allowed__",),
+                        route.pattern,
+                        route.handler,
+                        route.minimum_visible_role,
+                    ),
+                    routed_request,
                 )
             return RouteMatch(route, routed_request)
         return None
@@ -109,21 +159,28 @@ def app(
     database_path: str | Path = DB_PATH,
     source_root: str | Path | None = None,
     allow_web_ingest_local_paths: bool = False,
+    default_actor_id: str | None = None,
+    default_role: str | None = None,
 ) -> Callable:
     resolved_database_path = Path(database_path)
     resolved_source_root = resolve_runtime_source_root(source_root)
+    resolved_actor = resolve_actor(default_actor_id or default_actor_id_for_role(default_role or ""))
+    resolved_actor_id = resolved_actor.actor_id or runtime_default_actor_id()
+    resolved_role = normalize_role(default_role or role_from_actor_id(resolved_actor_id))
     runtime = WebRuntime(
         database_path=resolved_database_path,
         source_root=resolved_source_root,
         allow_web_ingest_local_paths=allow_web_ingest_local_paths,
         page_renderer=PageRenderer(Path(__file__).resolve().parent),
         taxonomies=load_taxonomies(),
+        default_actor_id=resolved_actor_id,
+        default_role=resolved_role,
     )
     router = Router()
     register_all_routes(router, runtime)
 
     def application(environ, start_response):
-        request = request_from_environ(environ)
+        request = _resolve_request_identity(request_from_environ(environ), runtime)
         try:
             if request.path.startswith("/static/"):
                 relative_path = request.path.removeprefix("/static/")
@@ -169,6 +226,10 @@ def app(
                     ),
                     status="405 Method Not Allowed",
                 ).as_wsgi(start_response)
+            if not role_meets_minimum(routed_request.role_id, route.minimum_visible_role):
+                raise RoleAccessDeniedError(
+                    f"route denied for role {routed_request.role_id} on {route.pattern}"
+                )
             response = route.handler(routed_request)
             return response.as_wsgi(start_response)
         except RoleAccessDeniedError:
@@ -262,7 +323,7 @@ def app(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Serve the Papyrus operator web interface over WSGI."
+        description="Serve the Papyrus web interface over WSGI."
     )
     parser.add_argument("--host", default="127.0.0.1", help="Bind host. Defaults to 127.0.0.1.")
     parser.add_argument("--port", type=int, default=8080, help="Bind port. Defaults to 8080.")
@@ -277,12 +338,25 @@ def main() -> int:
         action="store_true",
         help="Allow the /ingest web form to read an absolute local file path from the machine running Papyrus.",
     )
+    identity = parser.add_mutually_exclusive_group()
+    identity.add_argument(
+        "--actor",
+        default=None,
+        help="Local actor id for the web runtime role context. Defaults to the local operator actor.",
+    )
+    identity.add_argument(
+        "--role",
+        default=None,
+        help="Local role for the web runtime role context. Use reader, operator, or admin.",
+    )
     args = parser.parse_args()
 
     application = app(
         args.db,
         args.source_root,
         allow_web_ingest_local_paths=args.allow_web_ingest_local_paths,
+        default_actor_id=args.actor,
+        default_role=args.role,
     )
 
     with make_server(args.host, args.port, application) as server:

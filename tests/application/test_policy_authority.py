@@ -33,14 +33,14 @@ class PolicyAuthorityTests(unittest.TestCase):
         )
         self.assertTrue(
             self.authority.require_revision_review_transition(
-                RevisionReviewState.DRAFT.value,
+                RevisionReviewState.IN_PROGRESS.value,
                 RevisionReviewState.IN_REVIEW.value,
             ).allowed
         )
         self.assertTrue(
             self.authority.require_draft_progress_transition(
                 DraftProgressState.BLOCKED.value,
-                DraftProgressState.IN_PROGRESS.value,
+                DraftProgressState.READY_FOR_REVIEW.value,
             ).allowed
         )
         self.assertTrue(

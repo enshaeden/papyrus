@@ -1,12 +1,13 @@
-# Oversight Playbook
+# Review And Governance Playbook
 
 Use this playbook when you review revisions, make lifecycle decisions, monitor content risk, or inspect recent change and audit history.
 
-The oversight surfaces are intentionally distinct:
+The governed work surfaces are intentionally distinct:
 
-- `Review` is a dense reviewer workbench
-- `Oversight` is an intervention board grouped by debt type
-- `History` is a recent change and audit feed
+- `Review` is the queue and revision-decision workbench
+- `Governance` is the intervention board for services, posture, and cross-object follow-up
+- `Activity` is the recent change and audit feed
+- `Admin` is the control plane for users, access, templates, schemas, spaces, settings, and full audit
 
 ## Refresh The Runtime Before Review
 
@@ -15,13 +16,10 @@ python3 scripts/build_index.py --source-root /path/to/workspace
 ```
 
 Outcome:
+
 - Queue ordering, trust state, citations, and impact views reflect current source and runtime state.
 
-Failure signals:
-- runtime build errors
-- stale queue or trust data after source changes
-
-## Start With Review Or Oversight
+## Start With Review Or Governance
 
 Open the runtime-backed queue:
 
@@ -33,17 +31,19 @@ python3 scripts/operator_view.py health --db build/knowledge.db
 python3 scripts/operator_view.py activity --db build/knowledge.db
 ```
 
-- Web review route: `/operator/review`
-- Web oversight route: `/operator/review/governance`
-- Web history route: `/operator/review/activity`
+- Web review route: `/review`
+- Web governance route: `/governance`
+- Web history route: `/review/activity`
+- Admin landing: `/admin/overview`
 
 Use these surfaces by purpose:
 
 - `Review`: ready for review, needs decision, drafts and rework, with selected context only when it helps a decision
-- `Oversight`: stale guidance, weak evidence, suspect objects, ownership gaps, and cleanup debt grouped by intervention type
-- `History`: recent changes, validation outcomes, and writeback or audit recovery context, with raw payload detail behind disclosure
+- `Governance`: service posture, weak evidence, suspect objects, ownership gaps, and cleanup debt grouped by intervention type
+- `Activity`: recent changes, validation outcomes, and writeback or audit recovery context
+- `Admin`: users, access, spaces, templates, schemas, settings, and full audit
 
-Imported drafts and native drafts use the same review and approval path only after the import workbench conversion step. Parser warnings, degraded extraction, mapping conflicts, low-confidence matches, and unmapped content stay in the import review stage and should not be hidden during draft conversion.
+Imported drafts and native drafts use the same review and approval path only after the import workbench conversion step.
 
 ## Approve Or Reject Revisions
 
@@ -56,18 +56,12 @@ Review in this order:
 
 Useful routes:
 
-- `/operator/read/object/{object_id}`
-- `/operator/read/object/{object_id}/revisions`
-- `/operator/review/impact/object/{object_id}`
-- `/operator/read/services/{service_id}`
+- `/read/object/{object_id}`
+- `/read/object/{object_id}/revisions`
+- `/review/impact/object/{object_id}`
+- `/governance/services/{service_id}`
 
 Approval should mean the current revision is operationally usable and adequately supported. Reject when the object is materially wrong, weakly evidenced, poorly scoped, or missing governance metadata.
-
-Evidence review boundary:
-
-- governed Papyrus references are lightweight internal references for traceability and review context
-- external or manual citations without capture time, integrity metadata, and any required snapshot remain weak evidence posture
-- do not treat "citation entered" as proof that the revision is strongly evidenced
 
 Current repository boundary:
 
@@ -85,14 +79,6 @@ Use object detail, activity history, and revision history to answer:
 - whether prior approved revisions were superseded
 - whether the current trust posture was degraded by later change
 - what should be revalidated or reviewed next
-
-If the trail is unclear, do not approve the revision until the author updates the source and change summary.
-
-Oversight view guidance:
-
-- start from `Oversight` when you need to reduce risk across the portfolio
-- start from `Services` when service criticality or ownership should drive intervention
-- use `History` to understand recent changes before escalating process or staffing pressure
 
 ## Run Stale And Content-Health Checks
 
@@ -122,36 +108,11 @@ Treat these as escalation conditions:
 - objects with no owner or no clear responsible team
 - current guidance that is active but overdue for review
 
-Use oversight for trend and review visibility:
+Use these routes when intervening:
 
-- Web oversight route: `/operator/review/governance`
-- API oversight dashboard route: `/dashboard/oversight`
-- CLI oversight view: `python3 scripts/operator_view.py health --db build/knowledge.db`
+- `/review/object/{object_id}/suspect`
+- `/review/object/{object_id}/supersede`
+- `/review/validation-runs/new`
+- `/admin/audit`
 
-Additional governed manage routes:
-
-- `/operator/review/object/{object_id}/suspect`
-- `/operator/review/object/{object_id}/supersede`
-- `/operator/review/validation-runs/new`
-
-## Recover Or Inspect Canonical Writeback
-
-If a reviewer needs to understand or recover canonical source state:
-
-```bash
-python3 scripts/source_sync.py preview --object <object_id>
-python3 scripts/source_sync.py restore-last --object <object_id>
-```
-
-Use these commands when source sync needs explicit inspection or rollback. Preview reports the proposed `source_sync_state`, required acknowledgements, and conflict posture before apply. Do not recover by manually editing generated output.
-
-## Recovery And Acknowledgement Rules
-
-- operator startup and governed mutation entry points run pending mutation recovery before they proceed
-- Papyrus reclaims or rolls back stale journals and stale locks when it can do so safely
-- if recovery cannot prove a safe result, Papyrus stops the operation and surfaces the blocking reason instead of ignoring the journal or lock
-- archive, writeback, and restore acknowledgements come from backend contracts; operators should only confirm what the current contract requires
-
-## Use Papyrus As An Oversight Surface
-
-Papyrus is the place to judge whether guidance is current, owned, reviewed, supported by evidence, and still safe after change. Use canonical Markdown for authored content, and use review, oversight, history, service, and impact views to shepherd that content through its lifecycle.
+The JSON API remains operator-oriented and exposes its own non-role-prefixed endpoints. Any future role-scoped API contract requires a separate decision and migration.

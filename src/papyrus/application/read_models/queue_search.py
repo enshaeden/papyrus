@@ -57,7 +57,7 @@ def search_projection(
             "CASE d.revision_review_state "
             "WHEN 'approved' THEN 0 "
             "WHEN 'in_review' THEN 1 "
-            "WHEN 'draft' THEN 2 "
+            "WHEN 'in_progress' THEN 2 "
             "WHEN 'rejected' THEN 3 "
             "WHEN 'superseded' THEN 4 "
             "ELSE 5 END, "
@@ -135,7 +135,7 @@ def _review_priority(revision_review_state: str | None) -> int:
     order = {
         "approved": 0,
         "in_review": 1,
-        "draft": 2,
+        "in_progress": 2,
         "rejected": 3,
         "superseded": 4,
     }
@@ -146,7 +146,7 @@ def _triage_review_priority(revision_review_state: str | None) -> int:
     order = {
         "in_review": 0,
         "rejected": 1,
-        "draft": 2,
+        "in_progress": 2,
         "approved": 3,
         "superseded": 4,
     }
@@ -328,8 +328,8 @@ def _queue_projection_select() -> str:
             COALESCE(d.path, o.canonical_path) AS path,
             o.trust_state,
             o.source_sync_state,
-            COALESCE(d.revision_review_state, r.revision_review_state, CASE WHEN o.current_revision_id IS NULL THEN 'draft' ELSE 'unknown' END) AS revision_review_state,
-            COALESCE(d.draft_progress_state, r.draft_progress_state, 'ready_for_review') AS draft_progress_state,
+            COALESCE(d.revision_review_state, r.revision_review_state, CASE WHEN o.current_revision_id IS NULL THEN 'in_progress' ELSE 'unknown' END) AS revision_review_state,
+            COALESCE(d.draft_progress_state, r.draft_progress_state) AS draft_progress_state,
             COALESCE(d.freshness_rank, 0) AS freshness_rank,
             COALESCE(d.citation_health_rank, 0) AS citation_health_rank,
             COALESCE(d.ownership_rank, CASE WHEN TRIM(o.owner) = '' THEN 1 ELSE 0 END) AS ownership_rank,
@@ -468,11 +468,11 @@ def search_knowledge_objects(
                         CASE COALESCE(
                             d.revision_review_state,
                             r.revision_review_state,
-                            CASE WHEN o.current_revision_id IS NULL THEN 'draft' ELSE 'unknown' END
+                            CASE WHEN o.current_revision_id IS NULL THEN 'in_progress' ELSE 'unknown' END
                         )
                             WHEN 'approved' THEN 0
                             WHEN 'in_review' THEN 1
-                            WHEN 'draft' THEN 2
+                            WHEN 'in_progress' THEN 2
                             WHEN 'rejected' THEN 3
                             ELSE 4
                         END,
@@ -510,11 +510,11 @@ def search_knowledge_objects(
                 CASE COALESCE(
                     d.revision_review_state,
                     r.revision_review_state,
-                    CASE WHEN o.current_revision_id IS NULL THEN 'draft' ELSE 'unknown' END
+                    CASE WHEN o.current_revision_id IS NULL THEN 'in_progress' ELSE 'unknown' END
                 )
                     WHEN 'approved' THEN 0
                     WHEN 'in_review' THEN 1
-                    WHEN 'draft' THEN 2
+                    WHEN 'in_progress' THEN 2
                     WHEN 'rejected' THEN 3
                     ELSE 4
                 END,

@@ -148,7 +148,7 @@ def _normalize_citations(metadata: dict[str, object]) -> list[dict[str, object]]
                 continue
             citations.append(
                 {
-                    "article_id": item.get("article_id"),
+                    "object_id": item.get("object_id"),
                     "claim_anchor": str(item.get("claim_anchor")).strip()
                     if item.get("claim_anchor")
                     else None,
@@ -196,7 +196,7 @@ def _normalize_citations(metadata: dict[str, object]) -> list[dict[str, object]]
         if not isinstance(item, dict):
             continue
         source_ref = str(
-            item.get("path") or item.get("url") or item.get("article_id") or item.get("title") or ""
+            item.get("path") or item.get("url") or item.get("object_id") or item.get("title") or ""
         ).strip()
         if not source_ref:
             continue
@@ -204,7 +204,7 @@ def _normalize_citations(metadata: dict[str, object]) -> list[dict[str, object]]
         note = str(item.get("note") or "").strip() or None
         legacy_citations.append(
             {
-                "article_id": item.get("article_id"),
+                "object_id": item.get("object_id"),
                 "claim_anchor": None,
                 "source_title": source_title,
                 "source_type": "document",
@@ -245,7 +245,7 @@ def _related_object_ids(metadata: dict[str, object]) -> list[str]:
     values = metadata.get("related_object_ids")
     if isinstance(values, list):
         return _string_list(values)
-    return _string_list(metadata.get("related_articles"))
+    return []
 
 
 def _service_name(metadata: dict[str, object]) -> str:
@@ -272,10 +272,6 @@ def normalize_object_metadata(
     object_type = primary_object_type(metadata)
     if object_type is None:
         raise ValueError(f"{document.relative_path}: unsupported or missing knowledge object type")
-
-    legacy_type_value = metadata.get("legacy_article_type")
-    if not isinstance(legacy_type_value, str) or not legacy_type_value.strip():
-        legacy_type_value = None
 
     citations = _normalize_citations(metadata)
     related_services = _related_services(metadata)
@@ -372,7 +368,7 @@ def normalize_object_metadata(
     return ParsedKnowledgeObjectSource(
         document=document,
         object_type=object_type,
-        legacy_type=legacy_type_value,
+        legacy_type=None,
         metadata=metadata,
         citations=citations,
         related_services=related_services,

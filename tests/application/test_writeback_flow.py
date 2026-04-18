@@ -32,7 +32,6 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "canonical_path": canonical_path,
         "summary": "Writeback flow test payload.",
         "knowledge_object_type": "runbook",
-        "legacy_article_type": "runbook",
         "object_lifecycle_state": "active",
         "owner": "workflow_owner",
         "source_type": "native",
@@ -62,7 +61,7 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
                 "captured_at": None,
                 "validity_status": "verified",
                 "integrity_hash": None,
-                "article_id": None,
+                "object_id": None,
             }
         ],
         "related_object_ids": ["kb-troubleshooting-vpn-connectivity"],
@@ -70,10 +69,19 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
         "replaced_by": None,
         "retirement_reason": None,
         "services": ["Remote Access"],
-        "related_articles": ["kb-troubleshooting-vpn-connectivity"],
         "references": [{"title": "System model", "path": "knowledge/system-model.md"}],
         "change_log": [{"date": "2026-04-08", "summary": "Initial draft.", "author": "tests"}],
     }
+
+
+def ready_runbook_body(use_when: str, *, boundaries: str = "Stay within the documented scope.") -> str:
+    return (
+        "## Use When\n\n"
+        + use_when
+        + "\n\n## Boundaries And Escalation\n\n"
+        + boundaries
+        + "\n"
+    )
 
 
 class WritebackFlowTests(unittest.TestCase):
@@ -99,7 +107,7 @@ class WritebackFlowTests(unittest.TestCase):
                 normalized_payload=runbook_payload(
                     created.object_id, created.canonical_path, created.title
                 ),
-                body_markdown="## Use When\n\nUse draft-only coverage.",
+                body_markdown=ready_runbook_body("Use draft-only coverage."),
                 actor="tests",
                 change_summary="Draft writeback should fail.",
             )
@@ -131,7 +139,7 @@ class WritebackFlowTests(unittest.TestCase):
                 actor="tests",
             )
             payload = runbook_payload(created.object_id, created.canonical_path, created.title)
-            body_markdown = "## Use When\n\nWriteback is approved.\n"
+            body_markdown = ready_runbook_body("Writeback is approved.")
             revision = workflow.create_revision(
                 object_id=created.object_id,
                 normalized_payload=payload,
@@ -171,7 +179,7 @@ class WritebackFlowTests(unittest.TestCase):
             self.assertEqual(metadata["id"], created.object_id)
             self.assertEqual(metadata["knowledge_object_type"], "runbook")
             self.assertEqual(metadata["canonical_path"], created.canonical_path)
-            self.assertEqual(body, "## Use When\n\nWriteback is approved.")
+            self.assertEqual(body, ready_runbook_body("Writeback is approved.").strip())
 
             write_object_to_source(
                 database_path=database_path,
@@ -235,7 +243,7 @@ class WritebackFlowTests(unittest.TestCase):
             revision = workflow.create_revision(
                 object_id=created.object_id,
                 normalized_payload=payload,
-                body_markdown="## Use When\n\nManual acknowledgement coverage.\n",
+                body_markdown=ready_runbook_body("Manual acknowledgement coverage."),
                 actor="tests",
                 change_summary="Approved revision for manual acknowledgement coverage.",
             )
@@ -333,7 +341,7 @@ class WritebackFlowTests(unittest.TestCase):
             revision = workflow.create_revision(
                 object_id=created.object_id,
                 normalized_payload=payload,
-                body_markdown="## Use When\n\nRecovery runs before manual writeback.\n",
+                body_markdown=ready_runbook_body("Recovery runs before manual writeback."),
                 actor="tests",
                 change_summary="Manual writeback recovery coverage.",
             )
@@ -392,7 +400,7 @@ class WritebackFlowTests(unittest.TestCase):
             initial_revision = workflow.create_revision(
                 object_id=created.object_id,
                 normalized_payload=initial_payload,
-                body_markdown="## Use When\n\nUse the original guidance.\n",
+                body_markdown=ready_runbook_body("Use the original guidance."),
                 actor="local.operator",
                 change_summary="Seed approved revision.",
             )
@@ -422,7 +430,7 @@ class WritebackFlowTests(unittest.TestCase):
             preview_revision = workflow.create_revision(
                 object_id=created.object_id,
                 normalized_payload=updated_payload,
-                body_markdown="## Use When\n\nUse the updated guidance.\n",
+                body_markdown=ready_runbook_body("Use the updated guidance."),
                 actor="local.operator",
                 change_summary="Preview changed guidance.",
             )
@@ -472,7 +480,7 @@ class WritebackFlowTests(unittest.TestCase):
             first_payload = runbook_payload(
                 created.object_id, created.canonical_path, created.title
             )
-            first_body = "## Use When\n\nUse revision one.\n"
+            first_body = ready_runbook_body("Use revision one.")
             first_revision = workflow.create_revision(
                 object_id=created.object_id,
                 normalized_payload=first_payload,
@@ -504,7 +512,7 @@ class WritebackFlowTests(unittest.TestCase):
                 created.object_id, created.canonical_path, created.title
             )
             second_payload["summary"] = "Second approved guidance."
-            second_body = "## Use When\n\nUse revision two.\n"
+            second_body = ready_runbook_body("Use revision two.")
             second_revision = workflow.create_revision(
                 object_id=created.object_id,
                 normalized_payload=second_payload,

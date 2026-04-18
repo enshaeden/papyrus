@@ -362,7 +362,7 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
 
             api_status, _, _ = call_wsgi(api_application, "/health")
             self.assertEqual(api_status, "200 OK")
-            web_status, _, body = call_wsgi(web_application, "/operator/read")
+            web_status, _, body = call_wsgi(web_application, "/read")
             self.assertEqual(web_status, "200 OK")
             self.assert_surface(body, "read-queue")
 
@@ -370,7 +370,7 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
             web_with_workspace = web_app(database_path, source_root=sandbox_root)
             api_status, _, _ = call_wsgi(api_with_workspace, "/health")
             self.assertEqual(api_status, "200 OK")
-            web_status, _, body = call_wsgi(web_with_workspace, "/operator/read")
+            web_status, _, body = call_wsgi(web_with_workspace, "/read")
             self.assertEqual(web_status, "200 OK")
             self.assert_surface(body, "read-queue")
 
@@ -431,7 +431,7 @@ class OperatorReadinessTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(api_payload["category"], "runtime_rebuild_needed")
             self.assertIn("build_index.py", api_payload["action"])
 
-            web_status, _, web_body = call_wsgi(web_app(missing_database_path), "/operator/read")
+            web_status, _, web_body = call_wsgi(web_app(missing_database_path), "/read")
             self.assertEqual(web_status, "503 Service Unavailable")
             self.assert_surface(web_body, "system-error")
             self.assertIn("build_index.py", web_body)

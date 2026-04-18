@@ -86,7 +86,7 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page)
 
     def ingest_review_page(request: Request):
-        experience = require_experience(request, "operator")
+        require_experience(request, "operator")
         ingestion_id = request.route_value("ingestion_id")
         detail = ingestion_detail(ingestion_id=ingestion_id, database_path=runtime.database_path)
         existing_mapping = (
@@ -112,10 +112,21 @@ def register(router, runtime) -> None:
                 "owner",
                 "team",
                 "review_cadence",
-                "status",
+                "object_lifecycle_state",
                 "audience",
             ]
-            missing = [field for field in required_fields if not request.form_value(field).strip()]
+            missing = [
+                field
+                for field in required_fields
+                if not (
+                    (
+                        request.form_value("object_lifecycle_state").strip()
+                        or request.form_value("status").strip()
+                    )
+                    if field == "object_lifecycle_state"
+                    else request.form_value(field).strip()
+                )
+            ]
             if missing:
                 field_labels = {
                     "object_id": "Reference code",
@@ -124,11 +135,15 @@ def register(router, runtime) -> None:
                     "owner": "Owner",
                     "team": "Team",
                     "review_cadence": "Review cadence",
-                    "status": "Status",
+                    "object_lifecycle_state": "Lifecycle state",
                     "audience": "Audience",
                 }
                 errors = [f"{field_labels[field]} is required." for field in missing]
             else:
+                object_lifecycle_state = (
+                    request.form_value("object_lifecycle_state").strip()
+                    or request.form_value("status").strip()
+                )
                 converted = convert_to_draft(
                     ingestion_id=ingestion_id,
                     object_id=request.form_value("object_id").strip(),
@@ -137,9 +152,9 @@ def register(router, runtime) -> None:
                     owner=request.form_value("owner").strip(),
                     team=request.form_value("team").strip(),
                     review_cadence=request.form_value("review_cadence").strip(),
-                    object_lifecycle_state=request.form_value("status").strip(),
+                    object_lifecycle_state=object_lifecycle_state,
                     audience=request.form_value("audience").strip(),
-                    actor=str(experience.audit_actor_id),
+                    actor=request.actor_id,
                     database_path=runtime.database_path,
                     source_root=runtime.source_root,
                 )
@@ -159,6 +174,11 @@ def register(router, runtime) -> None:
         )
         return _render_page(runtime, request, page)
 
-    router.add(["GET", "POST"], "/operator/import", ingest_list_page)
-    router.add(["GET"], "/operator/import/{ingestion_id}", ingest_detail_page)
-    router.add(["GET", "POST"], "/operator/import/{ingestion_id}/review", ingest_review_page)
+    router.add(["GET", "POST"], "/import", ingest_list_page, minimum_visible_role="operator")
+    router.add(["GET"], "/import/{ingestion_id}", ingest_detail_page, minimum_visible_role="operator")
+    router.add(
+        ["GET", "POST"],
+        "/import/{ingestion_id}/review",
+        ingest_review_page,
+        minimum_visible_role="operator",
+    )

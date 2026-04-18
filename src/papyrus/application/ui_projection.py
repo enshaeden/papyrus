@@ -182,14 +182,14 @@ def build_use_guidance(
             safe_to_use=False,
         )
     if revision_review_state in {
-        RevisionReviewState.DRAFT.value,
+        RevisionReviewState.IN_PROGRESS.value,
         RevisionReviewState.REJECTED.value,
         "",
     }:
         return UseGuidanceProjection(
             code="not_ready",
             summary="Not ready for operational use",
-            detail="The current revision is draft or rejected and is not approved guidance.",
+            detail="The current revision is in progress or rejected and is not approved guidance.",
             next_action=str(
                 posture.get("approval", {}).get("action")
                 or "Complete authoring work and submit the revision for review."
@@ -256,7 +256,7 @@ def build_object_actions(
 ) -> tuple[ActionDescriptor, ...]:
     actions: list[ActionDescriptor] = []
     revision_state = str(state.revision_review_state or "")
-    draft_state = str(state.draft_progress_state or DraftProgressState.READY_FOR_REVIEW.value)
+    draft_state = str(state.draft_progress_state or DraftProgressState.BLOCKED.value)
 
     if current_revision_id is not None:
         if draft_state != DraftProgressState.READY_FOR_REVIEW.value:
@@ -463,7 +463,7 @@ def build_draft_readiness_projection(
     submit_action: ActionDescriptor | dict[str, Any] | None,
 ) -> WorkflowProjection:
     draft_state = str(
-        completion.get("draft_progress_state") or DraftProgressState.IN_PROGRESS.value
+        completion.get("draft_progress_state") or DraftProgressState.BLOCKED.value
     )
     next_section_id = str(completion.get("next_section_id") or "").strip()
     next_section_label = (
@@ -657,7 +657,7 @@ def build_reference_candidate_projection(
     ).strip()
     citation_count = len(citations or [])
     if (
-        revision_state == RevisionReviewState.DRAFT.value
+        revision_state == RevisionReviewState.IN_PROGRESS.value
         and not body_markdown
         and citation_count == 0
     ):

@@ -60,7 +60,7 @@ lifecycle:
     - draft
     - archived
 source_workspace:
-  article_roots:
+  knowledge_roots:
     - knowledge
     - archive/knowledge
   canonical_write_roots:

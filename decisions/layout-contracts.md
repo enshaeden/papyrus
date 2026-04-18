@@ -12,6 +12,9 @@ Papyrus uses one production shell and one shared route space.
 This record does not define separate shells by role.
 Instead, it defines a shared shell and role-conditioned composition rules within shared surfaces.
 
+Canonical request-scoped role context is resolved before render.
+Layouts, panels, and navigation must compose from that request identity rather than infer role from path structure or template-local namespace checks.
+
 ## Global shell contract
 
 ### Top bar
@@ -42,6 +45,7 @@ Rules:
 - navigation visibility must match route visibility
 - navigation should orient the user to the current surface and adjacent allowed surfaces
 - navigation should not expose speculative future destinations, empty placeholders, or hidden controls
+- navigation must consume the canonical request role context already resolved by the runtime
 
 ### Main content area
 
@@ -76,8 +80,6 @@ Applies to routes such as:
 - `/read`
 - `/read/object/{object_id}`
 - `/read/object/{object_id}/revisions`
-- `/read/services`
-- `/read/services/{service_id}`
 
 ### Top bar
 
