@@ -88,15 +88,9 @@ class PageRenderer:
                         + join_html(
                             [
                                 '<li class="sidebar-item">'
-                                + link(
-                                    item.label,
-                                    item.href,
-                                    css_class="sidebar-link is-active"
-                                    if self._nav_item_is_active(
-                                        item, active_nav=active_nav, current_path=current_path
-                                    )
-                                    else "sidebar-link",
-                                )
+                                + f'<a href="{escape(item.href)}" class="{"sidebar-link is-active" if self._nav_item_is_active(item, active_nav=active_nav, current_path=current_path) else "sidebar-link"}">'
+                                + f'<i data-lucide="chevron-right" style="width: 16px; height: 16px; margin-right: 0.5rem; vertical-align: text-bottom;"></i>{escape(item.label)}'
+                                + '</a>'
                                 + "</li>"
                                 for item in section.items
                             ]
