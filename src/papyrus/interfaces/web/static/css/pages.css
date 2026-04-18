@@ -268,6 +268,83 @@
   padding: 0 var(--space-1);
 }
 
+.page-admin-control {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.admin-overview,
+.admin-control-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, rgba(17, 17, 21, 0.92), rgba(13, 13, 17, 0.84));
+  box-shadow: var(--shadow-panel);
+}
+
+.admin-overview > h2,
+.admin-control-panel > h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: -0.03em;
+}
+
+.admin-overview > p,
+.admin-control-panel > p,
+.admin-control-panel__state p {
+  margin: 0;
+  color: var(--color-text-soft);
+  line-height: 1.6;
+}
+
+.admin-overview__controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.95rem;
+}
+
+.admin-control-card,
+.admin-control-panel__state,
+.admin-overview__shared-work {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(21, 21, 26, 0.92), rgba(17, 17, 21, 0.82));
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-control-card h2,
+.admin-overview__shared-work h2,
+.admin-control-panel__state h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.admin-control-card p {
+  margin: 0;
+  color: var(--color-text-soft);
+  line-height: 1.55;
+}
+
+.admin-overview__shared-work {
+  gap: 1rem;
+}
+
+.admin-overview__shared-work .button-row,
+.admin-overview__shared-work {
+  align-content: start;
+}
+
+.admin-overview__shared-work a {
+  width: fit-content;
+}
+
 .citation-entry {
   padding: 0.15rem 0 0;
   border: 0;

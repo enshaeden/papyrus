@@ -26,9 +26,11 @@
     <div class="{{ shell_columns_class }}">
       {{ sidebar_html }}
       <main class="main-column {{ content_layout_class }}" data-surface="{{ page_surface }}" data-active-nav="{{ active_nav }}">
-        {{ page_header_html }}
-        {{ flash_html }}
-        {{ content_html }}
+        <div class="main-column__inner">
+          {{ page_header_html }}
+          {{ flash_html }}
+          {{ content_html }}
+        </div>
       </main>
       {{ aside_column_html }}
     </div>
@@ -36,7 +38,7 @@
   <script src="/static/js/filters.js" defer></script>
   <script src="/static/js/disclosure.js" defer></script>
   <script src="/static/js/forms.js" defer></script>
-  <script src="/static/js/shell.js?v=2" defer></script>
+  <script src="/static/js/shell.js" defer></script>
   {{ scripts_html }}
 </body>
 </html>

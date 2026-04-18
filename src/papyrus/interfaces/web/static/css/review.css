@@ -8,11 +8,10 @@
   flex-wrap: wrap;
   gap: 0.55rem;
   align-items: center;
-  padding: 0.45rem 0 0.15rem;
-  border: 0;
-  border-bottom: 1px solid var(--color-border-default);
-  background: transparent;
-  box-shadow: none;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .review-cleanup-strip__label {
@@ -27,9 +26,9 @@
 .review-cleanup-strip span {
   padding: 0.32rem 0.64rem;
   border-radius: 999px;
-  border: 1px solid rgba(93, 55, 84, 0.12);
-  background: rgba(93, 55, 84, 0.05);
-  color: var(--color-panel-governance-label);
+  border: 1px solid rgba(160, 118, 150, 0.28);
+  background: rgba(93, 55, 84, 0.14);
+  color: var(--color-text-soft);
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -39,9 +38,9 @@
   gap: 0.85rem;
   padding: 1.1rem 1.15rem;
   border: 1px solid var(--color-border-default);
-  border-radius: 1.2rem;
-  background: var(--color-surface-panel);
-  box-shadow: none;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, rgba(21, 25, 35, 0.92), rgba(15, 18, 27, 0.84));
+  box-shadow: var(--shadow-panel);
 }
 
 .review-lane__head {

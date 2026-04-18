@@ -4,7 +4,7 @@
 
 This subtree contains the Papyrus web application.
 
-Optimise for clear information hierarchy, context-aware workflows, readable knowledge surfaces, operator efficiency, and consistency with the Papyrus content model.
+Optimise for premium governed product quality, clear information hierarchy, context-aware workflows, readable knowledge surfaces, operator efficiency, and consistency with the Papyrus content model.
 
 This is not a generic dashboard.
 This is not a generic CMS.
@@ -21,11 +21,11 @@ The UI must reflect the system’s actual structure:
 
 When making trade-offs, prioritise in this order:
 
-1. information hierarchy
-2. workflow clarity
-3. context-specific relevance
+1. governance clarity and route/access correctness
+2. information hierarchy
+3. workflow clarity
 4. readability of content surfaces
-5. consistency of shared components
+5. quality of shared shell and shared primitives
 6. accessibility and responsive behaviour
 7. visual polish
 
@@ -34,8 +34,10 @@ Do not preserve a visually attractive UI if it still communicates the wrong stru
 ## Papyrus UX Rules
 
 - Context switching must materially change the view, available actions, visible metadata, and navigation relevance. It must not merely reshuffle navigation chrome.
-- Reader mode must read like content. Remove governance-heavy framing from reader-facing article views unless required for comprehension.
+- Reader mode must read like authored content. Remove governance-heavy framing from reader-facing article views unless required for comprehension.
 - Operator views may expose governance metadata, lifecycle controls, provenance, and structural details, but must remain legible and prioritised.
+- Papyrus is premium governed knowledge platform. Shell quality is trust signal, not cosmetic garnish.
+- Shared primitives must feel intentional and durable. Premium visual treatment is allowed when route/access discipline, governance clarity, and usability remain intact.
 - Do not present static placeholder cards, fake counts, fake recents, fake activity, or demo-state blocks in production-facing routes unless they are explicitly marked as fixtures or development-only states.
 - Avoid dashboard sprawl. Every surface must answer a clear user need.
 - Prefer focused views with strong hierarchy over dense screens with many competing panels.
@@ -91,7 +93,8 @@ For any route, shell, navigation, or role-related UI change, report:
 - Fix shared layout primitives before patching page-level symptoms.
 - Fix shared components before patching route-local copies.
 - Do not solve hierarchy problems by shrinking text, compressing spacing, or adding more panels.
-- Preserve the existing design system, tokens, and colour schema unless the task explicitly authorises a redesign.
+- Preserve the canonical shared shell and route/access architecture when redesigning.
+- Premium visual redesign is allowed. Keep Papyrus hero colour as sole legacy brand anchor when redesign scope calls for palette replacement.
 - Do not remove colour tokens, semantic states, or spacing rules without replacing them with a coherent alternative in the same change.
 - Prefer one strong primary action per area over many equal-weight actions.
 - Cards, tables, panels, and metadata blocks must have a clear reason to exist. Remove decorative or redundant containers.
@@ -101,6 +104,7 @@ For any route, shell, navigation, or role-related UI change, report:
 - If a visible paragraph can be removed without loss of task comprehension, it should not exist.
 - Do not stack a kicker, eyebrow, or overline above a heading when both labels resolve to the same visible text. Collapse the duplicate label at the owning component or presenter boundary.
 - Long-form content views must use readable line length, consistent heading rhythm, and visual separation between content and metadata.
+- Premium dark surfaces, elevated rails, and glass-like shell treatments are acceptable when content remains dominant and decorative noise stays low.
 
 ## Component Ownership and Removal Rules
 

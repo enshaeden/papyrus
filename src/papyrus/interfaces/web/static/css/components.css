@@ -3,7 +3,7 @@
 .filter-bar,
 .flash,
 .empty-state {
-  background: var(--color-surface-panel);
+  background: var(--color-surface-elevated);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);
 }
@@ -14,12 +14,46 @@
 .empty-state {
   padding: var(--space-3) var(--space-4);
   box-shadow: var(--shadow-panel);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .panel:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-panel-strong);
+  border-color: var(--color-border-strong);
+}
+
+.panel::before,
+.read-result-card::before,
+.read-selected-context::before,
+.oversight-board__card::before,
+.oversight-board__column::before,
+.oversight-cleanup-board article::before,
+.admin-control-card::before,
+.admin-overview__shared-work::before,
+.admin-control-panel__state::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(24rem circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(93, 55, 84, 0.16), transparent 42%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.panel:hover::before,
+.read-result-card:hover::before,
+.read-selected-context:hover::before,
+.oversight-board__card:hover::before,
+.oversight-board__column:hover::before,
+.oversight-cleanup-board article:hover::before,
+.admin-control-card:hover::before,
+.admin-overview__shared-work:hover::before,
+.admin-control-panel__state:hover::before {
+  opacity: 1;
 }
 
 .section-card {
@@ -150,13 +184,16 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.08rem 0.42rem;
+  padding: 0.18rem 0.62rem;
   border: 1px solid var(--color-border-default);
-  border-radius: 2px;
-  background: var(--color-surface-panel);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
   color: var(--color-text-primary);
-  font-size: 0.84rem;
+  font-size: 0.76rem;
+  font-weight: 600;
   line-height: 1.4;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .status-badge.tone-brand {
@@ -830,15 +867,15 @@ textarea { resize: vertical; }
 }
 
 .button-primary {
-  background: var(--color-accent-primary);
-  border-color: var(--color-accent-primary);
+  background: linear-gradient(135deg, var(--color-brand-hero), var(--color-brand-hero-hover));
+  border-color: var(--color-topbar-action-border);
   color: var(--color-accent-primary-text);
-  box-shadow: var(--shadow-panel);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 0 18px rgba(93, 55, 84, 0.16);
 }
 
 .button-primary:hover {
   background: var(--color-accent-primary-hover);
-  border-color: var(--color-accent-primary-hover);
+  border-color: var(--color-topbar-action-hover-border);
   color: var(--color-accent-primary-text);
 }
 
@@ -853,6 +890,7 @@ textarea { resize: vertical; }
   background: var(--color-accent-secondary-bg);
   border-color: var(--color-accent-secondary-border);
   color: var(--color-accent-secondary-text);
+  backdrop-filter: blur(10px);
 }
 
 .button-secondary:hover,
@@ -895,7 +933,7 @@ textarea:focus-visible {
   border: 1px solid var(--color-border-default);
   border-radius: 1rem;
   overflow: hidden;
-  background: var(--color-surface-raised);
+  background: linear-gradient(180deg, rgba(18, 18, 22, 0.92), rgba(14, 14, 18, 0.88));
   box-shadow: var(--shadow-panel);
 }
 
@@ -919,6 +957,10 @@ textarea:focus-visible {
 
 .workbench-table tbody tr.is-selected {
   background: var(--color-selected-fill);
+}
+
+.workbench-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .workbench-table tbody tr.is-selected td:first-child {

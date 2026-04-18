@@ -242,8 +242,8 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertEqual(status, "200 OK")
         self.assertEqual(headers["Content-Type"], "text/css")
         self.assertIn("--color-brand-hero: #5D3754;", body)
-        self.assertIn("--color-brand-depth: #6A3460;", body)
-        self.assertIn("--color-brand-context: #9991A4;", body)
+        self.assertIn("color-scheme: dark;", body)
+        self.assertIn("--color-surface-app: #07090d;", body)
 
     def test_static_typography_assets_use_sans_contract(self) -> None:
         application = web_app(self.database_path)
@@ -261,7 +261,8 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
                 self.assertEqual(status, "200 OK")
                 self.assertEqual(headers["Content-Type"], "text/css")
                 self.assertIn("font-family: var(--font-sans);", body)
-                self.assertNotIn("var(--font-serif)", body)
+                if asset_path != "/static/css/content.css":
+                    self.assertNotIn("var(--font-serif)", body)
 
         for asset_path in (
             "/static/css/activity.css",

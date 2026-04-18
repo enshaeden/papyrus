@@ -17,6 +17,10 @@ Layouts, panels, and navigation must compose from that request identity rather t
 
 ## Global shell contract
 
+Papyrus uses one premium shared shell.
+That shell may be visually ambitious, but it still serves governed work first.
+Layout quality is part of user trust.
+
 ### Top bar
 
 Present across the product:
@@ -29,6 +33,7 @@ Present across the product:
 Rules:
 
 - global search remains shell-owned and centered in the top bar
+- top bar may use premium dark, elevated, or glass-like treatment if search, role context, and primary actions stay readable
 - the top bar must not become a dumping ground for unrelated cross-workflow actions
 - controls that are not visible for the current role must be absent
 - admin-only controls must not appear outside Admin-visible surfaces unless intentionally embedded in a shared surface with Admin-only visibility
@@ -36,6 +41,7 @@ Rules:
 ### Left navigation
 
 - collapsible
+- persistent on desktop
 - generated from the shared route model plus visibility contracts
 - grouped by canonical surface, not by separate role-owned route trees
 - never includes hidden or disabled entries for unauthorised surfaces
@@ -44,6 +50,7 @@ Rules:
 
 - navigation visibility must match route visibility
 - navigation should orient the user to the current surface and adjacent allowed surfaces
+- navigation is shell-owned and must consume canonical route declarations plus resolved request role
 - navigation should not expose speculative future destinations, empty placeholders, or hidden controls
 - navigation must consume the canonical request role context already resolved by the runtime
 
@@ -52,6 +59,7 @@ Rules:
 - primary task surface for the active route
 - visually dominant in the page hierarchy
 - not crowded out by contextual chrome or oversight detail
+- may sit on a distinct content plane from shell rails if that improves hierarchy and reading quality
 
 Rules:
 
@@ -64,6 +72,7 @@ Rules:
 - contextual only
 - collapsible by default unless the workflow requires persistent support context
 - content varies by surface and by visible role
+- may use elevated or glass-like treatment distinct from the main content plane
 
 Rules:
 
@@ -126,6 +135,7 @@ Must not include:
 - content-first document or object presentation
 - title, body, structured sections, attachments, and related links
 - readability remains primary even when more privileged roles have additional affordances
+- the reading surface should feel authored, not like governance form
 
 ### Right panel
 

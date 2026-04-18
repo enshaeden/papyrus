@@ -19,6 +19,12 @@ This reference records the stable server-rendered web UI contract for Papyrus. I
 - Request-scoped role context is resolved before routing and render. It comes from runtime or authenticated identity, not from URL prefixes.
 - Demo or development overlays may still map local actor IDs onto roles, but they are not part of the shipped route contract.
 
+- Papyrus is premium governed knowledge platform.
+- Shell quality is part of user trust.
+- Shared primitives should feel deliberate, traceable, and durable.
+- Reader surfaces stay content-first even when the shell uses premium dark treatment.
+- Premium visual design is allowed when governance clarity, route discipline, and usability remain intact.
+
 - The shared component canon is:
   - flat `content-section` for primary reading and composition
   - bordered `context-panel` for right-rail metadata and operational context only
@@ -31,7 +37,7 @@ This reference records the stable server-rendered web UI contract for Papyrus. I
   - empty states
   - metadata lists
   - form field controls
-- Primary content should read through text, spacing, and dividers rather than stacked cards or softened panels.
+- Primary content should read through text, spacing, rhythm, and dividers rather than governance-form chrome.
 - Non-critical surfaces should not carry visible containment. Backgrounds, borders, and radius are reserved for right-rail context panels, selected table rows, and explicit warning or error states.
 - Governed, status, audit, citation, relationship, validation, and support surfaces should be flattened unless they are serving one of those explicitly contained roles.
 - Projection-backed posture remains the source of UI meaning:
@@ -60,22 +66,23 @@ Tests should assert those hooks plus structured contract payload behavior instea
   - `minimal` for one-step decisions and system pages
 - Guided drafting uses the `normal` shell.
 - The global search field occupies the centered top bar slot. Identity and shell controls must not shift it off center.
+- The shared shell may use premium dark surfaces, elevated rails, and restrained glass treatment.
+- The left rail is persistent on desktop and collapsible on smaller viewports.
 - The right rail is optional and should render only when the page has actionable contextual support.
-- The sidebar is a flat grouped list, not a stack of card containers.
-- The left rail comes from `src/papyrus/interfaces/web/experience.py`, not page-local duplication.
+- The sidebar is a grouped navigation rail, not role app switcher and not page-local duplication.
+- The left rail comes from canonical route declarations plus resolved role visibility. `src/papyrus/interfaces/web/experience.py` shapes page behavior and landings, not independent nav authority.
 - There is no production actor-selection control and no separate page-header actor banner contract.
 - Page headers are opt-in and should include only the elements the presenter asks for.
 - Admin control pages should prefer table-first or panel-first layouts with deterministic request-scoped role context rather than URL-driven selection state.
 
 ## Color And Tone Rules
 
-- Papyrus uses a governed tonal family centered on Pantone 7659 C, not a single-color UI theme.
-- Pantone 7659 C (`#5D3754`) is identity and intent.
-- Pantone 7658 C (`#6A3460`) is authority and depth.
-- Pantone 7660 C (`#9991A4`) is context and grouping.
-- Semantic success, warning, error, and info colors must stay separate from the 7658/7659/7660 family.
-- Neutral surfaces must dominate the screen. The purple family is reserved for orientation, context, and high-intent action.
-- Avoid decorative purple gradients.
+- Papyrus keeps one carried-forward legacy brand colour: Pantone 7659 C (`#5D3754`).
+- That value remains the sole preserved legacy brand anchor.
+- All other palette tokens may be redesigned around the active shell direction.
+- Semantic success, warning, error, and info colors must stay distinct and legible against dark surfaces.
+- Avoid palette nostalgia. Do not preserve additional legacy tones unless functionally required.
+- Avoid decorative noise, uncontrolled glow, or accent flooding.
 
 ## Stable Surface Owners
 

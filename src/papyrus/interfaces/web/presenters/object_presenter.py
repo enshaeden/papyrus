@@ -15,6 +15,32 @@ from .article_content_presenter import render_article_block
 from .reader_object_tree_presenter import render_reader_object_tree_nav
 
 
+def _hero_meta(*, item: dict[str, Any], content: dict[str, Any], experience: ExperienceContext) -> str:
+    meta = [
+        str(item.get("object_type") or "").replace("_", " "),
+        str(item.get("owner") or ""),
+        str(item.get("last_reviewed") or ""),
+    ]
+    if experience.role != READER_ROLE:
+        state = dict(content.get("state") or {})
+        meta.extend(
+            [
+                str(state.get("trust_state") or item.get("trust_state") or ""),
+                str(state.get("revision_review_state") or item.get("revision_review_state") or ""),
+            ]
+        )
+    meta_items = [
+        f'<span class="status-badge tone-context">{escape(value)}</span>'
+        for value in meta
+        if str(value).strip()
+    ]
+    return (
+        f'<div class="badge-row">{join_html(meta_items)}</div>'
+        if meta_items
+        else ""
+    )
+
+
 def render_content_section(*, section: dict[str, Any]) -> str:
     blocks = [block for block in section.get("blocks") or [] if block]
     body_html = (
@@ -128,9 +154,12 @@ def present_object_detail(
         "page_header": {
             "headline": item["title"],
             "kicker": content["hero"]["eyebrow"],
-            "context_html": f"<p><strong>Use now:</strong> {escape(use_now)}</p>"
-            if use_now
-            else "",
+            "context_html": join_html(
+                [
+                    f'<p class="page-header-dek">{escape(use_now)}</p>' if use_now else "",
+                    _hero_meta(item=item, content=content, experience=experience),
+                ]
+            ),
             "actions_html": join_html([action for action in actions if action]),
         },
         "active_nav": "inspect" if experience.role == ADMIN_ROLE else "read",

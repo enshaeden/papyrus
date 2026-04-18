@@ -111,7 +111,7 @@ def render_oversight_board(*, role: str, queue: list[dict[str, Any]]) -> str:
 def render_oversight_cleanup_board(*, cleanup_counts: dict[str, object]) -> str:
     return (
         '<section class="oversight-cleanup-board" data-component="oversight-cleanup-board" data-surface="oversight">'
-        "<h2>Cleanup and trust debt</h2>"
+        '<p class="panel-kicker">Cleanup</p><h2>Cleanup and trust debt</h2>'
         '<div class="oversight-cleanup-board__grid">'
         f'<article><p class="oversight-cleanup-board__metric">{escape(cleanup_counts.get("placeholder-heavy", 0))}</p><p>Placeholder-heavy</p></article>'
         f'<article><p class="oversight-cleanup-board__metric">{escape(cleanup_counts.get("legacy-blueprint-fallback", 0))}</p><p>Legacy fallback</p></article>'
@@ -125,7 +125,7 @@ def render_oversight_cleanup_board(*, cleanup_counts: dict[str, object]) -> str:
 def render_oversight_validation_board(*, validation_posture: dict[str, str]) -> str:
     return (
         '<section class="oversight-validation-board" data-component="oversight-validation-board" data-surface="oversight">'
-        "<h2>Validation posture</h2>"
+        '<p class="panel-kicker">Validation</p><h2>Validation posture</h2>'
         f"<p>{escape(validation_posture['summary'])}</p>"
         f"<p>{escape(validation_posture['detail'])}</p>"
         "</section>"

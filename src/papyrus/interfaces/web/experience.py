@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass
 
 from papyrus.application.role_visibility import (
@@ -91,14 +92,8 @@ READER_EXPERIENCE = ExperienceContext(
     role=READER_ROLE,
     label="Reader",
     home_path="/read",
-    shell_summary="Open dependable content without operator controls.",
-    nav_sections=(
-        ShellSection(
-            title="Knowledge",
-            description="Open dependable content and content-first object views.",
-            items=(ShellLink("read", "Read", "/read", match_prefixes=("/read",)),),
-        ),
-    ),
+    shell_summary="Open dependable content in a legible premium reading shell.",
+    nav_sections=(),
     page_behaviors=(
         ExperiencePageBehavior(
             "read-queue", mode="library", density="comfortable", columns="single"
@@ -118,46 +113,8 @@ OPERATOR_EXPERIENCE = ExperienceContext(
     role=OPERATOR_ROLE,
     label="Operator",
     home_path="/review",
-    shell_summary="Use dependable content first, then author, review, and oversee backend knowledge work.",
-    nav_sections=(
-        ShellSection(
-            title="Core modes",
-            description="Read dependable guidance first, then move into writing, import, or review only when the work truly branches.",
-            items=(
-                ShellLink("read", "Read", "/read", match_prefixes=("/read",)),
-                ShellLink("write", "Write", "/write/new", match_prefixes=("/write",)),
-                ShellLink("import", "Import", "/import", match_prefixes=("/import",)),
-                ShellLink("review", "Review", "/review", match_prefixes=("/review",)),
-            ),
-        ),
-        ShellSection(
-            title="Context",
-            description="Open broader portfolio context only when the active mode needs a wider health, service, or activity view.",
-            items=(
-                ShellLink(
-                    "governance",
-                    "Governance",
-                    "/governance",
-                    match_prefixes=("/governance",),
-                ),
-                ShellLink(
-                    "services",
-                    "Services",
-                    "/governance/services",
-                    match_prefixes=("/governance/services",),
-                ),
-                ShellLink(
-                    "activity",
-                    "Activity",
-                    "/review/activity",
-                    match_prefixes=(
-                        "/review/activity",
-                        "/review/validation-runs",
-                    ),
-                ),
-            ),
-        ),
-    ),
+    shell_summary="Operate governed knowledge work in one premium shared product shell.",
+    nav_sections=(),
     page_behaviors=(
         ExperiencePageBehavior(
             "read-queue", mode="article-first", density="comfortable", columns="single"
@@ -204,52 +161,8 @@ ADMIN_EXPERIENCE = ExperienceContext(
     role=ADMIN_ROLE,
     label="Admin",
     home_path="/admin/overview",
-    shell_summary="Use the control-plane subset for content oversight, service impact, and audit inspection.",
-    nav_sections=(
-        ShellSection(
-            title="Shared work",
-            description="Admin sees the shared product routes plus stronger control surfaces.",
-            items=(
-                ShellLink("read", "Read", "/read", match_prefixes=("/read",)),
-                ShellLink("write", "Write", "/write/new", match_prefixes=("/write",)),
-                ShellLink("import", "Import", "/import", match_prefixes=("/import",)),
-                ShellLink("review", "Review", "/review", match_prefixes=("/review",)),
-                ShellLink(
-                    "governance",
-                    "Governance",
-                    "/governance",
-                    match_prefixes=("/governance",),
-                ),
-                ShellLink(
-                    "services",
-                    "Services",
-                    "/governance/services",
-                    match_prefixes=("/governance/services",),
-                ),
-                ShellLink(
-                    "activity",
-                    "Audit",
-                    "/admin/audit",
-                    match_prefixes=("/admin/audit", "/review/activity", "/review/validation-runs"),
-                ),
-            ),
-        ),
-        ShellSection(
-            title="Admin control plane",
-            description="Control access, spaces, governed definitions, and system settings.",
-            items=(
-                ShellLink("overview", "Overview", "/admin/overview", match_prefixes=("/admin/overview",)),
-                ShellLink("users", "Users", "/admin/users", match_prefixes=("/admin/users",)),
-                ShellLink("access", "Access", "/admin/access", match_prefixes=("/admin/access",)),
-                ShellLink("spaces", "Spaces", "/admin/spaces", match_prefixes=("/admin/spaces",)),
-                ShellLink(
-                    "templates", "Templates", "/admin/templates", match_prefixes=("/admin/templates",)
-                ),
-                ShellLink("schemas", "Schemas", "/admin/schemas", match_prefixes=("/admin/schemas",)),
-                ShellLink("settings", "Settings", "/admin/settings", match_prefixes=("/admin/settings",)),
-            ),
-        ),
-    ),
+    shell_summary="Control governed routes and admin surfaces without leaving shared route space.",
+    nav_sections=(),
     page_behaviors=(
         ExperiencePageBehavior("overview", mode="control-room", density="dense", columns="wide"),
         ExperiencePageBehavior(
@@ -310,8 +223,40 @@ _EXPERIENCES_BY_ROLE = {
 }
 
 
+def _nav_sections_for_role(role: str) -> tuple[ShellSection, ...]:
+    from papyrus.interfaces.web.route_catalog import collect_shell_nav_items
+
+    grouped: OrderedDict[str, tuple[str, list[ShellLink]]] = OrderedDict()
+    for item in collect_shell_nav_items(role=role):
+        if item.section not in grouped:
+            grouped[item.section] = (item.section_label, [])
+        grouped[item.section][1].append(
+            ShellLink(
+                item.key,
+                item.label,
+                item.href,
+                match_prefixes=item.match_prefixes,
+            )
+        )
+    return tuple(
+        ShellSection(title=label, description="", items=tuple(items))
+        for label, items in grouped.values()
+    )
+
+
 def experience_for_role(role: str | None = None) -> ExperienceContext:
-    return _EXPERIENCES_BY_ROLE[normalize_role(role)]
+    normalized_role = normalize_role(role)
+    base = _EXPERIENCES_BY_ROLE[normalized_role]
+    return ExperienceContext(
+        role=base.role,
+        label=base.label,
+        home_path=base.home_path,
+        shell_summary=base.shell_summary,
+        nav_sections=_nav_sections_for_role(normalized_role),
+        page_behaviors=base.page_behaviors,
+        page_configs=base.page_configs,
+        quick_links=base.quick_links,
+    )
 
 
 def experience_for_request(request) -> ExperienceContext:

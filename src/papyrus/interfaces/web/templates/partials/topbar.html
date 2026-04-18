@@ -1,19 +1,28 @@
 <header class="topbar">
   <div class="identity-block topbar-identity">
-    <button id="nav-toggle" class="button button-icon" aria-label="Toggle navigation" style="padding: 0 0.5rem; border: none; background: transparent; cursor: pointer; color: inherit;">
-      <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
+    <button id="nav-toggle" class="shell-toggle shell-toggle-nav" aria-label="Toggle navigation" type="button">
+      <i data-lucide="panel-left-close"></i>
     </button>
-    <a class="identity-mark" href="{{ home_href }}">Papyrus</a>
+    <div class="identity-lockup">
+      <a class="identity-mark" href="{{ home_href }}">
+        <span class="identity-mark__glyph"><i data-lucide="hexagon"></i></span>
+        <span class="identity-mark__label">Papyrus</span>
+      </a>
+      <p class="identity-copy">Governed knowledge platform</p>
+    </div>
   </div>
   <form class="topbar-search" action="{{ search_action }}" method="get">
     <label class="sr-only" for="global-search">Search Papyrus</label>
-    <input id="global-search" name="query" type="search" placeholder="Search guidance, services, or IDs" value="{{ search_value }}" />
-    <button class="button button-primary" type="submit">Search</button>
+    <div class="topbar-search-field">
+      <i data-lucide="search"></i>
+      <input id="global-search" name="query" type="search" placeholder="Search knowledge, services, or IDs" value="{{ search_value }}" />
+    </div>
+    <button class="button button-primary topbar-search-submit" type="submit">Search</button>
   </form>
-  <div class="topbar-shell-controls" aria-label="Shell controls" style="display: flex; gap: 0.5rem; align-items: center;">
+  <div class="topbar-shell-controls" aria-label="Shell controls">
     {{ topbar_menu_html }}
-    <button id="aside-toggle" class="button button-icon" aria-label="Toggle context panel" style="padding: 0 0.5rem; border: none; background: transparent; cursor: pointer; color: inherit;">
-      <i data-lucide="panel-right" style="width: 20px; height: 20px;"></i>
+    <button id="aside-toggle" class="shell-toggle shell-toggle-aside" aria-label="Toggle context panel" type="button">
+      <i data-lucide="panel-right-close"></i>
     </button>
   </div>
 </header>

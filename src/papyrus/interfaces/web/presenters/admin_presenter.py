@@ -7,8 +7,9 @@ from papyrus.interfaces.web.view_helpers import escape, join_html, link
 def _control_card(*, key: str, title: str, href: str, summary: str) -> str:
     return (
         f'<article class="admin-control-card" data-component="admin-control-card" data-control-id="{escape(key)}" data-surface="admin-control">'
-        f"<h2>{link(title, href)}</h2>"
+        f'<p class="panel-kicker">Admin control</p><h2>{link(title, href)}</h2>'
         f"<p>{escape(summary)}</p>"
+        f"{link('Open', href, css_class='button button-secondary')}"
         "</article>"
     )
 
@@ -21,37 +22,37 @@ def present_admin_overview(renderer: TemplateRenderer) -> dict[str, object]:
                 key="users",
                 title="Users",
                 href="/admin/users",
-                summary="Manage the local user and role boundary when administration is intentionally in scope.",
+                summary="Role boundary, principal inventory, and account governance.",
             ),
             _control_card(
                 key="access",
                 title="Access",
                 href="/admin/access",
-                summary="Inspect and adjust access policy decisions without blending them into shared work routes.",
+                summary="Access policy, fail-closed checks, and visibility authority.",
             ),
             _control_card(
                 key="spaces",
                 title="Spaces",
                 href="/admin/spaces",
-                summary="Review governed space boundaries and structural ownership for the active deployment.",
+                summary="Governed space boundaries and ownership structure.",
             ),
             _control_card(
                 key="templates",
                 title="Templates",
                 href="/admin/templates",
-                summary="Inspect template administration separately from the shared writing workflow.",
+                summary="Template inventory and governed authoring definitions.",
             ),
             _control_card(
                 key="schemas",
                 title="Schemas",
                 href="/admin/schemas",
-                summary="Inspect schema administration without exposing it on reader or operator routes.",
+                summary="Schema inventory and structural policy surfaces.",
             ),
             _control_card(
                 key="settings",
                 title="Settings",
                 href="/admin/settings",
-                summary="Hold system-level configuration and deployment governance in one admin-only surface.",
+                summary="Deployment posture and system configuration authority.",
             ),
         ]
     )
@@ -75,7 +76,7 @@ def present_admin_overview(renderer: TemplateRenderer) -> dict[str, object]:
             "content_html": (
                 '<section class="admin-overview" data-component="admin-overview" data-surface="admin-control">'
                 "<h2>Control plane</h2>"
-                "<p>Admin control stays separate from shared read, write, review, and governance work.</p>"
+                '<p class="page-kicker">Admin surfaces stay separate from shared work.</p>'
                 f'<div class="admin-overview__controls">{controls_html}</div>'
                 '<section class="admin-overview__shared-work" data-component="admin-overview-links" data-surface="admin-control">'
                 "<h2>Shared work surfaces</h2>"

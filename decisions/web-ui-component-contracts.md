@@ -26,6 +26,7 @@ It does not create separate component architecture by role.
 - Remove duplicated navigation, controls, and status treatments at the source boundary that generates them.
 - Shared abstractions may not hide ownership or make removal harder.
 - Role-conditioned visibility does not justify splitting one canonical surface into unclear or overlapping owners.
+- Shared primitives may be premium and expressive, but they must stay intentional, traceable, and reusable across the one shared product shell.
 
 ## One visible component = one owner
 
@@ -132,6 +133,15 @@ On Papyrus web surfaces:
 - remove explanatory copy at the owning presenter, component, template, shell, shared surface, or shared renderer boundary instead of hiding it downstream
 
 If a visible paragraph can be removed without reducing task comprehension, it does not meet the bar and must not ship.
+
+## Premium shell doctrine
+
+- Papyrus may use premium dark product styling.
+- Shell polish is part of trust when it strengthens hierarchy, confidence, and operator clarity.
+- Reader surfaces remain content-first even when shell chrome becomes richer.
+- Use elevated surfaces only where they reinforce ownership, task grouping, or contextual support.
+- Do not apply card, blur, glow, or border treatments indiscriminately.
+- Premium visual treatment must not blur route authority, role boundaries, or component ownership.
 
 ## Required reporting for UI refactors
 

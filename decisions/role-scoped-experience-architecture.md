@@ -225,13 +225,14 @@ Each route must declare its minimum visible role and must fail closed on direct 
 - Admin-only controls SHOULD appear as panels, sections, or actions within canonical shared surfaces when the underlying surface is the same.
 - Tests MUST verify that hidden destinations are absent from navigation, search, related links, command surfaces, and direct route access for the current role.
 
-## Tonal guidance
+## Visual doctrine
 
-- Papyrus uses a governed tonal family centered on Pantone 7659 C, not a single-color theme.
-- Pantone 7659 C (`#5D3754`) is identity and intent. Use it for primary actions, active navigation, object identity cues, command highlights, summary chips, and review-intent controls.
-- Pantone 7658 C (`#6A3460`) is authority and depth. Use it for shell bars, pressed or hover states of hero controls, dense metadata emphasis, and other high-contrast depth cues.
-- Pantone 7660 C (`#9991A4`) is context and grouping. Use it for contextual fills, selected rows, grouped secondary controls, filter states, timeline rails, and oversight or metadata panels.
-- Semantic success, warning, error, and info colors remain separate from the 7658/7659/7660 family.
-- Most surfaces remain neutral. The purple family is reserved for orientation, context, and high-intent actions.
-- Use one dominant purple-family tone per component. Do not mix hero, depth, and context equally on the same element.
-- Avoid decorative purple gradients and theme flooding. The product should feel calm, operational, governed, and precise.
+- Papyrus is premium governed knowledge platform, not generic dashboard.
+- Shared shell quality is trust signal. Shell polish supports governance clarity instead of competing with it.
+- Papyrus keeps one carried-forward brand anchor: Pantone 7659 C (`#5D3754`).
+- That hero colour remains available for primary action, active state, identity cues, and intentional highlights.
+- All other palette decisions may be redesigned around the current shell direction as long as semantic states remain distinct and legible.
+- Premium dark surfaces, elevated shell rails, and restrained glass treatments are allowed.
+- Reader surfaces must remain content-first, calm, and highly legible even when the surrounding shell is visually richer.
+- Operator and Admin surfaces may carry stronger hierarchy, status contrast, and workbench density, but route/access discipline still governs what appears.
+- Decorative noise, role-confusing chrome, and accent flooding remain forbidden.
