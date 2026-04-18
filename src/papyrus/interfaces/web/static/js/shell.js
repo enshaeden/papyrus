@@ -1,4 +1,35 @@
 document.addEventListener("DOMContentLoaded", () => {
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+
+  const shell = document.querySelector(".app-shell");
+  const navToggle = document.getElementById("nav-toggle");
+  const asideToggle = document.getElementById("aside-toggle");
+
+  if (shell) {
+    if (localStorage.getItem("nav-collapsed") === "true") {
+      shell.classList.add("nav-collapsed");
+    }
+    if (localStorage.getItem("aside-collapsed") === "true") {
+      shell.classList.add("aside-collapsed");
+    }
+
+    if (navToggle) {
+      navToggle.addEventListener("click", () => {
+        const isCollapsed = shell.classList.toggle("nav-collapsed");
+        localStorage.setItem("nav-collapsed", isCollapsed);
+      });
+    }
+
+    if (asideToggle) {
+      asideToggle.addEventListener("click", () => {
+        const isCollapsed = shell.classList.toggle("aside-collapsed");
+        localStorage.setItem("aside-collapsed", isCollapsed);
+      });
+    }
+  }
+
   const trackedForms = [...document.querySelectorAll("form.governed-form")];
   if (!trackedForms.length) {
     return;
