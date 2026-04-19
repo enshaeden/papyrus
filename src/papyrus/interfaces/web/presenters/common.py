@@ -82,6 +82,9 @@ class ComponentPresenter:
                     else ""
                 ),
                 "body_html": body_html,
+                "summary_html": (
+                    f'<div class="governed-summary">{summary}</div>' if summary else ""
+                ),
                 "body_class": escape(body_class),
                 "footer_html": footer_html,
                 "tone": escape(tone),

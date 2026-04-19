@@ -15,29 +15,37 @@ from .article_content_presenter import render_article_block
 from .reader_object_tree_presenter import render_reader_object_tree_nav
 
 
-def _hero_meta(*, item: dict[str, Any], content: dict[str, Any], experience: ExperienceContext) -> str:
-    meta = [
-        str(item.get("object_type") or "").replace("_", " "),
-        str(item.get("owner") or ""),
-        str(item.get("last_reviewed") or ""),
-    ]
-    if experience.role != READER_ROLE:
-        state = dict(content.get("state") or {})
-        meta.extend(
-            [
-                str(state.get("trust_state") or item.get("trust_state") or ""),
-                str(state.get("revision_review_state") or item.get("revision_review_state") or ""),
-            ]
-        )
-    meta_items = [
-        f'<span class="status-badge tone-context">{escape(value)}</span>'
-        for value in meta
-        if str(value).strip()
-    ]
-    return (
-        f'<div class="badge-row">{join_html(meta_items)}</div>'
-        if meta_items
-        else ""
+def _hero_meta(
+    *, item: dict[str, Any], content: dict[str, Any], experience: ExperienceContext
+) -> str:
+    owner = str(item.get("owner") or "Anonymous")
+    initial = owner[0].upper() if owner else "?"
+    role = str(item.get("owner_role") or "Contributor")
+    date = str(item.get("last_reviewed") or item.get("created_at") or "Unknown Date")
+    revision = str(
+        (content.get("metadata") or {}).get("revision_id") or item.get("revision_id") or "v1.0"
+    )
+
+    return join_html(
+        [
+            '<div class="article-meta-row">',
+            '  <div class="article-author">',
+            f'    <div class="avatar">{escape(initial)}</div>',
+            '    <div class="article-author-info">',
+            f'      <div class="article-author-name">{escape(owner)}</div>',
+            f'      <div class="article-author-role">{escape(role)}</div>',
+            "    </div>",
+            "  </div>",
+            '  <div class="article-meta-item">',
+            '    <i data-lucide="calendar" style="width: 14px; height: 14px;"></i>',
+            f"    Published {escape(date)}",
+            "  </div>",
+            '  <div class="article-meta-item">',
+            '    <i data-lucide="git-commit" style="width: 14px; height: 14px;"></i>',
+            f"    Revision {escape(revision)}",
+            "  </div>",
+            "</div>",
+        ]
     )
 
 
@@ -48,20 +56,18 @@ def render_content_section(*, section: dict[str, Any]) -> str:
         if blocks
         else f'<p class="content-empty">{escape(section.get("empty") or "No content recorded.")}</p>'
     )
+    title = str(section.get("title") or "").strip()
+    title_html = f"<h2>{escape(title)}</h2>" if title else ""
     return (
-        '<section class="content-section" data-component="content-section" data-surface="object-detail">'
-        f'<p class="content-section__kicker">{escape(section["eyebrow"])}</p>'
-        f"<h2>{escape(section['title'])}</h2>"
-        f"{body_html}</section>"
+        '<div class="article-section" data-component="content-section">'
+        f"{title_html}"
+        f"{body_html}</div>"
     )
 
 
 def render_context_panel(*, section: dict[str, Any]) -> str:
     blocks = [block for block in section.get("blocks") or [] if block]
     raw_markdown = str(section.get("raw_markdown") or "").strip()
-    section_surface = (
-        "posture" if str(section.get("section_id") or "") == "governance" else "object-detail"
-    )
     body_html = join_html([render_article_block(block) for block in blocks]) if blocks else ""
     if raw_markdown:
         body_html += (
@@ -72,11 +78,14 @@ def render_context_panel(*, section: dict[str, Any]) -> str:
         )
     if not body_html:
         body_html = f'<p class="content-empty">{escape(section.get("empty") or "No supporting context recorded.")}</p>'
+
+    title = str(section.get("title") or "").strip()
+    title_html = f"<h3>{escape(title)}</h3>" if title else ""
+
     return (
-        f'<section class="context-panel" data-component="context-panel" data-surface="{section_surface}">'
-        f'<p class="context-panel__kicker">{escape(section["eyebrow"])}</p>'
-        f"<h3>{escape(section['title'])}</h3>"
-        f"{body_html}</section>"
+        '<div class="card article-section context-panel" style="margin: var(--space-6) 0;">'
+        f"{title_html}"
+        f"{body_html}</div>"
     )
 
 
@@ -165,7 +174,7 @@ def present_object_detail(
         "active_nav": "inspect" if experience.role == ADMIN_ROLE else "read",
         "aside_html": aside_html,
         "page_context": {
-            "content_html": primary_html,
+            "content_html": f'<div class="article-layout"><div class="article-body">{primary_html}</div></div>',
             "context_html": appendix_html,
         },
         "page_surface": "object-detail",

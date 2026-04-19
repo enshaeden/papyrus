@@ -900,7 +900,9 @@ def run_operator_scenario(
         source_root=source_root,
         object_id="kb-remote-access-vpn-recovery",
         normalized_payload=payload,
-        body_markdown=_revision_body_markdown(payload, "Scenario backlog revision waiting for review."),
+        body_markdown=_revision_body_markdown(
+            payload, "Scenario backlog revision waiting for review."
+        ),
         actor=actor,
         legacy_metadata=detail["metadata"],
         change_summary="Queue another recovery update for review.",

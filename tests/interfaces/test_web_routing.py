@@ -28,7 +28,9 @@ class WebRoutingTests(unittest.TestCase):
 
     def test_router_match_returns_routed_request_without_mutation(self) -> None:
         router = Router()
-        router.add(["GET"], "/objects/{object_id}", lambda request: request, minimum_visible_role="reader")
+        router.add(
+            ["GET"], "/objects/{object_id}", lambda request: request, minimum_visible_role="reader"
+        )
         request = Request(method="GET", path="/objects/kb-routing", query={}, form={})
 
         matched = router.match(request)
@@ -40,7 +42,9 @@ class WebRoutingTests(unittest.TestCase):
 
     def test_router_match_preserves_method_not_allowed_behavior(self) -> None:
         router = Router()
-        router.add(["GET"], "/objects/{object_id}", lambda request: request, minimum_visible_role="reader")
+        router.add(
+            ["GET"], "/objects/{object_id}", lambda request: request, minimum_visible_role="reader"
+        )
         request = Request(method="POST", path="/objects/kb-routing", query={}, form={})
 
         matched = router.match(request)

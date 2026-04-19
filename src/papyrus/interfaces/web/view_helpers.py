@@ -60,7 +60,11 @@ def distinct_heading_kicker(kicker: object, title: object) -> str:
     normalized_title = re.sub(r"[_-]+", " ", str(title or "").strip().lower())
     normalized_kicker = re.sub(r"\s+", " ", normalized_kicker).strip(" :.!?")
     normalized_title = re.sub(r"\s+", " ", normalized_title).strip(" :.!?")
-    return str(kicker or "").strip() if normalized_kicker and normalized_kicker != normalized_title else ""
+    return (
+        str(kicker or "").strip()
+        if normalized_kicker and normalized_kicker != normalized_title
+        else ""
+    )
 
 
 def slugify(value: str) -> str:

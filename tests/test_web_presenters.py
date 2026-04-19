@@ -193,7 +193,9 @@ class WebPresenterTests(SemanticHookAssertions, unittest.TestCase):
         )
 
         for token in forbidden_tokens:
-            self.assertNotIn(token, source_text, msg=f"forbidden decorative copy token found: {token}")
+            self.assertNotIn(
+                token, source_text, msg=f"forbidden decorative copy token found: {token}"
+            )
 
 
 if __name__ == "__main__":

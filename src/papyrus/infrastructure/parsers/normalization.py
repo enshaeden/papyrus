@@ -133,7 +133,8 @@ def _sanitize_elements(parsed_content: dict[str, Any]) -> list[NormalizedElement
             sanitized.append(
                 NormalizedElement(
                     kind="table",
-                    text=_clean_text(element.get("text")) or table_text([list(row) for row in rows]),
+                    text=_clean_text(element.get("text"))
+                    or table_text([list(row) for row in rows]),
                     rows=rows,
                 )
             )

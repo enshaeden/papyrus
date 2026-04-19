@@ -81,7 +81,7 @@ def present_object_setup_page(
     form_action: str,
     authoring_blueprints: list[Blueprint],
     authoring_mode: str,
-    ) -> dict[str, str]:
+) -> dict[str, str]:
     forms = FormPresenter(runtime.template_renderer)
     components = ComponentPresenter(runtime.template_renderer)
     primary_controls = [

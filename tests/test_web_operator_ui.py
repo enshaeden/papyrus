@@ -604,9 +604,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertEqual(status, "303 See Other")
             self.assertIn("/read/object/kb-operator-ui-manage", headers["Location"])
 
-            status, _, body = call_wsgi(
-                application, f"/review/object/{object_id}/supersede"
-            )
+            status, _, body = call_wsgi(application, f"/review/object/{object_id}/supersede")
             self.assertEqual(status, "200 OK")
             self.assertIn("Supersession contract", body)
             self.assertIn("Supersede object", body)
@@ -763,9 +761,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 normalized_payload=runbook_payload(
                     archived.object_id, archived.canonical_path, archived.title
                 ),
-                body_markdown=ready_runbook_body(
-                    "Exercise archive acknowledgement rendering."
-                ),
+                body_markdown=ready_runbook_body("Exercise archive acknowledgement rendering."),
                 actor="tests",
                 change_summary="Archive acknowledgement rendering coverage.",
             )
@@ -796,9 +792,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 database_path,
                 source_root=source_root,
             )
-            status, _, body = call_wsgi(
-                application, f"/review/object/{archived.object_id}/archive"
-            )
+            status, _, body = call_wsgi(application, f"/review/object/{archived.object_id}/archive")
             self.assertEqual(status, "200 OK")
             self.assertIn("Archive contract", body)
             self.assertIn("canonical path will move to archive", body)
@@ -869,9 +863,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
                 source_root=source_root,
             )
 
-            status, _, object_body = call_wsgi(
-                application, f"/read/object/{created.object_id}"
-            )
+            status, _, object_body = call_wsgi(application, f"/read/object/{created.object_id}")
             self.assertEqual(status, "200 OK")
             self.assert_not_component(object_body, "article-hero")
             self.assert_component_count(object_body, "action-cluster", 1)
@@ -995,7 +987,9 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
 
             status, _, shared_audit_body = call_wsgi(admin_app, "/review/activity")
             self.assertEqual(status, "200 OK")
-            self.assertIn('class="sidebar-link is-active" href="/admin/audit">Audit</a>', shared_audit_body)
+            self.assertIn(
+                'class="sidebar-link is-active" href="/admin/audit">Audit</a>', shared_audit_body
+            )
 
             status, headers, _ = call_wsgi(
                 operator_app,
@@ -1082,9 +1076,7 @@ class WebOperatorUiTests(SemanticHookAssertions, unittest.TestCase):
             self.assertIn(
                 'class="topbar-menu-chip is-active topbar-menu-role">Operator</span>', body
             )
-            self.assertIn(
-                'class="sidebar-link is-active" href="/write/new">Write</a>', body
-            )
+            self.assertIn('class="sidebar-link is-active" href="/write/new">Write</a>', body)
             self.assert_component(body, "progress-strip")
             self.assertNotIn('class="write-stage-label"', body)
             self.assertNotIn("shell-columns-focus", body)

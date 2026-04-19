@@ -28,4 +28,16 @@ def render_article_block(block: dict[str, Any]) -> str:
             )
             + "</dl></div>"
         )
+    if kind in {"callout", "admonition"}:
+        icon = str(block.get("icon") or "alert-circle")
+        return join_html(
+            [
+                '<div class="card article-block" style="margin: var(--space-6) 0;">',
+                '  <h3 class="card-title" style="display: flex; align-items: center; gap: var(--space-2);">',
+                f'    <i data-lucide="{escape(icon)}" style="color: var(--color-brand-hero);"></i> {escape(title)}',
+                "  </h3>",
+                f'  <p class="card-desc" style="font-size: var(--text-base);">{escape(block.get("text") or "")}</p>',
+                "</div>",
+            ]
+        )
     return ""

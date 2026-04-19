@@ -164,7 +164,9 @@ def app(
 ) -> Callable:
     resolved_database_path = Path(database_path)
     resolved_source_root = resolve_runtime_source_root(source_root)
-    resolved_actor = resolve_actor(default_actor_id or default_actor_id_for_role(default_role or ""))
+    resolved_actor = resolve_actor(
+        default_actor_id or default_actor_id_for_role(default_role or "")
+    )
     resolved_actor_id = resolved_actor.actor_id or runtime_default_actor_id()
     resolved_role = normalize_role(default_role or role_from_actor_id(resolved_actor_id))
     runtime = WebRuntime(
@@ -322,9 +324,7 @@ def app(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Serve the Papyrus web interface over WSGI."
-    )
+    parser = argparse.ArgumentParser(description="Serve the Papyrus web interface over WSGI.")
     parser.add_argument("--host", default="127.0.0.1", help="Bind host. Defaults to 127.0.0.1.")
     parser.add_argument("--port", type=int, default=8080, help="Bind port. Defaults to 8080.")
     parser.add_argument("--db", default=str(DB_PATH), help="Runtime SQLite database path.")

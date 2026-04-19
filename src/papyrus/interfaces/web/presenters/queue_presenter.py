@@ -126,9 +126,7 @@ def render_read_filter_bar(
 
 def render_read_result_cards(*, role: str, items: list[dict[str, Any]]) -> str:
     if not items:
-        return (
-            '<section class="read-results-empty"><h2>No matching guidance</h2></section>'
-        )
+        return '<section class="read-results-empty"><h2>No matching guidance</h2></section>'
     return join_html(
         [
             (
@@ -164,9 +162,7 @@ def render_read_results_table(
     role: str,
 ) -> str:
     if not items:
-        return (
-            '<section class="read-results-empty"><h2>No matching guidance</h2></section>'
-        )
+        return '<section class="read-results-empty"><h2>No matching guidance</h2></section>'
     rows = []
     for item in items:
         object_id = str(item["object_id"])

@@ -225,8 +225,7 @@ def register(router, runtime) -> None:
                 notes=values["notes"] or None,
             )
             return redirect_response(
-                object_url(object_id)
-                + f"?notice={quote_plus('Evidence revalidation requested')}"
+                object_url(object_id) + f"?notice={quote_plus('Evidence revalidation requested')}"
             )
         page = present_evidence_revalidation_page(
             runtime.template_renderer,
@@ -315,8 +314,7 @@ def register(router, runtime) -> None:
                             notes=result.cleaned_data["notes"],
                         )
                         return redirect_response(
-                            object_url(object_id)
-                            + f"?notice={quote_plus('Revision approved')}"
+                            object_url(object_id) + f"?notice={quote_plus('Revision approved')}"
                         )
                     reject_revision_command(
                         database_path=runtime.database_path,

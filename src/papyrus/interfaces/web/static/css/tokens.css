@@ -3,18 +3,18 @@
 :root {
   color-scheme: dark;
 
-  --color-surface-app: #07090d;
-  --color-surface-panel: rgba(10, 10, 12, 0.92);
-  --color-surface-panel-strong: rgba(15, 16, 20, 0.96);
-  --color-surface-raised: rgba(18, 18, 24, 0.88);
-  --color-surface-overlay: rgba(8, 9, 12, 0.94);
-  --color-surface-elevated: rgba(20, 20, 24, 0.68);
-  --color-surface-elevated-subtle: rgba(28, 28, 34, 0.54);
-  --color-surface-context-subtle: rgba(39, 24, 35, 0.3);
-  --color-surface-context-panel: rgba(26, 19, 24, 0.68);
-  --color-surface-selected: rgba(93, 55, 84, 0.18);
-  --color-surface-article: rgba(11, 11, 15, 0.9);
-  --color-surface-article-strong: rgba(16, 16, 21, 0.97);
+  --color-surface-app: #050505;
+  --color-surface-panel: rgba(10, 10, 10, 0.92);
+  --color-surface-panel-strong: rgba(15, 15, 15, 0.96);
+  --color-surface-raised: rgba(20, 20, 20, 0.88);
+  --color-surface-overlay: rgba(8, 8, 8, 0.94);
+  --color-surface-elevated: rgba(20, 20, 20, 0.68);
+  --color-surface-elevated-subtle: rgba(28, 28, 28, 0.54);
+  --color-surface-context-subtle: rgba(30, 30, 30, 0.3);
+  --color-surface-context-panel: rgba(20, 20, 20, 0.68);
+  --color-surface-selected: rgba(0, 240, 255, 0.1);
+  --color-surface-article: rgba(10, 10, 10, 0.9);
+  --color-surface-article-strong: rgba(15, 15, 15, 0.97);
 
   --color-border-default: rgba(255, 255, 255, 0.08);
   --color-border-strong: rgba(255, 255, 255, 0.16);
@@ -23,89 +23,89 @@
   --color-text-soft: #bcbdc8;
   --color-text-on-accent: #fff8fc;
 
-  --color-brand-hero: #5D3754;
-  --color-brand-hero-hover: #744668;
-  --color-brand-hero-active: #47293f;
-  --color-brand-depth: #7b556f;
-  --color-brand-context: #b59bb0;
-  --color-brand-context-soft: rgba(93, 55, 84, 0.12);
-  --color-brand-context-panel: rgba(93, 55, 84, 0.18);
-  --color-brand-context-border: rgba(160, 118, 150, 0.34);
-  --color-brand-context-overlay: rgba(93, 55, 84, 0.22);
+  --color-brand-hero: #00f0ff;
+  --color-brand-hero-hover: #33f3ff;
+  --color-brand-hero-active: #00c0cc;
+  --color-brand-depth: #0070f3;
+  --color-brand-context: #7928ca;
+  --color-brand-context-soft: rgba(0, 240, 255, 0.1);
+  --color-brand-context-panel: rgba(0, 240, 255, 0.15);
+  --color-brand-context-border: rgba(0, 240, 255, 0.3);
+  --color-brand-context-overlay: rgba(0, 240, 255, 0.2);
 
   --color-accent-primary: var(--color-brand-hero);
   --color-accent-primary-hover: var(--color-brand-hero-hover);
   --color-accent-primary-active: var(--color-brand-hero-active);
-  --color-accent-primary-text: var(--color-text-on-accent);
+  --color-accent-primary-text: var(--color-surface-app);
   --color-accent-secondary-bg: rgba(255, 255, 255, 0.02);
-  --color-accent-secondary-border: rgba(218, 224, 240, 0.14);
-  --color-accent-secondary-hover-bg: rgba(93, 55, 84, 0.12);
-  --color-accent-secondary-hover-border: rgba(160, 118, 150, 0.28);
-  --color-accent-secondary-selected-bg: rgba(93, 55, 84, 0.16);
-  --color-accent-secondary-selected-border: rgba(160, 118, 150, 0.34);
+  --color-accent-secondary-border: rgba(255, 255, 255, 0.08);
+  --color-accent-secondary-hover-bg: rgba(0, 240, 255, 0.1);
+  --color-accent-secondary-hover-border: rgba(0, 240, 255, 0.3);
+  --color-accent-secondary-selected-bg: rgba(0, 240, 255, 0.15);
+  --color-accent-secondary-selected-border: rgba(0, 240, 255, 0.3);
   --color-accent-secondary-text: var(--color-text-primary);
-  --color-accent-muted-bg: rgba(93, 55, 84, 0.12);
-  --color-accent-muted-border: rgba(160, 118, 150, 0.28);
-  --color-accent-muted-text: #e8d9e4;
+  --color-accent-muted-bg: rgba(121, 40, 202, 0.1);
+  --color-accent-muted-border: rgba(121, 40, 202, 0.2);
+  --color-accent-muted-text: #e9d5ff;
 
-  --color-nav-active: #f5edf2;
-  --color-nav-active-hover: #ffffff;
-  --color-nav-active-text: #ffffff;
+  --color-nav-active: rgba(0, 240, 255, 0.1);
+  --color-nav-active-hover: rgba(0, 240, 255, 0.15);
+  --color-nav-active-text: var(--color-brand-hero);
   --color-nav-hover-bg: rgba(255, 255, 255, 0.035);
-  --color-nav-hover-border: rgba(160, 118, 150, 0.3);
+  --color-nav-hover-border: rgba(255, 255, 255, 0.1);
   --color-nav-hover-text: var(--color-text-primary);
 
-  --color-focus-ring: rgba(93, 55, 84, 0.42);
-  --color-selected-fill: rgba(93, 55, 84, 0.16);
-  --color-selected-border: rgba(160, 118, 150, 0.95);
-  --color-panel-governance-bg: rgba(31, 24, 33, 0.76);
-  --color-panel-governance-border: rgba(160, 118, 150, 0.26);
-  --color-panel-governance-label: #dcbcd4;
+  --color-focus-ring: rgba(0, 240, 255, 0.4);
+  --color-selected-fill: rgba(0, 240, 255, 0.1);
+  --color-selected-border: var(--color-brand-hero);
+  --color-panel-governance-bg: rgba(121, 40, 202, 0.05);
+  --color-panel-governance-border: rgba(121, 40, 202, 0.2);
+  --color-panel-governance-label: #e9d5ff;
   --color-object-identity: var(--color-brand-hero);
-  --color-object-identity-text: var(--color-text-on-accent);
+  --color-object-identity-text: var(--color-surface-app);
   --color-command-highlight: var(--color-brand-hero);
-  --color-command-highlight-text: var(--color-text-on-accent);
-  --color-summary-chip-bg: rgba(93, 55, 84, 0.22);
-  --color-summary-chip-border: rgba(160, 118, 150, 0.36);
-  --color-summary-chip-text: #f6edf3;
-  --color-timeline-rail: rgba(160, 118, 150, 0.72);
+  --color-command-highlight-text: var(--color-surface-app);
+  --color-summary-chip-bg: rgba(0, 240, 255, 0.15);
+  --color-summary-chip-border: rgba(0, 240, 255, 0.3);
+  --color-summary-chip-text: #e0fcff;
+  --color-timeline-rail: rgba(0, 240, 255, 0.5);
   --color-progress-fill: var(--color-brand-hero);
 
-  --color-topbar-bg: rgba(5, 5, 6, 0.78);
+  --color-topbar-bg: rgba(5, 5, 5, 0.8);
   --color-topbar-border: rgba(255, 255, 255, 0.08);
-  --color-topbar-text: #f5f7ff;
+  --color-topbar-text: #ffffff;
   --color-topbar-muted: rgba(161, 161, 170, 0.84);
   --color-topbar-chip-bg: rgba(255, 255, 255, 0.02);
   --color-topbar-chip-border: rgba(255, 255, 255, 0.08);
   --color-topbar-chip-hover-bg: rgba(255, 255, 255, 0.05);
   --color-topbar-chip-hover-border: rgba(255, 255, 255, 0.14);
   --color-topbar-chip-text: var(--color-topbar-text);
-  --color-topbar-chip-active-bg: rgba(93, 55, 84, 0.22);
-  --color-topbar-chip-active-border: rgba(160, 118, 150, 0.34);
-  --color-topbar-chip-active-text: #fff6fb;
-  --color-topbar-chip-active-hover-bg: rgba(93, 55, 84, 0.28);
-  --color-topbar-chip-active-hover-border: rgba(160, 118, 150, 0.42);
+  --color-topbar-chip-active-bg: rgba(0, 240, 255, 0.1);
+  --color-topbar-chip-active-border: rgba(0, 240, 255, 0.3);
+  --color-topbar-chip-active-text: var(--color-brand-hero);
+  --color-topbar-chip-active-hover-bg: rgba(0, 240, 255, 0.15);
+  --color-topbar-chip-active-hover-border: rgba(0, 240, 255, 0.4);
   --color-topbar-field-bg: rgba(10, 10, 10, 0.9);
   --color-topbar-field-border: rgba(255, 255, 255, 0.08);
   --color-topbar-field-text: var(--color-topbar-text);
   --color-topbar-field-placeholder: rgba(113, 113, 122, 0.96);
-  --color-topbar-action-bg: var(--color-brand-hero);
-  --color-topbar-action-border: rgba(160, 118, 150, 0.4);
-  --color-topbar-action-hover-bg: var(--color-brand-hero-hover);
-  --color-topbar-action-hover-border: rgba(191, 154, 182, 0.5);
+  --color-topbar-action-bg: transparent;
+  --color-topbar-action-border: var(--color-brand-hero);
+  --color-topbar-action-hover-bg: rgba(0, 240, 255, 0.1);
+  --color-topbar-action-hover-border: var(--color-brand-hero);
 
-  --color-status-success: #4db283;
-  --color-status-success-bg: rgba(40, 88, 69, 0.28);
-  --color-status-info: #62a4d8;
-  --color-status-info-bg: rgba(37, 67, 94, 0.28);
-  --color-status-warning: #dca55a;
-  --color-status-warning-bg: rgba(92, 61, 27, 0.3);
-  --color-status-error: #ee767c;
-  --color-status-error-bg: rgba(100, 34, 45, 0.3);
-  --color-status-error-strong: #f2555f;
-  --color-status-error-text: #fff4f5;
-  --color-status-muted: #7f8aa1;
-  --color-status-muted-bg: rgba(74, 82, 97, 0.24);
+  --color-status-success: #10b981;
+  --color-status-success-bg: rgba(16, 185, 129, 0.1);
+  --color-status-info: #0070f3;
+  --color-status-info-bg: rgba(0, 112, 243, 0.1);
+  --color-status-warning: #f59e0b;
+  --color-status-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-status-error: #ef4444;
+  --color-status-error-bg: rgba(239, 68, 68, 0.1);
+  --color-status-error-strong: #dc2626;
+  --color-status-error-text: #fef2f2;
+  --color-status-muted: #71717a;
+  --color-status-muted-bg: rgba(113, 113, 122, 0.1);
 
   --bg: var(--color-surface-app);
   --panel: var(--color-surface-panel);
@@ -123,12 +123,12 @@
   --danger: var(--color-status-error);
   --danger-soft: var(--color-status-error-bg);
   --muted-soft: var(--color-status-muted-bg);
-  --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
-  --shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.4);
-  --shadow-panel-strong: 0 18px 44px rgba(0, 0, 0, 0.48), 0 0 22px rgba(93, 55, 84, 0.12);
-  --shadow-topbar: 0 6px 24px rgba(0, 0, 0, 0.32);
-  --shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.025), 0 24px 64px rgba(0, 0, 0, 0.46), 0 0 20px rgba(93, 55, 84, 0.08);
-  --shadow-brand-glow: 0 0 24px rgba(93, 55, 84, 0.18);
+  --shadow: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-panel: 0 4px 6px -1px rgba(0,0,0,0.5), 0 2px 4px -1px rgba(0,0,0,0.5);
+  --shadow-panel-strong: 0 10px 15px -3px rgba(0,0,0,0.5), 0 4px 6px -2px rgba(0,0,0,0.5);
+  --shadow-topbar: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(0, 240, 255, 0.15);
+  --shadow-brand-glow: 0 0 24px rgba(0, 240, 255, 0.3);
 
   --radius-xl: 1.5rem;
   --radius-lg: 1.125rem;
@@ -159,4 +159,21 @@
   --font-sans: "Outfit", "Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
   --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, "Cormorant Garamond", Georgia, serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+
+  /* Typography Scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+
+  /* FX */
+  --glass-blur: blur(16px);
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}.app-shell[data-luxury="True"] {
+  background: radial-gradient(circle at 50% -20%, #1a1a2e 0%, #0f0f12 100%);
+  min-height: 100vh;
 }

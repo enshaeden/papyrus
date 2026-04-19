@@ -532,7 +532,9 @@ def validate_knowledge_documents(
             blueprint = get_blueprint(normalized.object_type)
         except Exception:
             metadata = document.metadata
-            schema = object_schemas.get(str(metadata.get("knowledge_object_type") or ""), {"fields": {}})
+            schema = object_schemas.get(
+                str(metadata.get("knowledge_object_type") or ""), {"fields": {}}
+            )
         fields = schema.get("fields", {})
 
         if not document.body:

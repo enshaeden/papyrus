@@ -46,7 +46,9 @@ def intervention_groups(queue: list[dict[str, Any]]) -> dict[str, list[dict[str,
     return groups
 
 
-def render_oversight_column(title: str, items: list[dict[str, Any]], *, role: str, tone: str) -> str:
+def render_oversight_column(
+    title: str, items: list[dict[str, Any]], *, role: str, tone: str
+) -> str:
     count_label = f"{len(items)} item" if len(items) == 1 else f"{len(items)} items"
     body = (
         join_html(

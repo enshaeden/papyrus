@@ -74,14 +74,10 @@ def runbook_payload(object_id: str, canonical_path: str, title: str) -> dict[str
     }
 
 
-def ready_runbook_body(use_when: str, *, boundaries: str = "Stay within the documented scope.") -> str:
-    return (
-        "## Use When\n\n"
-        + use_when
-        + "\n\n## Boundaries And Escalation\n\n"
-        + boundaries
-        + "\n"
-    )
+def ready_runbook_body(
+    use_when: str, *, boundaries: str = "Stay within the documented scope."
+) -> str:
+    return "## Use When\n\n" + use_when + "\n\n## Boundaries And Escalation\n\n" + boundaries + "\n"
 
 
 class WritebackFlowTests(unittest.TestCase):

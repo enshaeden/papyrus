@@ -195,3 +195,246 @@
     justify-content: flex-start;
   }
 }
+
+/* Luxury Mode - High Fidelity Aesthetic Override */
+.app-shell[data-luxury="True"] {
+  background: radial-gradient(circle at 0% 0%, #1c2a4a 0%, #050505 40%, #050505 100%) !important;
+}
+
+.app-shell[data-luxury="True"] .main-column {
+  background: transparent !important;
+  display: flex !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  width: auto !important;
+}
+
+.app-shell[data-luxury="True"] .main-column__inner {
+  padding: 5vh 5vw !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  max-width: 1200px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  display: block !important;
+}
+
+/* Sidebar Restoration & Polish */
+.app-shell[data-luxury="True"] .sidebar {
+  background: rgba(10, 10, 15, 0.4) !important;
+  backdrop-filter: blur(20px) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.app-shell[data-luxury="True"] .sidebar-link {
+  color: rgba(255, 255, 255, 0.5) !important;
+  transition: all 0.2s ease !important;
+}
+
+.app-shell[data-luxury="True"] .sidebar-link:hover {
+  background: rgba(0, 240, 255, 0.08) !important;
+  color: var(--color-brand-hero) !important;
+}
+
+.app-shell[data-luxury="True"] .sidebar-link.is-active {
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.1), transparent) !important;
+  color: #ffffff !important;
+  border-left: 2px solid var(--color-brand-hero) !important;
+}
+
+/* Luxury Header & Back Link */
+.app-shell[data-luxury="True"] .article-header {
+  margin-bottom: 8vh !important;
+  text-align: left !important;
+  position: relative !important;
+}
+
+.app-shell[data-luxury="True"] .article-back-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: var(--space-2) !important;
+  color: var(--color-brand-hero) !important;
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  margin-bottom: var(--space-8) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  transition: all 0.2s ease !important;
+  opacity: 0.7;
+}
+
+.app-shell[data-luxury="True"] .article-back-link:hover {
+  opacity: 1;
+  transform: translateX(-4px) !important;
+}
+
+.app-shell[data-luxury="True"] .article-back-link i {
+  width: 1rem !important;
+  height: 1rem !important;
+}
+
+.app-shell[data-luxury="True"] .article-kicker {
+  font-size: 0.85rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4em !important;
+  font-weight: 800 !important;
+  color: var(--color-brand-hero) !important;
+  margin-bottom: var(--space-4) !important;
+}
+
+.app-shell[data-luxury="True"] .article-header h1 {
+  font-size: clamp(3rem, 6vw, 5rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.06em !important;
+  line-height: 0.95 !important;
+  margin: 0 0 var(--space-8) 0 !important;
+  color: #ffffff !important;
+}
+
+.app-shell[data-luxury="True"] .article-meta-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: var(--space-8) !important;
+  padding-top: var(--space-8) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.app-shell[data-luxury="True"] .article-author {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: var(--space-4) !important;
+}
+
+.app-shell[data-luxury="True"] .user-avatar {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #00f0ff, #0070f3) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 800 !important;
+  color: #000000 !important;
+  font-size: 1.3rem !important;
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.5) !important;
+}
+
+.app-shell[data-luxury="True"] .article-author-info {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.app-shell[data-luxury="True"] .article-author-name {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 1.2rem !important;
+}
+
+.app-shell[data-luxury="True"] .article-author-role {
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+}
+
+/* Luxury Card Overhaul */
+.app-shell[data-luxury="True"] .section-card {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 2.5rem !important;
+  backdrop-filter: blur(40px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
+  padding: 5rem !important;
+  margin-bottom: 4rem !important;
+  box-shadow: 0 50px 120px rgba(0, 0, 0, 0.7) !important;
+  width: 100% !important;
+}
+
+.app-shell[data-luxury="True"] .section-card header {
+  display: flex !important;
+  flex-direction: column-reverse !important;
+  margin-bottom: 3rem !important;
+}
+
+.app-shell[data-luxury="True"] .section-card header h2 {
+  font-size: 1.6rem !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  text-transform: none !important;
+  letter-spacing: -0.02em !important;
+  opacity: 0.9 !important;
+}
+
+.app-shell[data-luxury="True"] .section-card .panel-kicker {
+  display: block !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3em !important;
+  font-weight: 900 !important;
+  color: var(--color-brand-hero) !important;
+  margin-bottom: 1rem !important;
+  opacity: 0.6 !important;
+}
+
+.app-shell[data-luxury="True"] .governed-summary {
+  display: block !important;
+  font-size: 3.2rem !important;
+  font-weight: 800 !important;
+  line-height: 1.05 !important;
+  color: #ffffff !important;
+  margin: 0 0 3rem 0 !important;
+  letter-spacing: -0.05em !important;
+  background: linear-gradient(to bottom, #ffffff, rgba(255, 255, 255, 0.6));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.app-shell[data-luxury="True"] .governed-copy {
+  font-size: 1.35rem !important;
+  line-height: 1.8 !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  margin-bottom: 4rem !important;
+}
+
+.app-shell[data-luxury="True"] .definition-rows {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+  gap: 3rem !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding-top: 3rem !important;
+}
+
+.app-shell[data-luxury="True"] .definition-rows dt {
+  font-size: 0.75rem !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.2em !important;
+  font-weight: 800 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.app-shell[data-luxury="True"] .definition-rows dd {
+  font-size: 1.3rem !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+}
+
+/* Specific button polish */
+.app-shell[data-luxury="True"] .button {
+  padding: 1rem 2rem !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  font-size: 0.85rem !important;
+}
+
+.app-shell[data-luxury="True"] .button-primary {
+  background: var(--color-brand-hero) !important;
+  color: #000000 !important;
+  box-shadow: 0 10px 30px rgba(0, 240, 255, 0.3) !important;
+}

@@ -28,7 +28,9 @@ def register(router, runtime) -> None:
 
     def overview_page(request: Request):
         require_experience(request, "admin")
-        return _render_page(runtime, request, page=present_admin_overview(runtime.template_renderer))
+        return _render_page(
+            runtime, request, page=present_admin_overview(runtime.template_renderer)
+        )
 
     def users_page(request: Request):
         return _render_page(

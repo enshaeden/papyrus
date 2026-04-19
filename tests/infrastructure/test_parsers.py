@@ -167,7 +167,7 @@ class ParserTests(unittest.TestCase):
     @unittest.skipUnless(RTF_AVAILABLE, "striprtf not installed")
     def test_rtf_parser_extracts_readable_text(self) -> None:
         parsed = parse_rtf_bytes(
-            br"{\rtf1\ansi Access Recovery\par - Confirm identity\par - Reset access\par}"
+            rb"{\rtf1\ansi Access Recovery\par - Confirm identity\par - Reset access\par}"
         )
 
         self.assertEqual(parsed["title"], "Access Recovery")

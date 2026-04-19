@@ -304,9 +304,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
             normalized_payload=runbook_payload(
                 created.object_id, created.canonical_path, created.title
             ),
-            body_markdown=ready_runbook_body(
-                "Exercise the same review truth across surfaces."
-            ),
+            body_markdown=ready_runbook_body("Exercise the same review truth across surfaces."),
             actor="surface.author",
             change_summary="Surface conformance revision.",
         )
@@ -403,9 +401,7 @@ class SurfaceConformanceTests(SemanticHookAssertions, unittest.TestCase):
         revision = workflow.create_revision(
             object_id=object_id,
             normalized_payload=updated_payload,
-            body_markdown=ready_runbook_body(
-                "Exercise conflicting writeback preview rendering."
-            ),
+            body_markdown=ready_runbook_body("Exercise conflicting writeback preview rendering."),
             actor="surface.author",
             change_summary="Surface preview revision.",
         )

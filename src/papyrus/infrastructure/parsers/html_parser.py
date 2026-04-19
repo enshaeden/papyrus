@@ -51,7 +51,9 @@ def parse_html_bytes(payload: bytes) -> dict[str, object]:
         for anchor in root.xpath(".//a[@href]")
         if _inline_text(anchor) and str(anchor.get("href") or "").strip()
     ]
-    page_title = _inline_text(document.find(".//title")) if document.find(".//title") is not None else ""
+    page_title = (
+        _inline_text(document.find(".//title")) if document.find(".//title") is not None else ""
+    )
 
     def visit(node: html.HtmlElement) -> None:
         tag = node.tag.lower() if isinstance(node.tag, str) else ""
@@ -109,10 +111,17 @@ def parse_html_bytes(payload: bytes) -> dict[str, object]:
                 visit(child)
 
     visit(root)
-    title = next(
-        (str(heading.get("text") or "") for heading in headings if int(heading.get("level") or 1) == 1),
-        "",
-    ) or page_title
+    title = (
+        next(
+            (
+                str(heading.get("text") or "")
+                for heading in headings
+                if int(heading.get("level") or 1) == 1
+            ),
+            "",
+        )
+        or page_title
+    )
     raw_text_parts = [title] if title else []
     raw_text_parts.extend(paragraphs)
     raw_text_parts.extend(item for block in lists for item in block["items"])

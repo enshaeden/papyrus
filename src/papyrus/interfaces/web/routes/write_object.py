@@ -97,6 +97,7 @@ def _render_object_setup_page(
 
 def register(router, runtime) -> None:
     primary_authoring_blueprints = list_primary_authoring_blueprints()
+
     def write_landing_page(request: Request):
         require_experience(request, "operator", "admin")
         return redirect_response("/write/new")
@@ -112,4 +113,6 @@ def register(router, runtime) -> None:
         )
 
     router.add(["GET"], "/write", write_landing_page, minimum_visible_role="operator")
-    router.add(["GET", "POST"], "/write/new", create_primary_object_page, minimum_visible_role="operator")
+    router.add(
+        ["GET", "POST"], "/write/new", create_primary_object_page, minimum_visible_role="operator"
+    )

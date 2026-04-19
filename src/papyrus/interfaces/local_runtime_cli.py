@@ -80,7 +80,9 @@ def main() -> int:
         help="Local role for the web runtime role context. Use reader, operator, or admin.",
     )
     args = parser.parse_args()
-    selected_actor_id = args.actor or default_actor_id_for_role(args.role or "") or default_actor_id()
+    selected_actor_id = (
+        args.actor or default_actor_id_for_role(args.role or "") or default_actor_id()
+    )
     selected_role = normalize_role(args.role or role_from_actor_id(selected_actor_id))
 
     if args.demo:

@@ -117,7 +117,10 @@ def authoring_entry_href(
 ) -> str | None:
     state = projection_state(ui_projection)
     revision_state = str(state.get("revision_review_state") or "").strip()
-    if revision_state not in {"in_progress", "rejected"} or not str(current_revision_id or "").strip():
+    if (
+        revision_state not in {"in_progress", "rejected"}
+        or not str(current_revision_id or "").strip()
+    ):
         return None
     return write_object_url(object_id, revision_id=str(current_revision_id)) + "#revision-form"
 
@@ -341,7 +344,7 @@ def render_workflow_projection_panel(
         )
     return components.context_panel(
         title=title,
-        eyebrow="Workflow",
+        eyebrow="Governance",
         summary=str(data.get("summary") or "Backend workflow guidance unavailable"),
         body_html=join_html(body_parts),
         tone=str(data.get("tone") or "context"),
@@ -394,7 +397,7 @@ def render_projection_status_panel(
     )
     return components.context_panel(
         title=title,
-        eyebrow="Governance",
+        eyebrow="",
         summary=str(use_guidance.get("summary") or "Backend guidance unavailable"),
         body_html=body_html,
         tone="approved" if bool(use_guidance.get("safe_to_use")) else "context",
@@ -461,7 +464,7 @@ def render_projection_overview_panel(
     )
     return components.context_panel(
         title=title,
-        eyebrow="Current posture",
+        eyebrow="",
         summary=str(use_guidance.get("summary") or "Backend guidance unavailable"),
         body_html=join_html(body_parts),
         tone="approved" if bool(use_guidance.get("safe_to_use")) else "context",
@@ -518,7 +521,7 @@ def render_contract_status_panel(
         )
     return components.context_panel(
         title=title,
-        eyebrow="Contract",
+        eyebrow="",
         summary=summary,
         body_html=join_html(body_parts),
         tone=tone,

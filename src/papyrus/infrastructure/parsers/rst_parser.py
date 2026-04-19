@@ -19,9 +19,7 @@ def _table_rows(table_node: nodes.table) -> list[list[str]]:
 
 
 def parse_rst_bytes(payload: bytes) -> dict[str, object]:
-    text, warnings, degradation_notes = decode_text_bytes(
-        payload, format_label="reStructuredText"
-    )
+    text, warnings, degradation_notes = decode_text_bytes(payload, format_label="reStructuredText")
     try:
         doctree = publish_doctree(source=text)
     except Exception as exc:  # pragma: no cover - docutils exception types vary
@@ -70,9 +68,7 @@ def parse_rst_bytes(payload: bytes) -> dict[str, object]:
             heading_text = node.astext().strip()
             if heading_text:
                 headings.append({"level": level + 1, "text": heading_text})
-                elements.append(
-                    {"kind": "heading", "level": level + 1, "text": heading_text}
-                )
+                elements.append({"kind": "heading", "level": level + 1, "text": heading_text})
             return
         if isinstance(node, nodes.paragraph):
             if isinstance(node.parent, nodes.list_item | nodes.entry | nodes.caption):
@@ -132,8 +128,7 @@ def parse_rst_bytes(payload: bytes) -> dict[str, object]:
     raw_text_parts.extend(paragraphs)
     raw_text_parts.extend(item for block in lists for item in block["items"])
     raw_text_parts.extend(
-        "\n".join(" | ".join(cell for cell in row if cell) for row in table)
-        for table in tables
+        "\n".join(" | ".join(cell for cell in row if cell) for row in table) for table in tables
     )
     raw_text_parts.extend(preformatted_blocks)
     if not raw_text_parts:

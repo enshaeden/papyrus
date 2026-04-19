@@ -175,7 +175,9 @@ def register(router, runtime) -> None:
         return _render_page(runtime, request, page)
 
     router.add(["GET", "POST"], "/import", ingest_list_page, minimum_visible_role="operator")
-    router.add(["GET"], "/import/{ingestion_id}", ingest_detail_page, minimum_visible_role="operator")
+    router.add(
+        ["GET"], "/import/{ingestion_id}", ingest_detail_page, minimum_visible_role="operator"
+    )
     router.add(
         ["GET", "POST"],
         "/import/{ingestion_id}/review",

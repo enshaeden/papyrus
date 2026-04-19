@@ -1,5 +1,5 @@
 <section
-  class="section-card {{ panel_role }} tone-{{ tone }} {{ css_class }}"
+  class="card section-card {{ panel_role }} tone-{{ tone }} {{ css_class }}"
   data-component="surface-panel"
   data-variant="{{ component_variant }}"
   data-surface="{{ component_surface }}"
@@ -8,6 +8,7 @@
     {{ eyebrow_html }}
     <h2>{{ title }}</h2>
   </header>
+  {{ summary_html }}
   <div class="{{ body_class }}">
     {{ body_html }}
   </div>

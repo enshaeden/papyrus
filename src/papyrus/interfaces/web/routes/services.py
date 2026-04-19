@@ -44,7 +44,9 @@ def register(router, runtime) -> None:
             )
         )
 
-    router.add(["GET"], "/governance/services", service_catalog_page, minimum_visible_role="operator")
+    router.add(
+        ["GET"], "/governance/services", service_catalog_page, minimum_visible_role="operator"
+    )
     router.add(
         ["GET"],
         "/governance/services/{service_id}",

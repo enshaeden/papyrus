@@ -38,6 +38,7 @@ def _page_definition(
     page_context: dict[str, Any],
     aside_html: str = "",
     shell_variant: str | None = None,
+    header_variant: str | None = None,
     show_actor_links: bool = False,
     actions_html: str = "",
 ) -> dict[str, Any]:
@@ -56,6 +57,8 @@ def _page_definition(
         page["page_header"]["actions_html"] = actions_html
     if shell_variant is not None:
         page["shell_variant"] = shell_variant
+    if header_variant is not None:
+        page["header_variant"] = header_variant
     return page
 
 
@@ -293,10 +296,15 @@ def _review_object_form_page(
     return _page_definition(
         page_template="pages/manage_object_form.html",
         page_title=page_title,
-        headline=headline,
+        headline=detail["object"]["title"],
         active_nav="oversight",
         shell_variant="minimal",
-        page_context={"summary_html": summary_html, "form_html": form_html},
+        header_variant="article",
+        page_context={
+            "summary_html": summary_html,
+            "form_html": form_html,
+            "action_kicker": headline,
+        },
     )
 
 
@@ -638,6 +646,7 @@ def present_review_assignment_page(
         headline="Assign reviewer",
         active_nav="review",
         shell_variant="minimal",
+        header_variant="article",
         page_context={
             "summary_html": summary_html,
             "assignment_html": assignment_html,
@@ -772,8 +781,13 @@ def present_review_decision_page(
     return _page_definition(
         page_template="pages/manage_review_decision.html",
         page_title="Review decision",
-        headline="Review decision",
+        headline=detail["object"]["title"],
         active_nav="review",
         shell_variant="minimal",
-        page_context={"summary_html": summary_html, "decisions_html": decisions_html},
+        header_variant="article",
+        page_context={
+            "summary_html": summary_html,
+            "decisions_html": decisions_html,
+            "action_kicker": "Review decision",
+        },
     )

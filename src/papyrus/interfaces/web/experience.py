@@ -106,7 +106,10 @@ READER_EXPERIENCE = ExperienceContext(
             allowed_secondary_sections=("governance",),
         ),
     ),
-    page_configs=_page_configs("read-queue", "object-detail"),
+    page_configs=(
+        ShellPageConfig(page_id="read-queue", header_variant="compact"),
+        ShellPageConfig(page_id="object-detail", header_variant="article"),
+    ),
 )
 
 OPERATOR_EXPERIENCE = ExperienceContext(
@@ -146,12 +149,12 @@ OPERATOR_EXPERIENCE = ExperienceContext(
     page_configs=(
         *_page_configs(
             "read-queue",
-            "object-detail",
             "services",
             "review",
             "governance",
             "activity",
         ),
+        ShellPageConfig(page_id="object-detail", header_variant="article"),
         *_page_configs("impact-object", "impact-service"),
         *_page_configs("revision-history", header_variant="compact"),
     ),
@@ -199,7 +202,6 @@ ADMIN_EXPERIENCE = ExperienceContext(
         *_page_configs(
             "overview",
             "read-queue",
-            "object-detail",
             "services",
             "review",
             "governance",
@@ -211,6 +213,7 @@ ADMIN_EXPERIENCE = ExperienceContext(
             "schemas",
             "settings",
         ),
+        ShellPageConfig(page_id="object-detail", header_variant="article"),
         *_page_configs("impact-object", "impact-service"),
         *_page_configs("revision-history", header_variant="compact"),
     ),

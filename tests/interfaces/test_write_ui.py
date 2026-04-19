@@ -79,7 +79,9 @@ class WriteUiTests(SemanticHookAssertions, unittest.TestCase):
 
     def test_removed_advanced_write_route_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            application = web_app(Path(temp_dir) / "runtime.db", source_root=Path(temp_dir) / "repo")
+            application = web_app(
+                Path(temp_dir) / "runtime.db", source_root=Path(temp_dir) / "repo"
+            )
             status, _, body = call_wsgi(application, "/write/advanced")
             self.assertEqual(status, "404 Not Found")
             self.assert_primary_surface(body, "system-error")

@@ -607,11 +607,16 @@ def _field_value_from_fragment(
             content = fragment.get("content")
             if isinstance(content, list):
                 return [str(item).strip() for item in content if str(item).strip()]
-        if rule.get("allow_paragraph_to_list") and fragment_kind in {
-            "paragraph",
-            "table",
-            "preformatted",
-        } and text:
+        if (
+            rule.get("allow_paragraph_to_list")
+            and fragment_kind
+            in {
+                "paragraph",
+                "table",
+                "preformatted",
+            }
+            and text
+        ):
             return [line.strip() for line in text.splitlines() if line.strip()] or [text]
         return None
     if kind == "select":

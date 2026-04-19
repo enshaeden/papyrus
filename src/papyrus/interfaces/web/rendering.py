@@ -48,8 +48,11 @@ class PageRenderer:
         role_id: str = "",
         current_path: str = "",
         shell_variant: str = "normal",
+        header_variant: str | None = None,
         page_surface: str = "",
     ) -> str:
+        page_context_dict = page_context or {}
+        header_kicker = str(page_context_dict.get("action_kicker") or "").strip()
         role_config = experience_for_role(role_id or "operator")
         surface_id = str(page_surface or active_nav or page_title).strip()
         page_config = role_config.page_config(surface_id)
@@ -78,7 +81,7 @@ class PageRenderer:
             },
         )
         sidebar_html = ""
-        if normalized_shell_variant == "normal":
+        if normalized_shell_variant in {"normal", "minimal"}:
             nav_sections_html = join_html(
                 [
                     (
@@ -90,7 +93,7 @@ class PageRenderer:
                                 '<li class="sidebar-item">'
                                 + f'<a class="{"sidebar-link is-active" if self._nav_item_is_active(item, active_nav=active_nav, current_path=current_path) else "sidebar-link"}" href="{escape(item.href)}">'
                                 + f"{escape(item.label)}"
-                                + '</a>'
+                                + "</a>"
                                 + "</li>"
                                 for item in section.items
                             ]
@@ -107,19 +110,27 @@ class PageRenderer:
                 },
             )
         page_header_html = self._page_header_html(
-            page_header=page_header or {}, header_variant=page_config.header_variant
+            page_header=page_header or {},
+            header_variant=header_variant or page_config.header_variant,
+            kicker_override=header_kicker,
         )
-        aside_column_html = (
-            f'<aside class="context-column">{aside_html}</aside>' if has_aside else ""
-        )
-        shell_columns_classes = [
-            "shell-columns",
-            f"shell-columns-{escape(normalized_shell_variant)}",
-        ]
-        if sidebar_html.strip():
-            shell_columns_classes.append("has-sidebar")
-        if aside_column_html.strip():
-            shell_columns_classes.append("has-aside")
+        if (header_variant or page_config.header_variant) == "article":
+            aside_column_html = ""
+            shell_columns_classes = ["shell-columns", "shell-columns-minimal"]
+            if sidebar_html.strip():
+                shell_columns_classes.append("has-sidebar")
+        else:
+            aside_column_html = (
+                f'<aside class="context-column">{aside_html}</aside>' if has_aside else ""
+            )
+            shell_columns_classes = [
+                "shell-columns",
+                f"shell-columns-{escape(normalized_shell_variant)}",
+            ]
+            if sidebar_html.strip():
+                shell_columns_classes.append("has-sidebar")
+            if aside_column_html.strip():
+                shell_columns_classes.append("has-aside")
         scripts_html = join_html(
             [f'<script src="{escape(path)}" defer></script>' for path in scripts], "\n"
         )
@@ -158,6 +169,7 @@ class PageRenderer:
                 "active_nav": escape(
                     active_item.key if active_item is not None else active_nav or ""
                 ),
+                "is_luxury": (header_variant or page_config.header_variant) == "article",
             },
         )
 
@@ -198,7 +210,9 @@ class PageRenderer:
             return current_path.startswith(prefix)
         return current_path == prefix or current_path.startswith(prefix + "/")
 
-    def _page_header_html(self, *, page_header: dict[str, object], header_variant: str) -> str:
+    def _page_header_html(
+        self, *, page_header: dict[str, object], header_variant: str, kicker_override: str = ""
+    ) -> str:
         headline = str(page_header.get("headline") or "").strip()
         kicker = str(page_header.get("kicker") or "").strip()
         context_html = str(page_header.get("context_html") or "").strip()
@@ -206,6 +220,25 @@ class PageRenderer:
         actions_html = str(page_header.get("actions_html") or "").strip()
         if not any((headline, kicker, context_html, detail_html, actions_html)):
             return ""
+
+        if header_variant == "article":
+            return (
+                '<div class="article-header" data-component="article-header">'
+                + '<a href="javascript:history.back()" class="article-back-link"><i data-lucide="arrow-left"></i> Back</a>'
+                + f'<p class="article-kicker">{escape(kicker_override or "Governance")}</p>'
+                + f"<h1>{escape(page_header.get('headline', ''))}</h1>"
+                + '<div class="article-meta-row">'
+                + '<div class="article-author">'
+                + '<div class="user-avatar user-avatar-operator">JS</div>'
+                + '<div class="article-author-info">'
+                + '<span class="article-author-name">Justin Sadow</span>'
+                + '<span class="article-author-role">Platform Operator</span>'
+                + "</div></div>"
+                + '<div class="article-meta-item"><i data-lucide="clock"></i> 4 min read</div>'
+                + '<div class="article-meta-item"><i data-lucide="shield-check"></i> Verified</div>'
+                + "</div></div>"
+            )
+
         fragments = [
             f'<p class="page-kicker">{escape(kicker)}</p>' if kicker else "",
             f"<h1>{escape(headline)}</h1>" if headline else "",

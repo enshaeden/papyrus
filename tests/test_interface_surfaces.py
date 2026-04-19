@@ -182,9 +182,7 @@ class InterfaceSurfaceTests(SemanticHookAssertions, unittest.TestCase):
         self.assertEqual(status, "303 See Other")
         self.assertEqual(headers["Location"], "/read")
 
-        status, _, body = call_wsgi(
-            reader_app, "/read/object/kb-troubleshooting-vpn-connectivity"
-        )
+        status, _, body = call_wsgi(reader_app, "/read/object/kb-troubleshooting-vpn-connectivity")
         self.assertEqual(status, "200 OK")
         self.assert_page_contract(
             body,

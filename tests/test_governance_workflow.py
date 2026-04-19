@@ -86,13 +86,7 @@ def ready_runbook_body(
     *,
     boundaries: str = "Stay within the documented workflow boundary and escalate when scope changes.",
 ) -> str:
-    return (
-        "## Use When\n\n"
-        + use_when
-        + "\n\n## Boundaries And Escalation\n\n"
-        + boundaries
-        + "\n"
-    )
+    return "## Use When\n\n" + use_when + "\n\n## Boundaries And Escalation\n\n" + boundaries + "\n"
 
 
 class GovernanceWorkflowTests(unittest.TestCase):

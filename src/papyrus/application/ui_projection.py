@@ -462,9 +462,7 @@ def build_draft_readiness_projection(
     completion: dict[str, Any],
     submit_action: ActionDescriptor | dict[str, Any] | None,
 ) -> WorkflowProjection:
-    draft_state = str(
-        completion.get("draft_progress_state") or DraftProgressState.BLOCKED.value
-    )
+    draft_state = str(completion.get("draft_progress_state") or DraftProgressState.BLOCKED.value)
     next_section_id = str(completion.get("next_section_id") or "").strip()
     next_section_label = (
         blueprint.section(next_section_id).display_name

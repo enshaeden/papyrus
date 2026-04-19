@@ -77,7 +77,9 @@ def parse_odt_bytes(payload: bytes) -> dict[str, object]:
                         items.append(item_text)
                 if items:
                     lists.append({"items": items, "ordered": False})
-                    elements.append({"kind": "list", "items": items, "ordered": False, "text": "\n".join(items)})
+                    elements.append(
+                        {"kind": "list", "items": items, "ordered": False, "text": "\n".join(items)}
+                    )
                 continue
             if namespace == TABLENS and localname == "table":
                 rows: list[list[str]] = []
@@ -86,7 +88,10 @@ def parse_odt_bytes(payload: bytes) -> dict[str, object]:
                         continue
                     cells: list[str] = []
                     for cell in getattr(row, "childNodes", []):
-                        if _qname(cell) not in {(TABLENS, "table-cell"), (TABLENS, "covered-table-cell")}:
+                        if _qname(cell) not in {
+                            (TABLENS, "table-cell"),
+                            (TABLENS, "covered-table-cell"),
+                        }:
                             continue
                         cells.append(extractText(cell).strip())
                     if any(cells):
@@ -97,7 +102,9 @@ def parse_odt_bytes(payload: bytes) -> dict[str, object]:
                         {
                             "kind": "table",
                             "rows": rows,
-                            "text": "\n".join(" | ".join(cell for cell in row if cell) for row in rows),
+                            "text": "\n".join(
+                                " | ".join(cell for cell in row if cell) for row in rows
+                            ),
                         }
                     )
                 continue

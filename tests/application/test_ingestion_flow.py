@@ -288,7 +288,9 @@ class IngestionFlowTests(unittest.TestCase):
                 declared_media_type="text/markdown",
             )
 
-            preformatted = [section for section in result["sections"] if section["kind"] == "preformatted"]
+            preformatted = [
+                section for section in result["sections"] if section["kind"] == "preformatted"
+            ]
             self.assertEqual(len(preformatted), 1)
             self.assertIn("papyrus ingest sample.md", preformatted[0]["text"])
 
@@ -339,7 +341,7 @@ class IngestionFlowTests(unittest.TestCase):
         }
         if RTF_AVAILABLE:
             payloads["sample.rtf"] = (
-                br"{\rtf1\ansi Access Recovery\par - Confirm identity\par}",
+                rb"{\rtf1\ansi Access Recovery\par - Confirm identity\par}",
                 "application/rtf",
                 "RTF",
             )
